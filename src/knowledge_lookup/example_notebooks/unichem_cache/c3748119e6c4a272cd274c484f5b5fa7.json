@@ -1,0 +1,24 @@
+{
+  "key": "unichem:source_info_id_1",
+  "value": {
+    "UCICount": 2473434,
+    "baseIdUrl": "https://www.ebi.ac.uk/chembldb/compound/inspect/",
+    "created": "2010-12-31 09:00:01",
+    "description": "A database of bioactive drug-like small molecules and bioactivities abstracted from the scientific literature.",
+    "lastUpdated": "2024-12-11",
+    "name": "chembl",
+    "nameLabel": "ChEMBL",
+    "nameLong": "ChEMBL",
+    "private": false,
+    "sourceID": 1,
+    "srcDetails": "Standard InChIs and Keys provided on ftp site for each release.",
+    "srcReleaseDate": null,
+    "srcReleaseNumber": 35,
+    "srcUrl": "https://www.ebi.ac.uk/chembl/",
+    "updateComments": "approx 6 monthly updates"
+  },
+  "created_at": 1759936522.9318368,
+  "ttl": 86400,
+  "access_count": 1,
+  "last_accessed": 1759936767.2379124
+}

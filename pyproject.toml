@@ -1,0 +1,96 @@
+[tool.poetry]
+name = "biomedical-knowledge-lookup"
+version = "1.0.0"
+description = "Unified biological concept lookup across 29+ biomedical knowledge sources including BioPortal, OLS, UMLS, ChEMBL, DisGeNET, and more"
+authors = ["Jonas Heinicke <jonas.heinicke@helmholtz-hzi.de>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup"
+repository = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup"
+keywords = ["biomedical", "ontology", "knowledge-graph", "bioinformatics", "semantic-web", "rdf", "bioportal", "ols", "umls"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+packages = [{include = "knowledge_lookup", from = "src"}]
+
+[tool.poetry.scripts]
+knowledge-lookup = "knowledge_lookup.__main__:app"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+aiohttp = "^3.9.0"
+requests = "^2.31.0"
+rdflib = "^7.0.0"
+pandas = "^2.0.0"
+pydantic = "^2.0.0"
+tenacity = "^8.2.0"
+backoff = "^2.2.0"
+python-dotenv = "^1.0.0"
+rich = "^13.0.0"
+typer = "^0.9.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.21.0"
+black = "^24.0.0"
+ruff = "^0.1.0"
+mypy = "^1.0.0"
+jupyter = "^1.0.0"
+ipykernel = "^6.0.0"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^7.0.0"
+sphinx-rtd-theme = "^2.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 99
+include = '\.pyi?$'
+exclude = '''
+/(
+  \.git
+  | \.venv
+)/
+'''
+
+[tool.ruff]
+line-length = 99
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "C901", # too complex
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "network: marks tests that require network access",
+]
