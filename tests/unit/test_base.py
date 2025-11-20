@@ -2,9 +2,8 @@
 Unit tests for base adapter classes.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from knowledge_lookup.base import KnowledgeSourceAdapter
 from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 

@@ -2,7 +2,6 @@
 Unit tests for data models.
 """
 
-import pytest
 
 from knowledge_lookup.models import (
     ConceptIdentifier,

@@ -2,12 +2,12 @@
 Unit tests for adapter classes.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig
-from knowledge_lookup.adapters.ols_adapter import OLSAdapter
+import pytest
 from knowledge_lookup.adapters.bioportal_adapter import BioPortalAdapter
+from knowledge_lookup.adapters.ols_adapter import OLSAdapter
+from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 
 class TestOLSAdapter:
@@ -101,9 +101,7 @@ class TestBioPortalAdapter:
         self, mock_get, lookup_config, mock_bioportal_response
     ):
         """Test searching concepts with API key."""
-        config = LookupConfig(
-            api_keys={KnowledgeSource.BIOPORTAL: "test_api_key"}
-        )
+        config = LookupConfig(api_keys={KnowledgeSource.BIOPORTAL: "test_api_key"})
         adapter = BioPortalAdapter(config)
 
         mock_response = AsyncMock()
@@ -123,9 +121,7 @@ class TestBioPortalAdapter:
 
     def test_is_available_with_api_key(self, lookup_config):
         """Test is_available returns True with API key."""
-        config = LookupConfig(
-            api_keys={KnowledgeSource.BIOPORTAL: "test_api_key"}
-        )
+        config = LookupConfig(api_keys={KnowledgeSource.BIOPORTAL: "test_api_key"})
         adapter = BioPortalAdapter(config)
         # May return True or False depending on implementation
         result = adapter.is_available()
@@ -154,7 +150,6 @@ class TestAdapterFactory:
 
     def test_all_adapters_have_source(self, lookup_config):
         """Test that all adapters properly set their source."""
-        from knowledge_lookup.base import KnowledgeSourceAdapter
 
         # This is a general test that any adapter should pass
         adapter = OLSAdapter(lookup_config)
@@ -214,9 +209,7 @@ class TestAdapterRateLimiting:
 
     def test_get_rate_limit_custom(self):
         """Test getting custom rate limit from config."""
-        config = LookupConfig(
-            rate_limits={KnowledgeSource.OLS: 5.0}
-        )
+        config = LookupConfig(rate_limits={KnowledgeSource.OLS: 5.0})
         adapter = OLSAdapter(config)
         rate_limit = adapter.get_rate_limit()
         assert rate_limit == 5.0
