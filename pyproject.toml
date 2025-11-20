@@ -7,7 +7,17 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup"
 repository = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup"
-keywords = ["biomedical", "ontology", "knowledge-graph", "bioinformatics", "semantic-web", "rdf", "bioportal", "ols", "umls"]
+keywords = [
+    "biomedical",
+    "ontology",
+    "knowledge-graph",
+    "bioinformatics",
+    "semantic-web",
+    "rdf",
+    "bioportal",
+    "ols",
+    "umls",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -20,7 +30,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
-packages = [{include = "knowledge_lookup", from = "src"}]
+packages = [{ include = "knowledge_lookup", from = "src" }]
 
 [tool.poetry.scripts]
 knowledge-lookup = "knowledge_lookup.__main__:app"

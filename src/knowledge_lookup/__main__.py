@@ -7,7 +7,6 @@ A unified tool for biological concept lookup across multiple biomedical knowledg
 
 import asyncio
 import json
-import sys
 from typing import List, Optional
 
 import typer
@@ -63,7 +62,9 @@ def search(
                     source_enums.append(KnowledgeSource(source.upper()))
                 except ValueError:
                     console.print(f"[red]Error:[/red] Unknown source '{source}'")
-                    console.print(f"Available sources: {', '.join([s.value for s in KnowledgeSource])}")
+                    console.print(
+                        f"Available sources: {', '.join([s.value for s in KnowledgeSource])}"
+                    )
                     raise typer.Exit(1)
         else:
             source_enums = None
@@ -71,14 +72,12 @@ def search(
         # Perform search
         console.print(f"[bold blue]Searching for:[/bold blue] {query}")
         if source_enums:
-            console.print(f"[bold blue]Sources:[/bold blue] {', '.join([s.value for s in source_enums])}")
+            console.print(
+                f"[bold blue]Sources:[/bold blue] {', '.join([s.value for s in source_enums])}"
+            )
 
         async def do_search():
-            results = await lookup.search_concepts(
-                query=query,
-                sources=source_enums,
-                limit=limit
-            )
+            results = await lookup.search_concepts(query=query, sources=source_enums, limit=limit)
             return results
 
         results = asyncio.run(do_search())
@@ -101,23 +100,25 @@ def search(
                         "source": r.source.value,
                         "type": r.type.value if r.type else None,
                         "uri": r.uri,
-                        "score": getattr(r, 'score', None)
+                        "score": getattr(r, "score", None),
                     }
                     for r in results
-                ]
+                ],
             }
             console.print_json(json.dumps(output_data, indent=2))
 
             for result in results:
-                writer.writerow([
-                    result.id,
-                    result.name,
-                    result.description or "",
-                    result.source.value,
-                    result.type.value if result.type else "",
-                    result.uri or "",
-                    getattr(result, 'score', "")
-                ])
+                writer.writerow(
+                    [
+                        result.id,
+                        result.name,
+                        result.description or "",
+                        result.source.value,
+                        result.type.value if result.type else "",
+                        result.uri or "",
+                        getattr(result, "score", ""),
+                    ]
+                )
 
         else:  # table format
             table = Table(title=f"Search Results for '{query}'")
@@ -133,8 +134,9 @@ def search(
                     result.name,
                     result.source.value,
                     result.type.value if result.type else "",
-                    result.description or "" if len(result.description or "") <= 50
-                    else (result.description or "")[:47] + "..."
+                    result.description or ""
+                    if len(result.description or "") <= 50
+                    else (result.description or "")[:47] + "...",
                 )
 
             console.print(table)
@@ -175,11 +177,7 @@ def sources():
     }
 
     for source, (description, requires_key) in source_info.items():
-        table.add_row(
-            source.value,
-            description,
-            "Yes" if requires_key else "No"
-        )
+        table.add_row(source.value, description, "Yes" if requires_key else "No")
 
     console.print(table)
     console.print(f"\n[dim]Total sources: {len(KnowledgeSource)}[/dim]")
@@ -190,7 +188,7 @@ def info():
     """
     Show information about the Biomedical Knowledge Lookup package.
     """
-    from knowledge_lookup import __version__, __description__
+    from knowledge_lookup import __description__, __version__
 
     console.print("[bold blue]Biomedical Knowledge Lookup[/bold blue]")
     console.print(f"Version: {__version__}")
