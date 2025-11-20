@@ -108,10 +108,6 @@ def search(
             }
             console.print_json(json.dumps(output_data, indent=2))
 
-        elif output == "csv":
-            import csv
-            writer = csv.writer(sys.stdout)
-            writer.writerow(["ID", "Name", "Description", "Source", "Type", "URI", "Score"])
             for result in results:
                 writer.writerow([
                     result.id,

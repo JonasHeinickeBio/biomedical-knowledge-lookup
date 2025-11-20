@@ -24,11 +24,13 @@ from .oxo_adapter import OxOAdapter
 from .pubchem_adapter import PubChemAdapter
 from .quickgo_adapter import QuickGOAdapter
 from .reactome_adapter import ReactomeAdapter
-from .umls_adapter import UMLSAdapter
+from .tyto_adapter import TytoAdapter
 from .unichem_adapter import UniChemAdapter
 from .uniprot_adapter import UniProtAdapter
 from .wikidata_adapter import WikidataAdapter
 from .zooma_adapter import ZoomaAdapter
+
+# Note: UMLS adapter removed for standalone package - requires separate UMLS client dependency
 
 __all__ = [
     "UMLSAdapter",
@@ -55,4 +57,7 @@ __all__ = [
     "KEGGAdapter",
     "QuickGOAdapter",
     "ZoomaAdapter",
+    "TytoAdapter",
 ]
+
+# Note: UMLSAdapter removed from __all__ - requires separate UMLS client dependency

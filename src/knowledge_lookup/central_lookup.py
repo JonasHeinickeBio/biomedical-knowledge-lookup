@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 # Define the mapping from KnowledgeSource to Adapter classes here
 ADAPTER_CLASSES = {
-    KnowledgeSource.UMLS: adapters.UMLSAdapter,
+    # KnowledgeSource.UMLS: adapters.UMLSAdapter,  # Removed - requires separate UMLS client
     KnowledgeSource.BIOPORTAL: adapters.BioPortalAdapter,
     KnowledgeSource.OLS: adapters.OLSAdapter,
     KnowledgeSource.WIKIDATA: adapters.WikidataAdapter,
