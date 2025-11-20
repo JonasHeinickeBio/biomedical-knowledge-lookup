@@ -168,3 +168,4 @@ logs/
 # Test outputs
 test_outputs/
 benchmark_results/
+example_output/
