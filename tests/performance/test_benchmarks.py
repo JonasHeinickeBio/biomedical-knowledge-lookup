@@ -23,38 +23,25 @@ class TestCachingPerformance:
         cache_dir = tmp_path / "benchmark_cache"
         return KnowledgeLookupCache(disk_cache_dir=str(cache_dir))
 
-    def test_cache_write_performance(self, cache, benchmark):
+    def test_cache_write_performance(self, cache):
         """Benchmark cache write operations."""
+        start = time.time()
+        for i in range(100):
+            cache.set(f"key_{i}", f"value_{i}")
+        duration = time.time() - start
+        assert duration < 1.0  # Should complete in less than 1 second
 
-        def write_to_cache():
-            for i in range(100):
-                cache.set(f"key_{i}", f"value_{i}")
-
-        if hasattr(pytest, "benchmark"):
-            benchmark(write_to_cache)
-        else:
-            start = time.time()
-            write_to_cache()
-            duration = time.time() - start
-            assert duration < 1.0  # Should complete in less than 1 second
-
-    def test_cache_read_performance(self, cache, benchmark):
+    def test_cache_read_performance(self, cache):
         """Benchmark cache read operations."""
         # Prepare data
         for i in range(100):
             cache.set(f"key_{i}", f"value_{i}")
 
-        def read_from_cache():
-            for i in range(100):
-                cache.get(f"key_{i}")
-
-        if hasattr(pytest, "benchmark"):
-            benchmark(read_from_cache)
-        else:
-            start = time.time()
-            read_from_cache()
-            duration = time.time() - start
-            assert duration < 0.5  # Reads should be faster than writes
+        start = time.time()
+        for i in range(100):
+            cache.get(f"key_{i}")
+        duration = time.time() - start
+        assert duration < 0.5  # Reads should be faster than writes
 
     def test_cache_hit_rate(self, cache):
         """Test cache hit rate under normal load."""
@@ -102,8 +89,8 @@ class TestSearchPerformance:
 
     @pytest.fixture
     def lookup(self):
-        """Create lookup instance with caching enabled."""
-        config = LookupConfig(cache_enabled=True)
+        """Create lookup instance."""
+        config = LookupConfig()
         return CentralKnowledgeLookup(config)
 
     @patch("knowledge_lookup.adapters.ols_adapter.OLSAdapter.search_concepts")
@@ -218,7 +205,7 @@ class TestConcurrentOperations:
     @pytest.fixture
     def lookup(self):
         """Create lookup instance for concurrent tests."""
-        config = LookupConfig(cache_enabled=True)
+        config = LookupConfig()
         return CentralKnowledgeLookup(config)
 
     @patch("knowledge_lookup.adapters.ols_adapter.OLSAdapter.search_concepts")

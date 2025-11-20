@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource, LookupConfig
-from knowledge_lookup.models import ConceptType, UnifiedConcept
+from knowledge_lookup.models import ConceptType, LookupResult, UnifiedConcept
 
 
 @pytest.mark.integration
@@ -34,9 +34,10 @@ class TestCentralKnowledgeLookupIntegration:
         results = await lookup.search_concepts(
             "diabetes", sources=[KnowledgeSource.OLS]
         )
-        assert isinstance(results, dict)
-        if KnowledgeSource.OLS in results:
-            assert len(results[KnowledgeSource.OLS]) > 0
+        assert isinstance(results, LookupResult)
+        assert results.query == "diabetes"
+        if len(results.concepts) > 0:
+            assert results.concepts[0].primary_id is not None
 
     @pytest.mark.asyncio
     @patch("knowledge_lookup.adapters.ols_adapter.OLSAdapter.search_concepts")
@@ -65,9 +66,10 @@ class TestCentralKnowledgeLookupIntegration:
         results = await lookup.search_concepts(
             "diabetes", sources=[KnowledgeSource.OLS, KnowledgeSource.BIOPORTAL]
         )
-        assert isinstance(results, dict)
-        # Should have results from at least one source
-        assert len(results) >= 0
+        assert isinstance(results, LookupResult)
+        assert results.query == "diabetes"
+        # Should query multiple sources
+        assert len(results.sources_queried) >= 1
 
     @pytest.mark.asyncio
     @patch("knowledge_lookup.adapters.ols_adapter.OLSAdapter.get_concept_details")
@@ -77,7 +79,7 @@ class TestCentralKnowledgeLookupIntegration:
             primary_id="DOID:9351",
             primary_label="diabetes mellitus",
             concept_type=ConceptType.DISEASE,
-            description="A metabolic disease",
+            definitions=["A metabolic disease"],
         )
         mock_details.return_value = mock_concept
 
@@ -113,8 +115,8 @@ class TestCentralKnowledgeLookupIntegration:
         )
 
         # Both should return results
-        assert isinstance(results1, dict)
-        assert isinstance(results2, dict)
+        assert isinstance(results1, LookupResult)
+        assert isinstance(results2, LookupResult)
 
     @pytest.mark.asyncio
     async def test_search_with_limit(self, lookup):
@@ -133,7 +135,7 @@ class TestCentralKnowledgeLookupIntegration:
             mock_search.return_value = mock_concepts
 
             results = await lookup.search_concepts(
-                "test", sources=[KnowledgeSource.OLS], limit=10
+                "test", sources=[KnowledgeSource.OLS], max_results=10
             )
             # Should pass the limit parameter to adapters
             mock_search.assert_called_once()
@@ -148,7 +150,8 @@ class TestCentralKnowledgeLookupIntegration:
             "diabetes", sources=[KnowledgeSource.OLS]
         )
         # Should handle error gracefully
-        assert isinstance(results, dict)
+        assert isinstance(results, LookupResult)
+        assert KnowledgeSource.OLS in results.sources_failed or KnowledgeSource.OLS in results.errors
 
     @pytest.mark.asyncio
     @patch("knowledge_lookup.adapters.ols_adapter.OLSAdapter.search_concepts")
@@ -169,8 +172,10 @@ class TestCentralKnowledgeLookupIntegration:
         results = await lookup.search_concepts(
             "diabetes", sources=[KnowledgeSource.OLS, KnowledgeSource.BIOPORTAL]
         )
-        # Should still get results from working source
-        assert isinstance(results, dict)
+        # Should still return a LookupResult
+        assert isinstance(results, LookupResult)
+        # One source should have failed
+        assert KnowledgeSource.OLS in results.sources_failed or KnowledgeSource.OLS in results.errors
 
 
 @pytest.mark.integration
@@ -233,13 +238,14 @@ class TestCentralLookupBatchOperations:
         ]
 
         queries = ["diabetes", "cancer", "asthma"]
-        results = {}
+        results = []
         for query in queries:
             result = await lookup.search_concepts(
                 query, sources=[KnowledgeSource.OLS]
             )
-            results[query] = result
+            results.append(result)
 
         assert len(results) == 3
-        for query in queries:
-            assert query in results
+        for i, query in enumerate(queries):
+            assert results[i].query == query
+            assert isinstance(results[i], LookupResult)
