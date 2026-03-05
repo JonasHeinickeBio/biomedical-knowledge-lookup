@@ -58,7 +58,7 @@ class InterProAdapter(KnowledgeSourceAdapter):
     async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
         """Get detailed information about a specific InterPro entry."""
         try:
-            ipr_id = concept_id.replace("InterPro:", "").replace("IPR", "IPR").strip()
+            ipr_id = concept_id.replace("InterPro:", "").strip()
             if not ipr_id.startswith("IPR"):
                 ipr_id = f"IPR{ipr_id}"
 

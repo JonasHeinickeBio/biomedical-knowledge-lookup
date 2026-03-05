@@ -59,7 +59,7 @@ class PfamAdapter(KnowledgeSourceAdapter):
     async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
         """Get detailed information about a specific Pfam entry."""
         try:
-            pfam_id = concept_id.replace("Pfam:", "").replace("PF", "PF").strip()
+            pfam_id = concept_id.replace("Pfam:", "").strip()
             if not pfam_id.startswith("PF"):
                 pfam_id = f"PF{pfam_id}"
 
