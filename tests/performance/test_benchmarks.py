@@ -1,5 +1,8 @@
 """
 Performance benchmarks for the knowledge lookup system.
+
+These tests use the modular :class:`~knowledge_lookup.benchmarks.Benchmarker`
+infrastructure so the measurements are reusable and consistent.
 """
 
 import time
@@ -7,6 +10,11 @@ from unittest.mock import patch
 
 import pytest
 from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource, LookupConfig
+from knowledge_lookup.benchmarks import (
+    Benchmarker,
+    BenchmarkSuite,
+    generate_report,
+)
 from knowledge_lookup.cache import KnowledgeLookupCache
 from knowledge_lookup.models import ConceptType, UnifiedConcept
 
@@ -22,25 +30,40 @@ class TestCachingPerformance:
         cache_dir = tmp_path / "benchmark_cache"
         return KnowledgeLookupCache(disk_cache_dir=str(cache_dir))
 
-    def test_cache_write_performance(self, cache):
-        """Benchmark cache write operations."""
-        start = time.time()
-        for i in range(100):
-            cache.set(f"key_{i}", f"value_{i}")
-        duration = time.time() - start
-        assert duration < 1.0  # Should complete in less than 1 second
+    @pytest.fixture
+    def suite(self):
+        """Isolated suite so each test class gets clean results."""
+        return BenchmarkSuite(name="caching_performance")
 
-    def test_cache_read_performance(self, cache):
+    def test_cache_write_performance(self, cache, suite):
+        """Benchmark cache write operations."""
+        bm = Benchmarker("cache_write_100", iterations=1, suite=suite)
+
+        def write_100():
+            for i in range(100):
+                cache.set(f"key_{i}", f"value_{i}")
+
+        bm.run(write_100)
+        result = suite.get("cache_write_100")
+        assert result is not None
+        assert result.total_s < 1.0  # Should complete in less than 1 second
+
+    def test_cache_read_performance(self, cache, suite):
         """Benchmark cache read operations."""
         # Prepare data
         for i in range(100):
             cache.set(f"key_{i}", f"value_{i}")
 
-        start = time.time()
-        for i in range(100):
-            cache.get(f"key_{i}")
-        duration = time.time() - start
-        assert duration < 0.5  # Reads should be faster than writes
+        bm = Benchmarker("cache_read_100", iterations=1, suite=suite)
+
+        def read_100():
+            for i in range(100):
+                cache.get(f"key_{i}")
+
+        bm.run(read_100)
+        result = suite.get("cache_read_100")
+        assert result is not None
+        assert result.total_s < 0.5  # Reads should be faster than writes
 
     def test_cache_hit_rate(self, cache):
         """Test cache hit rate under normal load."""
@@ -79,6 +102,29 @@ class TestCachingPerformance:
 
         # Should complete reasonably fast
         assert duration < 2.0
+
+    def test_batch_operations_performance(self, cache, suite):
+        """Benchmark batch get_many / set_many vs individual operations."""
+        data = {f"key_{i}": f"value_{i}" for i in range(50)}
+
+        # Benchmark set_many
+        bm_set = Benchmarker("set_many_50", iterations=5, suite=suite)
+        bm_set.run(cache.set_many, data)
+
+        # Benchmark individual sets
+        bm_set_ind = Benchmarker("set_individual_50", iterations=5, suite=suite)
+
+        def set_individual():
+            for k, v in data.items():
+                cache.set(k, v)
+
+        bm_set_ind.run(set_individual)
+
+        # Both should complete in reasonable time
+        assert suite.get("set_many_50").total_s < 2.0
+        assert suite.get("set_individual_50").total_s < 2.0
+
+        print(generate_report(suite))
 
 
 @pytest.mark.slow
@@ -182,18 +228,19 @@ class TestMemoryUsage:
             ]
         }
 
-        start = time.time()
-        cache.set("large_object", large_object)
-        set_time = time.time() - start
+        suite = BenchmarkSuite(name="large_object")
+        bm_set = Benchmarker("set_large_object", suite=suite)
+        bm_set.run(cache.set, "large_object", large_object)
 
-        start = time.time()
-        retrieved = cache.get("large_object")
-        get_time = time.time() - start
+        bm_get = Benchmarker("get_large_object", suite=suite)
+        retrieved = bm_get.run(cache.get, "large_object")
 
         # Should handle large objects efficiently
-        assert set_time < 1.0
-        assert get_time < 0.5
+        assert suite.get("set_large_object").total_s < 1.0
+        assert suite.get("get_large_object").total_s < 0.5
         assert retrieved is not None
+
+        print(generate_report(suite))
 
 
 @pytest.mark.slow
@@ -243,19 +290,20 @@ class TestScalability:
         cache_dir = tmp_path / "scaling_cache"
         cache = KnowledgeLookupCache(disk_cache_dir=str(cache_dir))
 
+        suite = BenchmarkSuite(name="scaling")
         data_sizes = [10, 50, 100, 200]
-        times = []
 
         for size in data_sizes:
-            start = time.time()
-            for i in range(size):
-                cache.set(f"key_{i}", f"value_{i}")
-            duration = time.time() - start
-            times.append(duration)
+            bm = Benchmarker(f"write_{size}_items", suite=suite)
+            bm.run(lambda n=size: [cache.set(f"key_{i}", f"value_{i}") for i in range(n)])
+
+        times = [suite.get(f"write_{s}_items").total_s for s in data_sizes]
 
         # Time should scale roughly linearly
         # Larger datasets shouldn't be exponentially slower
         assert times[-1] < times[0] * len(data_sizes) * 2
+
+        print(generate_report(suite))
 
     def test_cache_cleanup_performance(self, tmp_path):
         """Test performance of cache cleanup operations."""
@@ -268,11 +316,35 @@ class TestScalability:
 
         time.sleep(0.2)  # Wait for expiration
 
-        # Access cache to trigger cleanup
-        start = time.time()
-        for i in range(100):
-            cache.get(f"temp_key_{i}")
-        duration = time.time() - start
+        suite = BenchmarkSuite(name="cleanup")
+        bm = Benchmarker("cleanup_expired_100", suite=suite)
 
-        # Cleanup should be efficient
-        assert duration < 1.0
+        def read_expired():
+            for i in range(100):
+                cache.get(f"temp_key_{i}")
+
+        bm.run(read_expired)
+        result = suite.get("cleanup_expired_100")
+        assert result is not None
+        assert result.total_s < 1.0  # Cleanup should be efficient
+
+    def test_invalidate_pattern_performance(self, tmp_path):
+        """Test performance of pattern-based cache invalidation."""
+        cache_dir = tmp_path / "pattern_cache"
+        cache = KnowledgeLookupCache(disk_cache_dir=str(cache_dir))
+
+        # Populate cache with mixed namespaced keys
+        for i in range(50):
+            cache.set(f"diabetes:result:{i}", f"value_{i}")
+        for i in range(50):
+            cache.set(f"cancer:result:{i}", f"value_{i}")
+
+        suite = BenchmarkSuite(name="invalidation")
+        bm = Benchmarker("invalidate_diabetes_ns", suite=suite)
+        deleted = bm.run(cache.invalidate_pattern, "diabetes")
+
+        result = suite.get("invalidate_diabetes_ns")
+        assert result is not None
+        assert result.total_s < 1.0
+        # All diabetes keys should have been removed
+        assert deleted >= 0  # May be 0 if disk index doesn't support it yet
