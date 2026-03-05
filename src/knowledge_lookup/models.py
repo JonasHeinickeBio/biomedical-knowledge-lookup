@@ -44,6 +44,14 @@ class KnowledgeSource(Enum):
     MYGENEINFO = "mygeneinfo"
     HGNC = "hgnc"
     EUTILS = "eutils"
+    EUROPEPMC = "europepmc"
+    OMIM = "omim"
+    CLINVAR = "clinvar"
+    COSMIC = "cosmic"
+    PDB = "pdb"
+    INTERPRO = "interpro"
+    PFAM = "pfam"
+    STRING = "string"
 
 
 class ConceptType(Enum):
