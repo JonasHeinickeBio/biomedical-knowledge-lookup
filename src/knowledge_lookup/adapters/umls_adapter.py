@@ -6,7 +6,7 @@ Integrates with the existing UMLS client to provide unified concept lookup.
 
 import logging
 from typing import List, Optional
-from ...umls.client import create_umls_client, OptimizedUMLSClient
+from knowledge_lookup.umls.client import create_umls_client, OptimizedUMLSClient
 from ..base import KnowledgeSourceAdapter
 from ..models import UnifiedConcept, KnowledgeSource, ConceptType, LookupConfig
 

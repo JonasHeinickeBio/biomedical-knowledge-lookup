@@ -84,6 +84,8 @@ class ZoomaAdapter(KnowledgeSourceAdapter):
     
     def get_rate_limit(self) -> float:
         """Get rate limit for Zooma queries (requests per second)."""
+        if self.config and self.config.rate_limits and KnowledgeSource.ZOOMA in self.config.rate_limits:
+            return self.config.rate_limits[KnowledgeSource.ZOOMA]
         return 10.0  # Zooma doesn't specify strict rate limits, using conservative value
     
     async def search_concepts(self, query: str, limit: int = 20, property_type: Optional[str] = None) -> List[UnifiedConcept]:

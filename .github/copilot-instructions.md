@@ -23,7 +23,7 @@ This is a unified Python library for biological concept lookup across 29+ biomed
 
 ## Development Workflows
 - **Setup**: `poetry install` (includes dev dependencies)
-- **Testing**: `poetry run pytest` (unit/integration markers available)
+- **Testing**: `poetry run pytest` (unit/integration markers available) - Note: run through Poetry to ensure correct environment
 - **Code Quality**: `poetry run pre-commit run --all-files` (Black, Ruff, MyPy)
 - **CLI**: `poetry run knowledge-lookup search "diabetes"` (via `__main__.py`)
 - **API Keys**: Set as environment variables (e.g., `BIOPORTAL_API_KEY`) or in `.env`

@@ -210,6 +210,8 @@ class TytoAdapter(KnowledgeSourceAdapter):
     
     def get_rate_limit(self) -> float:
         """Get rate limit for Tyto queries (requests per second)."""
+        if self.config and self.config.rate_limits and KnowledgeSource.TYTO in self.config.rate_limits:
+            return self.config.rate_limits[KnowledgeSource.TYTO]
         return 10.0  # Increased rate limit for faster concurrent processing
     
     async def search_concepts(self, query: str, limit: int = 50) -> List[UnifiedConcept]:

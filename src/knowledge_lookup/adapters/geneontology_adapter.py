@@ -8,7 +8,7 @@ from ..models import KnowledgeSource
 
 class GeneOntologyAdapter(KnowledgeSourceAdapter):
     def get_source(self):
-        return KnowledgeSource.GO
+        return KnowledgeSource.GENEONTOLOGY
 
     async def search_concepts(self, query: str, limit: int = 20):
         return []

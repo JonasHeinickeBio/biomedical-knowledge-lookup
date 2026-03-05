@@ -9,9 +9,9 @@ import asyncio
 import time
 from pathlib import Path
 
-from aid_pais_knowledgegraph.knowledge_lookup import init_cache
-from aid_pais_knowledgegraph.knowledge_lookup.adapters.unichem_adapter import UniChemAdapter
-from aid_pais_knowledgegraph.knowledge_lookup.models import LookupConfig
+from knowledge_lookup import init_cache
+from knowledge_lookup.adapters.unichem_adapter import UniChemAdapter
+from knowledge_lookup.models import LookupConfig
 
 
 async def demonstrate_caching():
