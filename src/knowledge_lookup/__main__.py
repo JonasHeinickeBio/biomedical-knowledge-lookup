@@ -7,13 +7,13 @@ A unified tool for biological concept lookup across multiple biomedical knowledg
 
 import asyncio
 import json
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource
+from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource, __version__, __description__
 
 app = typer.Typer(
     name="biomedical-knowledge-lookup",
@@ -82,7 +82,7 @@ def search(
 
         results = asyncio.run(do_search())
 
-        if not results:
+        if not results.concepts:
             console.print("[yellow]No results found.[/yellow]")
             return
 
@@ -91,34 +91,39 @@ def search(
             output_data = {
                 "query": query,
                 "sources": [s.value for s in (source_enums or list(KnowledgeSource))],
-                "total_results": len(results),
+                "total_results": len(results.concepts),
                 "results": [
                     {
-                        "id": r.id,
-                        "name": r.name,
-                        "description": r.description,
-                        "source": r.source.value,
-                        "type": r.type.value if r.type else None,
-                        "uri": r.uri,
-                        "score": getattr(r, "score", None),
+                        "id": r.primary_id,
+                        "name": r.primary_label,
+                        "description": r.definitions[0] if r.definitions else None,
+                        "source": list(r.sources)[0].value if r.sources else None,
+                        "type": r.concept_type.value,
+                        "uri": None,  # UnifiedConcept doesn't have URI
+                        "score": r.confidence_score,
                     }
-                    for r in results
+                    for r in results.concepts
                 ],
             }
             console.print_json(json.dumps(output_data, indent=2))
 
-            for result in results:
-                writer.writerow(
-                    [
-                        result.id,
-                        result.name,
-                        result.description or "",
-                        result.source.value,
-                        result.type.value if result.type else "",
-                        result.uri or "",
-                        getattr(result, "score", ""),
-                    ]
-                )
+        elif output == "csv":
+            import csv
+            import sys
+            
+            writer = csv.writer(sys.stdout)
+            writer.writerow(["ID", "Name", "Description", "Source", "Type", "URI", "Score"])
+            
+            for result in results.concepts:
+                writer.writerow([
+                    result.primary_id,
+                    result.primary_label,
+                    (result.definitions[0] if result.definitions else ""),
+                    list(result.sources)[0].value if result.sources else "",
+                    result.concept_type.value,
+                    "",  # No URI in UnifiedConcept
+                    result.confidence_score,
+                ])
 
         else:  # table format
             table = Table(title=f"Search Results for '{query}'")
@@ -128,19 +133,19 @@ def search(
             table.add_column("Type", style="yellow")
             table.add_column("Description", max_width=50)
 
-            for result in results:
+            for result in results.concepts:
                 table.add_row(
-                    result.id,
-                    result.name,
-                    result.source.value,
-                    result.type.value if result.type else "",
-                    result.description or ""
-                    if len(result.description or "") <= 50
-                    else (result.description or "")[:47] + "...",
+                    result.primary_id,
+                    result.primary_label,
+                    list(result.sources)[0].value if result.sources else "",
+                    result.concept_type.value,
+                    (result.definitions[0] if result.definitions else "")
+                    if len((result.definitions[0] if result.definitions else "")) <= 50
+                    else ((result.definitions[0] if result.definitions else "")[:47] + "..."),
                 )
 
             console.print(table)
-            console.print(f"\n[bold green]Total results:[/bold green] {len(results)}")
+            console.print(f"\n[bold green]Total results:[/bold green] {len(results.concepts)}")
 
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")

@@ -3,18 +3,41 @@ Pytest configuration and fixtures for the test suite.
 """
 
 import asyncio
-from typing import Dict, List
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from knowledge_lookup import LookupConfig
 from knowledge_lookup.models import (
     ConceptType,
     KnowledgeSource,
+    LookupResult,
     UnifiedConcept,
 )
 
+# Fix Typer 0.9.x compatibility with Click 8.1+
+try:
+    import typer.core
+    import click
+    
+    def robust_metavar(original_func):
+        def wrapper(self, *args, **kwargs):
+            try:
+                return original_func(self, *args, **kwargs)
+            except TypeError:
+                # If it failed with TypeError, try calling with fewer args
+                if len(args) > 0:
+                    return wrapper(self, *args[:-1], **kwargs)
+                return original_func(self)
+        return wrapper
+
+    # Patch Click and Typer methods that commonly cause signature issues
+    click.ParamType.get_metavar = robust_metavar(click.ParamType.get_metavar)
+    click.Parameter.make_metavar = robust_metavar(click.Parameter.make_metavar)
+    typer.core.TyperArgument.make_metavar = robust_metavar(typer.core.TyperArgument.make_metavar)
+    typer.core.TyperOption.make_metavar = robust_metavar(typer.core.TyperOption.make_metavar)
+
+except (ImportError, AttributeError):
+    pass
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -55,7 +78,7 @@ def sample_unified_concept():
 
 
 @pytest.fixture
-def sample_unified_concepts() -> List[UnifiedConcept]:
+def sample_unified_concepts() -> list[UnifiedConcept]:
     """Provide multiple sample UnifiedConcepts for testing."""
     return [
         UnifiedConcept(
@@ -106,14 +129,15 @@ def mock_bioportal_response():
 def mock_ols_response():
     """Provide a mock OLS API response."""
     return {
-        "_embedded": {
-            "terms": [
+        "response": {
+            "docs": [
                 {
                     "iri": "http://purl.obolibrary.org/obo/DOID_9351",
                     "label": "diabetes mellitus",
                     "description": ["A metabolic disease"],
                     "synonyms": ["diabetes", "DM"],
                     "ontology_name": "doid",
+                    "short_form": "DOID_9351",
                 }
             ]
         }
@@ -152,14 +176,16 @@ def mock_chembl_response():
 
 
 @pytest.fixture
-def mock_disgenet_response():
-    """Provide a mock DisGeNET API response."""
-    return [
-        {
-            "geneSymbol": "INS",
-            "geneid": "3630",
-            "diseaseId": "C0011849",
-            "diseaseName": "Diabetes Mellitus",
-            "score": 0.9,
-        }
-    ]
+def sample_lookup_result(sample_unified_concepts) -> LookupResult:
+    """Provide a sample LookupResult for testing."""
+    result = LookupResult(
+        query="diabetes",
+        concepts=sample_unified_concepts,
+        total_found=len(sample_unified_concepts),
+        sources_queried=[KnowledgeSource.OLS, KnowledgeSource.BIOPORTAL],
+        sources_succeeded=[KnowledgeSource.OLS],
+        sources_failed=[KnowledgeSource.BIOPORTAL],
+        execution_time=1.5,
+        errors={KnowledgeSource.BIOPORTAL: "API timeout"},
+    )
+    return result

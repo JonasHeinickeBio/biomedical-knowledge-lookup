@@ -60,7 +60,3 @@ __all__ = [
 __version__ = "1.0.0"
 __author__ = "AID-PAIS Knowledge Graph Team"
 __description__ = "Unified biological concept lookup across multiple knowledge sources"
-# Package metadata
-__version__ = "1.0.0"
-__author__ = "AID-PAIS Knowledge Graph Team"
-__description__ = "Unified biological concept lookup across multiple knowledge sources"

@@ -35,6 +35,7 @@ class KnowledgeSource(Enum):
     REACTOME = "reactome"
     DRUGBANK = "drugbank"
     GO = "go"
+    GENEONTOLOGY = "geneontology"
     HPO = "hpo"
     OBOFOUNDRY = "obofoundry"
     EBIOLS = "ebiols"

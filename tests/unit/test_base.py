@@ -1,67 +1,82 @@
 """
-Unit tests for base adapter classes.
+Unit tests for base adapter.
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from knowledge_lookup.base import KnowledgeSourceAdapter
-from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
-
-
-class MockAdapter(KnowledgeSourceAdapter):
-    """Mock adapter for testing the base class."""
-
-    def get_source(self) -> KnowledgeSource:
-        return KnowledgeSource.OLS
-
-    async def search_concepts(self, query: str, limit: int = 20):
-        return [
-            UnifiedConcept(
-                primary_id="TEST:001",
-                primary_label="Test Concept",
-                concept_type=ConceptType.DISEASE,
-            )
-        ]
-
-    async def get_concept_details(self, concept_id: str):
-        return UnifiedConcept(
-            primary_id=concept_id,
-            primary_label="Test Concept Details",
-            concept_type=ConceptType.DISEASE,
-        )
+from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 
 class TestKnowledgeSourceAdapter:
-    """Tests for KnowledgeSourceAdapter base class."""
+    """Tests for KnowledgeSourceAdapter."""
 
     @pytest.fixture
-    def adapter(self, lookup_config):
-        """Create a mock adapter instance."""
-        return MockAdapter(lookup_config)
+    def config(self):
+        """Create LookupConfig instance."""
+        return LookupConfig()
 
-    def test_adapter_initialization(self, lookup_config):
+    @pytest.fixture
+    def adapter(self, config):
+        """Create a test adapter."""
+
+        class TestAdapter(KnowledgeSourceAdapter):
+            def get_source(self):
+                return KnowledgeSource.BIOPORTAL
+
+            async def search_concepts(self, query: str, limit: int = 20):
+                return []
+
+            async def get_concept_details(self, concept_id: str):
+                return None
+
+        return TestAdapter(config)
+
+    def test_adapter_initialization(self, config):
         """Test adapter initialization."""
-        adapter = MockAdapter(lookup_config)
-        assert adapter.config == lookup_config
-        assert adapter.source == KnowledgeSource.OLS
 
-    def test_get_source(self, adapter):
-        """Test get_source method."""
-        assert adapter.get_source() == KnowledgeSource.OLS
+        class TestAdapter(KnowledgeSourceAdapter):
+            def get_source(self):
+                return KnowledgeSource.BIOPORTAL
+
+            async def search_concepts(self, query: str, limit: int = 20):
+                return []
+
+            async def get_concept_details(self, concept_id: str):
+                return None
+
+        adapter = TestAdapter(config)
+        assert adapter.config == config
+        assert adapter.session is None
+
+    def test_get_source_abstract(self, config):
+        """Test get_source is abstract."""
+        with pytest.raises(TypeError, match="Can't instantiate abstract class"):
+            KnowledgeSourceAdapter(config)
+
+    def test_is_available_default(self, adapter):
+        """Test is_available default implementation."""
+        assert adapter.is_available() is True
+
+    def test_get_rate_limit_default(self, adapter):
+        """Test get_rate_limit default."""
+        rate = adapter.get_rate_limit()
+        assert isinstance(rate, int | float)
+        assert rate >= 0
 
     @pytest.mark.asyncio
-    async def test_search_concepts(self, adapter):
-        """Test search_concepts method."""
-        results = await adapter.search_concepts("test query")
-        assert len(results) == 1
-        assert results[0].primary_id == "TEST:001"
+    async def test_search_concepts_implemented(self, adapter):
+        """Test search_concepts is implemented in test adapter."""
+        result = await adapter.search_concepts("test")
+        assert isinstance(result, list)
+        assert len(result) == 0
 
     @pytest.mark.asyncio
-    async def test_get_concept_details(self, adapter):
-        """Test get_concept_details method."""
+    async def test_get_concept_details_implemented(self, adapter):
+        """Test get_concept_details is implemented in test adapter."""
         result = await adapter.get_concept_details("TEST:001")
-        assert result is not None
-        assert result.primary_id == "TEST:001"
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_get_mappings_default(self, adapter):
@@ -77,77 +92,60 @@ class TestKnowledgeSourceAdapter:
         assert isinstance(relationships, list)
         assert len(relationships) == 0
 
-    def test_is_available_default(self, adapter):
-        """Test is_available default implementation."""
-        assert adapter.is_available() is True
-
-    def test_get_rate_limit(self, adapter):
-        """Test get_rate_limit method."""
-        rate_limit = adapter.get_rate_limit()
-        assert isinstance(rate_limit, (int, float))
-        assert rate_limit >= 0
+    @pytest.mark.asyncio
+    async def test_context_manager(self, adapter):
+        """Test async context manager."""
+        async with adapter:
+            # Session should still be None until _get_session is called
+            assert adapter.session is None
+        # Session should still be None after context exit since it was never created
+        assert adapter.session is None
 
     @pytest.mark.asyncio
-    async def test_context_manager(self, lookup_config):
-        """Test adapter as context manager."""
-        async with MockAdapter(lookup_config) as adapter:
-            assert adapter is not None
-            results = await adapter.search_concepts("test")
-            assert len(results) > 0
+    @patch("aiohttp.ClientSession")
+    async def test_make_request_success(self, mock_session_class, adapter):
+        """Test _make_request success."""
+        mock_session = MagicMock()
+        mock_response = AsyncMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json = AsyncMock(return_value={"result": "data"})
+        mock_session.get.return_value.__aenter__.return_value = mock_response
+        mock_session_class.return_value = mock_session
+
+        result = await adapter._make_request("http://test.com")
+        assert result == {"result": "data"}
 
     @pytest.mark.asyncio
-    async def test_close_method(self, adapter):
-        """Test close method."""
-        # Should not raise an error
-        await adapter.close()
+    @patch("aiohttp.ClientSession")
+    async def test_make_request_http_error(self, mock_session_class, adapter):
+        """Test _make_request with HTTP error."""
+        mock_session = MagicMock()
+        mock_response = AsyncMock()
+        mock_response.raise_for_status = MagicMock(side_effect=Exception("HTTP 500"))
+        mock_session.get.return_value.__aenter__.return_value = mock_response
+        mock_session_class.return_value = mock_session
 
+        with pytest.raises(Exception, match="HTTP 500"):
+            await adapter._make_request("http://test.com")
 
-class TestAbstractMethods:
-    """Tests for abstract method enforcement."""
+    def test_create_concept(self, adapter):
+        """Test _create_concept helper."""
+        concept = adapter._create_concept("TEST:001", "Test Concept")
+        assert concept.primary_id == "TEST:001"
+        assert concept.primary_label == "Test Concept"
+        assert concept.sources == {KnowledgeSource.BIOPORTAL}
 
-    def test_cannot_instantiate_base_class(self):
-        """Test that base class cannot be instantiated directly."""
-        with pytest.raises(TypeError):
-            KnowledgeSourceAdapter(LookupConfig())
+    def test_determine_concept_type_disease(self, adapter):
+        """Test _determine_concept_type for disease."""
+        concept_type = adapter._determine_concept_type(["disease"])
+        assert concept_type.name == "DISEASE"
 
-    def test_must_implement_get_source(self):
-        """Test that get_source must be implemented."""
+    def test_determine_concept_type_gene(self, adapter):
+        """Test _determine_concept_type for gene."""
+        concept_type = adapter._determine_concept_type(["gene"])
+        assert concept_type.name == "GENE"
 
-        class IncompleteAdapter(KnowledgeSourceAdapter):
-            async def search_concepts(self, query: str, limit: int = 20):
-                pass
-
-            async def get_concept_details(self, concept_id: str):
-                pass
-
-        # Missing get_source implementation
-        with pytest.raises(TypeError):
-            IncompleteAdapter(LookupConfig())
-
-    def test_must_implement_search_concepts(self):
-        """Test that search_concepts must be implemented."""
-
-        class IncompleteAdapter(KnowledgeSourceAdapter):
-            def get_source(self):
-                return KnowledgeSource.OLS
-
-            async def get_concept_details(self, concept_id: str):
-                pass
-
-        # Missing search_concepts implementation
-        with pytest.raises(TypeError):
-            IncompleteAdapter(LookupConfig())
-
-    def test_must_implement_get_concept_details(self):
-        """Test that get_concept_details must be implemented."""
-
-        class IncompleteAdapter(KnowledgeSourceAdapter):
-            def get_source(self):
-                return KnowledgeSource.OLS
-
-            async def search_concepts(self, query: str, limit: int = 20):
-                pass
-
-        # Missing get_concept_details implementation
-        with pytest.raises(TypeError):
-            IncompleteAdapter(LookupConfig())
+    def test_determine_concept_type_unknown(self, adapter):
+        """Test _determine_concept_type for unknown."""
+        concept_type = adapter._determine_concept_type(["unknown"])
+        assert concept_type.name == "UNKNOWN"

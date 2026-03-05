@@ -56,20 +56,24 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
         """
         Make HTTP request with error handling and rate limit support.
         """
-        session = await self._get_session()
-        while True:
-            async with session.get(url, params=params, headers=headers) as response:
-                if response.status == 429:
-                    retry_after = int(
-                        response.headers.get("x-rate-limit-retry-after-seconds", "5")
-                    )
-                    logger.warning(f"Rate limit reached. Waiting {retry_after} seconds...")
-                    await asyncio.sleep(retry_after)
-                    continue
-                if not response.ok:
-                    logger.error(f"DisGeNET API error: {response.status}")
-                    return {}
-                return await response.json()
+        try:
+            session = await self._get_session()
+            while True:
+                async with session.get(url, params=params, headers=headers) as response:
+                    if response.status == 429:
+                        retry_after = int(
+                            response.headers.get("x-rate-limit-retry-after-seconds", "5")
+                        )
+                        logger.warning(f"Rate limit reached. Waiting {retry_after} seconds...")
+                        await asyncio.sleep(retry_after)
+                        continue
+                    if not response.ok:
+                        logger.error(f"DisGeNET API error: {response.status}")
+                        return {}
+                    return await response.json()
+        except Exception as e:
+            logger.error(f"DisGeNET API network error: {e}")
+            return {}
 
     async def get_gene_disease_associations(
         self, params: Dict[str, Any], raw: bool = False

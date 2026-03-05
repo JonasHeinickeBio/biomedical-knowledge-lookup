@@ -21,18 +21,23 @@ class MondoAdapter(KnowledgeSourceAdapter):
 
         url = "https://www.ebi.ac.uk/ols/api/ontologies/mondo/search"
         params = {"q": query, "rows": limit, "format": "json"}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params) as resp:
-                data = await resp.json()
-                results = []
-                for doc in data.get("response", {}).get("docs", []):
-                    concept = UnifiedConcept(
-                        primary_id=doc.get("iri", ""),
-                        primary_label=doc.get("label", ""),
-                        concept_type=ConceptType.DISEASE,
-                    )
-                    results.append(concept)
-                return results
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as resp:
+                    if resp.status != 200:
+                        return []
+                    data = await resp.json()
+                    results = []
+                    for doc in data.get("response", {}).get("docs", []):
+                        concept = UnifiedConcept(
+                            primary_id=doc.get("iri", ""),
+                            primary_label=doc.get("label", ""),
+                            concept_type=ConceptType.DISEASE,
+                        )
+                        results.append(concept)
+                    return results
+        except Exception:
+            return []
 
     async def get_concept_details(self, concept_id: str):
         # Implement details fetch if needed

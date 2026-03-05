@@ -58,6 +58,36 @@ __all__ = [
     "QuickGOAdapter",
     "ZoomaAdapter",
     "TytoAdapter",
+    "ADAPTER_CLASSES",
 ]
 
-# Note: UMLSAdapter removed from __all__ - requires separate UMLS client dependency
+# Adapter class mappings for CentralKnowledgeLookup
+from ..models import KnowledgeSource
+
+ADAPTER_CLASSES = {
+    # KnowledgeSource.UMLS: UMLSAdapter,  # Removed - requires separate UMLS client
+    KnowledgeSource.UNICHEM: UniChemAdapter,
+    KnowledgeSource.UNICHEM: UniChemAdapter,
+    KnowledgeSource.BIOPORTAL: BioPortalAdapter,
+    KnowledgeSource.OLS: OLSAdapter,
+    KnowledgeSource.WIKIDATA: WikidataAdapter,
+    KnowledgeSource.TYTO: TytoAdapter,
+    KnowledgeSource.ZOOMA: ZoomaAdapter,
+    KnowledgeSource.BIOLINKER: BioLinkerAdapter,
+    KnowledgeSource.OXO: OxOAdapter,
+    KnowledgeSource.MONDO: MondoAdapter,
+    KnowledgeSource.UNIPROT: UniProtAdapter,
+    KnowledgeSource.DBPEDIA: DBpediaAdapter,
+    KnowledgeSource.BIOONTOLOGY: BioOntologyAdapter,
+    KnowledgeSource.DISGENET: DisGeNETAdapter,
+    KnowledgeSource.OPENTARGETS: OpenTargetsAdapter,
+    KnowledgeSource.REACTOME: ReactomeAdapter,
+    KnowledgeSource.PUBCHEM: PubChemAdapter,
+    KnowledgeSource.DRUGBANK: DrugBankAdapter,
+    KnowledgeSource.GENEONTOLOGY: GeneOntologyAdapter,
+    KnowledgeSource.HPO: HPOAdapter,
+    KnowledgeSource.OBOFOUNDRY: OBOFoundryAdapter,
+    KnowledgeSource.EBIOLS: EBIOLSAdapter,
+    KnowledgeSource.ENSEMBL: EnsemblAdapter,
+    # Add more adapters as needed
+}

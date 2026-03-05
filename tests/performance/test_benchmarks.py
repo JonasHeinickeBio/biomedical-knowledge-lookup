@@ -3,10 +3,9 @@ Performance benchmarks for the knowledge lookup system.
 """
 
 import time
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
-
 from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource, LookupConfig
 from knowledge_lookup.cache import KnowledgeLookupCache
 from knowledge_lookup.models import ConceptType, UnifiedConcept
@@ -223,15 +222,11 @@ class TestConcurrentOperations:
         mock_search.return_value = mock_concepts
 
         async def perform_search(query):
-            return await lookup.search_concepts(
-                query, sources=[KnowledgeSource.OLS]
-            )
+            return await lookup.search_concepts(query, sources=[KnowledgeSource.OLS])
 
         queries = [f"query_{i}" for i in range(10)]
         start = time.time()
-        results = await asyncio.gather(
-            *[perform_search(q) for q in queries]
-        )
+        results = await asyncio.gather(*[perform_search(q) for q in queries])
         duration = time.time() - start
 
         assert len(results) == len(queries)
