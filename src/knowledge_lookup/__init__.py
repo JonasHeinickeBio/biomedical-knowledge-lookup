@@ -7,7 +7,22 @@ Central lookup system for biological concept integration across multiple knowled
 from .adapters.eutils_adapter import EUtilsAdapter
 from .adapters.kegg_adapter import KEGGAdapter
 from .adapters.quickgo_adapter import QuickGOAdapter
-from .cache import KnowledgeLookupCache, get_cache, init_cache
+from .benchmarks import (
+    Benchmarker,
+    BenchmarkRegistry,
+    BenchmarkResult,
+    BenchmarkSuite,
+    benchmark,
+    generate_report,
+)
+from .cache import (
+    CacheBackendType,
+    KnowledgeLookupCache,
+    RedisCacheBackend,
+    create_cache_backend,
+    get_cache,
+    init_cache,
+)
 from .central_lookup import CentralKnowledgeLookup
 from .models import (
     ConceptIdentifier,
@@ -34,8 +49,18 @@ __all__ = [
     "MultiSourceAnnotator",
     # Caching system
     "KnowledgeLookupCache",
+    "CacheBackendType",
+    "RedisCacheBackend",
+    "create_cache_backend",
     "get_cache",
     "init_cache",
+    # Benchmarking
+    "Benchmarker",
+    "BenchmarkRegistry",
+    "BenchmarkResult",
+    "BenchmarkSuite",
+    "benchmark",
+    "generate_report",
     # Data models
     "KnowledgeSource",
     "ConceptType",
