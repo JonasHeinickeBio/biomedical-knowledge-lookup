@@ -79,6 +79,9 @@ class ConceptType(Enum):
     CELL_TYPE = "cell_type"
     CELLULAR_COMPONENT = "cellular_component"
 
+    # Procedures
+    PROCEDURE = "procedure"
+
     # Biological processes
     BIOLOGICAL_PROCESS = "biological_process"
     PHYSIOLOGICAL_PROCESS = "physiological_process"

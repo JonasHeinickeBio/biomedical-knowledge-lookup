@@ -1,13 +1,11 @@
 """
-Wikidata Knowledge Source Adapter
+Wikidata Knowledge Base Adapter
 
-Integrates with Wikidata SPARQL endpoint for concept lookup.
+Integrates with Wikidata SPARQL endpoint for general biomedical knowledge lookup.
 """
 
-import asyncio
 import logging
 from typing import List, Optional, Dict, Any
-from urllib.parse import quote
 from ..base import KnowledgeSourceAdapter
 from ..models import UnifiedConcept, KnowledgeSource, ConceptType, LookupConfig
 
@@ -20,178 +18,82 @@ class WikidataAdapter(KnowledgeSourceAdapter):
     def __init__(self, config: LookupConfig):
         super().__init__(config)
         self.sparql_endpoint = "https://query.wikidata.org/sparql"
-        self.entity_endpoint = "https://www.wikidata.org/w/api.php"
     
     def get_source(self) -> KnowledgeSource:
         return KnowledgeSource.WIKIDATA
     
     def is_available(self) -> bool:
-        return True  # Wikidata is publicly available
+        return True
     
     async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
-        """Search Wikidata for concepts using SPARQL with performance optimizations."""
+        """Search Wikidata for concepts."""
         try:
-            # Escape query for SPARQL
-            escaped_query = query.replace('"', '\\"').replace("'", "\\'")
+            # SPARQL query to search for items by label
+            sparql_query = f"""
+            SELECT DISTINCT ?item ?itemLabel ?itemDescription ?instanceOfLabel WHERE {{
+              SERVICE wikibase:mwapi {{
+                bd:serviceParam wikibase:api "EntitySearch" .
+                bd:serviceParam wikibase:endpoint "www.wikidata.org" .
+                bd:serviceParam mwapi:search "{query}" .
+                bd:serviceParam mwapi:language "en" .
+                ?item wikibase:apiOutputItem mwapi:item .
+              }}
+              OPTIONAL {{ ?item wdt:P31 ?instanceOf . }}
+              SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
+            }}
+            LIMIT {limit}
+            """
             
-            # Limit results to improve performance
-            optimized_limit = min(limit, 5)  # Reduce limit for faster response
+            params = {
+                'query': sparql_query,
+                'format': 'json'
+            }
             
-            # Use optimized simple query
-            return await self._search_with_optimized_query(escaped_query, optimized_limit)
+            data = await self._make_request(self.sparql_endpoint, params)
+            
+            concepts = []
+            if 'results' in data and 'bindings' in data['results']:
+                for binding in data['results']['bindings']:
+                    concept = self._convert_wikidata_result_to_concept(binding)
+                    if concept:
+                        concepts.append(concept)
+            
+            logger.info(f"Wikidata search for '{query}' returned {len(concepts)} concepts")
+            return concepts
             
         except Exception as e:
             logger.error(f"Wikidata search failed for '{query}': {e}")
             return []
     
-    async def _search_with_optimized_query(self, escaped_query: str, limit: int) -> List[UnifiedConcept]:
-        """Search with highly optimized SPARQL query for speed."""
-        # Ultra-minimal query focused on speed
-        sparql_query = f"""
-        SELECT ?entity ?entityLabel WHERE {{
-          ?entity rdfs:label ?entityLabel .
-          FILTER(CONTAINS(LCASE(?entityLabel), LCASE("{escaped_query}")))
-          FILTER(LANG(?entityLabel) = "en")
-        }}
-        LIMIT {limit}
-        """
-        
-        return await self._execute_sparql_query_fast(sparql_query, limit)
-    
-    async def _search_with_simple_query(self, escaped_query: str, limit: int) -> List[UnifiedConcept]:
-        """Search with minimal SPARQL query to avoid timeouts."""
-        # Very simple query - just find entities with matching labels
-        sparql_query = f"""
-        SELECT ?entity ?entityLabel WHERE {{
-          ?entity rdfs:label ?entityLabel .
-          FILTER(CONTAINS(LCASE(?entityLabel), LCASE("{escaped_query}")))
-          FILTER(LANG(?entityLabel) = "en")
-        }}
-        LIMIT {min(limit, 10)}
-        """
-        
-        return await self._execute_sparql_query(sparql_query, limit)
-    
-    async def _execute_sparql_query_fast(self, sparql_query: str, limit: int) -> List[UnifiedConcept]:
-        """Execute SPARQL query with aggressive timeout and optimizations."""
-        params = {
-            'query': sparql_query,
-            'format': 'json'
-        }
-        
-        headers = {
-            'User-Agent': 'AID-PAIS-KnowledgeGraph/1.0 (https://github.com/Jonasjjj96/AID-PAIS-KnowledgeGraph)',
-            'Accept': 'application/sparql-results+json',
-            'Connection': 'close'  # Don't keep connection alive
-        }
-        
-        # Use very short timeout for fast response
-        import aiohttp
-        timeout = aiohttp.ClientTimeout(total=5.0)  # 5 second timeout
-        
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            try:
-                async with session.get(self.sparql_endpoint, params=params, headers=headers) as response:
-                    if response.status != 200:
-                        logger.warning(f"Wikidata SPARQL returned status {response.status}")
-                        return []
-                    
-                    data = await response.json()
-                    
-                    concepts = []
-                    if 'results' in data and 'bindings' in data['results']:
-                        # Process only first few results for speed
-                        bindings = data['results']['bindings'][:min(limit, 3)]
-                        for binding in bindings:
-                            concept = self._convert_wikidata_result_to_concept(binding)
-                            if concept:
-                                concepts.append(concept)
-                    
-                    logger.info(f"Wikidata fast query returned {len(concepts)} concepts")
-                    return concepts
-                    
-            except asyncio.TimeoutError:
-                logger.warning("Wikidata SPARQL query timed out (fast mode)")
-                return []
-            except Exception as e:
-                logger.error(f"Wikidata SPARQL query failed (fast mode): {e}")
-                return []
-    
-    async def _execute_sparql_query(self, sparql_query: str, limit: int) -> List[UnifiedConcept]:
-        """Execute SPARQL query and convert results with shorter timeout."""
-        params = {
-            'query': sparql_query,
-            'format': 'json'
-        }
-        
-        headers = {
-            'User-Agent': 'AID-PAIS-KnowledgeGraph/1.0 (https://github.com/Jonasjjj96/AID-PAIS-KnowledgeGraph)',
-            'Accept': 'application/sparql-results+json'
-        }
-        
-        # Use shorter timeout for Wikidata
-        import aiohttp
-        timeout = aiohttp.ClientTimeout(total=10.0)  # 10 second timeout
-        
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            try:
-                async with session.get(self.sparql_endpoint, params=params, headers=headers) as response:
-                    if response.status != 200:
-                        logger.warning(f"Wikidata SPARQL returned status {response.status}")
-                        return []
-                    
-                    data = await response.json()
-                    
-                    concepts = []
-                    if 'results' in data and 'bindings' in data['results']:
-                        for binding in data['results']['bindings'][:limit]:
-                            concept = self._convert_wikidata_result_to_concept(binding)
-                            if concept:
-                                concepts.append(concept)
-                    
-                    logger.info(f"Wikidata SPARQL query returned {len(concepts)} concepts")
-                    return concepts
-                    
-            except asyncio.TimeoutError:
-                logger.warning("Wikidata SPARQL query timed out")
-                return []
-            except Exception as e:
-                logger.error(f"Wikidata SPARQL query failed: {e}")
-                return []
-    
     async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
-        """Get detailed concept information from Wikidata."""
+        """Get detailed information from Wikidata."""
         try:
-            # Extract Q-ID from URI if necessary
-            if 'http' in concept_id:
-                qid = concept_id.split('/')[-1]
-            else:
-                qid = concept_id
-            
-            if not qid.startswith('Q'):
+            # concept_id should be Wikidata Q-ID (e.g., Q12136)
+            if not concept_id.startswith('Q'):
+                # Try to search for it first?
                 return None
+                
+            sparql_query = f"""
+            SELECT ?item ?itemLabel ?itemDescription ?instanceOfLabel ?umlsCui ?meshId ?ncbiTaxonId WHERE {{
+              BIND(wd:{concept_id} AS ?item)
+              OPTIONAL {{ ?item wdt:P31 ?instanceOf . }}
+              OPTIONAL {{ ?item wdt:P2892 ?umlsCui . }}
+              OPTIONAL {{ ?item wdt:P486 ?meshId . }}
+              OPTIONAL {{ ?item wdt:P685 ?ncbiTaxonId . }}
+              SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
+            }}
+            """
             
-            # Use Wikidata API to get entity details
             params = {
-                'action': 'wbgetentities',
-                'ids': qid,
-                'format': 'json',
-                'languages': 'en'
+                'query': sparql_query,
+                'format': 'json'
             }
             
-            headers = {
-                'User-Agent': 'AID-PAIS-KnowledgeGraph/1.0 (https://github.com/Jonasjjj96/AID-PAIS-KnowledgeGraph)',
-                'Accept': 'application/json'
-            }
+            data = await self._make_request(self.sparql_endpoint, params)
             
-            data = await self._make_request(self.entity_endpoint, params, headers)
-            
-            if 'entities' in data and qid in data['entities']:
-                entity_data = data['entities'][qid]
-                # Check if entity exists and is not missing
-                if entity_data.get('missing') != True:
-                    concept = self._convert_wikidata_entity_to_unified(entity_data)
-                    return concept
+            if 'results' in data and 'bindings' in data['results']:
+                concept = self._convert_wikidata_details_to_concept(concept_id, data['results']['bindings'])
+                return concept
             
             return None
             
@@ -200,148 +102,108 @@ class WikidataAdapter(KnowledgeSourceAdapter):
             return None
     
     def _convert_wikidata_result_to_concept(self, result: Dict[str, Any]) -> Optional[UnifiedConcept]:
-        """Convert Wikidata SPARQL result to unified concept."""
+        """Convert Wikidata search result to unified concept."""
         try:
-            if 'entity' not in result or 'entityLabel' not in result:
-                return None
+            item_uri = result['item']['value']
+            item_id = item_uri.split('/')[-1]
+            label = result['itemLabel']['value']
             
-            entity_uri = result['entity']['value']
-            entity_id = entity_uri.split('/')[-1]
-            label = result['entityLabel']['value']
-            
-            # For simple queries, we don't have instance type information
-            concept_type = ConceptType.UNKNOWN
+            instance_of = result.get('instanceOfLabel', {}).get('value', '')
+            concept_type = self._determine_concept_type_from_instance_of(instance_of)
             
             concept = UnifiedConcept(
-                primary_id=entity_id,
+                primary_id=item_id,
                 primary_label=label,
                 concept_type=concept_type
             )
             
-            # Add source to the sources set
-            concept.sources.add(KnowledgeSource.WIKIDATA)
+            concept.add_identifier(
+                KnowledgeSource.WIKIDATA,
+                item_id,
+                label,
+                item_uri
+            )
             
-            # Add description if available (may not be present in simple query)
-            if 'entityDescription' in result and result['entityDescription']:
-                description = result['entityDescription']['value']
-                concept.definitions.append(description)
+            if 'itemDescription' in result:
+                concept.definitions.append(result['itemDescription']['value'])
             
-            # Add instance of information if available
-            if 'instanceOfLabel' in result and result['instanceOfLabel']:
-                instance_of = result['instanceOfLabel']['value']
+            if instance_of:
                 concept.categories.append(instance_of)
-                # Try to determine concept type from instance
-                concept.concept_type = self._determine_concept_type_from_instance_of(instance_of.lower())
             
-            concept.confidence_score = 0.6  # Lower confidence for simple queries
+            concept.confidence_score = 0.7
+            concept.source_data[KnowledgeSource.WIKIDATA] = result
             
             return concept
             
         except Exception as e:
             logger.error(f"Error converting Wikidata result: {e}")
             return None
-    
-    def _convert_wikidata_entity_to_unified(self, entity_data: Dict[str, Any]) -> Optional[UnifiedConcept]:
-        """Convert detailed Wikidata entity to unified concept."""
+
+    def _convert_wikidata_details_to_concept(self, item_id: str, bindings: List[Dict[str, Any]]) -> Optional[UnifiedConcept]:
+        """Convert Wikidata detailed concept to unified concept."""
         try:
-            entity_id = entity_data.get('id', '')
-            
-            # Get label
-            label = ''
-            if 'labels' in entity_data and 'en' in entity_data['labels']:
-                label = entity_data['labels']['en']['value']
-            
-            if not entity_id or not label:
+            if not bindings:
                 return None
+                
+            first = bindings[0]
+            label = first['itemLabel']['value']
+            
+            instance_of = first.get('instanceOfLabel', {}).get('value', '')
+            concept_type = self._determine_concept_type_from_instance_of(instance_of)
             
             concept = UnifiedConcept(
-                primary_id=entity_id,
+                primary_id=item_id,
                 primary_label=label,
-                concept_type=ConceptType.UNKNOWN
+                concept_type=concept_type
             )
             
-            # Add source to the sources set
-            concept.sources.add(KnowledgeSource.WIKIDATA)
+            concept.add_identifier(
+                KnowledgeSource.WIKIDATA,
+                item_id,
+                label,
+                f"http://www.wikidata.org/entity/{item_id}"
+            )
             
-            # Add description
-            if 'descriptions' in entity_data and 'en' in entity_data['descriptions']:
-                description = entity_data['descriptions']['en']['value']
-                concept.definitions.append(description)
+            if 'itemDescription' in first:
+                concept.definitions.append(first['itemDescription']['value'])
             
-            # Add aliases as synonyms
-            if 'aliases' in entity_data and 'en' in entity_data['aliases']:
-                for alias in entity_data['aliases']['en']:
-                    concept.synonyms.append(alias['value'])
+            # Extract all identifiers and categories from bindings
+            for b in bindings:
+                if 'umlsCui' in b:
+                    concept.add_identifier(KnowledgeSource.UMLS, b['umlsCui']['value'], label)
+                if 'meshId' in b:
+                    concept.add_identifier(KnowledgeSource.UMLS, b['meshId']['value'], label) # MeSH is often in UMLS
+                if 'ncbiTaxonId' in b:
+                    concept.categories.append(f"NCBI Taxon: {b['ncbiTaxonId']['value']}")
+                if 'instanceOfLabel' in b:
+                    cat = b['instanceOfLabel']['value']
+                    if cat not in concept.categories:
+                        concept.categories.append(cat)
             
-            # Process claims for additional information
-            if 'claims' in entity_data:
-                self._process_wikidata_claims(concept, entity_data['claims'])
-            
-            concept.confidence_score = 0.75
+            concept.confidence_score = 0.8
+            concept.source_data[KnowledgeSource.WIKIDATA] = bindings
             
             return concept
             
         except Exception as e:
-            logger.error(f"Error converting Wikidata entity: {e}")
+            logger.error(f"Error converting Wikidata details: {e}")
             return None
-    
-    def _process_wikidata_claims(self, concept: UnifiedConcept, claims: Dict[str, Any]):
-        """Process Wikidata claims to extract relevant information."""
-        try:
-            # P31 - instance of
-            if 'P31' in claims:
-                for claim in claims['P31']:
-                    if ('mainsnak' in claim and 
-                        'datavalue' in claim['mainsnak'] and 
-                        'value' in claim['mainsnak']['datavalue'] and
-                        'id' in claim['mainsnak']['datavalue']['value']):
-                        instance_of_id = claim['mainsnak']['datavalue']['value']['id']
-                        concept.categories.append(instance_of_id)
-            
-            # P279 - subclass of (parents)
-            if 'P279' in claims:
-                for claim in claims['P279']:
-                    if ('mainsnak' in claim and 
-                        'datavalue' in claim['mainsnak'] and 
-                        'value' in claim['mainsnak']['datavalue'] and
-                        'id' in claim['mainsnak']['datavalue']['value']):
-                        parent_id = claim['mainsnak']['datavalue']['value']['id']
-                        concept.parents.append(parent_id)
-            
-            # P486 - MeSH descriptor ID
-            if 'P486' in claims:
-                for claim in claims['P486']:
-                    if ('mainsnak' in claim and 
-                        'datavalue' in claim['mainsnak'] and 
-                        'value' in claim['mainsnak']['datavalue']):
-                        mesh_id = claim['mainsnak']['datavalue']['value']
-                        concept.add_identifier(KnowledgeSource.UMLS, mesh_id, concept.primary_label)
-            
-        except Exception as e:
-            logger.error(f"Error processing Wikidata claims: {e}")
-    
+
     def _determine_concept_type_from_instance_of(self, instance_of: str) -> ConceptType:
-        """Determine concept type from Wikidata 'instance of' property."""
-        instance_lower = instance_of.lower()
+        """Determine concept type from Wikidata 'instance of' label."""
+        io_lower = instance_of.lower()
         
-        # Map Wikidata concepts to biological concept types
-        if any(term in instance_lower for term in ['disease', 'disorder', 'syndrome', 'condition']):
+        if any(t in io_lower for t in ['disease', 'disorder', 'syndrome']):
             return ConceptType.DISEASE
-        elif any(term in instance_lower for term in ['symptom', 'sign']):
-            return ConceptType.SYMPTOM
-        elif any(term in instance_lower for term in ['drug', 'medication', 'pharmaceutical']):
+        elif any(t in io_lower for t in ['drug', 'pharmaceutical', 'medication']):
             return ConceptType.DRUG
-        elif any(term in instance_lower for term in ['gene', 'genetic']):
+        elif any(t in io_lower for t in ['gene', 'genetic']):
             return ConceptType.GENE
-        elif any(term in instance_lower for term in ['protein', 'enzyme']):
+        elif any(t in io_lower for t in ['protein']):
             return ConceptType.PROTEIN
-        elif any(term in instance_lower for term in ['anatomy', 'organ', 'body part']):
-            return ConceptType.ANATOMY
-        elif any(term in instance_lower for term in ['chemical', 'compound', 'substance']):
+        elif any(t in io_lower for t in ['chemical', 'compound']):
             return ConceptType.CHEMICAL
-        elif any(term in instance_lower for term in ['species', 'organism', 'taxon']):
+        elif any(t in io_lower for t in ['taxon', 'species', 'organism']):
             return ConceptType.ORGANISM
-        elif any(term in instance_lower for term in ['procedure', 'therapy', 'treatment']):
-            return ConceptType.PROCEDURE
-        
+            
         return ConceptType.UNKNOWN

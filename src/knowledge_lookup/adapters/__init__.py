@@ -88,5 +88,7 @@ ADAPTER_CLASSES = {
     KnowledgeSource.OBOFOUNDRY: OBOFoundryAdapter,
     KnowledgeSource.EBIOLS: EBIOLSAdapter,
     KnowledgeSource.ENSEMBL: EnsemblAdapter,
+    KnowledgeSource.KEGG: KEGGAdapter,
+    KnowledgeSource.QUICKGO: QuickGOAdapter,
     # Add more adapters as needed
 }

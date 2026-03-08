@@ -124,6 +124,23 @@ class KnowledgeSourceAdapter(ABC):
             logger.error(f"Unexpected error for {self.source.value}: {e}")
             raise
 
+    async def _make_request_text(
+        self, url: str, params: Optional[Dict] = None, headers: Optional[Dict] = None
+    ) -> str:
+        """Make HTTP request and return text response."""
+        session = await self._get_session()
+
+        try:
+            async with session.get(url, params=params, headers=headers) as response:
+                response.raise_for_status()
+                return await response.text()
+        except aiohttp.ClientError as e:
+            logger.error(f"Request failed for {self.source.value}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error for {self.source.value}: {e}")
+            raise
+
     async def close(self):
         """Close the adapter and cleanup resources."""
         if self.session and not self.session.closed:

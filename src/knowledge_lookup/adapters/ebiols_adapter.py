@@ -1,17 +1,16 @@
 """
-Adapter for EBI Ontology Lookup Service (OLS).
+EBI OLS Knowledge Source Adapter
+
+Integrates with EMBL-EBI Ontology Lookup Service.
+This is a specialized version of the OLS adapter.
 """
 
-from ..base import KnowledgeSourceAdapter
+from .ols_adapter import OLSAdapter
 from ..models import KnowledgeSource
 
 
-class EBIOLSAdapter(KnowledgeSourceAdapter):
-    def get_source(self):
+class EBIOLSAdapter(OLSAdapter):
+    """Adapter for EMBL-EBI OLS."""
+    
+    def get_source(self) -> KnowledgeSource:
         return KnowledgeSource.EBIOLS
-
-    async def search_concepts(self, query: str, limit: int = 20):
-        return []
-
-    async def get_concept_details(self, concept_id: str):
-        return None
