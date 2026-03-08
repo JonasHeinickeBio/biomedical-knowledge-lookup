@@ -116,7 +116,6 @@ class ConceptType(Enum):
     # Other entities
     PERSON = "person"
     ORGANISM = "organism"
-    PROCEDURE = "procedure"
     PATHWAY = "pathway"  # Keeping for backward compatibility
     ANATOMY = "anatomy"  # Keeping for backward compatibility
 

@@ -49,7 +49,12 @@ class WikidataAdapter(KnowledgeSourceAdapter):
                 'format': 'json'
             }
             
-            data = await self._make_request(self.sparql_endpoint, params)
+            headers = {
+                'Accept': 'application/sparql-results+json',
+                'User-Agent': 'AID-PAIS-Knowledge-Lookup/1.0'
+            }
+            
+            data = await self._make_request(self.sparql_endpoint, params, headers=headers)
             
             concepts = []
             if 'results' in data and 'bindings' in data['results']:
@@ -89,7 +94,12 @@ class WikidataAdapter(KnowledgeSourceAdapter):
                 'format': 'json'
             }
             
-            data = await self._make_request(self.sparql_endpoint, params)
+            headers = {
+                'Accept': 'application/sparql-results+json',
+                'User-Agent': 'AID-PAIS-Knowledge-Lookup/1.0'
+            }
+            
+            data = await self._make_request(self.sparql_endpoint, params, headers=headers)
             
             if 'results' in data and 'bindings' in data['results']:
                 concept = self._convert_wikidata_details_to_concept(concept_id, data['results']['bindings'])

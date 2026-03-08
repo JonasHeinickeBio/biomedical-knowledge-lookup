@@ -63,8 +63,8 @@ class DBpediaAdapter(KnowledgeSourceAdapter):
             PREFIX dbo: <http://dbpedia.org/ontology/>
             SELECT DISTINCT ?resource ?label ?abstract ?type WHERE {{
               ?resource rdfs:label ?label .
+              ?label bif:contains "'{query}'" .
               FILTER (lang(?label) = 'en')
-              FILTER (regex(?label, '{query}', 'i'))
               OPTIONAL {{ ?resource dbo:abstract ?abstract . FILTER (lang(?abstract) = 'en') }}
               OPTIONAL {{ ?resource rdf:type ?type }}
             }}

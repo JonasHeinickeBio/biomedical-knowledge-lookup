@@ -83,7 +83,7 @@ class GeneOntologyAdapter(KnowledgeSourceAdapter):
             )
             
             concept.add_identifier(
-                KnowledgeSource.GENE_ONTOLOGY,
+                KnowledgeSource.GENEONTOLOGY,
                 go_id,
                 label,
                 f"https://www.ebi.ac.uk/QuickGO/term/{go_id}"
@@ -102,7 +102,7 @@ class GeneOntologyAdapter(KnowledgeSourceAdapter):
                 concept.categories.append(f"Aspect: {aspect}")
             
             concept.confidence_score = 0.95
-            concept.source_data[KnowledgeSource.GENE_ONTOLOGY] = result
+            concept.source_data[KnowledgeSource.GENEONTOLOGY] = result
             
             return concept
             

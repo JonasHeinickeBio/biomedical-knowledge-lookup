@@ -31,8 +31,8 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
             # GraphQL query for search
             graphql_query = {
                 "query": """
-                query Search($queryString: String!, $size: Int) {
-                  search(queryString: $queryString, entityNames: ["target", "disease"], size: $size) {
+                query Search($queryString: String!) {
+                  search(queryString: $queryString, entityNames: ["target", "disease"]) {
                     hits {
                       id
                       name
@@ -43,8 +43,7 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
                 }
                 """,
                 "variables": {
-                    "queryString": query,
-                    "size": limit
+                    "queryString": query
                 }
             }
             
@@ -52,7 +51,7 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
             
             concepts = []
             if 'data' in data and 'search' in data['data'] and 'hits' in data['data']['search']:
-                for hit in data['data']['search']['hits']:
+                for hit in data['data']['search']['hits'][:limit]:
                     concept = self._convert_opentargets_result_to_concept(hit)
                     if concept:
                         concepts.append(concept)
@@ -69,7 +68,7 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
         try:
             # We need to know if it's a target or a disease
             # Usually EFO IDs are diseases, ENSG are targets
-            entity_type = "disease" if concept_id.startswith('EFO_') or concept_id.startswith('MONDO_') else "target"
+            entity_type = "disease" if concept_id.startswith('EFO_') or concept_id.startswith('MONDO_') or concept_id.startswith('ORPHA') else "target"
             
             graphql_query = {
                 "query": f"""
@@ -115,7 +114,7 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
             )
             
             concept.add_identifier(
-                KnowledgeSource.OPEN_TARGETS,
+                KnowledgeSource.OPENTARGETS,
                 ot_id,
                 label,
                 f"https://platform.opentargets.org/{entity}/{ot_id}"

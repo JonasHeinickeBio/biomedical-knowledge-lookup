@@ -108,15 +108,33 @@ class KnowledgeSourceAdapter(ABC):
         return self.session
 
     async def _make_request(
-        self, url: str, params: Optional[Dict] = None, headers: Optional[Dict] = None
+        self,
+        url: str,
+        params: Optional[Dict] = None,
+        headers: Optional[Dict] = None,
+        json_data: Optional[Dict] = None,
     ) -> Dict[str, Any]:
         """Make HTTP request with error handling."""
         session = await self._get_session()
 
+        # Add default User-Agent if not present
+        request_headers = headers or {}
+        if "User-Agent" not in request_headers:
+            request_headers["User-Agent"] = "AID-PAIS-Knowledge-Lookup/1.0"
+
         try:
-            async with session.get(url, params=params, headers=headers) as response:
-                response.raise_for_status()
-                return await response.json()
+            if json_data:
+                # Use POST for JSON data
+                async with session.post(
+                    url, params=params, headers=request_headers, json=json_data
+                ) as response:
+                    response.raise_for_status()
+                    return await response.json()
+            else:
+                # Use GET for params
+                async with session.get(url, params=params, headers=request_headers) as response:
+                    response.raise_for_status()
+                    return await response.json()
         except aiohttp.ClientError as e:
             logger.error(f"Request failed for {self.source.value}: {e}")
             raise
