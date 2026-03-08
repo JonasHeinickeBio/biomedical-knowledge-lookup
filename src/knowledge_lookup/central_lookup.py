@@ -32,6 +32,7 @@ except ImportError:
     Graph = None
 
 from . import adapters
+from .adapters import ADAPTER_CLASSES
 from .base import KnowledgeSourceAdapter
 from .models import (
     ConceptIdentifier,
@@ -43,21 +44,6 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Define the mapping from KnowledgeSource to Adapter classes here
-ADAPTER_CLASSES = {
-    # KnowledgeSource.UMLS: adapters.UMLSAdapter,  # Removed - requires separate UMLS client
-    KnowledgeSource.BIOPORTAL: adapters.BioPortalAdapter,
-    KnowledgeSource.OLS: adapters.OLSAdapter,
-    KnowledgeSource.WIKIDATA: adapters.WikidataAdapter,
-    KnowledgeSource.BIOLINKER: adapters.BioLinkerAdapter,
-    KnowledgeSource.DBPEDIA: adapters.DBpediaAdapter,
-    KnowledgeSource.OXO: adapters.OxOAdapter,
-    KnowledgeSource.BIOONTOLOGY: adapters.BioOntologyAdapter,
-    KnowledgeSource.MONDO: adapters.MondoAdapter,
-    KnowledgeSource.UNIPROT: adapters.UniProtAdapter,
-    KnowledgeSource.UNICHEM: adapters.UniChemAdapter,
-}
 
 
 class CentralKnowledgeLookup:

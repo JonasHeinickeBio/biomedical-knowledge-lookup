@@ -25,12 +25,13 @@ from .pubchem_adapter import PubChemAdapter
 from .quickgo_adapter import QuickGOAdapter
 from .reactome_adapter import ReactomeAdapter
 from .tyto_adapter import TytoAdapter
+from .umls_adapter import UMLSAdapter
 from .unichem_adapter import UniChemAdapter
 from .uniprot_adapter import UniProtAdapter
 from .wikidata_adapter import WikidataAdapter
 from .zooma_adapter import ZoomaAdapter
 
-# Note: UMLS adapter removed for standalone package - requires separate UMLS client dependency
+# Note: UMLS adapter requires umls-client dependency
 
 __all__ = [
     "UMLSAdapter",
@@ -58,15 +59,13 @@ __all__ = [
     "QuickGOAdapter",
     "ZoomaAdapter",
     "TytoAdapter",
-    "ADAPTER_CLASSES",
 ]
 
 # Adapter class mappings for CentralKnowledgeLookup
 from ..models import KnowledgeSource
 
 ADAPTER_CLASSES = {
-    # KnowledgeSource.UMLS: UMLSAdapter,  # Removed - requires separate UMLS client
-    KnowledgeSource.UNICHEM: UniChemAdapter,
+    KnowledgeSource.UMLS: UMLSAdapter,
     KnowledgeSource.UNICHEM: UniChemAdapter,
     KnowledgeSource.BIOPORTAL: BioPortalAdapter,
     KnowledgeSource.OLS: OLSAdapter,

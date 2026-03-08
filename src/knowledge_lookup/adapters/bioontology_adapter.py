@@ -265,6 +265,34 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             logger.error(f"BioOntology batch annotate failed: {e}")
             return None
 
+    async def annotate(
+        self,
+        text: str,
+        ontologies: Optional[str] = None,
+        longest_only: bool = True,
+        extra_params: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Any:
+        """
+        Annotate a single text using BioOntology annotator endpoint.
+        """
+        url = f"{self.base_url}/annotator"
+        params = self._build_params(
+            extra_params, text=text, longest_only=longest_only, ontologies=ontologies, **kwargs
+        )
+        # Ensure 'text' is set in params if not already
+        if "text" not in params:
+            params["text"] = text
+            
+        logger.info(f"BioOntology annotate URL: {url}")
+        logger.info(f"BioOntology annotate Params: {params}")
+        try:
+            data = await self._make_request(url, params)
+            return data
+        except Exception as e:
+            logger.error(f"BioOntology annotate failed: {e}")
+            return None
+
     async def get_analytics(
         self,
         ontology: Optional[str] = None,
