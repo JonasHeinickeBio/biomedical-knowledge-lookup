@@ -170,3 +170,4 @@ test_outputs/
 benchmark_results/
 
 example_output/
+example_notebooks/unichem_cache/

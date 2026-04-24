@@ -19,7 +19,7 @@ keywords = [
     "umls",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -31,6 +31,11 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 packages = [{ include = "knowledge_lookup", from = "src" }]
+
+[tool.poetry.urls]
+"Documentation" = "https://jonasheinickeBio.github.io/biomedical-knowledge-lookup/"
+"Issue Tracker" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/issues"
+"Changelog" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/blob/main/CHANGELOG.md"
 
 [tool.poetry.scripts]
 knowledge-lookup = "knowledge_lookup.__main__:app"
@@ -57,6 +62,7 @@ ruff = "^0.1.0"
 mypy = "^1.0.0"
 jupyter = "^1.0.0"
 ipykernel = "^6.0.0"
+pre-commit = "^4.5.1"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^7.0.0"
@@ -107,6 +113,16 @@ markers = [
     "network: marks tests that require network access",
 ]
 
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+follow_imports = "silent"
+show_error_codes = true
+check_untyped_defs = true
+disallow_untyped_defs = false
+warn_unused_ignores = true
+strict_optional = true
+plugins = ["pydantic.mypy"]
 
 [tool.coverage.run]
 source = ["src/knowledge_lookup"]
