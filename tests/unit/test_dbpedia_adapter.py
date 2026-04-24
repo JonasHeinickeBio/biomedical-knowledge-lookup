@@ -4,8 +4,9 @@ Unit tests for DBpediaAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.dbpedia_adapter import DBpediaAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
