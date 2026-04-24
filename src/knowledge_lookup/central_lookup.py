@@ -10,7 +10,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, cast
 
 # Optional imports for formatting
 try:
@@ -31,7 +31,6 @@ except ImportError:
     HAS_RDFLIB = False
     Graph = None
 
-from . import adapters
 from .adapters import ADAPTER_CLASSES
 from .base import KnowledgeSourceAdapter
 from .models import (
@@ -61,7 +60,7 @@ class CentralKnowledgeLookup:
     - And more open source knowledge graphs
     """
 
-    def __init__(self, config: Optional[LookupConfig] = None, auto_initialize: bool = True):
+    def __init__(self, config: LookupConfig | None = None, auto_initialize: bool = True):
         """
         Initialize the central lookup system.
 
@@ -73,14 +72,15 @@ class CentralKnowledgeLookup:
         # If no sources are enabled, enable all sources by default
         if not self.config.enabled_sources:
             self.config.enabled_sources = list(KnowledgeSource)
-        self.adapters: Dict[KnowledgeSource, KnowledgeSourceAdapter] = {}
+        self.adapters: dict[KnowledgeSource, KnowledgeSourceAdapter] = {}
         self.executor = ThreadPoolExecutor(max_workers=10)
         if auto_initialize:
             self._initialize_adapters()
 
     def _initialize_adapters(self):
         """Initialize available knowledge source adapters."""
-        for source, adapter_class in ADAPTER_CLASSES.items():
+        typed_adapters = cast(dict[KnowledgeSource, type[KnowledgeSourceAdapter]], ADAPTER_CLASSES)
+        for source, adapter_class in typed_adapters.items():
             if self.config.is_source_enabled(source):
                 try:
                     adapter = adapter_class(self.config)
@@ -92,17 +92,22 @@ class CentralKnowledgeLookup:
                 except Exception as e:
                     logger.error(f"Failed to initialize {source.value} adapter: {e}")
 
+    def _get_adapter(self, source: KnowledgeSource) -> KnowledgeSourceAdapter | None:
+        """Internal helper to get an adapter for a source."""
+        return self.adapters.get(source)
+
     async def add_source(self, source: KnowledgeSource):
         """
         Add a specific knowledge source to the lookup system.
         """
-        if source not in ADAPTER_CLASSES:
+        typed_adapters = cast(dict[KnowledgeSource, type[KnowledgeSourceAdapter]], ADAPTER_CLASSES)
+        if source not in typed_adapters:
             raise ValueError(f"Unsupported knowledge source: {source.value}")
         if source in self.adapters:
             logger.info(f"{source.value} adapter already exists")
             return
         try:
-            adapter_class = ADAPTER_CLASSES[source]
+            adapter_class = typed_adapters[source]
             adapter = adapter_class(self.config)
             if adapter.is_available():
                 self.adapters[source] = adapter
@@ -113,7 +118,7 @@ class CentralKnowledgeLookup:
                 raise RuntimeError(f"{source.value} adapter is not available")
         except Exception as e:
             logger.error(f"Failed to add {source.value} adapter: {e}")
-            raise RuntimeError(f"Failed to initialize {source.value} adapter: {e}")
+            raise RuntimeError(f"Failed to initialize {source.value} adapter: {e}") from e
 
     def remove_source(self, source: KnowledgeSource):
         """
@@ -143,7 +148,7 @@ class CentralKnowledgeLookup:
         else:
             logger.warning(f"{source.value} adapter not found")
 
-    def get_available_sources(self) -> List[KnowledgeSource]:
+    def get_available_sources(self) -> list[KnowledgeSource]:
         """
         Get the list of currently available knowledge sources.
 
@@ -155,8 +160,8 @@ class CentralKnowledgeLookup:
     async def search_concepts(
         self,
         query: str,
-        concept_types: Optional[List[ConceptType]] = None,
-        sources: Optional[List[KnowledgeSource]] = None,
+        concept_types: list[ConceptType] | None = None,
+        sources: list[KnowledgeSource] | None = None,
         max_results: int = 50,
         parallel: bool = True,
     ) -> LookupResult:
@@ -227,8 +232,8 @@ class CentralKnowledgeLookup:
         return result
 
     async def get_concept_details(
-        self, concept_id: str, source: Optional[KnowledgeSource] = None
-    ) -> Optional[UnifiedConcept]:
+        self, concept_id: str, source: KnowledgeSource | None = None
+    ) -> UnifiedConcept | None:
         """
         Get detailed information about a specific concept.
 
@@ -259,8 +264,8 @@ class CentralKnowledgeLookup:
         return None
 
     async def find_mappings(
-        self, concept_id: str, target_sources: Optional[List[KnowledgeSource]] = None
-    ) -> List[ConceptIdentifier]:
+        self, concept_id: str, target_sources: list[KnowledgeSource] | None = None
+    ) -> list[ConceptIdentifier]:
         """
         Find cross-references and mappings for a concept.
 
@@ -271,7 +276,7 @@ class CentralKnowledgeLookup:
         Returns:
             List of concept identifiers in other sources
         """
-        mappings = []
+        mappings: list[ConceptIdentifier] = []
 
         # Get concept details first
         concept = await self.get_concept_details(concept_id)
@@ -293,7 +298,7 @@ class CentralKnowledgeLookup:
         concept_id: str,
         levels: int = 1,
         direction: str = "both",  # "up", "down", "both"
-    ) -> Dict[str, List[UnifiedConcept]]:
+    ) -> dict[str, list[UnifiedConcept]]:
         """
         Get hierarchical relationships for a concept.
 
@@ -305,7 +310,11 @@ class CentralKnowledgeLookup:
         Returns:
             Dictionary with "parents", "children", and "siblings" lists
         """
-        hierarchy = {"parents": [], "children": [], "siblings": []}
+        hierarchy: dict[str, list[UnifiedConcept]] = {
+            "parents": [],
+            "children": [],
+            "siblings": [],
+        }
 
         concept = await self.get_concept_details(concept_id)
         if not concept:
@@ -328,7 +337,7 @@ class CentralKnowledgeLookup:
 
     async def suggest_similar_concepts(
         self, concept_id: str, similarity_threshold: float = 0.8
-    ) -> List[UnifiedConcept]:
+    ) -> list[UnifiedConcept]:
         """
         Find concepts similar to the given concept.
 
@@ -351,9 +360,11 @@ class CentralKnowledgeLookup:
             if term:
                 result = await self.search_concepts(
                     term,
-                    concept_types=[concept.concept_type]
-                    if concept.concept_type != ConceptType.UNKNOWN
-                    else None,
+                    concept_types=(
+                        [concept.concept_type]
+                        if concept.concept_type != ConceptType.UNKNOWN
+                        else None
+                    ),
                     max_results=20,
                 )
 
@@ -375,8 +386,8 @@ class CentralKnowledgeLookup:
         return sorted(unique_similar, key=lambda c: c.confidence_score, reverse=True)[:10]
 
     async def _search_parallel(
-        self, query: str, sources: List[KnowledgeSource], max_results: int
-    ) -> Dict[KnowledgeSource, List[UnifiedConcept]]:
+        self, query: str, sources: list[KnowledgeSource], max_results: int
+    ) -> dict[KnowledgeSource, list[UnifiedConcept] | Exception]:
         """Search sources in parallel."""
         tasks = []
         per_source_limit = max(1, max_results // len(sources))
@@ -388,7 +399,7 @@ class CentralKnowledgeLookup:
                 )
                 tasks.append((source, task))
 
-        results = {}
+        results: dict[KnowledgeSource, list[UnifiedConcept] | Exception] = {}
         for source, task in tasks:
             try:
                 concepts = await task
@@ -399,10 +410,10 @@ class CentralKnowledgeLookup:
         return results
 
     async def _search_sequential(
-        self, query: str, sources: List[KnowledgeSource], max_results: int
-    ) -> Dict[KnowledgeSource, List[UnifiedConcept]]:
+        self, query: str, sources: list[KnowledgeSource], max_results: int
+    ) -> dict[KnowledgeSource, list[UnifiedConcept] | Exception]:
         """Search sources sequentially."""
-        results = {}
+        results: dict[KnowledgeSource, list[UnifiedConcept] | Exception] = {}
         per_source_limit = max(1, max_results // len(sources))
 
         for source in sources:
@@ -416,7 +427,7 @@ class CentralKnowledgeLookup:
 
     async def _search_single_source(
         self, source: KnowledgeSource, query: str, limit: int
-    ) -> List[UnifiedConcept]:
+    ) -> list[UnifiedConcept]:
         """Search a single knowledge source."""
         if source not in self.adapters:
             raise ValueError(f"Adapter for {source.value} not available")
@@ -430,13 +441,13 @@ class CentralKnowledgeLookup:
 
         return await adapter.search_concepts(query, limit)
 
-    def _deduplicate_concepts(self, concepts: List[UnifiedConcept]) -> List[UnifiedConcept]:
+    def _deduplicate_concepts(self, concepts: list[UnifiedConcept]) -> list[UnifiedConcept]:
         """Remove duplicate concepts and merge similar ones."""
         if not concepts:
             return concepts
 
         # Group concepts by normalized label for exact matches
-        label_groups: Dict[str, List[UnifiedConcept]] = {}
+        label_groups: dict[str, list[UnifiedConcept]] = {}
         for concept in concepts:
             normalized_label = concept.primary_label.lower().strip()
             if normalized_label not in label_groups:
@@ -445,7 +456,7 @@ class CentralKnowledgeLookup:
 
         deduplicated = []
 
-        for label, group_concepts in label_groups.items():
+        for _label, group_concepts in label_groups.items():
             if len(group_concepts) == 1:
                 deduplicated.append(group_concepts[0])
             else:
@@ -457,7 +468,7 @@ class CentralKnowledgeLookup:
 
         return deduplicated
 
-    async def get_statistics(self) -> Dict[str, Any]:
+    async def get_statistics(self) -> dict[str, Any]:
         """Get usage statistics for the lookup system."""
         stats = {
             "available_sources": list(self.adapters.keys()),
@@ -603,8 +614,8 @@ class CentralKnowledgeLookup:
         return "\n".join(lines)
 
     def export_to_json(
-        self, result: LookupResult, filepath: Optional[Union[str, Path]] = None
-    ) -> Union[str, Dict]:
+        self, result: LookupResult, filepath: str | Path | None = None
+    ) -> str | dict:
         """
         Export search results to JSON format.
 
@@ -615,7 +626,7 @@ class CentralKnowledgeLookup:
         Returns:
             JSON string if filepath provided, dict otherwise
         """
-        json_data = {
+        json_data: dict[str, Any] = {
             "query": result.query,
             "execution_time": result.execution_time,
             "total_found": result.total_found,
@@ -638,17 +649,19 @@ class CentralKnowledgeLookup:
                 "categories": concept.categories,
                 "parents": concept.parents,
                 "children": concept.children,
-                "identifiers": [
-                    {
-                        "source": id.source.value,
-                        "identifier": id.identifier,
-                        "label": id.label,
-                        "url": id.url,
-                    }
-                    for id in concept.identifiers
-                ]
-                if concept.identifiers
-                else [],
+                "identifiers": (
+                    [
+                        {
+                            "source": id.source.value,
+                            "identifier": id.identifier,
+                            "label": id.label,
+                            "url": id.url,
+                        }
+                        for id in concept.identifiers
+                    ]
+                    if concept.identifiers
+                    else []
+                ),
             }
             json_data["concepts"].append(concept_data)
 
@@ -662,7 +675,7 @@ class CentralKnowledgeLookup:
 
         return json_data
 
-    def export_to_csv(self, result: LookupResult, filepath: Union[str, Path]) -> str:
+    def export_to_csv(self, result: LookupResult, filepath: str | Path) -> str:
         """
         Export search results to CSV format.
 
@@ -717,13 +730,13 @@ class CentralKnowledgeLookup:
                         "concept_type": concept.concept_type.value,
                         "confidence_score": concept.confidence_score,
                         "sources": "; ".join([s.value for s in concept.sources]),
-                        "definitions": "; ".join(concept.definitions)
-                        if concept.definitions
-                        else "",
+                        "definitions": (
+                            "; ".join(concept.definitions) if concept.definitions else ""
+                        ),
                         "synonyms": "; ".join(concept.synonyms) if concept.synonyms else "",
-                        "semantic_types": "; ".join(concept.semantic_types)
-                        if concept.semantic_types
-                        else "",
+                        "semantic_types": (
+                            "; ".join(concept.semantic_types) if concept.semantic_types else ""
+                        ),
                         "categories": "; ".join(concept.categories) if concept.categories else "",
                     }
                 )
@@ -734,7 +747,7 @@ class CentralKnowledgeLookup:
     def export_to_ttl(
         self,
         result: LookupResult,
-        filepath: Union[str, Path],
+        filepath: str | Path,
         namespace: str = "http://example.org/concepts/",
     ) -> str:
         """
@@ -772,7 +785,7 @@ class CentralKnowledgeLookup:
         lines.append("")
 
         # Concepts
-        for i, concept in enumerate(result.concepts):
+        for _i, concept in enumerate(result.concepts):
             concept_id = concept.primary_id.replace(":", "_").replace("/", "_").replace("#", "_")
             concept_uri = f"ex:concept_{concept_id}"
 
@@ -837,7 +850,7 @@ class CentralKnowledgeLookup:
         except ImportError:
             raise ImportError(
                 "pandas is required for DataFrame export. Install with: pip install pandas"
-            )
+            ) from None
 
         data = []
         for concept in result.concepts:
@@ -871,7 +884,7 @@ class CentralKnowledgeLookup:
 
         return df
 
-    def export_to_excel(self, result: LookupResult, filepath: Union[str, Path]) -> str:
+    def export_to_excel(self, result: LookupResult, filepath: str | Path) -> str:
         """
         Export search results to Excel format with multiple sheets.
 
@@ -887,7 +900,7 @@ class CentralKnowledgeLookup:
         except ImportError:
             raise ImportError(
                 "pandas is required for Excel export. Install with: pip install pandas openpyxl"
-            )
+            ) from None
 
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -915,7 +928,7 @@ class CentralKnowledgeLookup:
         summary_df = pd.DataFrame(summary_data)
 
         # Source statistics
-        source_stats = {}
+        source_stats: dict[str, int] = {}
         for concept in result.concepts:
             for source in concept.sources:
                 source_stats[source.value] = source_stats.get(source.value, 0) + 1
@@ -943,7 +956,7 @@ class CentralKnowledgeLookup:
         logger.info(f"Results exported to Excel: {filepath}")
         return str(filepath)
 
-    def export_summary_report(self, result: LookupResult, filepath: Union[str, Path]) -> str:
+    def export_summary_report(self, result: LookupResult, filepath: str | Path) -> str:
         """
         Generate a comprehensive summary report in text format.
 
@@ -980,16 +993,16 @@ class CentralKnowledgeLookup:
         lines.append("")
 
         # Source breakdown
-        source_stats = {}
+        source_stats: dict[str, int] = {}
         for concept in result.concepts:
             for source in concept.sources:
                 source_stats[source.value] = source_stats.get(source.value, 0) + 1
 
         lines.append("SOURCE CONTRIBUTION")
         lines.append("-" * 40)
-        for source, count in sorted(source_stats.items(), key=lambda x: x[1], reverse=True):
+        for source_name, count in sorted(source_stats.items(), key=lambda x: x[1], reverse=True):
             percentage = count / result.total_found * 100
-            lines.append(f"{source:15} {count:3d} concepts ({percentage:5.1f}%)")
+            lines.append(f"{source_name:15} {count:3d} concepts ({percentage:5.1f}%)")
         lines.append("")
 
         # Quality metrics
@@ -1059,12 +1072,12 @@ class CentralKnowledgeLookup:
     async def lookup_and_convert_to_rdf(
         self,
         query: str,
-        output_path: Optional[Union[str, Path]] = None,
-        concept_types: Optional[List[ConceptType]] = None,
-        sources: Optional[List[KnowledgeSource]] = None,
+        output_path: str | Path | None = None,
+        concept_types: list[ConceptType] | None = None,
+        sources: list[KnowledgeSource] | None = None,
         max_results: int = 50,
         rdf_format: str = "turtle",
-        adapter_hints: Optional[Any] = None,
+        adapter_hints: Any | None = None,
     ) -> Any:
         """
         Search for concepts and convert results directly to RDF.
