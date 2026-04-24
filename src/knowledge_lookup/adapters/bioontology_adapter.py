@@ -3,7 +3,7 @@ Adapter for BioOntology.org (now part of BioPortal).
 """
 
 import logging
-from typing import Any
+from typing import Any, Dict, Optional
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
