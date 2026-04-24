@@ -7,7 +7,6 @@ Essential for functional analysis and understanding biological processes in ME/C
 """
 
 import logging
-from typing import List
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -21,7 +20,7 @@ class QuickGOAdapter(KnowledgeSourceAdapter):
     def get_source(self):
         return KnowledgeSource.QUICKGO
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """
         Search QuickGO for GO terms and annotations.
 

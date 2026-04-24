@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
@@ -27,7 +27,7 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return self.api_key is not None
 
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """
         Get detailed information about a disease by its DisGeNET ID.
         """
@@ -51,8 +51,12 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
         return concept
 
     async def _make_request(
-        self, url: str, params: Optional[Dict] = None, headers: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+        self,
+        url: str,
+        params: dict | None = None,
+        headers: dict | None = None,
+        json_data: dict | None = None,
+    ) -> dict[str, Any]:
         """
         Make HTTP request with error handling and rate limit support.
         """
@@ -76,8 +80,8 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
             return {}
 
     async def get_gene_disease_associations(
-        self, params: Dict[str, Any], raw: bool = False
-    ) -> Optional[Any]:
+        self, params: dict[str, Any], raw: bool = False
+    ) -> Any | None:
         """
         Query gene-disease associations with flexible parameters.
 
@@ -158,8 +162,8 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
         return parsed_results
 
     async def get_gene_disease_associations_evidence(
-        self, params: Dict[str, Any], raw: bool = False
-    ) -> Optional[Any]:
+        self, params: dict[str, Any], raw: bool = False
+    ) -> Any | None:
         """
         Query gene-disease associations with flexible parameters.
 
@@ -239,7 +243,7 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
             parsed_results.append(parsed)
         return parsed_results
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """
         Search for gene-disease associations and return UnifiedConcepts.
         query: NCBI gene ID (as string)

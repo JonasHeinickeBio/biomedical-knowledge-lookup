@@ -6,9 +6,10 @@ Integrates with TIB BioLinker AI API for entity and relation extraction.
 
 import asyncio
 import logging
-from typing import List, Optional, Dict, Any
+from typing import Any
+
 from ..base import KnowledgeSourceAdapter
-from ..models import UnifiedConcept, KnowledgeSource, ConceptType, LookupConfig, ConceptIdentifier
+from ..models import ConceptIdentifier, ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +32,15 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         """Get or create aiohttp session with extended timeout for BioLinker AI."""
         if self.session is None or self.session.closed:
             import aiohttp
+
             # Use longer timeout specifically for BioLinker AI (can be slow)
             timeout = aiohttp.ClientTimeout(total=180)  # 2 minute total timeout
             self.session = aiohttp.ClientSession(timeout=timeout)
         return self.session
 
-    async def search_concepts_with_depth(self, query: str, limit: int = 20, search_depth: int = 50) -> List[UnifiedConcept]:
+    async def search_concepts_with_depth(
+        self, query: str, limit: int = 20, search_depth: int = 50
+    ) -> list[UnifiedConcept]:
         """
         Extract entities and relations from text using BioLinker AI with custom search depth.
 
@@ -50,29 +54,26 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         """
         try:
             # Prepare request payload with custom search depth
-            payload = {
-                "input_text": query,
-                "k": search_depth
-            }
+            payload = {"input_text": query, "k": search_depth}
 
-            headers = {
-                "Content-Type": "application/json"
-            }
+            headers = {"Content-Type": "application/json"}
 
             # Make request to BioLinker AI API with extended timeout
             session = await self._get_session()
 
-            logger.info(f"Calling BioLinker AI API for query: '{query}' with search depth: {search_depth}")
+            logger.info(
+                f"Calling BioLinker AI API for query: '{query}' with search depth: {search_depth}"
+            )
 
             async with session.post(
-                self.process_endpoint,
-                json=payload,
-                headers=headers
+                self.process_endpoint, json=payload, headers=headers
             ) as response:
                 if response.status == 200:
                     data = await response.json()
                     concepts = self._process_biolinker_response(data, limit)
-                    logger.info(f"BioLinker AI processed '{query}' and returned {len(concepts)} concepts")
+                    logger.info(
+                        f"BioLinker AI processed '{query}' and returned {len(concepts)} concepts"
+                    )
                     return concepts
                 else:
                     error_text = await response.text()
@@ -80,13 +81,15 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                     return []
 
         except asyncio.TimeoutError:
-            logger.warning(f"BioLinker AI API timeout for query: '{query}' (API may be slow or unavailable)")
+            logger.warning(
+                f"BioLinker AI API timeout for query: '{query}' (API may be slow or unavailable)"
+            )
             return []
         except Exception as e:
             logger.error(f"Error querying BioLinker AI: {e}")
             return []
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """
         Extract entities and relations from text using BioLinker AI.
 
@@ -110,7 +113,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         # Use the helper method with calculated search depth
         return await self.search_concepts_with_depth(query, limit, search_depth)
 
-    async def annotate_sentence(self, sentence: str, search_depth: int = 50) -> Dict[str, Any]:
+    async def annotate_sentence(self, sentence: str, search_depth: int = 50) -> dict[str, Any]:
         """
         Annotate a complete sentence, providing structured entity and relation extraction.
 
@@ -123,25 +126,27 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         """
         try:
             # Get raw concepts
-            concepts = await self.search_concepts_with_depth(sentence, limit=100, search_depth=search_depth)
+            concepts = await self.search_concepts_with_depth(
+                sentence, limit=100, search_depth=search_depth
+            )
 
             # Structure the results for sentence annotation
-            annotation = {
+            annotation: dict[str, Any] = {
                 "sentence": sentence,
                 "search_depth": search_depth,
                 "total_concepts": len(concepts),
                 "entities": [],
                 "predicates": [],
                 "relations": [],
-                "concept_map": {}
+                "concept_map": {},
             }
 
             # Separate entities and predicates
             for concept in concepts:
                 bl_data = concept.source_data.get(KnowledgeSource.BIOLINKER, {})
-                category = bl_data.get('category', 'unknown')
-                surface_form = bl_data.get('surface_form', concept.primary_label)
-                position = bl_data.get('text_position', {})
+                category = bl_data.get("category", "unknown")
+                surface_form = bl_data.get("surface_form", concept.primary_label)
+                position = bl_data.get("text_position", {})
 
                 concept_info = {
                     "surface_form": surface_form,
@@ -151,7 +156,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                     "semantic_types": concept.semantic_types,
                     "position": position,
                     "confidence": concept.confidence_score,
-                    "definition": concept.definitions[0] if concept.definitions else None
+                    "definition": concept.definitions[0] if concept.definitions else None,
                 }
 
                 if category == "entities":
@@ -168,12 +173,13 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
 
             # Try to identify potential relations based on proximity
             annotation["relations"] = self._identify_sentence_relations(
-                annotation["entities"],
-                annotation["predicates"]
+                annotation["entities"], annotation["predicates"]
             )
 
-            logger.info(f"Sentence annotation completed: {len(annotation['entities'])} entities, "
-                       f"{len(annotation['predicates'])} predicates, {len(annotation['relations'])} relations")
+            logger.info(
+                f"Sentence annotation completed: {len(annotation['entities'])} entities, "
+                f"{len(annotation['predicates'])} predicates, {len(annotation['relations'])} relations"
+            )
 
             return annotation
 
@@ -184,10 +190,12 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                 "error": str(e),
                 "entities": [],
                 "predicates": [],
-                "relations": []
+                "relations": [],
             }
 
-    async def annotate_multiple_sentences(self, sentences: List[str], search_depth: int = 50) -> List[Dict[str, Any]]:
+    async def annotate_multiple_sentences(
+        self, sentences: list[str], search_depth: int = 50
+    ) -> list[dict[str, Any]]:
         """
         Annotate multiple sentences efficiently.
 
@@ -211,7 +219,9 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
 
         return annotations
 
-    def _identify_sentence_relations(self, entities: List[Dict], predicates: List[Dict]) -> List[Dict[str, Any]]:
+    def _identify_sentence_relations(
+        self, entities: list[dict], predicates: list[dict]
+    ) -> list[dict[str, Any]]:
         """
         Identify potential relations between entities and predicates in a sentence.
 
@@ -238,10 +248,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                 # Check if entity is within reasonable distance of predicate
                 distance = min(abs(ent_start - pred_end), abs(pred_start - ent_end))
                 if distance <= 50:  # Within 50 characters
-                    nearby_entities.append({
-                        "entity": entity,
-                        "distance": distance
-                    })
+                    nearby_entities.append({"entity": entity, "distance": distance})
 
             # Sort by proximity
             nearby_entities.sort(key=lambda x: x["distance"])
@@ -257,28 +264,30 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                         "surface_form": subject["surface_form"],
                         "label": subject["label"],
                         "id": subject["id"],
-                        "type": subject["type"]
+                        "type": subject["type"],
                     },
                     "predicate": {
                         "surface_form": predicate["surface_form"],
                         "label": predicate["label"],
                         "id": predicate["id"],
-                        "type": predicate["type"]
+                        "type": predicate["type"],
                     },
                     "object": {
                         "surface_form": object_entity["surface_form"],
                         "label": object_entity["label"],
                         "id": object_entity["id"],
-                        "type": object_entity["type"]
+                        "type": object_entity["type"],
                     },
-                    "confidence": min(subject["confidence"], predicate["confidence"], object_entity["confidence"])
+                    "confidence": min(
+                        subject["confidence"], predicate["confidence"], object_entity["confidence"]
+                    ),
                 }
 
                 relations.append(relation)
 
         return relations
 
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """
         Get detailed information about a specific concept.
 
@@ -296,7 +305,9 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         logger.warning(f"BioLinker AI doesn't support direct concept lookup for ID: {concept_id}")
         return None
 
-    def _process_biolinker_response(self, response_data: Dict[str, Any], limit: int) -> List[UnifiedConcept]:
+    def _process_biolinker_response(
+        self, response_data: dict[str, Any], limit: int
+    ) -> list[UnifiedConcept]:
         """
         Process BioLinker AI API response and convert to UnifiedConcept objects.
 
@@ -307,7 +318,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         Returns:
             List of UnifiedConcept objects
         """
-        concepts: List[UnifiedConcept] = []
+        concepts: list[UnifiedConcept] = []
 
         if "results" not in response_data:
             logger.warning("No 'results' field in BioLinker AI response")
@@ -329,7 +340,9 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
 
         return concepts
 
-    def _convert_biolinker_result_to_concept(self, result: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_biolinker_result_to_concept(
+        self, result: dict[str, Any]
+    ) -> UnifiedConcept | None:
         """
         Convert a single BioLinker AI result to a UnifiedConcept.
 
@@ -370,7 +383,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                 source=KnowledgeSource.BIOLINKER,
                 identifier=concept_id,
                 label=label,
-                url=self._generate_concept_url(concept_id)
+                url=self._generate_concept_url(concept_id),
             )
 
             # Create UnifiedConcept
@@ -384,7 +397,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                 synonyms=[],  # BioLinker AI doesn't provide synonyms directly
                 semantic_types=semantic_types,
                 categories=[result.get("category", "")],
-                identifiers=[identifier]
+                identifiers=[identifier],
             )
 
             # Add surface form information as additional synonym
@@ -397,7 +410,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                 "surface_form": surface_form,
                 "text_position": {"start": result.get("start", 0), "end": result.get("end", 0)},
                 "category": result.get("category", ""),
-                "biolinker_source": "TIB BioLinker AI"
+                "biolinker_source": "TIB BioLinker AI",
             }
 
             return concept
@@ -406,7 +419,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
             logger.error(f"Error converting BioLinker AI result to concept: {e}")
             return None
 
-    def _map_semantic_type_to_concept_type(self, semantic_types: List[str]) -> ConceptType:
+    def _map_semantic_type_to_concept_type(self, semantic_types: list[str]) -> ConceptType:
         """
         Map BioLinker AI semantic types to our ConceptType enum.
 
@@ -448,7 +461,9 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         else:
             return ConceptType.UNKNOWN
 
-    def _calculate_confidence_score(self, result: Dict[str, Any], best_candidate: Dict[str, Any]) -> float:
+    def _calculate_confidence_score(
+        self, result: dict[str, Any], best_candidate: dict[str, Any]
+    ) -> float:
         """
         Calculate confidence score for a BioLinker AI result.
 
@@ -485,7 +500,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         # Ensure confidence is within bounds
         return min(1.0, max(0.0, confidence))
 
-    def _generate_concept_url(self, concept_id: str) -> Optional[str]:
+    def _generate_concept_url(self, concept_id: str) -> str | None:
         """
         Generate a URL for the concept based on its ID.
 

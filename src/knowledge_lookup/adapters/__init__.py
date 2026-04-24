@@ -13,6 +13,7 @@ from .disgenet_adapter import DisGeNETAdapter
 from .drugbank_adapter import DrugBankAdapter
 from .ebiols_adapter import EBIOLSAdapter
 from .ensembl_adapter import EnsemblAdapter
+from .eutils_adapter import EUtilsAdapter
 from .geneontology_adapter import GeneOntologyAdapter
 from .hpo_adapter import HPOAdapter
 from .kegg_adapter import KEGGAdapter
@@ -59,6 +60,7 @@ __all__ = [
     "QuickGOAdapter",
     "ZoomaAdapter",
     "TytoAdapter",
+    "EUtilsAdapter",
 ]
 
 # Adapter class mappings for CentralKnowledgeLookup
@@ -90,5 +92,6 @@ ADAPTER_CLASSES = {
     KnowledgeSource.ENSEMBL: EnsemblAdapter,
     KnowledgeSource.KEGG: KEGGAdapter,
     KnowledgeSource.QUICKGO: QuickGOAdapter,
+    KnowledgeSource.EUTILS: EUtilsAdapter,
     # Add more adapters as needed
 }

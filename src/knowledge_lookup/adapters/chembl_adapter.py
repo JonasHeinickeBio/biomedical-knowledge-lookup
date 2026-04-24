@@ -3,7 +3,7 @@ Adapter for ChEMBL drug/compound database using chembl_webresource_client.
 """
 
 import logging
-from typing import Optional
+from typing import Any
 
 from chembl_webresource_client.new_client import new_client
 
@@ -53,7 +53,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 - 'endpoints_tested': list of endpoint names tested
                 - 'available_endpoints': list of all available endpoint names
         """
-        status = {
+        status: dict[str, Any] = {
             "available": False,
             "status_code": None,
             "error": None,
@@ -110,16 +110,18 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
 
         # Test a few key endpoints for actual API availability
         test_endpoints = ["status", "molecule", "activity"]
+        valid_endpoints: list[str] = status.get("available_endpoints", [])
+        tested: list[str] = []
 
         for endpoint in test_endpoints:
-            if endpoint not in status["available_endpoints"]:
-                status["endpoints_tested"].append(f"{endpoint}(not available)")
+            if endpoint not in valid_endpoints:
+                tested.append(f"{endpoint}(not available)")
                 continue
 
             try:
                 client = getattr(self.chembl_client, endpoint, None)
                 if client is None:
-                    status["endpoints_tested"].append(f"{endpoint}(not available)")
+                    tested.append(f"{endpoint}(not available)")
                     continue
 
                 # Quick test - just get first result
@@ -132,15 +134,16 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 else:
                     client.all()[:1]
 
-                status["endpoints_tested"].append(endpoint)
+                tested.append(endpoint)
                 status["available"] = True
 
             except Exception as e:
                 error_msg = str(e)
                 status["error"] = f"Endpoint '{endpoint}' failed: {error_msg[:100]}..."
-                status["endpoints_tested"].append(f"{endpoint}(failed)")
+                tested.append(f"{endpoint}(failed)")
                 continue
 
+        status["endpoints_tested"] = tested
         return status
 
     @create_chembl_retry_decorator(
@@ -150,8 +153,8 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
     def query(
         self,
         endpoint: str,
-        filters: Optional[dict] = None,
-        fields: Optional[list] = None,
+        filters: dict | None = None,
+        fields: list | None = None,
         limit: int = 100,
     ):
         """
@@ -186,7 +189,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             return []
 
     def lookup_molecule(
-        self, filters: Optional[dict] = None, fields: Optional[list] = None, limit: int = 100
+        self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup molecules in ChEMBL and parse results to UnifiedConcepts.
@@ -212,7 +215,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             return []
 
     def lookup_drug(
-        self, filters: Optional[dict] = None, fields: Optional[list] = None, limit: int = 100
+        self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup drugs in ChEMBL and parse results to UnifiedConcepts.
@@ -238,7 +241,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             return []
 
     def lookup_target(
-        self, filters: Optional[dict] = None, fields: Optional[list] = None, limit: int = 100
+        self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup targets in ChEMBL and parse results to UnifiedConcepts.
@@ -264,7 +267,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             return []
 
     def lookup_activity(
-        self, filters: Optional[dict] = None, fields: Optional[list] = None, limit: int = 100
+        self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup activities in ChEMBL and parse results.
@@ -495,9 +498,11 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                     source=KnowledgeSource.CHEMBL,
                     identifier=chembl_id,
                     label=label,
-                    url=f"https://www.ebi.ac.uk/chembl/compound_report_card/{chembl_id}/"
-                    if chembl_id
-                    else None,
+                    url=(
+                        f"https://www.ebi.ac.uk/chembl/compound_report_card/{chembl_id}/"
+                        if chembl_id
+                        else None
+                    ),
                 )
 
                 # Enhanced categories
@@ -621,9 +626,11 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                     source=KnowledgeSource.CHEMBL,
                     identifier=target_id,
                     label=label,
-                    url=f"https://www.ebi.ac.uk/chembl/target_report_card/{target_id}/"
-                    if target_id
-                    else None,
+                    url=(
+                        f"https://www.ebi.ac.uk/chembl/target_report_card/{target_id}/"
+                        if target_id
+                        else None
+                    ),
                 )
                 raw_category = r.get("target_type")
                 try:
@@ -734,7 +741,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             Logs and returns partial results or empty list on error.
         """
         try:
-            concepts = []
+            concepts: list[UnifiedConcept] = []
             endpoints = [
                 ("molecule", self._parse_molecule_results),
                 ("drug", self._parse_drug_results),
