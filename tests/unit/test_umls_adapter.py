@@ -4,8 +4,9 @@ Unit tests for UMLSAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.umls_adapter import UMLSAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
