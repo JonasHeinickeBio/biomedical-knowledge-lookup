@@ -7,7 +7,7 @@ A unified tool for biological concept lookup across multiple biomedical knowledg
 
 import asyncio
 import json
-from typing import Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -37,17 +37,20 @@ def callback():
 @app.command()
 def search(
     query: str = typer.Argument(..., help="Search query (e.g., 'diabetes', 'BRCA1')"),
-    sources: Optional[list[str]] = typer.Option(  # noqa: UP007
-        None,
-        "--source",
-        "-s",
-        help="Knowledge sources to search (default: all available)",
-    ),
+    sources: Annotated[
+        list[str] | None,
+        typer.Option(
+            None,
+            "--source",
+            "-s",
+            help="Knowledge sources to search (default: all available)",
+        ),
+    ] = None,
     limit: int = typer.Option(10, "--limit", "-l", help="Maximum results per source"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table, json, csv"),
-    cache_dir: Optional[str] = typer.Option(  # noqa: UP007
-        None, "--cache-dir", help="Cache directory path"
-    ),
+    cache_dir: Annotated[
+        str | None, typer.Option(None, "--cache-dir", help="Cache directory path")
+    ] = None,
 ):
     """
     Search for biological concepts across knowledge sources.
