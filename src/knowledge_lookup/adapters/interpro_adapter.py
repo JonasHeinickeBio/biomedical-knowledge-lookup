@@ -8,7 +8,7 @@ API documentation: https://www.ebi.ac.uk/interpro/result/download/#
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -55,7 +55,7 @@ class InterProAdapter(KnowledgeSourceAdapter):
             logger.error(f"InterPro search failed for '{query}': {e}")
             return []
 
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed information about a specific InterPro entry."""
         try:
             ipr_id = concept_id.replace("InterPro:", "").strip()
@@ -73,7 +73,7 @@ class InterProAdapter(KnowledgeSourceAdapter):
             logger.error(f"InterPro get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> UnifiedConcept | None:
         """Convert an InterPro entry to a UnifiedConcept."""
         try:
             metadata = item.get("metadata", item)

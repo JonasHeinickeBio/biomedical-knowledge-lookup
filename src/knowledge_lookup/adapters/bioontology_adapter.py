@@ -3,7 +3,7 @@ Adapter for BioOntology.org (now part of BioPortal).
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
@@ -240,24 +240,12 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             "obsolete": concept_details.get("obsolete"),
         }
 
-    # Removed get_concept_details_minimal: now handled by get_concept_details(minimal=True)
-
     async def annotate(
         self,
         text: str,
-        ontologies: Optional[str] = None,
-        semantic_types: Optional[str] = None,
-        expand_semantic_types_hierarchy: bool = False,
-        expand_class_hierarchy: bool = False,
-        class_hierarchy_max_level: int = 0,
-        expand_mappings: bool = False,
-        stop_words: Optional[str] = None,
-        minimum_match_length: int = 3,
-        exclude_numbers: bool = False,
-        whole_word_only: bool = True,
-        exclude_synonyms: bool = False,
-        longest_only: bool = False,
-        extra_params: Optional[Dict[str, Any]] = None,
+        ontologies: str | None = None,
+        longest_only: bool = True,
+        extra_params: dict[str, Any] | None = None,
         **kwargs,
     ) -> Any:
         """
@@ -268,16 +256,6 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
         Args:
             text: The text to annotate.
             ontologies: Comma-separated list of ontology IDs to limit annotation.
-            semantic_types: Comma-separated semantic types to filter by.
-            expand_semantic_types_hierarchy: Include immediate children of semantic types.
-            expand_class_hierarchy: Include ancestors of matched classes.
-            class_hierarchy_max_level: Depth of hierarchy for class expansion.
-            expand_mappings: Use manual mappings (UMLS, REST, CUI, OBOXREF).
-            stop_words: Comma-separated additional stop words.
-            minimum_match_length: Minimum number of characters for a match.
-            exclude_numbers: Exclude numeric tokens from annotation.
-            whole_word_only: Only match whole words (default True).
-            exclude_synonyms: Do not use synonyms for matching.
             longest_only: Return only the longest match per phrase.
             extra_params: Additional query parameters.
 
@@ -289,25 +267,13 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             return []
 
         url = f"{self.base_url}/annotator"
-        params: Dict[str, Any] = {
+        params: dict[str, Any] = {
             "apikey": self.api_key,
             "text": text,
-            "expand_semantic_types_hierarchy": str(expand_semantic_types_hierarchy).lower(),
-            "expand_class_hierarchy": str(expand_class_hierarchy).lower(),
-            "class_hierarchy_max_level": class_hierarchy_max_level,
-            "expand_mappings": str(expand_mappings).lower(),
-            "minimum_match_length": minimum_match_length,
-            "exclude_numbers": str(exclude_numbers).lower(),
-            "whole_word_only": str(whole_word_only).lower(),
-            "exclude_synonyms": str(exclude_synonyms).lower(),
             "longest_only": str(longest_only).lower(),
         }
         if ontologies:
             params["ontologies"] = ontologies
-        if semantic_types:
-            params["semantic_types"] = semantic_types
-        if stop_words:
-            params["stop_words"] = stop_words
         if extra_params:
             params.update(extra_params)
 
@@ -345,34 +311,6 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             return data
         except Exception as e:
             logger.error(f"BioOntology batch annotate failed: {e}")
-            return None
-
-    async def annotate(
-        self,
-        text: str,
-        ontologies: str | None = None,
-        longest_only: bool = True,
-        extra_params: dict[str, Any] | None = None,
-        **kwargs,
-    ) -> Any:
-        """
-        Annotate a single text using BioOntology annotator endpoint.
-        """
-        url = f"{self.base_url}/annotator"
-        params = self._build_params(
-            extra_params, text=text, longest_only=longest_only, ontologies=ontologies, **kwargs
-        )
-        # Ensure 'text' is set in params if not already
-        if "text" not in params:
-            params["text"] = text
-
-        logger.info(f"BioOntology annotate URL: {url}")
-        logger.info(f"BioOntology annotate Params: {params}")
-        try:
-            data = await self._make_request(url, params)
-            return data
-        except Exception as e:
-            logger.error(f"BioOntology annotate failed: {e}")
             return None
 
     async def get_analytics(

@@ -8,7 +8,7 @@ API documentation: https://www.ebi.ac.uk/interpro/api/ (Pfam data is served via 
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -56,7 +56,7 @@ class PfamAdapter(KnowledgeSourceAdapter):
             logger.error(f"Pfam search failed for '{query}': {e}")
             return []
 
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed information about a specific Pfam entry."""
         try:
             pfam_id = concept_id.replace("Pfam:", "").strip()
@@ -74,7 +74,7 @@ class PfamAdapter(KnowledgeSourceAdapter):
             logger.error(f"Pfam get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> UnifiedConcept | None:
         """Convert a Pfam entry to a UnifiedConcept."""
         try:
             metadata = item.get("metadata", item)

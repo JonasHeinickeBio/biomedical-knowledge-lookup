@@ -8,7 +8,7 @@ API documentation: https://www.ncbi.nlm.nih.gov/clinvar/docs/api_http/
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -57,7 +57,7 @@ class ClinVarAdapter(KnowledgeSourceAdapter):
             logger.error(f"ClinVar search failed for '{query}': {e}")
             return []
 
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed information about a specific ClinVar variant."""
         try:
             # Strip prefix if present
@@ -111,7 +111,7 @@ class ClinVarAdapter(KnowledgeSourceAdapter):
             logger.error(f"ClinVar summary fetch failed: {e}")
             return []
 
-    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> UnifiedConcept | None:
         """Convert a ClinVar summary item to a UnifiedConcept."""
         try:
             uid = str(item.get("uid", ""))

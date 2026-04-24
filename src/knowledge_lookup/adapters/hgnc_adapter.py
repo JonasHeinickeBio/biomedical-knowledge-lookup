@@ -8,7 +8,7 @@ API documentation: https://www.genenames.org/help/rest/
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -53,7 +53,7 @@ class HGNCAdapter(KnowledgeSourceAdapter):
             logger.error(f"HGNC search failed for '{query}': {e}")
             return []
 
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed information about a specific HGNC gene entry."""
         try:
             # Support HGNC IDs (e.g. "HGNC:1100") or gene symbols
@@ -75,7 +75,7 @@ class HGNCAdapter(KnowledgeSourceAdapter):
             logger.error(f"HGNC get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> UnifiedConcept | None:
         """Convert an HGNC result item to a UnifiedConcept."""
         try:
             hgnc_id = item.get("hgnc_id", "")

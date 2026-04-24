@@ -9,7 +9,7 @@ API documentation: https://www.omim.org/help/api
 
 import logging
 import os
-from typing import Any, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
@@ -63,7 +63,7 @@ class OMIMAdapter(KnowledgeSourceAdapter):
             logger.error(f"OMIM search failed for '{query}': {e}")
             return []
 
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed information about a specific OMIM entry."""
         if not self.api_key:
             logger.warning("OMIM API key not available")
@@ -92,7 +92,7 @@ class OMIMAdapter(KnowledgeSourceAdapter):
             logger.error(f"OMIM get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> UnifiedConcept | None:
         """Convert an OMIM entry to a UnifiedConcept."""
         try:
             mim_number = str(item.get("mimNumber", ""))

@@ -8,7 +8,7 @@ API documentation: https://data.rcsb.org/
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -66,7 +66,7 @@ class PDBAdapter(KnowledgeSourceAdapter):
             logger.error(f"PDB search failed for '{query}': {e}")
             return []
 
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed information about a specific PDB entry."""
         try:
             pdb_id = concept_id.replace("PDB:", "").strip().upper()
@@ -75,7 +75,7 @@ class PDBAdapter(KnowledgeSourceAdapter):
             logger.error(f"PDB get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    async def _fetch_entry_summary(self, pdb_id: str) -> Optional[UnifiedConcept]:
+    async def _fetch_entry_summary(self, pdb_id: str) -> UnifiedConcept | None:
         """Fetch and convert a PDB entry summary."""
         try:
             url = f"{self.data_url}/entry/{pdb_id}"
@@ -87,7 +87,7 @@ class PDBAdapter(KnowledgeSourceAdapter):
             logger.error(f"PDB entry fetch failed for '{pdb_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> UnifiedConcept | None:
         """Convert a PDB entry to a UnifiedConcept."""
         try:
             struct = item.get("struct", {})
