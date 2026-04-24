@@ -4,32 +4,37 @@ This directory contains documentation for all knowledge source adapters in the A
 
 ## Available Adapters
 
-### Fully Implemented Adapters
+### Major Implemented Adapters
 
-| Adapter | Source | Description | Documentation |
-|---------|--------|-------------|---------------|
-| **BioLinker** | TIB BioLinker AI | AI-powered entity and relation extraction from text | [Doc](biolinker_adapter.md) |
-| **ChEMBL** | ChEMBL Database | Chemical compounds, bioactivities, and drug targets | [Doc](chembl_adapter.md) |
-| **DisGeNET** | DisGeNET | Gene-disease associations with evidence scores | [Doc](disgenet_adapter.md) |
-| **BioOntology** | BioPortal | Biomedical ontology search and concept details | [Doc](bioontology_adapter.md) |
-| **OLS** | EBI OLS | Ontology Lookup Service for biomedical ontologies | [Doc](ols_adapter.md) |
-| **UMLS** | UMLS | Unified Medical Language System concepts | [Doc](umls_adapter.md) |
-| **PubChem** | PubChem | Chemical compounds and molecular properties | [Doc](pubchem_adapter.md) |
-| **UniProt** | UniProt | Protein sequences and functional annotations | [Doc](uniprot_adapter.md) |
-| **MONDO** | Mondo Disease Ontology | Standardized disease classification | [Doc](mondo_adapter.md) |
-| **DrugBank** | DrugBank | Drug information and pharmacological data | [Doc](additional_adapters.md) |
-| **Ensembl** | Ensembl | Genome annotation and sequence data | [Doc](additional_adapters.md) |
-| **OpenTargets** | Open Targets | Drug target identification and validation | [Doc](additional_adapters.md) |
-| **HPO** | HPO | Human Phenotype Ontology terms | [Doc](additional_adapters.md) |
-| **Gene Ontology** | GO | Molecular functions and biological processes | [Doc](additional_adapters.md) |
-| **Reactome** | Reactome | Biological pathways and reactions | [Doc](additional_adapters.md) |
-| **WikiData** | WikiData | General knowledge base with biomedical content | [Doc](additional_adapters.md) |
-| **DBPedia** | DBPedia | Structured data extracted from Wikipedia | [Doc](additional_adapters.md) |
-| **OBO Foundry** | OBO Foundry | Collection of biomedical ontologies | [Doc](additional_adapters.md) |
-| **ZOOMA** | ZOOMA | Ontology mapping and annotation | [Doc](additional_adapters.md) |
-| **TYTO** | TYTO | Ontology term recognition | [Doc](additional_adapters.md) |
-| **OxO** | OxO | Ontology cross-references | [Doc](additional_adapters.md) |
-| **EBI OLS** | EBI OLS | Alternative OLS implementation | [Doc](additional_adapters.md) |
+| Adapter | Source | Description | Status |
+|---------|--------|-------------|--------|
+| [BioLinker](biolinker_adapter.md) | TIB BioLinker AI | AI-powered entity and relation extraction from text | ✅ Fully Implemented |
+| [ChEMBL](chembl_adapter.md) | ChEMBL Database | Chemical compounds, bioactivities, and drug targets | ✅ Fully Implemented |
+| [DisGeNET](disgenet_adapter.md) | DisGeNET | Gene-disease associations with evidence scores | ✅ Fully Implemented |
+| [BioOntology](bioontology_adapter.md) | BioPortal | Biomedical ontology search and concept details | ✅ Fully Implemented |
+| [OLS](ols_adapter.md) | EBI OLS | Ontology Lookup Service for various biomedical ontologies | ✅ Fully Implemented |
+| [UMLS](umls_adapter.md) | UMLS | Unified Medical Language System concepts | ✅ Fully Implemented |
+| [PubChem](pubchem_adapter.md) | PubChem | Chemical compounds and molecular properties | ✅ Partially Implemented |
+| [UniProt](uniprot_adapter.md) | UniProt | Protein sequences and functional annotations | ✅ Partially Implemented |
+| [MONDO](mondo_adapter.md) | Mondo Disease Ontology | Standardized disease classification | ✅ Partially Implemented |
+
+### Stub Adapters (Not Yet Implemented)
+
+| Adapter | Source | Description |
+|---------|--------|-------------|
+| DrugBank | DrugBank | Drug information and pharmacological data |
+| Ensembl | Ensembl | Genome annotation and sequence data |
+| OpenTargets | Open Targets | Drug target identification and validation |
+| HPO | Human Phenotype Ontology | Human disease phenotypes |
+| Gene Ontology | GO | Molecular functions, biological processes, cellular components |
+| Reactome | Reactome | Biological pathways and reactions |
+| WikiData | WikiData | General knowledge base with biomedical content |
+| DBPedia | DBPedia | Structured data extracted from Wikipedia |
+| OBO Foundry | OBO Foundry | Collection of biomedical ontologies |
+| ZOOMA | ZOOMA | Ontology mapping and annotation |
+| TYTO | TYTO | Ontology term recognition |
+| OxO | OxO | Ontology cross-references |
+| EBIOlsAdapter | EBI OLS | Alternative OLS implementation |
 
 ## Adapter Capabilities
 
@@ -117,7 +122,9 @@ annotation = await biolinker_adapter.annotate_sentence(
 
 ## Implementation Status
 
-- **Fully Implemented**: Complete API integration with all major functions for all 29+ listed adapters.
+- **Fully Implemented**: Complete API integration with all major functions
+- **Partially Implemented**: Basic search functionality, details retrieval may be limited
+- **Stub**: Placeholder implementation, returns empty results
 
 ## Contributing
 

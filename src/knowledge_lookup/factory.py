@@ -2,13 +2,13 @@
 Factory function for creating CentralKnowledgeLookup instances.
 """
 
-from typing import Optional, List, Dict
-from .models import KnowledgeSource, LookupConfig
 from .central_lookup import CentralKnowledgeLookup
+from .models import KnowledgeSource, LookupConfig
+
 
 def create_knowledge_lookup(
-    api_keys: Optional[Dict[str, str]] = None,
-    enabled_sources: Optional[List[KnowledgeSource]] = None,
+    api_keys: dict[str, str] | None = None,
+    enabled_sources: list[KnowledgeSource] | None = None,
     fast_mode: bool = True,
     **kwargs
 ) -> CentralKnowledgeLookup:

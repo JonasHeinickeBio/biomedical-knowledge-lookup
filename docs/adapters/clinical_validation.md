@@ -41,16 +41,16 @@ When you have a CUI (Concept Unique Identifier) and want to verify if it represe
 async def validate_symptom(lookup, cui, expected_label):
     # Get authoritative details from UMLS
     concept = await lookup.get_concept_details(cui, source=KnowledgeSource.UMLS)
-
+    
     if not concept:
         return "Not Found"
-
+        
     # Define clinical types
     clinical_types = ["T047", "T184", "T033", "T037", "T190", "T048"]
-
+    
     # Check if the concept has a clinical semantic type
     is_clinical = any(st in clinical_types for st in concept.semantic_types)
-
+    
     if is_clinical:
         # Check if the label matches (fuzzy check)
         if expected_label.lower() in concept.primary_label.lower():
@@ -69,15 +69,15 @@ If a CUI is incorrect or missing, use a filtered search:
 async def find_clinical_cui(lookup, term):
     # Search across UMLS and BioPortal
     result = await lookup.search_concepts(term, max_results=5)
-
+    
     clinical_matches = []
     clinical_types = ["T047", "T184", "T033", "T037", "T190", "T048"]
-
+    
     for concept in result.concepts:
         # Filter by semantic type
         if any(st in clinical_types for st in concept.semantic_types):
             clinical_matches.append(concept)
-
+            
     return clinical_matches
 ```
 

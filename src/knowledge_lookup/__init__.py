@@ -4,11 +4,38 @@ Knowledge Lookup Package Initialization
 Central lookup system for biological concept integration across multiple knowledge sources.
 """
 
-from .adapters.eutils_adapter import EUtilsAdapter
-from .adapters.kegg_adapter import KEGGAdapter
-from .adapters.quickgo_adapter import QuickGOAdapter
+from .adapters import (
+    ADAPTER_CLASSES,
+    BioLinkerAdapter,
+    BioOntologyAdapter,
+    BioPortalAdapter,
+    DBpediaAdapter,
+    DisGeNETAdapter,
+    DrugBankAdapter,
+    EBIOLSAdapter,
+    EnsemblAdapter,
+    EUtilsAdapter,
+    GeneOntologyAdapter,
+    HPOAdapter,
+    KEGGAdapter,
+    MondoAdapter,
+    OBOFoundryAdapter,
+    OLSAdapter,
+    OpenTargetsAdapter,
+    OxOAdapter,
+    PubChemAdapter,
+    QuickGOAdapter,
+    ReactomeAdapter,
+    TytoAdapter,
+    UMLSAdapter,
+    UniChemAdapter,
+    UniProtAdapter,
+    WikidataAdapter,
+    ZoomaAdapter,
+)
 from .cache import KnowledgeLookupCache, get_cache, init_cache
 from .central_lookup import CentralKnowledgeLookup
+from .factory import create_knowledge_lookup
 from .models import (
     ConceptIdentifier,
     ConceptMapping,
@@ -25,12 +52,12 @@ from .multi_source_annotator import (
     MultiSourceAnnotator,
     SourceAnnotation,
 )
-from .oxo_adapter import OxOAdapter
 
 # Make key classes available at package level
 __all__ = [
     # Main classes
     "CentralKnowledgeLookup",
+    "create_knowledge_lookup",
     "MultiSourceAnnotator",
     # Caching system
     "KnowledgeLookupCache",
@@ -50,9 +77,32 @@ __all__ = [
     "ConceptAgreement",
     "MultiSourceAnnotationResult",
     # Adapters
+    "ADAPTER_CLASSES",
+    "UMLSAdapter",
+    "UniChemAdapter",
+    "BioPortalAdapter",
+    "OLSAdapter",
+    "WikidataAdapter",
+    "BioLinkerAdapter",
+    "DBpediaAdapter",
     "OxOAdapter",
+    "BioOntologyAdapter",
+    "MondoAdapter",
+    "UniProtAdapter",
+    "DisGeNETAdapter",
+    "OpenTargetsAdapter",
+    "ReactomeAdapter",
+    "PubChemAdapter",
+    "DrugBankAdapter",
+    "GeneOntologyAdapter",
+    "HPOAdapter",
+    "OBOFoundryAdapter",
+    "EBIOLSAdapter",
+    "EnsemblAdapter",
     "KEGGAdapter",
     "QuickGOAdapter",
+    "ZoomaAdapter",
+    "TytoAdapter",
     "EUtilsAdapter",
 ]
 
