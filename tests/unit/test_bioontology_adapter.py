@@ -2,7 +2,7 @@
 Unit tests for BioOntologyAdapter.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -118,3 +118,90 @@ class TestBioOntologyAdapter:
         """Test async context manager."""
         async with adapter:
             pass  # Should not raise any exceptions
+
+    @pytest.mark.asyncio
+    async def test_annotate_no_api_key(self, adapter):
+        """Test annotate returns empty list without API key."""
+        result = await adapter.annotate("Melanoma is a malignant tumor.")
+        assert isinstance(result, list)
+        assert len(result) == 0
+
+    @pytest.mark.asyncio
+    @patch("aiohttp.ClientSession.get")
+    async def test_annotate_success(self, mock_get, adapter_with_api_key):
+        """Test successful annotation with BioOntology annotator."""
+        annotation_item = {
+            "annotatedClass": {
+                "@id": "http://purl.bioontology.org/ontology/SNOMEDCT/372244006",
+                "prefLabel": "Melanoma",
+                "links": {"ontology": "https://data.bioontology.org/ontologies/SNOMEDCT"},
+            },
+            "annotations": [{"from": 1, "to": 8, "matchType": "PREF"}],
+        }
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json = AsyncMock(return_value=[annotation_item])
+        mock_get.return_value.__aenter__.return_value = mock_response
+
+        result = await adapter_with_api_key.annotate(
+            "Melanoma is a malignant tumor of melanocytes."
+        )
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["annotatedClass"]["prefLabel"] == "Melanoma"
+
+    @pytest.mark.asyncio
+    @patch("aiohttp.ClientSession.get")
+    async def test_annotate_with_ontology_filter(self, mock_get, adapter_with_api_key):
+        """Test annotation with ontology filter."""
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json = AsyncMock(return_value=[])
+        mock_get.return_value.__aenter__.return_value = mock_response
+
+        result = await adapter_with_api_key.annotate(
+            "diabetes mellitus", ontologies="SNOMEDCT,DOID"
+        )
+        assert isinstance(result, list)
+
+    @pytest.mark.asyncio
+    @patch("aiohttp.ClientSession.get")
+    async def test_annotate_http_error(self, mock_get, adapter_with_api_key):
+        """Test annotate handles HTTP errors gracefully."""
+        mock_response = AsyncMock()
+        mock_response.status = 500
+        mock_response.raise_for_status = MagicMock(
+            side_effect=aiohttp.ClientResponseError(
+                request_info=None, history=None, status=500, message="Internal Server Error"
+            )
+        )
+        mock_get.return_value.__aenter__.return_value = mock_response
+
+        result = await adapter_with_api_key.annotate("test text")
+        assert isinstance(result, list)
+        assert len(result) == 0
+
+    @pytest.mark.asyncio
+    @patch("aiohttp.ClientSession.get")
+    async def test_annotate_network_error(self, mock_get, adapter_with_api_key):
+        """Test annotate handles network errors gracefully."""
+        mock_get.side_effect = Exception("Network error")
+
+        result = await adapter_with_api_key.annotate("test text")
+        assert isinstance(result, list)
+        assert len(result) == 0
+
+    @pytest.mark.asyncio
+    @patch("aiohttp.ClientSession.get")
+    async def test_annotate_longest_only(self, mock_get, adapter_with_api_key):
+        """Test annotation with longest_only=True parameter."""
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json = AsyncMock(return_value=[])
+        mock_get.return_value.__aenter__.return_value = mock_response
+
+        result = await adapter_with_api_key.annotate("cancer", longest_only=True)
+        assert isinstance(result, list)

@@ -242,6 +242,87 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
 
     # Removed get_concept_details_minimal: now handled by get_concept_details(minimal=True)
 
+    async def annotate(
+        self,
+        text: str,
+        ontologies: Optional[str] = None,
+        semantic_types: Optional[str] = None,
+        expand_semantic_types_hierarchy: bool = False,
+        expand_class_hierarchy: bool = False,
+        class_hierarchy_max_level: int = 0,
+        expand_mappings: bool = False,
+        stop_words: Optional[str] = None,
+        minimum_match_length: int = 3,
+        exclude_numbers: bool = False,
+        whole_word_only: bool = True,
+        exclude_synonyms: bool = False,
+        longest_only: bool = False,
+        extra_params: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Any:
+        """
+        Annotate text using the BioOntology Annotator endpoint.
+
+        Examines the input text and returns relevant ontology classes.
+
+        Args:
+            text: The text to annotate.
+            ontologies: Comma-separated list of ontology IDs to limit annotation.
+            semantic_types: Comma-separated semantic types to filter by.
+            expand_semantic_types_hierarchy: Include immediate children of semantic types.
+            expand_class_hierarchy: Include ancestors of matched classes.
+            class_hierarchy_max_level: Depth of hierarchy for class expansion.
+            expand_mappings: Use manual mappings (UMLS, REST, CUI, OBOXREF).
+            stop_words: Comma-separated additional stop words.
+            minimum_match_length: Minimum number of characters for a match.
+            exclude_numbers: Exclude numeric tokens from annotation.
+            whole_word_only: Only match whole words (default True).
+            exclude_synonyms: Do not use synonyms for matching.
+            longest_only: Return only the longest match per phrase.
+            extra_params: Additional query parameters.
+
+        Returns:
+            Raw annotation response list from BioOntology API, or empty list on failure.
+        """
+        if not self.api_key:
+            logger.warning("BioOntology API key not available for annotation")
+            return []
+
+        url = f"{self.base_url}/annotator"
+        params: Dict[str, Any] = {
+            "apikey": self.api_key,
+            "text": text,
+            "expand_semantic_types_hierarchy": str(expand_semantic_types_hierarchy).lower(),
+            "expand_class_hierarchy": str(expand_class_hierarchy).lower(),
+            "class_hierarchy_max_level": class_hierarchy_max_level,
+            "expand_mappings": str(expand_mappings).lower(),
+            "minimum_match_length": minimum_match_length,
+            "exclude_numbers": str(exclude_numbers).lower(),
+            "whole_word_only": str(whole_word_only).lower(),
+            "exclude_synonyms": str(exclude_synonyms).lower(),
+            "longest_only": str(longest_only).lower(),
+        }
+        if ontologies:
+            params["ontologies"] = ontologies
+        if semantic_types:
+            params["semantic_types"] = semantic_types
+        if stop_words:
+            params["stop_words"] = stop_words
+        if extra_params:
+            params.update(extra_params)
+
+        logger.info(f"BioOntology annotate URL: {url}")
+        logger.info(f"BioOntology annotate text (first 80 chars): {text[:80]}")
+        try:
+            data = await self._make_request(url, params)
+            if isinstance(data, list):
+                return data
+            # Some responses may be a dict with a key
+            return data.get("annotations", data.get("results", []))
+        except Exception as e:
+            logger.error(f"BioOntology annotate failed: {e}")
+            return []
+
     async def batch_annotate(
         self,
         texts: list[str],
