@@ -17,23 +17,23 @@ Key Features:
 Author: AID-PAIS Knowledge Graph Team
 """
 
+import argparse
 import asyncio
-import aiohttp
 import json
-import pandas as pd
-from pathlib import Path
-from typing import List, Dict, Optional, Union, Tuple, Any
+import logging
+import os
+import sys
 from dataclasses import dataclass, field
 from datetime import datetime
-import logging
-import argparse
-import sys
-import os
+from pathlib import Path
+from typing import Any
+
+import aiohttp
+import pandas as pd
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -41,11 +41,12 @@ logger = logging.getLogger(__name__)
 @dataclass
 class HierarchyNode:
     """Represents a node in the hierarchy."""
-    ui: Optional[str] = None
-    uri: Optional[str] = None
-    name: Optional[str] = None
-    source_vocabulary: Optional[str] = None
-    relationship_type: Optional[str] = None
+
+    ui: str | None = None
+    uri: str | None = None
+    name: str | None = None
+    source_vocabulary: str | None = None
+    relationship_type: str | None = None
     level: int = 0
     page_found: int = 1
 
@@ -53,43 +54,49 @@ class HierarchyNode:
 @dataclass
 class HierarchyMapping:
     """Represents a hierarchy mapping for an identifier."""
+
     identifier: str
     source_vocabulary: str
     operation: str  # 'children', 'parents', 'descendants', 'ancestors'
-    nodes: List[HierarchyNode] = field(default_factory=list)
+    nodes: list[HierarchyNode] = field(default_factory=list)
     total_nodes: int = 0
     confidence: float = 1.0
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
     @property
     def is_successful(self) -> bool:
         """Check if the mapping was successful."""
-        return self.error_message is None and self.nodes
+        return self.error_message is None and bool(self.nodes)
 
 
 @dataclass
 class HierarchyResult:
     """Results from a hierarchy operation."""
-    identifiers: List[str]
+
+    identifiers: list[str]
     source_vocabulary: str
     operation: str
-    mappings: List[HierarchyMapping]
+    mappings: list[HierarchyMapping]
     total_processed: int = 0
     successful_mappings: int = 0
     failed_mappings: int = 0
     execution_time: float = 0.0
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
     @property
     def success_rate(self) -> float:
         """Calculate success rate as percentage."""
-        return (self.successful_mappings / self.total_processed * 100) if self.total_processed > 0 else 0.0
+        return (
+            (self.successful_mappings / self.total_processed * 100)
+            if self.total_processed > 0
+            else 0.0
+        )
 
-    def get_successful_mappings(self) -> List[HierarchyMapping]:
+    def get_successful_mappings(self) -> list[HierarchyMapping]:
         """Get only successful mappings."""
         return [m for m in self.mappings if m.is_successful]
 
-    def get_failed_mappings(self) -> List[HierarchyMapping]:
+    def get_failed_mappings(self) -> list[HierarchyMapping]:
         """Get only failed mappings."""
         return [m for m in self.mappings if not m.is_successful]
 
@@ -98,26 +105,28 @@ class HierarchyResult:
         data = []
         for mapping in self.mappings:
             base_row = {
-                'identifier': mapping.identifier,
-                'source_vocabulary': mapping.source_vocabulary,
-                'operation': mapping.operation,
-                'total_nodes': mapping.total_nodes,
-                'is_successful': mapping.is_successful,
-                'error_message': mapping.error_message
+                "identifier": mapping.identifier,
+                "source_vocabulary": mapping.source_vocabulary,
+                "operation": mapping.operation,
+                "total_nodes": mapping.total_nodes,
+                "is_successful": mapping.is_successful,
+                "error_message": mapping.error_message,
             }
 
             if mapping.nodes:
                 for node in mapping.nodes:
                     row = base_row.copy()
-                    row.update({
-                        'node_ui': node.ui,
-                        'node_uri': node.uri,
-                        'node_name': node.name,
-                        'node_source_vocabulary': node.source_vocabulary,
-                        'relationship_type': node.relationship_type,
-                        'level': node.level,
-                        'page_found': node.page_found
-                    })
+                    row.update(
+                        {
+                            "node_ui": node.ui,
+                            "node_uri": node.uri,
+                            "node_name": node.name,
+                            "node_source_vocabulary": node.source_vocabulary,
+                            "relationship_type": node.relationship_type,
+                            "level": node.level,
+                            "page_found": node.page_found,
+                        }
+                    )
                     data.append(row)
             else:
                 data.append(base_row)
@@ -139,7 +148,7 @@ class UMLSHierarchyWalkerClient:
         version: str = "current",
         max_concurrent_requests: int = 10,
         request_delay: float = 0.1,
-        base_uri: str = "https://uts-ws.nlm.nih.gov"
+        base_uri: str = "https://uts-ws.nlm.nih.gov",
     ):
         """
         Initialize the UMLS Hierarchy Walker client.
@@ -156,14 +165,14 @@ class UMLSHierarchyWalkerClient:
         self.max_concurrent_requests = max_concurrent_requests
         self.request_delay = request_delay
         self.base_uri = base_uri
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.session: aiohttp.ClientSession | None = None
         self.semaphore = asyncio.Semaphore(max_concurrent_requests)
 
     async def __aenter__(self):
         """Async context manager entry."""
         self.session = aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=30),
-            connector=aiohttp.TCPConnector(limit=100, limit_per_host=10)
+            connector=aiohttp.TCPConnector(limit=100, limit_per_host=10),
         )
         return self
 
@@ -172,7 +181,7 @@ class UMLSHierarchyWalkerClient:
         if self.session:
             await self.session.close()
 
-    async def _make_request(self, url: str, params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def _make_request(self, url: str, params: dict[str, Any]) -> dict[str, Any] | None:
         """
         Make an async HTTP request with error handling.
 
@@ -186,11 +195,14 @@ class UMLSHierarchyWalkerClient:
         Raises:
             aiohttp.ClientError: For HTTP errors
         """
-        params['apiKey'] = self.api_key
+        params["apiKey"] = self.api_key
 
         async with self.semaphore:
             try:
-                async with self.session.get(url, params=params) as response:
+                session = self.session
+                if session is None:
+                    raise RuntimeError("Session not initialized. Use async with ...")
+                async with session.get(url, params=params) as response:
                     response.raise_for_status()
                     try:
                         json_response = await response.json()
@@ -208,8 +220,9 @@ class UMLSHierarchyWalkerClient:
                 if self.request_delay > 0:
                     await asyncio.sleep(self.request_delay)
 
-    async def walk_hierarchy(self, identifier: str, source_vocabulary: str,
-                           operation: str) -> HierarchyMapping:
+    async def walk_hierarchy(
+        self, identifier: str, source_vocabulary: str, operation: str
+    ) -> HierarchyMapping:
         """
         Walk hierarchy for a single identifier.
 
@@ -225,16 +238,15 @@ class UMLSHierarchyWalkerClient:
         page = 0
 
         try:
-            content_endpoint = f"/rest/content/{self.version}/source/{source_vocabulary}/{identifier}/{operation}"
+            content_endpoint = (
+                f"/rest/content/{self.version}/source/{source_vocabulary}/{identifier}/{operation}"
+            )
 
             while True:
                 page += 1
-                params = {'pageNumber': page}
+                params = {"pageNumber": page}
 
-                response = await self._make_request(
-                    f"{self.base_uri}{content_endpoint}",
-                    params
-                )
+                response = await self._make_request(f"{self.base_uri}{content_endpoint}", params)
 
                 # Handle case where response might be None or not a dictionary
                 if response is None:
@@ -243,39 +255,43 @@ class UMLSHierarchyWalkerClient:
                         identifier=identifier,
                         source_vocabulary=source_vocabulary,
                         operation=operation,
-                        error_message=f"No valid response received for {identifier}"
+                        error_message=f"No valid response received for {identifier}",
                     )
                 elif isinstance(response, str):
-                    logger.warning(f"Received string response instead of JSON for {identifier} page {page}")
+                    logger.warning(
+                        f"Received string response instead of JSON for {identifier} page {page}"
+                    )
                     return HierarchyMapping(
                         identifier=identifier,
                         source_vocabulary=source_vocabulary,
                         operation=operation,
-                        error_message=f"Invalid response format for {identifier}"
+                        error_message=f"Invalid response format for {identifier}",
                     )
 
-                results = response.get('result', [])
+                results = response.get("result", [])
 
                 if not results:
                     if page == 1:
-                        logger.info(f"No {operation} found for {identifier} in {source_vocabulary}")
+                        logger.info(
+                            f"No {operation} found for {identifier} in {source_vocabulary}"
+                        )
                         return HierarchyMapping(
                             identifier=identifier,
                             source_vocabulary=source_vocabulary,
                             operation=operation,
-                            error_message=f"No {operation} found for {identifier}"
+                            error_message=f"No {operation} found for {identifier}",
                         )
                     break
 
                 for result in results:
                     node = HierarchyNode(
-                        ui=result.get('ui'),
-                        uri=result.get('uri'),
-                        name=result.get('name'),
-                        source_vocabulary=result.get('rootSource'),
-                        relationship_type=result.get('relationLabel'),
-                        level=result.get('level', 0),
-                        page_found=page
+                        ui=result.get("ui"),
+                        uri=result.get("uri"),
+                        name=result.get("name"),
+                        source_vocabulary=result.get("rootSource"),
+                        relationship_type=result.get("relationLabel"),
+                        level=result.get("level", 0),
+                        page_found=page,
                     )
                     nodes.append(node)
 
@@ -284,7 +300,7 @@ class UMLSHierarchyWalkerClient:
                 source_vocabulary=source_vocabulary,
                 operation=operation,
                 nodes=nodes,
-                total_nodes=len(nodes)
+                total_nodes=len(nodes),
             )
 
         except Exception as e:
@@ -293,12 +309,12 @@ class UMLSHierarchyWalkerClient:
                 identifier=identifier,
                 source_vocabulary=source_vocabulary,
                 operation=operation,
-                error_message=str(e)
+                error_message=str(e),
             )
 
-    async def walk_hierarchy_multiple(self, identifiers: List[str],
-                                    source_vocabulary: str,
-                                    operation: str) -> HierarchyResult:
+    async def walk_hierarchy_multiple(
+        self, identifiers: list[str], source_vocabulary: str, operation: str
+    ) -> HierarchyResult:
         """
         Walk hierarchy for multiple identifiers concurrently.
 
@@ -328,13 +344,15 @@ class UMLSHierarchyWalkerClient:
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 errors.append(f"Error processing identifier {identifiers[i]}: {result}")
-                all_mappings.append(HierarchyMapping(
-                    identifier=identifiers[i],
-                    source_vocabulary=source_vocabulary,
-                    operation=operation,
-                    error_message=str(result)
-                ))
-            else:
+                all_mappings.append(
+                    HierarchyMapping(
+                        identifier=identifiers[i],
+                        source_vocabulary=source_vocabulary,
+                        operation=operation,
+                        error_message=str(result),
+                    )
+                )
+            elif isinstance(result, HierarchyMapping):
                 all_mappings.append(result)
 
         # Calculate statistics
@@ -351,12 +369,12 @@ class UMLSHierarchyWalkerClient:
             successful_mappings=successful_mappings,
             failed_mappings=failed_mappings,
             execution_time=execution_time,
-            errors=errors
+            errors=errors,
         )
 
-    async def walk_hierarchy_from_file(self, input_file: Union[str, Path],
-                                     source_vocabulary: str,
-                                     operation: str) -> HierarchyResult:
+    async def walk_hierarchy_from_file(
+        self, input_file: str | Path, source_vocabulary: str, operation: str
+    ) -> HierarchyResult:
         """
         Process identifiers from an input file.
 
@@ -375,7 +393,7 @@ class UMLSHierarchyWalkerClient:
 
         # Read identifiers from file
         identifiers = []
-        with open(input_path, 'r', encoding='utf-8') as f:
+        with open(input_path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line and not line.isspace():
@@ -388,7 +406,9 @@ class UMLSHierarchyWalkerClient:
 
         return await self.walk_hierarchy_multiple(identifiers, source_vocabulary, operation)
 
-    async def batch_walk(self, identifier_operations: List[Tuple[str, str, str]]) -> Dict[str, HierarchyResult]:
+    async def batch_walk(
+        self, identifier_operations: list[tuple[str, str, str]]
+    ) -> dict[str, HierarchyResult]:
         """
         Perform batch hierarchy walks for different combinations.
 
@@ -399,31 +419,30 @@ class UMLSHierarchyWalkerClient:
             Dictionary mapping operation keys to HierarchyResult
         """
         # Group by (vocabulary, operation) combination
-        operation_groups = {}
+        operation_groups: dict[str, Any] = {}
         for identifier, vocabulary, operation in identifier_operations:
             key = f"{vocabulary}_{operation}"
             if key not in operation_groups:
                 operation_groups[key] = {
-                    'identifiers': [],
-                    'vocabulary': vocabulary,
-                    'operation': operation
+                    "identifiers": [],
+                    "vocabulary": vocabulary,
+                    "operation": operation,
                 }
-            operation_groups[key]['identifiers'].append(identifier)
+            operation_groups[key]["identifiers"].append(identifier)
 
         # Process each operation group
         results = {}
         for key, group in operation_groups.items():
             result = await self.walk_hierarchy_multiple(
-                group['identifiers'],
-                group['vocabulary'],
-                group['operation']
+                group["identifiers"], group["vocabulary"], group["operation"]
             )
             results[key] = result
 
         return results
 
-    def save_result(self, result: HierarchyResult, output_file: Union[str, Path],
-                   format: str = "txt") -> None:
+    def save_result(
+        self, result: HierarchyResult, output_file: str | Path, format: str = "txt"
+    ) -> None:
         """
         Save hierarchy result to file.
 
@@ -448,7 +467,7 @@ class UMLSHierarchyWalkerClient:
 
     def _save_txt(self, result: HierarchyResult, output_path: Path) -> None:
         """Save result in text format."""
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write("UMLS Hierarchy Walker Results\n")
             f.write("=" * 50 + "\n")
             f.write(f"Source Vocabulary: {result.source_vocabulary}\n")
@@ -496,7 +515,7 @@ class UMLSHierarchyWalkerClient:
 
     def _save_json(self, result: HierarchyResult, output_path: Path) -> None:
         """Save result in JSON format."""
-        data = {
+        data: dict[str, Any] = {
             "metadata": {
                 "source_vocabulary": result.source_vocabulary,
                 "operation": result.operation,
@@ -505,25 +524,27 @@ class UMLSHierarchyWalkerClient:
                 "failed_mappings": result.failed_mappings,
                 "success_rate": result.success_rate,
                 "execution_time": result.execution_time,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             },
-            "mappings": []
+            "mappings": [],
         }
 
         for mapping in result.mappings:
             nodes_data = []
             for node in mapping.nodes:
-                nodes_data.append({
-                    "ui": node.ui,
-                    "uri": node.uri,
-                    "name": node.name,
-                    "source_vocabulary": node.source_vocabulary,
-                    "relationship_type": node.relationship_type,
-                    "level": node.level,
-                    "page_found": node.page_found
-                })
+                nodes_data.append(
+                    {
+                        "ui": node.ui,
+                        "uri": node.uri,
+                        "name": node.name,
+                        "source_vocabulary": node.source_vocabulary,
+                        "relationship_type": node.relationship_type,
+                        "level": node.level,
+                        "page_found": node.page_found,
+                    }
+                )
 
-            mapping_data = {
+            mapping_data: dict[str, Any] = {
                 "identifier": mapping.identifier,
                 "source_vocabulary": mapping.source_vocabulary,
                 "operation": mapping.operation,
@@ -531,59 +552,85 @@ class UMLSHierarchyWalkerClient:
                 "total_nodes": mapping.total_nodes,
                 "confidence": mapping.confidence,
                 "is_successful": mapping.is_successful,
-                "error_message": mapping.error_message
+                "error_message": mapping.error_message,
             }
             data["mappings"].append(mapping_data)
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
     def _save_csv(self, result: HierarchyResult, output_path: Path) -> None:
         """Save result in CSV format."""
         df = result.to_dataframe()
-        df.to_csv(output_path, index=False, encoding='utf-8')
+        df.to_csv(output_path, index=False, encoding="utf-8")
 
     def _save_excel(self, result: HierarchyResult, output_path: Path) -> None:
         """Save result in Excel format."""
         df = result.to_dataframe()
 
-        with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
             # Main data sheet
-            df.to_excel(writer, sheet_name='Hierarchy', index=False)
+            df.to_excel(writer, sheet_name="Hierarchy", index=False)
 
             # Summary sheet
-            summary_df = pd.DataFrame({
-                'Metric': ['Source Vocabulary', 'Operation', 'Total Processed', 'Successful', 'Failed', 'Success Rate (%)', 'Execution Time (s)'],
-                'Value': [result.source_vocabulary, result.operation, result.total_processed,
-                         result.successful_mappings, result.failed_mappings, f"{result.success_rate:.1f}", f"{result.execution_time:.2f}"]
-            })
-            summary_df.to_excel(writer, sheet_name='Summary', index=False)
+            summary_df = pd.DataFrame(
+                {
+                    "Metric": [
+                        "Source Vocabulary",
+                        "Operation",
+                        "Total Processed",
+                        "Successful",
+                        "Failed",
+                        "Success Rate (%)",
+                        "Execution Time (s)",
+                    ],
+                    "Value": [
+                        result.source_vocabulary,
+                        result.operation,
+                        result.total_processed,
+                        result.successful_mappings,
+                        result.failed_mappings,
+                        f"{result.success_rate:.1f}",
+                        f"{result.execution_time:.2f}",
+                    ],
+                }
+            )
+            summary_df.to_excel(writer, sheet_name="Summary", index=False)
 
 
 async def main():
     """Command line interface for the hierarchy walker client."""
-    parser = argparse.ArgumentParser(description='UMLS Hierarchy Walker Client')
-    parser.add_argument('-k', '--apikey', required=True, help='UTS API key')
-    parser.add_argument('-v', '--version', default='current', help='UMLS version')
-    parser.add_argument('-i', '--identifier', help='Single identifier to process')
-    parser.add_argument('--input-file', help='Input file with identifiers (one per line)')
-    parser.add_argument('-o', '--output', required=True, help='Output file path')
-    parser.add_argument('-f', '--format', default='txt', choices=['txt', 'json', 'csv', 'excel'],
-                       help='Output format')
-    parser.add_argument('-s', '--source', required=True,
-                       help='Source vocabulary (e.g., SNOMEDCT_US)')
-    parser.add_argument('--operation', required=True,
-                       choices=['children', 'parents', 'descendants', 'ancestors'],
-                       help='Hierarchy operation')
-    parser.add_argument('--max-concurrent', type=int, default=10,
-                       help='Maximum concurrent requests')
-    parser.add_argument('--delay', type=float, default=0.1,
-                       help='Request delay in seconds')
+    parser = argparse.ArgumentParser(description="UMLS Hierarchy Walker Client")
+    parser.add_argument("-k", "--apikey", required=True, help="UTS API key")
+    parser.add_argument("-v", "--version", default="current", help="UMLS version")
+    parser.add_argument("-i", "--identifier", help="Single identifier to process")
+    parser.add_argument("--input-file", help="Input file with identifiers (one per line)")
+    parser.add_argument("-o", "--output", required=True, help="Output file path")
+    parser.add_argument(
+        "-f",
+        "--format",
+        default="txt",
+        choices=["txt", "json", "csv", "excel"],
+        help="Output format",
+    )
+    parser.add_argument(
+        "-s", "--source", required=True, help="Source vocabulary (e.g., SNOMEDCT_US)"
+    )
+    parser.add_argument(
+        "--operation",
+        required=True,
+        choices=["children", "parents", "descendants", "ancestors"],
+        help="Hierarchy operation",
+    )
+    parser.add_argument(
+        "--max-concurrent", type=int, default=10, help="Maximum concurrent requests"
+    )
+    parser.add_argument("--delay", type=float, default=0.1, help="Request delay in seconds")
 
     args = parser.parse_args()
 
     # Get API key from environment if not provided
-    api_key = args.apikey or os.getenv('UMLS_API_KEY_TU')
+    api_key = args.apikey or os.getenv("UMLS_API_KEY_TU")
     if not api_key:
         print("Error: API key required. Use -k flag or set UMLS_API_KEY_TU environment variable.")
         sys.exit(1)
@@ -598,19 +645,23 @@ async def main():
             api_key=api_key,
             version=args.version,
             max_concurrent_requests=args.max_concurrent,
-            request_delay=args.delay
+            request_delay=args.delay,
         ) as client:
 
             if args.identifier:
                 # Process single identifier
-                result = await client.walk_hierarchy_multiple([args.identifier], args.source, args.operation)
+                result = await client.walk_hierarchy_multiple(
+                    [args.identifier], args.source, args.operation
+                )
             else:
                 # Process file
-                result = await client.walk_hierarchy_from_file(args.input_file, args.source, args.operation)
+                result = await client.walk_hierarchy_from_file(
+                    args.input_file, args.source, args.operation
+                )
 
             client.save_result(result, args.output, args.format)
 
-            print(f"Processing complete:")
+            print("Processing complete:")
             print(f"  Total processed: {result.total_processed}")
             print(f"  Successful: {result.successful_mappings} ({result.success_rate:.1f}%)")
             print(f"  Failed: {result.failed_mappings}")

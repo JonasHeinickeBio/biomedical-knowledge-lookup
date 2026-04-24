@@ -49,14 +49,14 @@ from aid_pais_knowledgegraph.umls.crosswalk_client import UMLSCrosswalkClient
 async def simple_crosswalk():
     api_key = "your_umls_api_key"
     codes = ["10001005", "10002003", "10003008"]
-    
+
     async with UMLSCrosswalkClient(api_key) as client:
         result = await client.crosswalk_codes(
             source_codes=codes,
             source_vocabulary="SNOMEDCT_US",
             target_vocabulary="MSH"
         )
-        
+
         print(f"Success rate: {result.success_rate:.1f}%")
         for mapping in result.get_successful_mappings():
             print(f"{mapping.source_code} -> {mapping.target_code}: {mapping.target_name}")
@@ -70,7 +70,7 @@ asyncio.run(simple_crosswalk())
 ```python
 async def file_crosswalk():
     api_key = "your_umls_api_key"
-    
+
     async with UMLSCrosswalkClient(api_key) as client:
         # Process codes from file
         result = await client.crosswalk_from_file(
@@ -78,7 +78,7 @@ async def file_crosswalk():
             source_vocabulary="SNOMEDCT_US",
             target_vocabulary="ICD10CM"
         )
-        
+
         # Save results in multiple formats
         client.save_result(result, "output.txt", "txt")
         client.save_result(result, "output.json", "json")
@@ -119,9 +119,9 @@ Crosswalk a single code between vocabularies.
 
 ```python
 async def crosswalk_code(
-    self, 
-    source_code: str, 
-    source_vocabulary: str, 
+    self,
+    source_code: str,
+    source_vocabulary: str,
     target_vocabulary: str
 ) -> CrosswalkMapping
 ```
@@ -132,9 +132,9 @@ Crosswalk multiple codes concurrently.
 
 ```python
 async def crosswalk_codes(
-    self, 
-    source_codes: List[str], 
-    source_vocabulary: str, 
+    self,
+    source_codes: List[str],
+    source_vocabulary: str,
     target_vocabulary: str
 ) -> CrosswalkResult
 ```
@@ -145,9 +145,9 @@ Process codes from an input file.
 
 ```python
 async def crosswalk_from_file(
-    self, 
-    input_file: Union[str, Path], 
-    source_vocabulary: str, 
+    self,
+    input_file: Union[str, Path],
+    source_vocabulary: str,
     target_vocabulary: str
 ) -> CrosswalkResult
 ```
@@ -158,8 +158,8 @@ Perform multiple vocabulary mappings in batch.
 
 ```python
 async def batch_crosswalk(
-    self, 
-    mappings: List[Tuple[str, str]], 
+    self,
+    mappings: List[Tuple[str, str]],
     source_codes: List[str]
 ) -> Dict[str, CrosswalkResult]
 ```
@@ -170,9 +170,9 @@ Save crosswalk results to file.
 
 ```python
 def save_result(
-    self, 
-    result: CrosswalkResult, 
-    output_file: Union[str, Path], 
+    self,
+    result: CrosswalkResult,
+    output_file: Union[str, Path],
     format: str = "txt"
 )
 ```
@@ -248,7 +248,7 @@ mappings = [
 
 async with UMLSCrosswalkClient(api_key) as client:
     results = await client.batch_crosswalk(mappings, source_codes)
-    
+
     for mapping_key, result in results.items():
         print(f"{mapping_key}: {result.success_rate:.1f}% success")
 ```
@@ -258,13 +258,13 @@ async with UMLSCrosswalkClient(api_key) as client:
 ```python
 async with UMLSCrosswalkClient(api_key) as client:
     result = await client.crosswalk_codes(codes, source_vocab, target_vocab)
-    
+
     # Analyze errors
     if result.errors:
         print("Errors encountered:")
         for error in result.errors:
             print(f"  - {error}")
-    
+
     # Process failed mappings
     for mapping in result.get_failed_mappings():
         print(f"Failed: {mapping.source_code} - {mapping.error_message}")
@@ -422,7 +422,7 @@ codes = df['snomed_code'].tolist()
 
 async with UMLSCrosswalkClient(api_key) as client:
     result = await client.crosswalk_codes(codes, "SNOMEDCT_US", "ICD10CM")
-    
+
     # Merge results back to original DataFrame
     result_df = result.to_dataframe()
     merged_df = df.merge(result_df, left_on='snomed_code', right_on='source_code')
@@ -434,10 +434,10 @@ async with UMLSCrosswalkClient(api_key) as client:
 # Example ETL pipeline integration
 async def medical_code_etl(input_data):
     codes = extract_codes(input_data)
-    
+
     async with UMLSCrosswalkClient(api_key) as client:
         result = await client.crosswalk_codes(codes, "SNOMEDCT_US", "ICD10CM")
-    
+
     transformed_data = transform_results(result)
     load_to_database(transformed_data)
 ```
