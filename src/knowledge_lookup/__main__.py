@@ -7,7 +7,7 @@ A unified tool for biological concept lookup across multiple biomedical knowledg
 
 import asyncio
 import json
-
+from typing import List, Optional
 
 import typer
 from rich.console import Console
@@ -37,7 +37,7 @@ def callback():
 @app.command()
 def search(
     query: str = typer.Argument(..., help="Search query (e.g., 'diabetes', 'BRCA1')"),
-    sources: list[str] | None = typer.Option(
+    sources: Optional[List[str]] = typer.Option(  # noqa: UP007
         None,
         "--source",
         "-s",
