@@ -16,9 +16,9 @@ from knowledge_lookup.models import (
 
 # Fix Typer 0.9.x compatibility with Click 8.1+
 try:
-    import typer.core
     import click
-    
+    import typer.core
+
     def robust_metavar(original_func):
         def wrapper(self, *args, **kwargs):
             try:
@@ -28,6 +28,7 @@ try:
                 if len(args) > 0:
                     return wrapper(self, *args[:-1], **kwargs)
                 return original_func(self)
+
         return wrapper
 
     # Patch Click and Typer methods that commonly cause signature issues
@@ -38,6 +39,7 @@ try:
 
 except (ImportError, AttributeError):
     pass
+
 
 @pytest.fixture(scope="session")
 def event_loop():
