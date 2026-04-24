@@ -7,13 +7,13 @@ A unified tool for biological concept lookup across multiple biomedical knowledg
 
 import asyncio
 import json
-from typing import List, Optional, Annotated
+
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource, __version__, __description__
+from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource, __description__, __version__
 
 app = typer.Typer(
     name="biomedical-knowledge-lookup",
@@ -37,7 +37,7 @@ def callback():
 @app.command()
 def search(
     query: str = typer.Argument(..., help="Search query (e.g., 'diabetes', 'BRCA1')"),
-    sources: Optional[List[str]] = typer.Option(
+    sources: list[str] | None = typer.Option(
         None,
         "--source",
         "-s",
@@ -45,7 +45,7 @@ def search(
     ),
     limit: int = typer.Option(10, "--limit", "-l", help="Maximum results per source"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table, json, csv"),
-    cache_dir: Optional[str] = typer.Option(None, "--cache-dir", help="Cache directory path"),
+    cache_dir: str | None = typer.Option(None, "--cache-dir", help="Cache directory path"),
 ):
     """
     Search for biological concepts across knowledge sources.
@@ -65,7 +65,7 @@ def search(
                     console.print(
                         f"Available sources: {', '.join([s.value for s in KnowledgeSource])}"
                     )
-                    raise typer.Exit(1)
+                    raise typer.Exit(1) from None
         else:
             source_enums = None
 
@@ -77,7 +77,9 @@ def search(
             )
 
         async def do_search():
-            results = await lookup.search_concepts(query=query, sources=source_enums, limit=limit)
+            results = await lookup.search_concepts(
+                query=query, sources=source_enums, max_results=limit
+            )
             return results
 
         results = asyncio.run(do_search())
@@ -110,20 +112,22 @@ def search(
         elif output == "csv":
             import csv
             import sys
-            
+
             writer = csv.writer(sys.stdout)
             writer.writerow(["ID", "Name", "Description", "Source", "Type", "URI", "Score"])
-            
+
             for result in results.concepts:
-                writer.writerow([
-                    result.primary_id,
-                    result.primary_label,
-                    (result.definitions[0] if result.definitions else ""),
-                    list(result.sources)[0].value if result.sources else "",
-                    result.concept_type.value,
-                    "",  # No URI in UnifiedConcept
-                    result.confidence_score,
-                ])
+                writer.writerow(
+                    [
+                        result.primary_id,
+                        result.primary_label,
+                        (result.definitions[0] if result.definitions else ""),
+                        list(result.sources)[0].value if result.sources else "",
+                        result.concept_type.value,
+                        "",  # No URI in UnifiedConcept
+                        result.confidence_score,
+                    ]
+                )
 
         else:  # table format
             table = Table(title=f"Search Results for '{query}'")
@@ -139,9 +143,11 @@ def search(
                     result.primary_label,
                     list(result.sources)[0].value if result.sources else "",
                     result.concept_type.value,
-                    (result.definitions[0] if result.definitions else "")
-                    if len((result.definitions[0] if result.definitions else "")) <= 50
-                    else ((result.definitions[0] if result.definitions else "")[:47] + "..."),
+                    (
+                        (result.definitions[0] if result.definitions else "")
+                        if len(result.definitions[0] if result.definitions else "") <= 50
+                        else ((result.definitions[0] if result.definitions else "")[:47] + "...")
+                    ),
                 )
 
             console.print(table)
@@ -149,7 +155,7 @@ def search(
 
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command()
@@ -193,8 +199,6 @@ def info():
     """
     Show information about the Biomedical Knowledge Lookup package.
     """
-    from knowledge_lookup import __description__, __version__
-
     console.print("[bold blue]Biomedical Knowledge Lookup[/bold blue]")
     console.print(f"Version: {__version__}")
     console.print(f"Description: {__description__}")
