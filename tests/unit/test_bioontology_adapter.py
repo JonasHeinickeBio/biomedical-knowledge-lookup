@@ -4,6 +4,7 @@ Unit tests for BioOntologyAdapter.
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 import pytest
 
 pytestmark = pytest.mark.unit
