@@ -2,6 +2,8 @@
 Unit tests for ontology concept loader.
 """
 
+import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -25,7 +27,7 @@ class TestOntologyConceptLoader:
     def test_initialization(self):
         """Test OntologyConceptLoader initialization."""
         loader = OntologyConceptLoader(ontology_dir="/tmp/fake")
-        assert str(loader.ontology_dir) == "/tmp/fake"
+        assert os.path.normpath(str(loader.ontology_dir)) == os.path.normpath("/tmp/fake")
 
     def test_get_dynamic_concept_handlers(self):
         """Test get_dynamic_concept_handlers returns a dict."""
