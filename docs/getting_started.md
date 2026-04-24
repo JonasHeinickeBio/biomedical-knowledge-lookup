@@ -1,6 +1,6 @@
 # Getting Started with Biomedical Knowledge Lookup
 
-Welcome to Biomedical Knowledge Lookup! This guide will help you get started with the project and show you how to use it for your research.
+A unified tool for querying biological concepts across multiple knowledge sources.
 
 ## Prerequisites
 
@@ -15,87 +15,123 @@ pip install biomedical-knowledge-lookup
 poetry add biomedical-knowledge-lookup
 ```
 
-## Basic Search
+## Quick Start
+
+```python
+import asyncio
+from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource
+
+async def main():
+    lookup = CentralKnowledgeLookup()
+
+    # Search across all sources
+    result = await lookup.search_concepts("diabetes mellitus")
+
+    print(f"Found {result.total_found} concepts in {result.execution_time:.2f}s")
+    for concept in result.concepts[:5]:
+        print(f"  {concept.primary_label} ({concept.primary_id})")
+
+    await lookup.close()
+
+asyncio.run(main())
+```
+
+## Searching Specific Sources
 
 ```python
 from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource
 
-# Initialize the lookup system
 lookup = CentralKnowledgeLookup()
 
-# Search for concepts across multiple sources
-results = await lookup.search_concepts(
-    "diabetes mellitus",
-    sources=[KnowledgeSource.BIOPORTAL, KnowledgeSource.OLS, KnowledgeSource.UMLS]
+# Search specific sources
+result = await lookup.search_concepts(
+    "BRCA1",
+    sources=[KnowledgeSource.BIOPORTAL, KnowledgeSource.UMLS]
 )
 
-# Access the results
-for concept in results.concepts:
-    print(f"{concept.primary_label} ({concept.primary_id})")
-    print(f"  Source: {list(concept.sources)[0].value}")
+for concept in result.concepts:
+    print(f"{concept.primary_label}")
     print(f"  Type: {concept.concept_type.value}")
+    print(f"  Sources: {[s.value for s in concept.sources]}")
 ```
 
-## Detailed Concept Information
+## Concept Details
 
 ```python
 # Get detailed information about a specific concept
-concept_details = await lookup.get_concept_details("DOID:9351")
+concept = await lookup.get_concept_details("DOID:9351")
 
-# Access the details
-print(f"Label: {concept_details.primary_label}")
-print(f"Definitions: {concept_details.definitions}")
-print(f"Synonyms: {concept_details.synonyms}")
+if concept:
+    print(f"Label: {concept.primary_label}")
+    print(f"Definitions: {concept.definitions[:2]}")
+    print(f"Synonyms: {concept.synonyms[:5]}")
 ```
 
-## Multi-source Annotation
+## Multi-Source Annotation
 
 ```python
 from knowledge_lookup import MultiSourceAnnotator
 
-# Annotate text with concepts from multiple sources
 annotator = MultiSourceAnnotator()
-annotations = await annotator.annotate_sentence(
+
+result = await annotator.annotate_sentence(
     "Type 2 diabetes is associated with insulin resistance"
 )
 
-# Access the consensus annotations
-for consensus in annotations.consensus_concepts:
-    print(f"Consensus: {consensus.primary_concept.primary_label}")
-    print(f"  Sources: {[s.value for s in consensus.agreeing_sources]}")
+for consensus in result.consensus_concepts:
+    print(f"Concept: {consensus.primary_concept.primary_label}")
     print(f"  Confidence: {consensus.confidence_level.value}")
+    print(f"  Agreeing sources: {[s.value for s in consensus.agreeing_sources]}")
 ```
 
 ## Configuration
 
 ### API Keys
 
-Some sources require API keys. Set them as environment variables or in a `.env` file:
+Set as environment variables:
 
 ```bash
 export BIOPORTAL_API_KEY="your_key_here"
 export UMLS_API_KEY="your_key_here"
+export DISGENET_API_KEY="your_key_here"
 ```
 
-### Advanced Configuration
+### LookupConfig
 
 ```python
 from knowledge_lookup import LookupConfig, KnowledgeSource
 
 config = LookupConfig(
+    enabled_sources=[KnowledgeSource.BIOPORTAL, KnowledgeSource.OLS],
     rate_limits={
         KnowledgeSource.BIOPORTAL: 10,
         KnowledgeSource.OLS: 20,
     },
-    cache_enabled=True,
-    cache_dir="./cache"
+    max_results_per_source=20,
 )
 
 lookup = CentralKnowledgeLookup(config)
 ```
 
+## Exporting Results
+
+```python
+# Export to JSON
+lookup.export_to_json(result, "results.json")
+
+# Export to CSV
+lookup.export_to_csv(result, "results.csv")
+
+# Export to pandas DataFrame
+df = lookup.export_to_dataframe(result)
+```
+
+## Available Knowledge Sources
+
+See [README.md](README.md) for complete list of 27 supported sources.
+
 ## Next Steps
 
 - Explore the [API Reference](api_reference.md)
-- Check out the [Adapter Documentation](adapters/)
-- Read through the [Example Notebooks](../examples/)
+- Check out [Adapter Documentation](adapters/)
+- See example notebooks in the repository
