@@ -5,6 +5,8 @@ Unit tests for CentralKnowledgeLookup.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.central_lookup import CentralKnowledgeLookup
 from knowledge_lookup.models import KnowledgeSource, LookupConfig, UnifiedConcept
 
@@ -210,12 +212,12 @@ class TestCentralKnowledgeLookup:
         concept1.sources.add(KnowledgeSource.BIOPORTAL)
         concept2 = UnifiedConcept(primary_id="ID1", primary_label="Test")
         concept2.sources.add(KnowledgeSource.OLS)
-        
+
         mock_adapter.search_concepts.side_effect = [[concept1], [concept2]]
 
         # Enable deduplication in config
         lookup.config.enable_deduplication = True
-        
+
         result = await lookup.search_concepts("test")
         # Should be deduplicated to 1 concept
         assert len(result.concepts) == 1
@@ -227,9 +229,9 @@ class TestCentralKnowledgeLookup:
         """Test error handling in search_concepts."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
         lookup.adapters[KnowledgeSource.BIOPORTAL] = mock_adapter
-        
+
         mock_adapter.search_concepts.side_effect = Exception("Source error")
-        
+
         result = await lookup.search_concepts("test")
         assert len(result.concepts) == 0
         assert KnowledgeSource.BIOPORTAL in result.errors
@@ -241,7 +243,7 @@ class TestCentralKnowledgeLookup:
         lookup = CentralKnowledgeLookup(auto_initialize=False)
         lookup.adapters[KnowledgeSource.BIOPORTAL] = mock_adapter
         mock_adapter.get_concept_details.return_value = None
-        
+
         result = await lookup.get_concept_details("NONEXISTENT")
         assert result is None
 
@@ -249,10 +251,10 @@ class TestCentralKnowledgeLookup:
         """Test format_results_table with actual concepts."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
         from knowledge_lookup.models import LookupResult
-        
+
         concept = UnifiedConcept(primary_id="ID1", primary_label="Test Concept")
         result = LookupResult(query="test", concepts=[concept])
-        
+
         table = lookup.format_results_table(result)
         assert "Test Concept" in table
         assert "ID1" in table
@@ -269,11 +271,11 @@ class TestCentralKnowledgeLookup:
         """Test find_mappings through central lookup."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
         lookup.adapters[KnowledgeSource.BIOPORTAL] = mock_adapter
-        
+
         concept = UnifiedConcept(primary_id="ID1", primary_label="Test")
         concept.add_identifier(KnowledgeSource.OLS, "MAPPED_ID", "Mapped Label")
         mock_adapter.get_concept_details.return_value = concept
-        
+
         mappings = await lookup.find_mappings("ID1")
         assert len(mappings) == 1
         assert mappings[0].identifier == "MAPPED_ID"
