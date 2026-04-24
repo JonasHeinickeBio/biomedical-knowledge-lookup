@@ -4,8 +4,9 @@ Unit tests for EnsemblAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.ensembl_adapter import EnsemblAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
