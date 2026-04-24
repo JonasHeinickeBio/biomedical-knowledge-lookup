@@ -8,7 +8,7 @@ API documentation: https://www.genenames.org/help/rest/
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -29,7 +29,7 @@ class HGNCAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return True  # HGNC REST API is publicly available
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search HGNC for gene symbols and names."""
         try:
             url = f"{self.base_url}/search/{query}"
@@ -75,7 +75,7 @@ class HGNCAdapter(KnowledgeSourceAdapter):
             logger.error(f"HGNC get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
         """Convert an HGNC result item to a UnifiedConcept."""
         try:
             hgnc_id = item.get("hgnc_id", "")

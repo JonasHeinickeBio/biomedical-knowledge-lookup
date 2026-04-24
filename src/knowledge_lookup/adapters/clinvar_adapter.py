@@ -8,7 +8,7 @@ API documentation: https://www.ncbi.nlm.nih.gov/clinvar/docs/api_http/
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -30,7 +30,7 @@ class ClinVarAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return True  # ClinVar is publicly available via NCBI EUtils
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search ClinVar for clinical variants."""
         try:
             # Use NCBI EUtils esearch to find ClinVar entries
@@ -84,7 +84,7 @@ class ClinVarAdapter(KnowledgeSourceAdapter):
             logger.error(f"ClinVar get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    async def _fetch_summaries(self, id_list: List[str]) -> List[UnifiedConcept]:
+    async def _fetch_summaries(self, id_list: list[str]) -> list[UnifiedConcept]:
         """Fetch and convert summaries for a list of ClinVar IDs."""
         try:
             url = f"{self.base_url}/esummary.fcgi"
@@ -111,7 +111,7 @@ class ClinVarAdapter(KnowledgeSourceAdapter):
             logger.error(f"ClinVar summary fetch failed: {e}")
             return []
 
-    def _convert_result_to_concept(self, item: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
         """Convert a ClinVar summary item to a UnifiedConcept."""
         try:
             uid = str(item.get("uid", ""))

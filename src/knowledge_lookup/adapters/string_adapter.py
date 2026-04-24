@@ -8,7 +8,7 @@ API documentation: https://string-db.org/cgi/help?sessionId=
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -31,7 +31,7 @@ class STRINGAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return True  # STRING is publicly available
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search STRING for proteins and protein-protein interactions."""
         try:
             # Resolve protein identifiers
@@ -106,7 +106,7 @@ class STRINGAdapter(KnowledgeSourceAdapter):
         except Exception as e:
             logger.warning(f"STRING interaction fetch failed: {e}")
 
-    def _convert_resolve_to_concept(self, item: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_resolve_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
         """Convert a STRING resolve result to a UnifiedConcept."""
         try:
             string_id = item.get("stringId", "")

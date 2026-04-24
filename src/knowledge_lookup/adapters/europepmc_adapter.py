@@ -8,7 +8,7 @@ API documentation: https://europepmc.org/RestfulWebService
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -29,7 +29,7 @@ class EuropePMCAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return True  # EuropePMC is publicly available
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search EuropePMC for literature and citations."""
         try:
             url = f"{self.base_url}/search"
@@ -79,7 +79,7 @@ class EuropePMCAdapter(KnowledgeSourceAdapter):
             logger.error(f"EuropePMC get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
         """Convert an EuropePMC result item to a UnifiedConcept."""
         try:
             pmid = item.get("pmid") or item.get("id", "")

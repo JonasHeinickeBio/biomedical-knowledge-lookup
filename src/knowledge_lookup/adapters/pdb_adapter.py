@@ -8,7 +8,7 @@ API documentation: https://data.rcsb.org/
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -30,7 +30,7 @@ class PDBAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return True  # PDB is publicly available
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search PDB for protein structures."""
         try:
             url = f"{self.base_url}/query"
@@ -87,7 +87,7 @@ class PDBAdapter(KnowledgeSourceAdapter):
             logger.error(f"PDB entry fetch failed for '{pdb_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
         """Convert a PDB entry to a UnifiedConcept."""
         try:
             struct = item.get("struct", {})

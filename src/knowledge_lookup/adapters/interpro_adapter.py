@@ -8,7 +8,7 @@ API documentation: https://www.ebi.ac.uk/interpro/result/download/#
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -29,7 +29,7 @@ class InterProAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return True  # InterPro is publicly available
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search InterPro for protein families and domains."""
         try:
             url = f"{self.base_url}/entry/interpro/"
@@ -73,7 +73,7 @@ class InterProAdapter(KnowledgeSourceAdapter):
             logger.error(f"InterPro get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
         """Convert an InterPro entry to a UnifiedConcept."""
         try:
             metadata = item.get("metadata", item)

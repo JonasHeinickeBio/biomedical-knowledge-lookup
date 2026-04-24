@@ -9,7 +9,7 @@ API documentation: https://www.omim.org/help/api
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
@@ -31,7 +31,7 @@ class OMIMAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return self.api_key is not None
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search OMIM for genes and genetic disorders."""
         if not self.api_key:
             logger.warning("OMIM API key not available")
@@ -49,11 +49,7 @@ class OMIMAdapter(KnowledgeSourceAdapter):
             data = await self._make_request(url, params)
             concepts = []
 
-            omim_list = (
-                data.get("omim", {})
-                .get("searchResponse", {})
-                .get("entryList", [])
-            )
+            omim_list = data.get("omim", {}).get("searchResponse", {}).get("entryList", [])
 
             for item in omim_list[:limit]:
                 concept = self._convert_result_to_concept(item.get("entry", item))
@@ -96,7 +92,7 @@ class OMIMAdapter(KnowledgeSourceAdapter):
             logger.error(f"OMIM get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
         """Convert an OMIM entry to a UnifiedConcept."""
         try:
             mim_number = str(item.get("mimNumber", ""))
@@ -112,10 +108,9 @@ class OMIMAdapter(KnowledgeSourceAdapter):
             concept = self._create_concept(concept_id, preferred_title, concept_type)
 
             # Alternative titles as synonyms
-            for alt_title in (
-                titles.get("alternativeTitles", "").split(";;")
-                + titles.get("includedTitles", "").split(";;")
-            ):
+            for alt_title in titles.get("alternativeTitles", "").split(";;") + titles.get(
+                "includedTitles", ""
+            ).split(";;"):
                 alt = alt_title.strip()
                 if alt:
                     concept.synonyms.append(alt)
@@ -134,7 +129,7 @@ class OMIMAdapter(KnowledgeSourceAdapter):
             logger.error(f"Error converting OMIM result: {e}")
             return None
 
-    def _determine_omim_type(self, item: Dict[str, Any]) -> ConceptType:
+    def _determine_omim_type(self, item: dict[str, Any]) -> ConceptType:
         """Determine the concept type from OMIM entry type."""
         entry_type = item.get("type", "").lower()
         if entry_type in ("phenotype", "predominantly phenotypes"):

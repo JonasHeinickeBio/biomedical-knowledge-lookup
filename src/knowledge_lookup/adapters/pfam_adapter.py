@@ -8,7 +8,7 @@ API documentation: https://www.ebi.ac.uk/interpro/api/ (Pfam data is served via 
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -30,7 +30,7 @@ class PfamAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return True  # Pfam/InterPro is publicly available
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search Pfam for protein families."""
         try:
             url = f"{self.base_url}/entry/pfam/"
@@ -74,7 +74,7 @@ class PfamAdapter(KnowledgeSourceAdapter):
             logger.error(f"Pfam get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    def _convert_result_to_concept(self, item: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_result_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
         """Convert a Pfam entry to a UnifiedConcept."""
         try:
             metadata = item.get("metadata", item)
@@ -91,7 +91,9 @@ class PfamAdapter(KnowledgeSourceAdapter):
             concept_id = f"Pfam:{pfam_id}"
             entry_type = metadata.get("type", "").lower()
 
-            concept_type = ConceptType.PROTEIN if entry_type == "family" else ConceptType.MOLECULAR_ENTITY
+            concept_type = (
+                ConceptType.PROTEIN if entry_type == "family" else ConceptType.MOLECULAR_ENTITY
+            )
             concept = self._create_concept(concept_id, label, concept_type)
 
             # Description

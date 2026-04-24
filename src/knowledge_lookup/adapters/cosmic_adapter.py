@@ -10,7 +10,7 @@ API documentation: https://cancer.sanger.ac.uk/cosmic/download/api
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
@@ -34,7 +34,7 @@ class COSMICAdapter(KnowledgeSourceAdapter):
         # Basic gene/mutation search is available without auth via COSMIC website
         return True
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search COSMIC for cancer genes and somatic mutations."""
         try:
             url = f"{self.base_url}/genes"
@@ -87,7 +87,7 @@ class COSMICAdapter(KnowledgeSourceAdapter):
             logger.error(f"COSMIC get_concept_details failed for '{concept_id}': {e}")
             return None
 
-    def _convert_gene_to_concept(self, item: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_gene_to_concept(self, item: dict[str, Any]) -> Optional[UnifiedConcept]:
         """Convert a COSMIC gene/mutation entry to a UnifiedConcept."""
         try:
             gene_name = item.get("gene_name", "") or item.get("name", "")
