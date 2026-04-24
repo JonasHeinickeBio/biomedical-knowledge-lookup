@@ -2,9 +2,9 @@
 Integration tests for CentralKnowledgeLookup.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
+import pytest
 from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource, LookupConfig
 from knowledge_lookup.models import ConceptType, LookupResult, UnifiedConcept
 
@@ -31,9 +31,7 @@ class TestCentralKnowledgeLookupIntegration:
         ]
         mock_search.return_value = mock_concepts
 
-        results = await lookup.search_concepts(
-            "diabetes", sources=[KnowledgeSource.OLS]
-        )
+        results = await lookup.search_concepts("diabetes", sources=[KnowledgeSource.OLS])
         assert isinstance(results, LookupResult)
         assert results.query == "diabetes"
         if len(results.concepts) > 0:
@@ -42,9 +40,7 @@ class TestCentralKnowledgeLookupIntegration:
     @pytest.mark.asyncio
     @patch("knowledge_lookup.adapters.ols_adapter.OLSAdapter.search_concepts")
     @patch("knowledge_lookup.adapters.bioportal_adapter.BioPortalAdapter.search_concepts")
-    async def test_search_multiple_sources(
-        self, mock_bioportal, mock_ols, lookup
-    ):
+    async def test_search_multiple_sources(self, mock_bioportal, mock_ols, lookup):
         """Test searching across multiple sources."""
         mock_ols_concepts = [
             UnifiedConcept(
@@ -83,9 +79,7 @@ class TestCentralKnowledgeLookupIntegration:
         )
         mock_details.return_value = mock_concept
 
-        result = await lookup.get_concept_details(
-            "DOID:9351", source=KnowledgeSource.OLS
-        )
+        result = await lookup.get_concept_details("DOID:9351", source=KnowledgeSource.OLS)
         # Should return a concept or None
         assert result is None or isinstance(result, UnifiedConcept)
 
@@ -106,13 +100,9 @@ class TestCentralKnowledgeLookupIntegration:
         mock_search.return_value = mock_concepts
 
         # First call
-        results1 = await lookup.search_concepts(
-            "diabetes", sources=[KnowledgeSource.OLS]
-        )
+        results1 = await lookup.search_concepts("diabetes", sources=[KnowledgeSource.OLS])
         # Second call (should use cache)
-        results2 = await lookup.search_concepts(
-            "diabetes", sources=[KnowledgeSource.OLS]
-        )
+        results2 = await lookup.search_concepts("diabetes", sources=[KnowledgeSource.OLS])
 
         # Both should return results
         assert isinstance(results1, LookupResult)
@@ -146,19 +136,17 @@ class TestCentralKnowledgeLookupIntegration:
         """Test error recovery when one source fails."""
         mock_search.side_effect = Exception("API Error")
 
-        results = await lookup.search_concepts(
-            "diabetes", sources=[KnowledgeSource.OLS]
-        )
+        results = await lookup.search_concepts("diabetes", sources=[KnowledgeSource.OLS])
         # Should handle error gracefully
         assert isinstance(results, LookupResult)
-        assert KnowledgeSource.OLS in results.sources_failed or KnowledgeSource.OLS in results.errors
+        assert (
+            KnowledgeSource.OLS in results.sources_failed or KnowledgeSource.OLS in results.errors
+        )
 
     @pytest.mark.asyncio
     @patch("knowledge_lookup.adapters.ols_adapter.OLSAdapter.search_concepts")
     @patch("knowledge_lookup.adapters.bioportal_adapter.BioPortalAdapter.search_concepts")
-    async def test_error_recovery_multiple_sources(
-        self, mock_bioportal, mock_ols, lookup
-    ):
+    async def test_error_recovery_multiple_sources(self, mock_bioportal, mock_ols, lookup):
         """Test error recovery when one of multiple sources fails."""
         mock_ols.side_effect = Exception("OLS Error")
         mock_bioportal.return_value = [
@@ -175,7 +163,9 @@ class TestCentralKnowledgeLookupIntegration:
         # Should still return a LookupResult
         assert isinstance(results, LookupResult)
         # One source should have failed
-        assert KnowledgeSource.OLS in results.sources_failed or KnowledgeSource.OLS in results.errors
+        assert (
+            KnowledgeSource.OLS in results.sources_failed or KnowledgeSource.OLS in results.errors
+        )
 
 
 @pytest.mark.integration
@@ -240,9 +230,7 @@ class TestCentralLookupBatchOperations:
         queries = ["diabetes", "cancer", "asthma"]
         results = []
         for query in queries:
-            result = await lookup.search_concepts(
-                query, sources=[KnowledgeSource.OLS]
-            )
+            result = await lookup.search_concepts(query, sources=[KnowledgeSource.OLS])
             results.append(result)
 
         assert len(results) == 3
