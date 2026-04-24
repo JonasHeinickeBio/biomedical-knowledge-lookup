@@ -2,6 +2,10 @@
 Unit tests for factory functions.
 """
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 from knowledge_lookup.factory import create_knowledge_lookup
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
