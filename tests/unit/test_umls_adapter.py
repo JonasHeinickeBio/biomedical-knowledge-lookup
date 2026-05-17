@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest
+from knowledge_lookup.adapters import umls_adapter
 from knowledge_lookup.adapters.umls_adapter import UMLSAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
@@ -38,6 +39,13 @@ class TestUMLSAdapter:
         """Test is_available method."""
         result = adapter.is_available()
         assert isinstance(result, bool)
+
+    def test_is_unavailable_when_optional_client_missing(self, monkeypatch):
+        """Adapter should stay importable and unavailable when UMLS client is missing."""
+        monkeypatch.setattr(umls_adapter, "HAS_UMLS_CLIENT", False)
+        monkeypatch.setattr(umls_adapter, "create_umls_client", None)
+        adapter = UMLSAdapter(LookupConfig())
+        assert adapter.is_available() is False
 
     def test_get_rate_limit_default(self, adapter):
         """Test get_rate_limit returns default value."""

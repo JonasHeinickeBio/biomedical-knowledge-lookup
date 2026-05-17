@@ -30,10 +30,12 @@ from .uniprot_adapter import UniProtAdapter
 from .wikidata_adapter import WikidataAdapter
 from .zooma_adapter import ZoomaAdapter
 
-# Note: UMLS adapter removed for standalone package - requires separate UMLS client dependency
+try:
+    from .umls_adapter import UMLSAdapter
+except ImportError:
+    UMLSAdapter = None
 
 __all__ = [
-    "UMLSAdapter",
     "UniChemAdapter",
     "BioPortalAdapter",
     "OLSAdapter",
@@ -61,12 +63,13 @@ __all__ = [
     "ADAPTER_CLASSES",
 ]
 
+if UMLSAdapter is not None:
+    __all__.insert(0, "UMLSAdapter")
+
 # Adapter class mappings for CentralKnowledgeLookup
 from ..models import KnowledgeSource
 
 ADAPTER_CLASSES = {
-    # KnowledgeSource.UMLS: UMLSAdapter,  # Removed - requires separate UMLS client
-    KnowledgeSource.UNICHEM: UniChemAdapter,
     KnowledgeSource.UNICHEM: UniChemAdapter,
     KnowledgeSource.BIOPORTAL: BioPortalAdapter,
     KnowledgeSource.OLS: OLSAdapter,
@@ -91,3 +94,6 @@ ADAPTER_CLASSES = {
     KnowledgeSource.ENSEMBL: EnsemblAdapter,
     # Add more adapters as needed
 }
+
+if UMLSAdapter is not None:
+    ADAPTER_CLASSES[KnowledgeSource.UMLS] = UMLSAdapter

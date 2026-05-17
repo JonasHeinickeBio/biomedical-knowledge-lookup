@@ -40,6 +40,9 @@ class TestAdapters:
             KnowledgeSource.EBIOLS,
             KnowledgeSource.ENSEMBL,
         ]
+
+        if getattr(adapters_module, "UMLSAdapter", None) is not None:
+            expected_sources.append(KnowledgeSource.UMLS)
         
         for source in expected_sources:
             assert source in ADAPTER_CLASSES, f"Missing adapter class for {source.value}"

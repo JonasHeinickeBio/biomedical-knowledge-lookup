@@ -46,7 +46,6 @@ logger = logging.getLogger(__name__)
 
 # Define the mapping from KnowledgeSource to Adapter classes here
 ADAPTER_CLASSES = {
-    # KnowledgeSource.UMLS: adapters.UMLSAdapter,  # Removed - requires separate UMLS client
     KnowledgeSource.BIOPORTAL: adapters.BioPortalAdapter,
     KnowledgeSource.OLS: adapters.OLSAdapter,
     KnowledgeSource.WIKIDATA: adapters.WikidataAdapter,
@@ -58,6 +57,9 @@ ADAPTER_CLASSES = {
     KnowledgeSource.UNIPROT: adapters.UniProtAdapter,
     KnowledgeSource.UNICHEM: adapters.UniChemAdapter,
 }
+
+if getattr(adapters, "UMLSAdapter", None) is not None:
+    ADAPTER_CLASSES[KnowledgeSource.UMLS] = adapters.UMLSAdapter
 
 
 class CentralKnowledgeLookup:

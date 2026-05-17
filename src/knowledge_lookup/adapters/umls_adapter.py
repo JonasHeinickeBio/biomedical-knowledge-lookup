@@ -5,8 +5,16 @@ Integrates with the existing UMLS client to provide unified concept lookup.
 """
 
 import logging
-from typing import List, Optional
-from knowledge_lookup.umls.client import create_umls_client, OptimizedUMLSClient
+from typing import Any, List, Optional
+
+try:
+    from knowledge_lookup.umls.client import OptimizedUMLSClient, create_umls_client
+
+    HAS_UMLS_CLIENT = True
+except ImportError:
+    OptimizedUMLSClient = Any  # type: ignore[misc,assignment]
+    create_umls_client = None
+    HAS_UMLS_CLIENT = False
 from ..base import KnowledgeSourceAdapter
 from ..models import UnifiedConcept, KnowledgeSource, ConceptType, LookupConfig
 
@@ -23,6 +31,14 @@ class UMLSAdapter(KnowledgeSourceAdapter):
     
     def _initialize_client(self):
         """Initialize UMLS client with API key from config."""
+        if not HAS_UMLS_CLIENT or create_umls_client is None:
+            logger.warning(
+                "UMLS client dependency is not installed. "
+                "Install with: pip install 'biomedical-knowledge-lookup[umls]'"
+            )
+            self.client = None
+            return
+
         try:
             api_key = self.config.get_api_key("umls") or self.config.get_api_key("UMLS_API_KEY_TU")
             self.client = create_umls_client(api_key=api_key)
