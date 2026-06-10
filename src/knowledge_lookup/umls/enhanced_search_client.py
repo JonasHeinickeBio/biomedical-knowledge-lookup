@@ -712,7 +712,6 @@ async def main():
             max_concurrent_requests=args.max_concurrent,
             request_delay=args.delay,
         ) as client:
-
             if args.query:
                 # Process single query
                 result = await client.search_terms(

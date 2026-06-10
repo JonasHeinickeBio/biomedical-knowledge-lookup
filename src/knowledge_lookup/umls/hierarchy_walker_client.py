@@ -647,7 +647,6 @@ async def main():
             max_concurrent_requests=args.max_concurrent,
             request_delay=args.delay,
         ) as client:
-
             if args.identifier:
                 # Process single identifier
                 result = await client.walk_hierarchy_multiple(

@@ -642,7 +642,6 @@ async def main():
             max_concurrent_requests=args.max_concurrent,
             request_delay=args.delay,
         ) as client:
-
             if args.identifier:
                 # Process single identifier
                 result = await client.get_names_for_identifiers([args.identifier], args.source)

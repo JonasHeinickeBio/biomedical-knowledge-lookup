@@ -547,7 +547,6 @@ if __name__ == "__main__":
             max_concurrent_requests=args.max_concurrent,
             request_delay=args.delay,
         ) as client:
-
             # Perform crosswalk
             result = await client.crosswalk_from_file(
                 input_file=args.input, source_vocabulary=args.source, target_vocabulary=args.target

@@ -59,7 +59,6 @@ tyto = "^1.4"
 pytest = "^8.0.0"
 pytest-asyncio = "^0.21.0"
 pytest-cov = "^4.0.0"
-black = "^24.0.0"
 ruff = "^0.1.0"
 mypy = "^1.0.0"
 jupyter = "^1.0.0"
@@ -76,7 +75,6 @@ sphinx-rtd-theme = "^2.0.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.black]
 line-length = 99
 include = '\.pyi?$'
 exclude = '''
@@ -101,7 +99,6 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "E501", # line too long, handled by black
     "B008", # do not perform function calls in argument defaults
     "C901", # too complex
 ]
@@ -129,6 +126,7 @@ disallow_untyped_defs = false
 warn_unused_ignores = true
 strict_optional = true
 plugins = ["pydantic.mypy"]
+exclude = [".venv", "tests", ".*__pycache__.*"]
 
 [tool.coverage.run]
 source = ["src/knowledge_lookup"]

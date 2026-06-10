@@ -58,7 +58,6 @@ class UMLSAuthenticator:
         current_time = time.time()
 
         if self.tgt is None or self.tgt_expires is None or current_time >= self.tgt_expires:
-
             self.tgt = self._get_tgt()
             self.tgt_expires = current_time + self.cache_duration
             self.cache_misses += 1
