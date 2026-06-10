@@ -1,0 +1,97 @@
+# LinkML Pydantic Generator Configuration
+# This file configures how LinkML generates Pydantic models
+
+settings:
+  # Base class for generated models
+  base_class: "pydantic.BaseModel"
+  
+  # Output directory for generated models
+  output_dir: "src/knowledge_lookup/generated_models"
+  
+  # Import path for the base class
+  import_path: "biomedical_knowledge_lookup.generated_models.models"
+  
+  # Add metadata to generated models
+  add_metadata: true
+  
+  # Include slot descriptions as docstrings
+  include_slot_descriptions: true
+  
+  # Use enum for permissible values
+  use_enums: true
+  
+  # Generate validation methods
+  generate_validators: true
+  
+  # Use strict typing
+  strict: true
+
+# Pydantic-specific settings
+pydantic:
+  # Use BaseModel as base class
+  base_class: "pydantic.BaseModel"
+  
+  # Include validation decorators
+  include_validators: true
+  
+  # Use field validators
+  field_validators: true
+  
+  # Include model validators
+  model_validators: true
+  
+  # Generate from_dict/to_dict methods
+  serialize: true
+  
+  # Use frozen models for immutability
+  frozen: false
+  
+  # Use populate_by_name for field name flexibility
+  populate_by_name: true
+
+# Validation settings
+validation:
+  # Enable strict mode
+  strict: true
+  
+  # Require all fields by default
+  required_by_default: true
+  
+  # Validate nested objects
+  validate_nested: true
+
+# Naming conventions
+naming:
+  # Class name suffix
+  class_suffix: ""
+  
+  # Field name prefix
+  field_prefix: ""
+  
+  # Use snake case for field names
+  snake_case_fields: true
+  
+  # Capitalize enum values
+  capitalize_enum_values: false
+
+# Documentation settings
+documentation:
+  # Include docstrings
+  docstrings: true
+  
+  # Include example usage
+  examples: true
+  
+  # Include schema description
+  include_schema_description: true
+
+# Type mappings
+type_mappings:
+  # LinkML types to Python types
+  string: "str"
+  integer: "int"
+  float: "float"
+  boolean: "bool"
+  datetime: "datetime.datetime"
+  uri: "str"
+  url: "str"

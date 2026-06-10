@@ -10,6 +10,7 @@ from knowledge_lookup.adapters.pdb_adapter import PDBAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 
+pytestmark = pytest.mark.unit
 class TestPDBAdapter:
     """Tests for PDBAdapter."""
 

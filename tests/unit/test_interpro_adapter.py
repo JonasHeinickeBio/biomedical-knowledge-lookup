@@ -10,6 +10,7 @@ from knowledge_lookup.adapters.interpro_adapter import InterProAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 
+pytestmark = pytest.mark.unit
 class TestInterProAdapter:
     """Tests for InterProAdapter."""
 

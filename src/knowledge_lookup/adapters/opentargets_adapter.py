@@ -109,7 +109,9 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
             data = await self._make_request(self.base_url, json_data=graphql_query)
 
             if "data" in data and entity_type in data["data"] and data["data"][entity_type]:
-                concept = self._convert_opentargets_result_to_concept(data["data"][entity_type], entity_type)
+                concept = self._convert_opentargets_result_to_concept(
+                    data["data"][entity_type], entity_type
+                )
                 return concept
 
             return None
@@ -124,7 +126,7 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
         """Convert Open Targets API result to unified concept."""
         try:
             ot_id = result.get("id", "")
-            
+
             # Get label based on entity type
             # For diseases: use 'name' if available, otherwise use 'id'
             # For targets: use 'approvedSymbol' as label, fallback to 'id'
@@ -140,7 +142,11 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
             )
 
             # entity is the folder name for the URL
-            entity = entity_type if entity_type else ("disease" if concept_type == ConceptType.DISEASE else "target")
+            entity = (
+                entity_type
+                if entity_type
+                else ("disease" if concept_type == ConceptType.DISEASE else "target")
+            )
 
             concept.add_identifier(
                 KnowledgeSource.OPENTARGETS,

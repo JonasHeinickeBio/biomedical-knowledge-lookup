@@ -3,9 +3,15 @@ Pytest configuration and fixtures for the test suite.
 """
 
 import asyncio
+import sys
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
+# Add tests directory to path for fixture imports
+sys.path.insert(0, str(Path(__file__).parent))
+
 from knowledge_lookup import LookupConfig
 from knowledge_lookup.models import (
     ConceptType,
