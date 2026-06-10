@@ -113,6 +113,11 @@ knowledge_lookup/
 - **[Examples](examples/)**
 - **[Contributing Guide](CONTRIBUTING.md)**
 
+### Additional Resources
+
+- **[Documentation Improvement Summary](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/wiki/Documentation-Improvement-Summary)**
+- **[Project Overview](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/wiki/Project-Overview)**
+
 ### Example Notebooks
 
 Explore interactive examples in the `examples/` directory:

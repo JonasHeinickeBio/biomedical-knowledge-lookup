@@ -22,44 +22,44 @@ This directory contains comprehensive documentation for all knowledge source ada
 |---------|--------------|-------------|
 | [PubChem](pubchem_adapter.md) | [Documentation](pubchem_adapter.md) | PubChem Compounds - Chemical compounds and properties |
 | [UniChem](unichem_adapter.md) | [Documentation](unichem_adapter.md) | UniChem - Cross-reference between compound databases |
+| [DrugBank](additional_adapters.md#drugbank-adapter) | [Additional Adapters](additional_adapters.md#drugbank-adapter) | DrugBank - Drug and pharmaceutical information |
 
 ### Proteins & Genes
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
 | [Ensembl](additional_adapters.md#ensembl-adapter) | [Additional Adapters](additional_adapters.md#ensembl-adapter) | Ensembl Genome Annotation |
-| [HGNC](additional_adapters.md#hgnc-adapter) | [Additional Adapters](additional_adapters.md#hgnc-adapter) | Human Gene Nomenclature Committee |
 
 ### Ontology Services
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
 | [BioOntology](bioontology_adapter.md) | [Documentation](bioontology_adapter.md) | BioOntology API (NCBO) |
-| [EBIOLS](additional_adapters.md#ebi-ols-alternative-adapter) | [Additional Adapters](additional_adapters.md#ebi-ols-alternative-adapter) | EBI Ontology Lookup Service (Alternative) |
-| [OBOFoundry](additional_adapters.md#obo-foundry-adapter) | [Documentation](additional_adapters.md#obo-foundry-adapter) | OBO Foundry Ontologies |
+| [OBOFoundry](additional_adapters.md#obo-foundry-adapter) | [Additional Adapters](additional_adapters.md#obo-foundry-adapter) | OBO Foundry Ontologies |
 
 ### Pathways & Networks
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
-| [Reactome](additional_adapters.md#reactome-adapter) | [Documentation](additional_adapters.md#reactome-adapter) | Reactome - Biological Pathways |
+| [Reactome](additional_adapters.md#reactome-adapter) | [Additional Adapters](additional_adapters.md#reactome-adapter) | Reactome - Biological Pathways |
 
 ### Phenotypes & Annotations
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
-| [HPO](additional_adapters.md#hpo-human-phenotype-ontology-adapter) | [Documentation](additional_adapters.md#hpo-human-phenotype-ontology-adapter) | Human Phenotype Ontology |
-| [GO](additional_adapters.md#gene-ontology-go-adapter) | [Documentation](additional_adapters.md#gene-ontology-go-adapter) | Gene Ontology |
+| [HPO](additional_adapters.md#hpo-human-phenotype-ontology-adapter) | [Additional Adapters](additional_adapters.md#hpo-human-phenotype-ontology-adapter) | Human Phenotype Ontology |
+| [GO](additional_adapters.md#gene-ontology-go-adapter) | [Additional Adapters](additional_adapters.md#gene-ontology-go-adapter) | Gene Ontology |
 
 ### Other Services
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
-| [WikiData](additional_adapters.md#wikidata-adapter) | [Documentation](additional_adapters.md#wikidata-adapter) | WikiData Knowledge Base |
-| [DBPedia](additional_adapters.md#dbpedia-adapter) | [Documentation](additional_adapters.md#dbpedia-adapter) | DBpedia Structured Data |
-| [OxO](additional_adapters.md#oxo-adapter) | [Documentation](additional_adapters.md#oxo-adapter) | Ontology Cross-references |
-| [TYTO](additional_adapters.md#tyto-adapter) | [Documentation](additional_adapters.md#tyto-adapter) | Ontology Term Recognition |
-| [ZOOMA](additional_adapters.md#zooma-adapter) | [Documentation](additional_adapters.md#zooma-adapter) | Ontology Mapping Service |
+| [WikiData](additional_adapters.md#wikidata-adapter) | [Additional Adapters](additional_adapters.md#wikidata-adapter) | WikiData Knowledge Base |
+| [DBPedia](additional_adapters.md#dbpedia-adapter) | [Additional Adapters](additional_adapters.md#dbpedia-adapter) | DBpedia Structured Data |
+| [OxO](additional_adapters.md#oxo-adapter) | [Additional Adapters](additional_adapters.md#oxo-adapter) | Ontology Cross-references |
+| [TYTO](additional_adapters.md#tyto-adapter) | [Additional Adapters](additional_adapters.md#tyto-adapter) | Ontology Term Recognition |
+| [ZOOMA](additional_adapters.md#zooma-adapter) | [Additional Adapters](additional_adapters.md#zooma-adapter) | Ontology Mapping Service |
+| [EBI OLS](additional_adapters.md#ebi-ols-alternative-adapter) | [Additional Adapters](additional_adapters.md#ebi-ols-alternative-adapter) | EBI Ontology Lookup Service |
 
 ## Quick Reference
 
@@ -77,7 +77,7 @@ This directory contains comprehensive documentation for all knowledge source ada
 
 #### Proteins & Genes
 - **UniProt** - Protein sequences and functional annotations
-- **Ensembl** - Genome annotation (via Additional Adapters)
+- **Ensembl** - Genome annotation
 - **DisGeNET** - Gene-disease associations
 
 #### Ontology Services
