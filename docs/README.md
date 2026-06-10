@@ -97,4 +97,5 @@ See individual adapter docs in this directory for source-specific features:
 - [DisGeNET](adapters/disgenet_adapter.md) - Gene-disease associations
 - [MONDO](adapters/mondo_adapter.md) - Disease classification
 - [OLS](adapters/ols_adapter.md) - Ontology lookup
+- [OpenTargets](adapters/opentargets_adapter.md) - Drug target and disease associations
 - [UniProt](adapters/uniprot_adapter.md) - Protein data

@@ -66,7 +66,7 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
         """Get detailed information from Open Targets."""
         try:
             # We need to know if it's a target or a disease
-            # Usually EFO IDs are diseases, ENSG are targets
+            # Usually EFO/MONDO/ORPHA IDs are diseases, ENSG are targets
             entity_type = (
                 "disease"
                 if concept_id.startswith("EFO_")
@@ -75,24 +75,41 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
                 else "target"
             )
 
-            graphql_query = {
-                "query": f"""
-                query Details($id: String!) {{
-                  {entity_type}(id: $id) {{
+            # Build GraphQL query based on entity type
+            # Target uses ensemblId, disease uses id
+            if entity_type == "target":
+                graphql_query_str = """
+                query Details($ensemblId: String!) {
+                  target(ensemblId: $ensemblId) {
+                    id
+                    approvedSymbol
+                    biotype
+                  }
+                }
+                """
+                graphql_query = {
+                    "query": graphql_query_str,
+                    "variables": {"ensemblId": concept_id},
+                }
+            else:
+                graphql_query_str = """
+                query Details($id: String!) {
+                  disease(id: $id) {
                     id
                     name
-                    description
-                    {"approvedSymbol" if entity_type == "target" else ""}
-                  }}
-                }}
-                """,
-                "variables": {"id": concept_id},
-            }
+                    definition
+                  }
+                }
+                """
+                graphql_query = {
+                    "query": graphql_query_str,
+                    "variables": {"id": concept_id},
+                }
 
             data = await self._make_request(self.base_url, json_data=graphql_query)
 
             if "data" in data and entity_type in data["data"] and data["data"][entity_type]:
-                concept = self._convert_opentargets_result_to_concept(data["data"][entity_type])
+                concept = self._convert_opentargets_result_to_concept(data["data"][entity_type], entity_type)
                 return concept
 
             return None
@@ -102,19 +119,28 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
             return None
 
     def _convert_opentargets_result_to_concept(
-        self, result: dict[str, Any]
+        self, result: dict[str, Any], entity_type: str | None = None
     ) -> UnifiedConcept | None:
         """Convert Open Targets API result to unified concept."""
         try:
             ot_id = result.get("id", "")
-            label = result.get("name", ot_id)
-            entity = result.get("entity", "unknown")
-
-            concept_type = ConceptType.DISEASE if entity == "disease" else ConceptType.GENE
+            
+            # Get label based on entity type
+            # For diseases: use 'name' if available, otherwise use 'id'
+            # For targets: use 'approvedSymbol' as label, fallback to 'id'
+            if entity_type == "disease":
+                label = result.get("name", ot_id)
+                concept_type = ConceptType.DISEASE
+            else:
+                label = result.get("approvedSymbol", ot_id)
+                concept_type = ConceptType.GENE
 
             concept = UnifiedConcept(
                 primary_id=ot_id, primary_label=label, concept_type=concept_type
             )
+
+            # entity is the folder name for the URL
+            entity = entity_type if entity_type else ("disease" if concept_type == ConceptType.DISEASE else "target")
 
             concept.add_identifier(
                 KnowledgeSource.OPENTARGETS,
@@ -123,8 +149,14 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
                 f"https://platform.opentargets.org/{entity}/{ot_id}",
             )
 
-            if "description" in result and result["description"]:
-                concept.definitions.append(result["description"])
+            # Add definition based on entity type
+            if entity_type == "disease":
+                if "definition" in result and result["definition"]:
+                    concept.definitions.append(result["definition"])
+            else:
+                # For targets, there's no description - use biotype as additional info
+                if "biotype" in result:
+                    concept.definitions.append(f"Biotype: {result['biotype']}")
 
             if "approvedSymbol" in result:
                 concept.synonyms.append(result["approvedSymbol"])
