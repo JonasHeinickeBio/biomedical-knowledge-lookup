@@ -6,20 +6,18 @@ import csv
 import json
 import logging
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any
 
 from .models import LookupResult
 
 logger = logging.getLogger(__name__)
 
 
-def export_to_json(
-    result: LookupResult, filepath: Optional[Union[str, Path]] = None
-) -> Union[str, dict]:
+def export_to_json(result: LookupResult, filepath: str | Path | None = None) -> str | dict:
     """
     Export search results to JSON format.
     """
-    json_data = {
+    json_data: dict[str, Any] = {
         "query": result.query,
         "execution_time": result.execution_time,
         "total_found": result.total_found,
@@ -41,17 +39,19 @@ def export_to_json(
             "categories": concept.categories,
             "parents": concept.parents,
             "children": concept.children,
-            "identifiers": [
-                {
-                    "source": id.source.value,
-                    "identifier": id.identifier,
-                    "label": id.label,
-                    "url": id.url,
-                }
-                for id in concept.identifiers
-            ]
-            if concept.identifiers
-            else [],
+            "identifiers": (
+                [
+                    {
+                        "source": id.source.value,
+                        "identifier": id.identifier,
+                        "label": id.label,
+                        "url": id.url,
+                    }
+                    for id in concept.identifiers
+                ]
+                if concept.identifiers
+                else []
+            ),
         }
         json_data["concepts"].append(concept_data)
     if filepath:
@@ -64,9 +64,7 @@ def export_to_json(
     return json_data
 
 
-def export_to_csv(
-    result: LookupResult, filepath: Optional[Union[str, Path]] = None
-) -> Optional[str]:
+def export_to_csv(result: LookupResult, filepath: str | Path | None = None) -> str | None:
     """
     Export search results to CSV format.
     """
@@ -101,11 +99,11 @@ def export_to_csv(
             "categories": ";".join(concept.categories),
             "parents": ";".join(concept.parents),
             "children": ";".join(concept.children),
-            "identifiers": ";".join(
-                [f"{id.source.value}:{id.identifier}" for id in concept.identifiers]
-            )
-            if concept.identifiers
-            else "",
+            "identifiers": (
+                ";".join([f"{id.source.value}:{id.identifier}" for id in concept.identifiers])
+                if concept.identifiers
+                else ""
+            ),
         }
         rows.append(row)
     if filepath:

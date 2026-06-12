@@ -1,0 +1,12 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Checking if Eutils adapter is available...
+  ✓ Eutils adapter is available
+
+Searching for 'cancer' concepts in Eutils...
+
+Found 0 results from Eutils:
+  No results found for 'cancer'

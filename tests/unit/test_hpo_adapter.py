@@ -4,8 +4,9 @@ Unit tests for HPOAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.hpo_adapter import HPOAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

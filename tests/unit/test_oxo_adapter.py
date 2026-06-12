@@ -2,10 +2,11 @@
 Unit tests for OxOAdapter.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.oxo_adapter import OxOAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
@@ -46,51 +47,72 @@ class TestOxOAdapter:
         assert adapter.get_rate_limit() == 5.0
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_success(self, mock_get, adapter):
+    async def test_search_concepts_success(self, adapter):
         """Test successful search concepts."""
+        # Mock the session post response
         mock_response = AsyncMock()
         mock_response.status = 200
-        mock_response.json = AsyncMock(return_value={"results": []})  # Mock response structure
-        mock_get.return_value.__aenter__.return_value = mock_response
+        mock_response.json = AsyncMock(
+            return_value={"_embedded": {"searchResults": []}}
+        )
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
 
-        results = await adapter.search_concepts("test query", limit=10)
-        assert isinstance(results, list)
+        with patch("aiohttp.ClientSession.post") as mock_post:
+            mock_post.return_value = mock_post_context
+
+            results = await adapter.search_concepts("test query", limit=10)
+            assert isinstance(results, list)
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_empty_response(self, mock_get, adapter):
+    async def test_search_concepts_empty_response(self, adapter):
         """Test search concepts with empty response."""
+        # Mock the session post response
         mock_response = AsyncMock()
         mock_response.status = 200
-        mock_response.json = AsyncMock(return_value={"results": []})
-        mock_get.return_value.__aenter__.return_value = mock_response
+        mock_response.json = AsyncMock(
+            return_value={"_embedded": {"searchResults": []}}
+        )
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
 
-        results = await adapter.search_concepts("nonexistent", limit=10)
-        assert isinstance(results, list)
-        assert len(results) == 0
+        with patch("aiohttp.ClientSession.post") as mock_post:
+            mock_post.return_value = mock_post_context
+
+            results = await adapter.search_concepts("nonexistent", limit=10)
+            assert isinstance(results, list)
+            assert len(results) == 0
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_http_error(self, mock_get, adapter):
+    async def test_search_concepts_http_error(self, adapter):
         """Test search concepts with HTTP error."""
+        # Mock the session post response to raise an error
         mock_response = AsyncMock()
         mock_response.status = 500
-        mock_get.return_value.__aenter__.return_value = mock_response
+        mock_response.raise_for_status.side_effect = Exception("HTTP 500 error")
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
 
-        results = await adapter.search_concepts("test")
-        assert isinstance(results, list)
-        assert len(results) == 0
+        with patch("aiohttp.ClientSession.post") as mock_post:
+            mock_post.return_value = mock_post_context
+
+            results = await adapter.search_concepts("test")
+            assert isinstance(results, list)
+            assert len(results) == 0
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_network_error(self, mock_get, adapter):
+    async def test_search_concepts_network_error(self, adapter):
         """Test search concepts with network error."""
-        mock_get.side_effect = Exception("Network error")
+        # Mock the session post response to raise an error
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.side_effect = Exception("Network error")
 
-        results = await adapter.search_concepts("test")
-        assert isinstance(results, list)
-        assert len(results) == 0
+        with patch("aiohttp.ClientSession.post") as mock_post:
+            mock_post.return_value = mock_post_context
+
+            results = await adapter.search_concepts("test")
+            assert isinstance(results, list)
+            assert len(results) == 0
 
     @pytest.mark.asyncio
     async def test_get_mappings_default(self, adapter):

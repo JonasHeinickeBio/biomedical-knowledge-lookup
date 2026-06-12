@@ -5,26 +5,27 @@ This module provides a unified client interface that includes both low-level API
 communication and high-level service coordination for all UMLS operations.
 """
 
-import os
-import requests
 import logging
+import os
 import time
-from typing import Optional, List, Dict, Any
 from datetime import datetime
+from typing import Any
+
+import requests
 from dotenv import load_dotenv
 from tenacity import (
+    before_sleep_log,
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log,
 )
 
 from .auth import UMLSAuthenticator
-from .search import UMLSSearchService
 from .concepts import UMLSConceptService
 from .metadata import UMLSMetadataService
 from .models import UMLSConcept, UMLSSearchResult
+from .search import UMLSSearchService
 
 # Load .env file and configure logging
 load_dotenv()
@@ -67,13 +68,13 @@ class OptimizedUMLSClient:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         version: str = "current",
         timeout: float = 30.0,
         max_retries: int = 3,
         rate_limit: float = 0.1,  # Seconds between requests
         cache_duration: int = 3600,  # Token cache duration in seconds
-        api_url: str = "https://uts-ws.nlm.nih.gov/rest"
+        api_url: str = "https://uts-ws.nlm.nih.gov/rest",
     ):
         self.api_key = api_key or os.getenv("UMLS_API_KEY_TU")
         if not self.api_key:
@@ -87,14 +88,12 @@ class OptimizedUMLSClient:
         self.api_url = api_url
 
         # API request tracking
-        self.last_request_time = 0
+        self.last_request_time = 0.0
         self.request_count = 0
 
         # Initialize authenticator
         self.authenticator = UMLSAuthenticator(
-            api_key=self.api_key,
-            timeout=timeout,
-            cache_duration=cache_duration
+            api_key=self.api_key, timeout=timeout, cache_duration=cache_duration
         )
 
         # Initialize services
@@ -114,7 +113,7 @@ class OptimizedUMLSClient:
         self.last_request_time = time.time()
 
     @umls_retry()
-    def make_request(self, endpoint: str, params: Optional[Dict] = None) -> Dict:
+    def make_request(self, endpoint: str, params: dict | None = None) -> dict:
         """
         Make an authenticated request to the UMLS API.
 
@@ -138,7 +137,9 @@ class OptimizedUMLSClient:
         response = requests.get(url, params=params, timeout=self.timeout)
 
         if response.status_code != 200:
-            raise RuntimeError(f"API request failed: {url} ({response.status_code}) - {response.text}")
+            raise RuntimeError(
+                f"API request failed: {url} ({response.status_code}) - {response.text}"
+            )
 
         self.request_count += 1
 
@@ -159,11 +160,11 @@ class OptimizedUMLSClient:
             # Handle case where API returns error message as string in result field
             if isinstance(api_result, str):
                 # If result is a string (error message), raise an exception
-                raise RuntimeError(f"UMLS API error: {api_result}")
+                raise RuntimeError(f"UMLS API error: {api_result}") from None
 
             return api_result if isinstance(api_result, dict) else {}
-        except ValueError:
-            raise RuntimeError(f"Invalid JSON returned from {url}: {response.text}")
+        except ValueError as e:
+            raise RuntimeError(f"Invalid JSON returned from {url}: {response.text}") from e
 
     # Legacy property for backward compatibility
     @property
@@ -176,58 +177,61 @@ class OptimizedUMLSClient:
         self,
         query: str,
         search_type: str = "words",
-        source: Optional[str] = None,
-        semantic_types: Optional[List[str]] = None,
+        source: str | None = None,
+        semantic_types: list[str] | None = None,
         page_size: int = 25,
         page_number: int = 1,
-        return_id_type: str = "concept"
-    ) -> List[UMLSSearchResult]:
+        return_id_type: str = "concept",
+    ) -> list[UMLSSearchResult]:
         """Search for UMLS concepts."""
         return self.search_service.search_concepts(
-            query, search_type, source, semantic_types,
-            page_size, page_number, return_id_type
+            query, search_type, source, semantic_types, page_size, page_number, return_id_type
         )
 
-    def batch_search(self, queries: List[str], **kwargs) -> Dict[str, List[UMLSSearchResult]]:
+    def batch_search(self, queries: list[str], **kwargs) -> dict[str, list[UMLSSearchResult]]:
         """Perform batch search for multiple queries."""
         return self.search_service.batch_search(queries, **kwargs)
 
-    def find_similar_concepts(self, cui: str, similarity_threshold: float = 0.8) -> List[Dict[str, Any]]:
+    def find_similar_concepts(
+        self, cui: str, similarity_threshold: float = 0.8
+    ) -> list[dict[str, Any]]:
         """Find concepts similar to the given CUI."""
         return self.search_service.find_similar_concepts(cui, similarity_threshold)
 
     # Concept operations - delegate to concept service
-    def get_concept_details(self, cui: str) -> Optional[UMLSConcept]:
+    def get_concept_details(self, cui: str) -> UMLSConcept | None:
         """Get detailed information about a specific concept."""
         return self.concept_service.get_concept_details(cui)
 
-    def get_concept_atoms(self, cui: str, source: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_concept_atoms(self, cui: str, source: str | None = None) -> list[dict[str, Any]]:
         """Get all atoms (terms) for a concept."""
         return self.concept_service.get_concept_atoms(cui, source)
 
-    def get_concept_relationships(self, cui: str, include_related: bool = True) -> List[Dict[str, Any]]:
+    def get_concept_relationships(
+        self, cui: str, include_related: bool = True
+    ) -> list[dict[str, Any]]:
         """Get all relationships for a concept."""
         return self.concept_service.get_concept_relationships(cui, include_related)
 
-    def get_concept_hierarchy(self, cui: str, levels: int = 1) -> Dict[str, Any]:
+    def get_concept_hierarchy(self, cui: str, levels: int = 1) -> dict[str, Any]:
         """Get concept hierarchy (parents and children)."""
         return self.concept_service.get_concept_hierarchy(cui, levels)
 
-    def get_cui_from_code(self, code: str, source: str) -> Optional[str]:
+    def get_cui_from_code(self, code: str, source: str) -> str | None:
         """Get CUI from a source-specific code."""
         return self.concept_service.get_cui_from_code(code, source)
 
     # Metadata operations - delegate to metadata service
-    def get_semantic_types(self) -> List[Dict[str, Any]]:
+    def get_semantic_types(self) -> list[dict[str, Any]]:
         """Get all available semantic types."""
         return self.metadata_service.get_semantic_types()
 
-    def get_sources(self) -> List[Dict[str, Any]]:
+    def get_sources(self) -> list[dict[str, Any]]:
         """Get all available source vocabularies."""
         return self.metadata_service.get_sources()
 
     # Management operations
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get client usage statistics.
 
@@ -237,13 +241,18 @@ class OptimizedUMLSClient:
         auth_stats = self.authenticator.get_statistics()
 
         return {
-            'total_requests': self.request_count,
-            'cache_hits': auth_stats['cache_hits'],
-            'cache_misses': auth_stats['cache_misses'],
-            'cache_hit_ratio': auth_stats['cache_hits'] / max(auth_stats['cache_hits'] + auth_stats['cache_misses'], 1),
-            'tgt_expires': datetime.fromtimestamp(self.authenticator.tgt_expires) if self.authenticator.tgt_expires else None,
-            'rate_limit': self.rate_limit,
-            'timeout': self.timeout
+            "total_requests": self.request_count,
+            "cache_hits": auth_stats["cache_hits"],
+            "cache_misses": auth_stats["cache_misses"],
+            "cache_hit_ratio": auth_stats["cache_hits"]
+            / max(auth_stats["cache_hits"] + auth_stats["cache_misses"], 1),
+            "tgt_expires": (
+                datetime.fromtimestamp(self.authenticator.tgt_expires)
+                if self.authenticator.tgt_expires
+                else None
+            ),
+            "rate_limit": self.rate_limit,
+            "timeout": self.timeout,
         }
 
     def reset_statistics(self):
@@ -262,7 +271,7 @@ UMLSApiClient = OptimizedUMLSClient
 UMLSAPIClient = OptimizedUMLSClient  # Also support the old UMLSAPIClient name
 
 
-def create_umls_client(api_key: Optional[str] = None, **kwargs) -> OptimizedUMLSClient:
+def create_umls_client(api_key: str | None = None, **kwargs) -> OptimizedUMLSClient:
     """
     Factory function to create a UMLS client.
 

@@ -4,8 +4,9 @@ Unit tests for DrugBankAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.drugbank_adapter import DrugBankAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

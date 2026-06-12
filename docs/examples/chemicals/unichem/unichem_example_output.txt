@@ -1,0 +1,29 @@
+Checking if UniChem adapter is available...
+  ✓ UniChem adapter is available
+
+Searching for 'CHEMBL1201' concepts in UniChem...
+
+Found 1 results from UniChem:
+
+  Concept: UCI_36258
+  Primary ID: 36258
+  Type: ConceptType.CHEMICAL
+  Confidence: 0.9
+  Cross-references (17):
+    - 36258 (UNICHEM)
+    - CHEMBL1201 (UNICHEM)
+    - DB01623 (UNICHEM)
+    - CHEBI:9571 (UNICHEM)
+    - 7318FJ13YJ (UNICHEM)
+    - 29373233 (UNICHEM)
+    - 29391417 (UNICHEM)
+    - 34305 (UNICHEM)
+    - 149701 (UNICHEM)
+    - 144076 (UNICHEM)
+    - SCHEMBL27326 (UNICHEM)
+    - ZINC7236093 (UNICHEM)
+    - 45213681 (UNICHEM)
+    - DB01623 (UNICHEM)
+    - 444669 (UNICHEM)
+    - 179644 (UNICHEM)
+    - 76365973 (UNICHEM)

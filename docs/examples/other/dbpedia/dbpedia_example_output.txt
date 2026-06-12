@@ -1,0 +1,36 @@
+Checking if Dbpedia adapter is available...
+  ✓ Dbpedia adapter is available
+
+Searching for 'cancer' concepts in Dbpedia...
+
+Found 9 results from Dbpedia:
+
+  Concept 1:
+    Label: Cancer
+    ID: Cancer
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.6
+
+  Concept 2:
+    Label: Szent-Györgyi Prize for Progress in Cancer Research
+    ID: Szent-Györgyi_Prize_for_Progress_in_Cancer_Research
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.6
+
+  Concept 3:
+    Label: Alvin J. Siteman Cancer Center
+    ID: Alvin_J._Siteman_Cancer_Center
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.6
+
+  Concept 4:
+    Label: Breast Cancer Research Foundation
+    ID: Breast_Cancer_Research_Foundation
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.6
+
+  Concept 5:
+    Label: The Cancer Conspiracy
+    ID: The_Cancer_Conspiracy
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.6

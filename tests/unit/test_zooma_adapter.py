@@ -4,8 +4,9 @@ Unit tests for ZoomaAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.zooma_adapter import ZoomaAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

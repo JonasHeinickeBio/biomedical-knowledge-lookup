@@ -4,8 +4,9 @@ Unit tests for MondoAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.mondo_adapter import MondoAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

@@ -3,8 +3,14 @@ Unit tests for helper functions.
 """
 
 import pytest
-from knowledge_lookup.helpers import _deduplicate_concepts, format_results_table, format_results_detailed
-from knowledge_lookup.models import UnifiedConcept, LookupResult, KnowledgeSource, ConceptType
+
+pytestmark = pytest.mark.unit
+from knowledge_lookup.helpers import (
+    _deduplicate_concepts,
+    format_results_detailed,
+    format_results_table,
+)
+from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupResult, UnifiedConcept
 
 
 class TestHelpers:
@@ -14,27 +20,21 @@ class TestHelpers:
     def sample_concepts(self):
         """Create sample concepts for testing."""
         concept1 = UnifiedConcept(
-            primary_id="TEST:001",
-            primary_label="Test Concept 1",
-            concept_type=ConceptType.DISEASE
+            primary_id="TEST:001", primary_label="Test Concept 1", concept_type=ConceptType.DISEASE
         )
         concept1.add_identifier(KnowledgeSource.BIOPORTAL, "TEST:001", "Test Concept 1")
-        
+
         concept2 = UnifiedConcept(
-            primary_id="TEST:002",
-            primary_label="Test Concept 2",
-            concept_type=ConceptType.GENE
+            primary_id="TEST:002", primary_label="Test Concept 2", concept_type=ConceptType.GENE
         )
         concept2.add_identifier(KnowledgeSource.OLS, "TEST:002", "Test Concept 2")
-        
+
         # Duplicate concept
         concept3 = UnifiedConcept(
-            primary_id="TEST:001",
-            primary_label="Test Concept 1",
-            concept_type=ConceptType.DISEASE
+            primary_id="TEST:001", primary_label="Test Concept 1", concept_type=ConceptType.DISEASE
         )
         concept3.add_identifier(KnowledgeSource.UNIPROT, "TEST:001", "Test Concept 1")
-        
+
         return [concept1, concept2, concept3]
 
     @pytest.fixture
@@ -45,7 +45,7 @@ class TestHelpers:
             concepts=sample_concepts,
             execution_time=1.5,
             sources_queried=[KnowledgeSource.BIOPORTAL, KnowledgeSource.OLS],
-            sources_succeeded=[KnowledgeSource.BIOPORTAL, KnowledgeSource.OLS]
+            sources_succeeded=[KnowledgeSource.BIOPORTAL, KnowledgeSource.OLS],
         )
 
     def test_deduplicate_concepts_no_duplicates(self, sample_concepts):
@@ -76,11 +76,14 @@ class TestHelpers:
     def test_format_results_table_with_concepts(self, sample_result):
         """Test table formatting with concepts."""
         table = format_results_table(sample_result)
-        lines = table.split('\n')
-        
+        lines = table.split("\n")
+
         # Should have header + 3 concept rows (no deduplication in format function)
         assert len(lines) == 4
-        assert lines[0] == "Primary Label\tPrimary ID\tType\tConfidence\tSources\tSynonyms\tDefinitions"
+        assert (
+            lines[0]
+            == "Primary Label\tPrimary ID\tType\tConfidence\tSources\tSynonyms\tDefinitions"
+        )
         assert "Test Concept 1" in lines[1]
         assert "Test Concept 2" in lines[2]
 
@@ -93,8 +96,8 @@ class TestHelpers:
     def test_format_results_detailed_with_concepts(self, sample_result):
         """Test detailed formatting with concepts."""
         detailed = format_results_detailed(sample_result)
-        lines = detailed.split('\n')
-        
+        lines = detailed.split("\n")
+
         assert "Concept 1:" in lines[0]
         assert "Label: Test Concept 1" in detailed
         assert "ID: TEST:001" in detailed
@@ -110,9 +113,7 @@ class TestHelpers:
     def test_format_results_detailed_with_synonyms_and_definitions(self):
         """Test detailed formatting with synonyms and definitions."""
         concept = UnifiedConcept(
-            primary_id="TEST:001",
-            primary_label="Test Concept",
-            concept_type=ConceptType.DISEASE
+            primary_id="TEST:001", primary_label="Test Concept", concept_type=ConceptType.DISEASE
         )
         concept.synonyms = ["synonym1", "synonym2"]
         concept.definitions = ["definition1", "definition2"]
@@ -120,10 +121,10 @@ class TestHelpers:
         concept.categories = ["Category1"]
         concept.parents = ["parent1"]
         concept.children = ["child1"]
-        
+
         result = LookupResult(query="test", concepts=[concept])
         detailed = format_results_detailed(result)
-        
+
         assert "Synonyms: synonym1, synonym2" in detailed
         assert "Definitions: definition1, definition2" in detailed
         assert "Semantic Types: Disease" in detailed

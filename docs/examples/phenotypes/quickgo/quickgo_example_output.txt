@@ -1,0 +1,12 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Checking if QuickGO adapter is available...
+  ✓ QuickGO adapter is available
+
+Searching for 'apoptosis' concepts in QuickGO...
+
+Found 0 results from QuickGO:
+  No results found for 'apoptosis'

@@ -11,7 +11,7 @@ Supports all ConceptType enums and provides extensible architecture for
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 
 from rdflib import RDF, RDFS, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import XSD
@@ -46,7 +46,7 @@ class RDFNamespaces:
     XSD = XSD
 
     @classmethod
-    def get_namespace_bindings(cls) -> Dict[str, Union[Namespace, Any]]:
+    def get_namespace_bindings(cls) -> dict[str, Namespace | Any]:
         """Get all namespace bindings for RDF graph initialization."""
         return {
             "aidpais": cls.AIDPAIS,
@@ -418,10 +418,10 @@ class AdapterHints:
     """Container for adapter-specific RDF conversion hints and customizations."""
 
     def __init__(self):
-        self.custom_namespaces: Dict[str, Namespace] = {}
-        self.custom_predicates: Dict[str, URIRef] = {}
-        self.type_mappings: Dict[ConceptType, URIRef] = {}
-        self.identifier_mappings: Dict[KnowledgeSource, Dict[str, Any]] = {}
+        self.custom_namespaces: dict[str, Namespace] = {}
+        self.custom_predicates: dict[str, URIRef] = {}
+        self.type_mappings: dict[ConceptType, URIRef] = {}
+        self.identifier_mappings: dict[KnowledgeSource, dict[str, Any]] = {}
 
     def add_namespace(self, prefix: str, namespace: Namespace):
         """Add a custom namespace."""
@@ -435,7 +435,7 @@ class AdapterHints:
         """Map a concept type to a specific RDF class."""
         self.type_mappings[concept_type] = rdf_class
 
-    def add_identifier_mapping(self, source: KnowledgeSource, mapping_config: Dict[str, Any]):
+    def add_identifier_mapping(self, source: KnowledgeSource, mapping_config: dict[str, Any]):
         """Add identifier mapping configuration for a knowledge source."""
         self.identifier_mappings[source] = mapping_config
 
@@ -457,7 +457,7 @@ class UnifiedRDFConverter:
     """
 
     def __init__(
-        self, adapter_hints: Optional[AdapterHints] = None, use_dynamic_loading: bool = False
+        self, adapter_hints: AdapterHints | None = None, use_dynamic_loading: bool = False
     ):
         """
         Initialize the RDF converter.
@@ -468,7 +468,7 @@ class UnifiedRDFConverter:
         """
         self.namespaces = RDFNamespaces()
         self.adapter_hints = adapter_hints or AdapterHints()
-        self.ontology_loader = None  # For dynamic loading
+        self.ontology_loader: Any = None  # For dynamic loading
 
         if use_dynamic_loading:
             self.handlers = self._load_dynamic_handlers()
@@ -477,7 +477,7 @@ class UnifiedRDFConverter:
 
     @classmethod
     def from_ontology(
-        cls, ontology_dir: Optional[str] = None, adapter_hints: Optional[AdapterHints] = None
+        cls, ontology_dir: str | None = None, adapter_hints: AdapterHints | None = None
     ) -> "UnifiedRDFConverter":
         """
         Create a UnifiedRDFConverter with dynamically loaded concept types from ontology.
@@ -498,7 +498,7 @@ class UnifiedRDFConverter:
             instance.handlers = instance._load_dynamic_handlers()
         return instance
 
-    def _load_static_handlers(self) -> Dict[ConceptType, ConceptTypeHandler]:
+    def _load_static_handlers(self) -> dict[ConceptType, ConceptTypeHandler]:
         """Load the static (manually defined) concept type handlers."""
         return {
             # Clinical entities
@@ -569,7 +569,7 @@ class UnifiedRDFConverter:
             ConceptType.UNKNOWN: DefaultHandler(self.namespaces),
         }
 
-    def _load_dynamic_handlers(self) -> Dict[ConceptType, ConceptTypeHandler]:
+    def _load_dynamic_handlers(self) -> dict[ConceptType, ConceptTypeHandler]:
         """Load concept type handlers dynamically from ontology."""
         from .ontology_concept_loader import get_dynamic_concept_handlers
 
@@ -611,7 +611,7 @@ class UnifiedRDFConverter:
             logger.error(f"Failed to load dynamic handlers: {e}. Falling back to static handlers.")
             return self._load_static_handlers()
 
-    def convert_concepts_to_graph(self, concepts: List[UnifiedConcept]) -> Graph:
+    def convert_concepts_to_graph(self, concepts: list[UnifiedConcept]) -> Graph:
         """
         Convert a list of UnifiedConcept objects to an RDF graph.
 
@@ -718,9 +718,7 @@ class UnifiedRDFConverter:
         else:
             return self.namespaces.AIDPAIS[f"{identifier.source.value}/{identifier.identifier}"]
 
-    def save_graph(
-        self, graph: Graph, output_path: Union[str, Path], format: str = "turtle"
-    ) -> None:
+    def save_graph(self, graph: Graph, output_path: str | Path, format: str = "turtle") -> None:
         """
         Save an RDF graph to a file.
 
@@ -756,8 +754,8 @@ class UnifiedRDFConverter:
     def merge_with_existing_graph(
         self,
         new_graph: Graph,
-        existing_graph_path: Union[str, Path],
-        output_path: Union[str, Path],
+        existing_graph_path: str | Path,
+        output_path: str | Path,
     ) -> Graph:
         """
         Merge new concept data with an existing knowledge graph.
@@ -791,7 +789,7 @@ class UnifiedRDFConverter:
         return merged_graph
 
     def convert_and_save(
-        self, concepts: List[UnifiedConcept], output_path: Union[str, Path], format: str = "turtle"
+        self, concepts: list[UnifiedConcept], output_path: str | Path, format: str = "turtle"
     ) -> Graph:
         """
         Convert concepts to RDF and save to file in one step.
@@ -822,6 +820,6 @@ class UnifiedRDFConverter:
         self.handlers[concept_type] = handler
         logger.info(f"Registered custom handler for concept type: {concept_type.value}")
 
-    def get_supported_concept_types(self) -> Set[ConceptType]:
+    def get_supported_concept_types(self) -> set[ConceptType]:
         """Get all supported concept types."""
         return set(self.handlers.keys())

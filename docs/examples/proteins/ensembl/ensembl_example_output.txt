@@ -1,0 +1,14 @@
+Checking if Ensembl adapter is available...
+  ✓ Ensembl adapter is available
+
+Searching for 'BRCA1' concepts in Ensembl...
+
+Found 1 results from Ensembl:
+
+  Concept 1:
+    Label: BRCA1
+    ID: ENSG00000012048
+    Type: ConceptType.GENE
+    Confidence: 1.0
+    Definitions (1):
+      - BRCA1 DNA repair associated [Source:HGNC Symbol;Acc:HGNC:1100]

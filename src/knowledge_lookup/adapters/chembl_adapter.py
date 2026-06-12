@@ -3,7 +3,7 @@ Adapter for ChEMBL drug/compound database using chembl_webresource_client.
 """
 
 import logging
-from typing import Optional
+from typing import Any
 
 from chembl_webresource_client.new_client import new_client
 
@@ -53,7 +53,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 - 'endpoints_tested': list of endpoint names tested
                 - 'available_endpoints': list of all available endpoint names
         """
-        status = {
+        status: dict[str, Any] = {
             "available": False,
             "status_code": None,
             "error": None,
@@ -110,16 +110,18 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
 
         # Test a few key endpoints for actual API availability
         test_endpoints = ["status", "molecule", "activity"]
+        valid_endpoints: list[str] = status.get("available_endpoints", [])
+        tested: list[str] = []
 
         for endpoint in test_endpoints:
-            if endpoint not in status["available_endpoints"]:
-                status["endpoints_tested"].append(f"{endpoint}(not available)")
+            if endpoint not in valid_endpoints:
+                tested.append(f"{endpoint}(not available)")
                 continue
 
             try:
                 client = getattr(self.chembl_client, endpoint, None)
                 if client is None:
-                    status["endpoints_tested"].append(f"{endpoint}(not available)")
+                    tested.append(f"{endpoint}(not available)")
                     continue
 
                 # Quick test - just get first result
@@ -132,15 +134,16 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 else:
                     client.all()[:1]
 
-                status["endpoints_tested"].append(endpoint)
+                tested.append(endpoint)
                 status["available"] = True
 
             except Exception as e:
                 error_msg = str(e)
                 status["error"] = f"Endpoint '{endpoint}' failed: {error_msg[:100]}..."
-                status["endpoints_tested"].append(f"{endpoint}(failed)")
+                tested.append(f"{endpoint}(failed)")
                 continue
 
+        status["endpoints_tested"] = tested
         return status
 
     @create_chembl_retry_decorator(
@@ -150,8 +153,8 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
     def query(
         self,
         endpoint: str,
-        filters: Optional[dict] = None,
-        fields: Optional[list] = None,
+        filters: dict | None = None,
+        fields: list | None = None,
         limit: int = 100,
     ):
         """
@@ -186,7 +189,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             return []
 
     def lookup_molecule(
-        self, filters: Optional[dict] = None, fields: Optional[list] = None, limit: int = 100
+        self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup molecules in ChEMBL and parse results to UnifiedConcepts.
@@ -212,7 +215,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             return []
 
     def lookup_drug(
-        self, filters: Optional[dict] = None, fields: Optional[list] = None, limit: int = 100
+        self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup drugs in ChEMBL and parse results to UnifiedConcepts.
@@ -238,7 +241,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             return []
 
     def lookup_target(
-        self, filters: Optional[dict] = None, fields: Optional[list] = None, limit: int = 100
+        self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup targets in ChEMBL and parse results to UnifiedConcepts.
@@ -264,24 +267,26 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             return []
 
     def lookup_activity(
-        self, filters: Optional[dict] = None, fields: Optional[list] = None, limit: int = 100
+        self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup activities in ChEMBL and parse results.
 
         Args:
-            filters (dict, optional): Query filters for activities (e.g., {"molecule_chembl_id": "CHEMBL25"}).
-            fields (list, optional): Specific fields to include in results. If None, returns all fields.
+            filters (dict, optional): Query filters for activities  # noqa: E501
+                (e.g., {"molecule_chembl_id": "CHEMBL25"}).
+            fields (list, optional): Specific fields to include in results.
+                If None, returns all fields.
             limit (int): Max number of results.
 
         Returns:
             List[dict]: List of raw activity data (not parsed to UnifiedConcepts).
-            Each activity record contains 46+ fields - see get_activities_for_molecule()
-            or get_activities_for_target() docstrings for complete field list.
+                Each activity record contains 46+ fields - see get_activities_for_molecule()  # noqa: E501
+                or get_activities_for_target() docstrings for complete field list.
 
         Error Handling:
             Logs and returns empty list on error.
-        """
+        """  # noqa: E501
         try:
             raw_results = self.query(
                 "activity",
@@ -329,8 +334,8 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
 
         Assay Information:
             - assay_description: Description of the assay method
-            - assay_type: Type of assay ('F' = Functional, 'B' = Binding, 'A' = ADME, 'T' = Toxicity,
-            'P' = Physicochemical, 'U' = Unassigned)
+            - assay_type: Type of assay ('F' = Functional, 'B' = Binding, 'A' = ADME,
+                'T' = Toxicity, 'P' = Physicochemical, 'U' = Unassigned)
             - bao_endpoint: BioAssay Ontology endpoint term
             - bao_format: BioAssay Ontology format term
 
@@ -392,7 +397,8 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
 
         Assay Information:
             - assay_description: Description of the assay method
-            - assay_type: Type of assay ('F' = Functional, 'B' = Binding, 'A' = ADME, 'T' = Toxicity, 'P' = Physicochemical, 'U' = Unassigned)
+            - assay_type: Type of assay ('F' = Functional, 'B' = Binding, 'A' = ADME,
+                'T' = Toxicity, 'P' = Physicochemical, 'U' = Unassigned)
             - bao_endpoint: BioAssay Ontology endpoint term
             - bao_format: BioAssay Ontology format term
 
@@ -423,12 +429,16 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
         """
         Parse raw molecule results from ChEMBL into UnifiedConcept objects.
         Extracts comprehensive molecule data including physicochemical properties.
+
         Args:
             results (list): List of raw molecule dicts from ChEMBL.
+
         Returns:
             List[UnifiedConcept]: List of parsed molecule concepts with enriched data.
+
         Error Handling:
-            Logs errors during parsing and category mapping. Returns partial results if errors occur.
+            Logs errors during parsing and category mapping.
+            Returns partial results if errors occur.
         """
         concepts = []
         try:
@@ -495,9 +505,11 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                     source=KnowledgeSource.CHEMBL,
                     identifier=chembl_id,
                     label=label,
-                    url=f"https://www.ebi.ac.uk/chembl/compound_report_card/{chembl_id}/"
-                    if chembl_id
-                    else None,
+                    url=(
+                        f"https://www.ebi.ac.uk/chembl/compound_report_card/{chembl_id}/"
+                        if chembl_id
+                        else None
+                    ),
                 )
 
                 # Enhanced categories
@@ -554,8 +566,8 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
         Returns:
             List[UnifiedConcept]: List of parsed drug concepts.
         Error Handling:
-            Logs errors during parsing and category mapping. Returns partial results if errors occur.
-        """
+            Logs errors during parsing and category mapping. Returns partial results if errors occur.  # noqa: E501
+        """  # noqa: E501
         concepts = []
         try:
             for r in results:
@@ -603,8 +615,8 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
         Returns:
             List[UnifiedConcept]: List of parsed target concepts.
         Error Handling:
-            Logs errors during parsing and category mapping. Returns partial results if errors occur.
-        """
+            Logs errors during parsing and category mapping. Returns partial results if errors occur.  # noqa: E501
+        """  # noqa: E501
         concepts = []
         try:
             for r in results:
@@ -621,9 +633,11 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                     source=KnowledgeSource.CHEMBL,
                     identifier=target_id,
                     label=label,
-                    url=f"https://www.ebi.ac.uk/chembl/target_report_card/{target_id}/"
-                    if target_id
-                    else None,
+                    url=(
+                        f"https://www.ebi.ac.uk/chembl/target_report_card/{target_id}/"
+                        if target_id
+                        else None
+                    ),
                 )
                 raw_category = r.get("target_type")
                 try:
@@ -652,11 +666,11 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
 
     async def map_category_to_ontology(self, category: str) -> str:
         """
-        Map a ChEMBL category string to a unified KG ontology term using OLS and BioOntology adapters.
+        Map a ChEMBL category string to a unified KG ontology term using OLS and BioOntology adapters.  # noqa: E501
         Args:
-            category (str): Raw category string from ChEMBL (e.g., molecule_type, drug_type, target_type).
+            category (str): Raw category string from ChEMBL (e.g., molecule_type, drug_type, target_type).  # noqa: E501
         Returns:
-            str: Best-matching ontology term label, synonym, or original category if no match found. Returns "unknown" if input is invalid or mapping fails.
+            str: Best-matching ontology term label, synonym, or original category if no match found. Returns "unknown" if input is invalid or mapping fails.  # noqa: E501
         Error Handling:
             Logs mapping attempts, errors, and fallbacks. Robust to normalization and empty input.
         Mapping Logic:
@@ -664,7 +678,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             - Tries OLSAdapter for label/synonym match
             - Falls back to BioOntologyAdapter if OLS fails
             - Returns original category if no match found
-        """
+        """  # noqa: E501
         import logging
 
         logger = logging.getLogger(__name__)
@@ -702,13 +716,13 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                         and concept.primary_label.strip().lower() == norm_category
                     ):
                         logger.info(
-                            f"Mapped category '{category}' to BioOntology label '{concept.primary_label}'"
+                            f"Mapped category '{category}' to BioOntology label '{concept.primary_label}'"  # noqa: E501
                         )
                         return concept.primary_label
                     for syn in concept.synonyms:
                         if syn.strip().lower() == norm_category:
                             logger.info(
-                                f"Mapped category '{category}' to BioOntology synonym '{syn}'"
+                                f"Mapped category '{category}' to BioOntology synonym '{syn}'"  # noqa: E501
                             )
                             return syn
             except Exception as e:
@@ -723,7 +737,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
 
     async def search_concepts(self, query: str, limit: int = 20):
         """
-        Search ChEMBL for concepts matching the query string across molecule, drug, and target endpoints.
+        Search ChEMBL for concepts matching the query string across molecule, drug, and target endpoints.  # noqa: E501
         Stops early if enough results are found, and skips slow endpoints if previous queries succeed.
         Args:
             query (str): Search term for ChEMBL entities.
@@ -732,9 +746,9 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             List[UnifiedConcept]: List of parsed concepts matching the query from any endpoint.
         Error Handling:
             Logs and returns partial results or empty list on error.
-        """
+        """  # noqa: E501
         try:
-            concepts = []
+            concepts: list[UnifiedConcept] = []
             endpoints = [
                 ("molecule", self._parse_molecule_results),
                 ("drug", self._parse_drug_results),

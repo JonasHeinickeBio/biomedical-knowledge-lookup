@@ -9,7 +9,8 @@ import asyncio
 import functools
 import logging
 import time
-from typing import Any, Awaitable, Callable, Optional, Tuple, TypeVar, Union, cast
+from collections.abc import Awaitable, Callable
+from typing import Any, TypeVar, cast
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +82,8 @@ class TimingContext:
         self.description = description
         self.log_level = log_level
         self.precision = precision
-        self.start_time: Optional[float] = None
-        self.end_time: Optional[float] = None
+        self.start_time: float | None = None
+        self.end_time: float | None = None
 
     async def __aenter__(self):
         self.start_time = time.perf_counter_ns()
@@ -115,7 +116,7 @@ async def time_async_operation(
     iterations: int = 1,
     log_results: bool = True,
     return_stats: bool = False,
-) -> Union[Tuple[float, Any], Tuple[TimingStats, Any]]:
+) -> tuple[float, Any] | tuple[TimingStats, Any]:
     """
     Time an async operation with high precision timing.
 
@@ -178,7 +179,7 @@ def time_sync_operation(
     iterations: int = 1,
     log_results: bool = True,
     return_stats: bool = False,
-) -> Union[Tuple[float, Any], Tuple[TimingStats, Any]]:
+) -> tuple[float, Any] | tuple[TimingStats, Any]:
     """
     Time a synchronous operation with high precision timing.
 
@@ -250,7 +251,7 @@ def format_timing_comparison(
 
 
 def timing_decorator(
-    description: Optional[str] = None,
+    description: str | None = None,
     log_level: int = logging.INFO,
     precision: int = 6,
     include_args: bool = False,
@@ -356,7 +357,7 @@ def timing_decorator(
 
 def benchmark_decorator(
     iterations: int = 5,
-    description: Optional[str] = None,
+    description: str | None = None,
     log_level: int = logging.INFO,
     include_stats: bool = True,
 ):

@@ -3,7 +3,12 @@
 [![PyPI version](https://badge.fury.io/py/biomedical-knowledge-lookup.svg)](https://pypi.org/project/biomedical-knowledge-lookup/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/actions/workflows/tests.yml/badge.svg)](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/actions/workflows/tests.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/JonasHeinickeBio/biomedical-knowledge-lookup)](https://codecov.io/gh/JonasHeinickeBio/biomedical-knowledge-lookup)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://jonasheinickeBio.github.io/biomedical-knowledge-lookup/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/biomedical-knowledge-lookup?color=blue)](https://pypi.org/project/biomedical-knowledge-lookup/)
+[![GitHub last commit](https://img.shields.io/github/last-commit/JonasHeinickeBio/biomedical-knowledge-lookup)](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/commits/main)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1234567.svg)](https://doi.org/10.5281/zenodo.1234567)
 
 A unified Python library for biological concept lookup across **29+ biomedical knowledge sources** including BioPortal, OLS, UMLS, ChEMBL, DisGeNET, and more. Built for bioinformatics researchers, knowledge graph developers, and biomedical data scientists.
@@ -112,6 +117,11 @@ knowledge_lookup/
 - **[Adapter Documentation](docs/adapters/)**
 - **[Examples](examples/)**
 - **[Contributing Guide](CONTRIBUTING.md)**
+
+### Additional Resources
+
+- **[Documentation Improvement Summary](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/wiki/Documentation-Improvement-Summary)**
+- **[Project Overview](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/wiki/Project-Overview)**
 
 ### Example Notebooks
 

@@ -1,0 +1,36 @@
+Checking if Opentargets adapter is available...
+  ✓ Opentargets adapter is available
+
+Searching for 'cancer' concepts in Opentargets...
+
+Found 25 results from Opentargets:
+
+  Concept 1:
+    Label: MONDO_0004992
+    ID: MONDO_0004992
+    Type: ConceptType.GENE
+    Confidence: 0.9
+
+  Concept 2:
+    Label: Orphanet_145
+    ID: Orphanet_145
+    Type: ConceptType.GENE
+    Confidence: 0.9
+
+  Concept 3:
+    Label: ENSG00000139618
+    ID: ENSG00000139618
+    Type: ConceptType.GENE
+    Confidence: 0.9
+
+  Concept 4:
+    Label: MONDO_0003582
+    ID: MONDO_0003582
+    Type: ConceptType.GENE
+    Confidence: 0.9
+
+  Concept 5:
+    Label: ENSG00000012048
+    ID: ENSG00000012048
+    Type: ConceptType.GENE
+    Confidence: 0.9

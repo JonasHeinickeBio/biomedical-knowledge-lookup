@@ -1,0 +1,12 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Checking if Reactome adapter is available...
+  ✓ Reactome adapter is available
+
+Searching for 'signaling' concepts in Reactome...
+
+Found 0 results from Reactome:
+  No results found for 'signaling'

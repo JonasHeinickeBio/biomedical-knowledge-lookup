@@ -2,9 +2,18 @@
 Unit tests for RDF converter.
 """
 
-from rdflib import Graph, URIRef, RDF, RDFS, Literal
 import pytest
-from knowledge_lookup.rdf_converter import RDFNamespaces, UnifiedRDFConverter, ChemicalHandler, UnifiedConcept, ConceptType, KnowledgeSource
+from rdflib import RDF, RDFS, Graph
+
+pytestmark = pytest.mark.unit
+from knowledge_lookup.rdf_converter import (
+    ChemicalHandler,
+    ConceptType,
+    KnowledgeSource,
+    RDFNamespaces,
+    UnifiedConcept,
+    UnifiedRDFConverter,
+)
 
 
 class TestRDFConverter:
@@ -24,9 +33,7 @@ class TestRDFConverter:
     def sample_concept(self):
         """Create sample concept for RDF testing."""
         concept = UnifiedConcept(
-            primary_id="CHEMBL123",
-            primary_label="Aspirin",
-            concept_type=ConceptType.CHEMICAL
+            primary_id="CHEMBL123", primary_label="Aspirin", concept_type=ConceptType.CHEMICAL
         )
         concept.add_identifier(KnowledgeSource.CHEMBL, "CHEMBL123", "Aspirin")
         concept.definitions = ["A common pain reliever"]
@@ -51,7 +58,7 @@ class TestRDFConverter:
         """Test conversion of a single concept to RDF graph."""
         graph = converter.convert_concepts_to_graph([sample_concept])
         assert isinstance(graph, Graph)
-        
+
         # Verify basic triples
         found_label = False
         for _, p, o in graph.triples((None, RDFS.label, None)):

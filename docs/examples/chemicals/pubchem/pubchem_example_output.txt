@@ -1,0 +1,12 @@
+Checking if Pubchem adapter is available...
+  ✓ Pubchem adapter is available
+
+Searching for 'aspirin' concepts in Pubchem...
+
+Found 1 results from Pubchem:
+
+  Concept 1:
+    Label: Aspirin
+    ID: 2244
+    Type: ConceptType.CHEMICAL
+    Confidence: 0.9

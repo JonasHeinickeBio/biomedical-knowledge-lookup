@@ -9,8 +9,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 mock_bioservices = MagicMock()
 sys.modules["bioservices"] = mock_bioservices
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.eutils_adapter import EUtilsAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

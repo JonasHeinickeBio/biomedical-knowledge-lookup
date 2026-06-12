@@ -1,0 +1,36 @@
+Checking if InterPro adapter is available...
+  ✓ InterPro adapter is available
+
+Searching for 'BRCA1' concepts in InterPro...
+
+Found 10 results from InterPro:
+
+  Concept 1:
+    Label: BRCA1-A complex subunit BRE
+    ID: InterPro:IPR010358
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85
+
+  Concept 2:
+    Label: Cofactor of BRCA1
+    ID: InterPro:IPR010405
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85
+
+  Concept 3:
+    Label: Breast cancer type 1 susceptibility protein (BRCA1)
+    ID: InterPro:IPR011364
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85
+
+  Concept 4:
+    Label: BRCA1-associated 2/ETP1, RRM
+    ID: InterPro:IPR011422
+    Type: ConceptType.MOLECULAR_ENTITY
+    Confidence: 0.85
+
+  Concept 5:
+    Label: BRCA1, serine-rich domain
+    ID: InterPro:IPR025994
+    Type: ConceptType.MOLECULAR_ENTITY
+    Confidence: 0.85

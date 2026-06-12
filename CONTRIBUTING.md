@@ -157,4 +157,54 @@ Brief description of changes
 - **Discussions**: For questions and general discussion
 - **Email**: jonas.heinicke@helmholtz-hzi.de
 
+## 📦 Release Process
+
+### Creating a Release
+
+1. **Update version** in `pyproject.toml` and commit:
+   ```bash
+   poetry version <major|minor|patch>
+   git add pyproject.toml
+   git commit -m "chore: bump version to $(poetry version --short)"
+   ```
+
+2. **Update CHANGELOG.md** with the new version and release date.
+
+3. **Push and tag**:
+   ```bash
+   git push origin main
+   git tag v$(poetry version --short)
+   git push origin v$(poetry version --short)
+   ```
+
+4. **Automated publishing**:
+   - The `publish.yml` workflow is triggered when a tag matching `v*` is pushed.
+   - It builds the package, runs checks, generates Sigstore provenance attestations, and publishes to PyPI using **Trusted Publishing (OIDC)** — no API tokens needed.
+   - A GitHub Release is automatically drafted with the distribution files attached.
+
+### Manual TestPyPI Publishing
+
+Trigger the publish workflow manually from GitHub Actions:
+```
+workflow_dispatch → environment: testpypi
+```
+
+### Setting Up Trusted Publisher (one-time)
+
+Before the first automated release, configure a trusted publisher in PyPI:
+
+| Field | Value |
+|---|---|
+| PyPI Project Name | `biomedical-knowledge-lookup` |
+| Owner | `JonasHeinickeBio` |
+| Repository name | `biomedical-knowledge-lookup` |
+| Workflow name | `publish.yml` |
+| Environment name | `pypi` (optional but recommended) |
+
+Go to: https://pypi.org/manage/account/publishing/ → "Add a new pending publisher"
+
+### Package Signing
+
+This project uses **Sigstore** for package signing via GitHub's `attest-build-provenance` action. Every published package includes a signed provenance attestation, ensuring supply chain security without managing GPG keys.
+
 Thank you for contributing to Biomedical Knowledge Lookup! 🎉

@@ -1,0 +1,12 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Checking if OxO adapter is available...
+  ✓ OxO adapter is available
+
+Searching for 'MONDO:0004992' concepts in OxO...
+
+Found 0 results from OxO:
+  No results found for 'MONDO:0004992'

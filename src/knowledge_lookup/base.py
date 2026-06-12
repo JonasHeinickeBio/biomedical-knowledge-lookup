@@ -4,7 +4,7 @@ Base classes for knowledge source adapters.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiohttp
 
@@ -22,7 +22,7 @@ class KnowledgeSourceAdapter(ABC):
     def __init__(self, config: LookupConfig):
         self.config = config
         self.source = self.get_source()
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.session: aiohttp.ClientSession | None = None
 
     async def __aenter__(self):
         # Optionally initialize session here if needed
@@ -37,7 +37,7 @@ class KnowledgeSourceAdapter(ABC):
         pass
 
     @abstractmethod
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """
         Search for concepts matching the query.
 
@@ -51,7 +51,7 @@ class KnowledgeSourceAdapter(ABC):
         pass
 
     @abstractmethod
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """
         Get detailed information about a specific concept.
 
@@ -63,7 +63,7 @@ class KnowledgeSourceAdapter(ABC):
         """
         pass
 
-    async def get_mappings(self, concept_id: str) -> List[Dict[str, Any]]:
+    async def get_mappings(self, concept_id: str) -> list[dict[str, Any]]:
         """
         Get mappings/cross-references for a concept.
         Default implementation returns empty list.
@@ -76,7 +76,7 @@ class KnowledgeSourceAdapter(ABC):
         """
         return []
 
-    async def get_relationships(self, concept_id: str) -> List[Dict[str, Any]]:
+    async def get_relationships(self, concept_id: str) -> list[dict[str, Any]]:
         """
         Get relationships for a concept.
         Default implementation returns empty list.
@@ -108,15 +108,50 @@ class KnowledgeSourceAdapter(ABC):
         return self.session
 
     async def _make_request(
-        self, url: str, params: Optional[Dict] = None, headers: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+        self,
+        url: str,
+        params: dict | None = None,
+        headers: dict | None = None,
+        json_data: dict | None = None,
+    ) -> dict[str, Any]:
         """Make HTTP request with error handling."""
+        session = await self._get_session()
+
+        # Add default User-Agent if not present
+        request_headers = headers or {}
+        if "User-Agent" not in request_headers:
+            request_headers["User-Agent"] = "AID-PAIS-Knowledge-Lookup/1.0"
+
+        try:
+            if json_data:
+                # Use POST for JSON data
+                async with session.post(
+                    url, params=params, headers=request_headers, json=json_data
+                ) as response:
+                    response.raise_for_status()
+                    return await response.json()
+            else:
+                # Use GET for params
+                async with session.get(url, params=params, headers=request_headers) as response:
+                    response.raise_for_status()
+                    return await response.json()
+        except aiohttp.ClientError as e:
+            logger.error(f"Request failed for {self.source.value}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error for {self.source.value}: {e}")
+            raise
+
+    async def _make_request_text(
+        self, url: str, params: dict | None = None, headers: dict | None = None
+    ) -> str:
+        """Make HTTP request and return text response."""
         session = await self._get_session()
 
         try:
             async with session.get(url, params=params, headers=headers) as response:
                 response.raise_for_status()
-                return await response.json()
+                return await response.text()
         except aiohttp.ClientError as e:
             logger.error(f"Request failed for {self.source.value}: {e}")
             raise
@@ -140,7 +175,7 @@ class KnowledgeSourceAdapter(ABC):
         return concept
 
     def _determine_concept_type(
-        self, semantic_types: List[str], categories: List[str] = None
+        self, semantic_types: list[str], categories: list[str] | None = None
     ) -> ConceptType:
         """
         Determine concept type from semantic types and categories.

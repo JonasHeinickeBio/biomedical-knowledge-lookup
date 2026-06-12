@@ -4,8 +4,9 @@ Unit tests for PubChemAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.pubchem_adapter import PubChemAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

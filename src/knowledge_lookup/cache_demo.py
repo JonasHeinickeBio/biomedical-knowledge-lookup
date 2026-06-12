@@ -22,7 +22,7 @@ async def demonstrate_caching():
 
     # Initialize cache with disk persistence
     cache_dir = Path("./demo_cache")
-    cache = init_cache(
+    init_cache(
         memory_max_size=500,  # Smaller for demo
         disk_cache_dir=cache_dir,
         disk_max_size=2000,
@@ -51,12 +51,12 @@ async def demonstrate_caching():
     # First call (cache miss)
     start_time = time.time()
     sources1 = await adapter.get_sources()
-    first_duration = time.time() - start_time
+    time.time() - start_time
 
     # Second call (cache hit)
     start_time = time.time()
-    sources2 = await adapter.get_sources()
-    second_duration = time.time() - start_time
+    await adapter.get_sources()
+    time.time() - start_time
 
     print(".3f")
     print(".3f")
@@ -72,12 +72,12 @@ async def demonstrate_caching():
     # First search (cache miss)
     start_time = time.time()
     results1 = await adapter.search_concepts(compound_id, limit=5)
-    search1_duration = time.time() - start_time
+    time.time() - start_time
 
     # Second search (cache hit)
     start_time = time.time()
-    results2 = await adapter.search_concepts(compound_id, limit=5)
-    search2_duration = time.time() - start_time
+    await adapter.search_concepts(compound_id, limit=5)
+    time.time() - start_time
 
     print(".3f")
     print(".3f")
@@ -91,12 +91,12 @@ async def demonstrate_caching():
     # First call
     start_time = time.time()
     xrefs1 = await adapter.get_cross_references(compound_id)
-    xref1_duration = time.time() - start_time
+    time.time() - start_time
 
     # Second call
     start_time = time.time()
-    xrefs2 = await adapter.get_cross_references(compound_id)
-    xref2_duration = time.time() - start_time
+    await adapter.get_cross_references(compound_id)
+    time.time() - start_time
 
     print(".3f")
     print(".3f")

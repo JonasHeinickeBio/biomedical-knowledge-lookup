@@ -18,7 +18,12 @@ load_dotenv()
 # Add project root to path
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 
-from knowledge_lookup import ConceptType, KnowledgeSource, LookupConfig, create_knowledge_lookup
+from knowledge_lookup import (  # noqa: E402
+    ConceptType,
+    KnowledgeSource,
+    LookupConfig,
+    create_knowledge_lookup,
+)
 
 # Set up logging
 logging.basicConfig(level=logging.WARNING)  # Reduce noise
@@ -77,7 +82,7 @@ async def example_specific_sources():
     print("=" * 60)
 
     # Configure to use only public sources (no API keys required)
-    config = LookupConfig(
+    LookupConfig(
         enabled_sources=[KnowledgeSource.OLS, KnowledgeSource.WIKIDATA], max_results_per_source=5
     )
 

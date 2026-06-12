@@ -10,8 +10,9 @@ mock_chembl = MagicMock()
 sys.modules["chembl_webresource_client"] = mock_chembl
 sys.modules["chembl_webresource_client.new_client"] = mock_chembl
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.chembl_adapter import ChEMBLAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
