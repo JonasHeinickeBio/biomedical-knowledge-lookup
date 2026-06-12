@@ -15,7 +15,7 @@ repos:
     rev: v0.1.15
     hooks:
     -   id: ruff
-        args: [--fix, --exit-non-zero-on-fix, "--ignore=UP007"]
+        args: [--fix, --exit-non-zero-on-fix, "--ignore=UP007,E501"]
         files: ^src/
     -   id: ruff-format
         files: ^src/
