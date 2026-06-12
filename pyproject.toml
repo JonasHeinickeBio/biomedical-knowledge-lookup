@@ -1,12 +1,12 @@
-[project]
+[tool.poetry]
 name = "biomedical-knowledge-lookup"
 version = "1.0.0"
 description = "Unified biological concept lookup across 29+ biomedical knowledge sources including BioPortal, OLS, UMLS, ChEMBL, DisGeNET, and more"
-authors = [
-    {name = "Jonas Heinicke", email = "jonas.heinicke@helmholtz-hzi.de"}
-]
+authors = ["Jonas Heinicke <jonas.heinicke@helmholtz-hzi.de>"]
 license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup"
+repository = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup"
 keywords = [
     "biomedical",
     "ontology",
@@ -21,6 +21,7 @@ keywords = [
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -29,60 +30,54 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
-requires-python = ">=3.10"
-dependencies = [
-    "aiohttp>=3.9.0",
-    "requests>=2.31.0",
-    "rdflib>=7.0.0",
-    "pandas>=2.0.0",
-    "pydantic>=2.0.0",
-    "tenacity>=8.2.0",
-    "backoff>=2.2.0",
-    "python-dotenv>=1.0.0",
-    "rich>=13.0.0",
-    "typer>=0.9.0",
-    "chembl-webresource-client>=0.10.9",
-    "tyto>=1.4",
-]
-
-[project.urls]
-Homepage = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup"
-Source = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup"
-Documentation = "https://jonasheinickeBio.github.io/biomedical-knowledge-lookup/"
-"Issue Tracker" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/issues"
-Changelog = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/blob/main/CHANGELOG.md"
-
-[project.scripts]
-knowledge-lookup = "knowledge_lookup.__main__:app"
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.0.0",
-    "pytest-timeout>=2.2.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0.0",
-    "jupyter>=1.0.0",
-    "ipykernel>=6.0.0",
-    "pre-commit>=4.5.1",
-    "linkml>=1.8.0",
-    "linkml-runtime>=1.8.0",
-]
-docs = [
-    "sphinx>=7.0.0",
-    "sphinx-rtd-theme>=2.0.0",
-]
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
 packages = [{ include = "knowledge_lookup", from = "src" }]
+
+[tool.poetry.urls]
+"Documentation" = "https://jonasheinickeBio.github.io/biomedical-knowledge-lookup/"
+"Issue Tracker" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/issues"
+"Changelog" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/blob/main/CHANGELOG.md"
+
+[tool.poetry.scripts]
+knowledge-lookup = "knowledge_lookup.__main__:app"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+aiohttp = "^3.9.0"
+requests = "^2.31.0"
+rdflib = "^7.0.0"
+pandas = "^2.0.0"
+pydantic = "^2.0.0"
+tenacity = "^8.2.0"
+backoff = "^2.2.0"
+python-dotenv = "^1.0.0"
+rich = "^13.0.0"
+typer = "^0.9.0"
+chembl-webresource-client = "^0.10.9"
+tyto = "^1.4"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.21.0"
+pytest-cov = "^4.0.0"
+pytest-timeout = "^2.2.0"
+ruff = "^0.1.0"
+mypy = "^1.0.0"
+jupyter = "^1.0.0"
+ipykernel = "^6.0.0"
+pre-commit = "^4.5.1"
+linkml = "^1.8.0"
+linkml-runtime = "^1.8.0"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^7.0.0"
+sphinx-rtd-theme = "^2.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[line-length]
+line-length = 99
 
 [tool.ruff]
 line-length = 99
