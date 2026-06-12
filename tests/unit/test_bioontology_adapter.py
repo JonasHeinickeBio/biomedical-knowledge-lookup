@@ -123,6 +123,7 @@ class TestBioOntologyAdapter:
     @pytest.mark.asyncio
     async def test_annotate_no_api_key(self, adapter):
         """Test annotate returns empty list without API key."""
+        adapter.api_key = None
         result = await adapter.annotate("Melanoma is a malignant tumor.")
         assert isinstance(result, list)
         assert len(result) == 0

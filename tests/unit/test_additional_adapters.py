@@ -223,6 +223,7 @@ class TestBioOntologyAdapterFromAdditional:
 
     def test_is_available_without_key(self, adapter):
         """Test is_available returns False without API key."""
+        adapter.api_key = None
         assert adapter.is_available() is False
 
     def test_is_available_with_key(self, lookup_config):

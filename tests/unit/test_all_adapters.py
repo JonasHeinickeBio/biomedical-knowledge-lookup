@@ -34,12 +34,17 @@ class TestAllAdapters:
         mock_response.status = 200
         # Provide a generic response that many adapters expect or will just return [] from
         mock_response.json = AsyncMock(
-            return_value={"results": [], "response": {"docs": []}, "IdentifierList": {"CID": []}}
+            return_value={"results": [], "response": {"docs": []}, "IdentifierList": {"CID": []},
+                         "_embedded": {"searchResults": []}}
         )
         mock_response.ok = True
 
-        with patch("aiohttp.ClientSession.get") as mock_get:
+        with (
+            patch("aiohttp.ClientSession.get") as mock_get,
+            patch("aiohttp.ClientSession.post") as mock_post,
+        ):
             mock_get.return_value.__aenter__.return_value = mock_response
+            mock_post.return_value.__aenter__.return_value = mock_response
 
             try:
                 results = await adapter.search_concepts("test query", limit=5)
@@ -60,8 +65,12 @@ class TestAllAdapters:
         mock_response.json = AsyncMock(return_value={})
         mock_response.ok = True
 
-        with patch("aiohttp.ClientSession.get") as mock_get:
+        with (
+            patch("aiohttp.ClientSession.get") as mock_get,
+            patch("aiohttp.ClientSession.post") as mock_post,
+        ):
             mock_get.return_value.__aenter__.return_value = mock_response
+            mock_post.return_value.__aenter__.return_value = mock_response
 
             try:
                 result = await adapter.get_concept_details("TEST:001")

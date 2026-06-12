@@ -29,11 +29,14 @@ try:
     HAS_RDFLIB = True
 except ImportError:
     HAS_RDFLIB = False
+
     # Placeholder for Graph class when rdflib is not available
     # This is intentionally used for optional dependency support
     class Graph:  # type: ignore[no-redef]
         """Dummy Graph class when rdflib is not installed."""
+
         pass
+
 
 from .adapters import ADAPTER_CLASSES
 from .base import KnowledgeSourceAdapter

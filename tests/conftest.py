@@ -32,32 +32,6 @@ from knowledge_lookup.models import (
     UnifiedConcept,
 )
 
-# Fix Typer 0.9.x compatibility with Click 8.1+
-try:
-    import click
-    import typer.core
-
-    def robust_metavar(original_func):
-        def wrapper(self, *args, **kwargs):
-            try:
-                return original_func(self, *args, **kwargs)
-            except TypeError:
-                # If it failed with TypeError, try calling with fewer args
-                if len(args) > 0:
-                    return wrapper(self, *args[:-1], **kwargs)
-                return original_func(self)
-
-        return wrapper
-
-    # Patch Click and Typer methods that commonly cause signature issues
-    click.ParamType.get_metavar = robust_metavar(click.ParamType.get_metavar)
-    click.Parameter.make_metavar = robust_metavar(click.Parameter.make_metavar)
-    typer.core.TyperArgument.make_metavar = robust_metavar(typer.core.TyperArgument.make_metavar)
-    typer.core.TyperOption.make_metavar = robust_metavar(typer.core.TyperOption.make_metavar)
-
-except (ImportError, AttributeError):
-    pass
-
 
 @pytest.fixture(scope="session")
 def event_loop():
