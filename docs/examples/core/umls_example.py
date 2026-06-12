@@ -23,12 +23,15 @@ async def main():
         return
     
     query = "cancer"
-    print(f"\\nSearching for '{query}' concepts in Umls...")
+    print(f"
+Searching for '{query}' concepts in Umls...")
     results = await lookup.search_concepts(query, sources=[KnowledgeSource.UMLS])
     
-    print(f"\\nFound {results.total_found} results from Umls:")
+    print(f"
+Found {results.total_found} results from Umls:")
     for i, concept in enumerate(results.concepts[:5]):
-        print(f"\\n  Concept {i+1}:")
+        print(f"
+  Concept {i+1}:")
         print(f"    Label: {concept.primary_label}")
         print(f"    ID: {concept.primary_id}")
         print(f"    Type: {concept.concept_type}")

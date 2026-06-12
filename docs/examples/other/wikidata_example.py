@@ -19,12 +19,15 @@ async def main():
         return
     
     query = "cancer"
-    print(f"\\nSearching for '{query}' concepts in Wikidata...")
+    print(f"
+Searching for '{query}' concepts in Wikidata...")
     results = await lookup.search_concepts(query, sources=[KnowledgeSource.WIKIDATA])
     
-    print(f"\\nFound {results.total_found} results from Wikidata:")
+    print(f"
+Found {results.total_found} results from Wikidata:")
     for i, concept in enumerate(results.concepts[:5]):
-        print(f"\\n  Concept {i+1}:")
+        print(f"
+  Concept {i+1}:")
         print(f"    Label: {concept.primary_label}")
         print(f"    ID: {concept.primary_id}")
         print(f"    Type: {concept.concept_type}")

@@ -19,12 +19,15 @@ async def main():
         return
     
     query = "aspirin"
-    print(f"\\nSearching for '{query}' concepts in Pubchem...")
+    print(f"
+Searching for '{query}' concepts in Pubchem...")
     results = await lookup.search_concepts(query, sources=[KnowledgeSource.PUBCHEM])
     
-    print(f"\\nFound {results.total_found} results from Pubchem:")
+    print(f"
+Found {results.total_found} results from Pubchem:")
     for i, concept in enumerate(results.concepts[:5]):
-        print(f"\\n  Concept {i+1}:")
+        print(f"
+  Concept {i+1}:")
         print(f"    Label: {concept.primary_label}")
         print(f"    ID: {concept.primary_id}")
         print(f"    Type: {concept.concept_type}")

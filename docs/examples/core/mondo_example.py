@@ -19,12 +19,15 @@ async def main():
         return
     
     query = "cancer"
-    print(f"\\nSearching for '{query}' concepts in Mondo...")
+    print(f"
+Searching for '{query}' concepts in Mondo...")
     results = await lookup.search_concepts(query, sources=[KnowledgeSource.MONDO])
     
-    print(f"\\nFound {results.total_found} results from Mondo:")
+    print(f"
+Found {results.total_found} results from Mondo:")
     for i, concept in enumerate(results.concepts[:5]):
-        print(f"\\n  Concept {i+1}:")
+        print(f"
+  Concept {i+1}:")
         print(f"    Label: {concept.primary_label}")
         print(f"    ID: {concept.primary_id}")
         print(f"    Type: {concept.concept_type}")

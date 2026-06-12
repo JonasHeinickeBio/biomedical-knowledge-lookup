@@ -19,12 +19,15 @@ async def main():
         return
     
     query = "fever"
-    print(f"\\nSearching for '{query}' concepts in HPO...")
+    print(f"
+Searching for '{query}' concepts in HPO...")
     results = await lookup.search_concepts(query, sources=[KnowledgeSource.HPO])
     
-    print(f"\\nFound {results.total_found} results from HPO:")
+    print(f"
+Found {results.total_found} results from HPO:")
     for i, concept in enumerate(results.concepts[:5]):
-        print(f"\\n  Concept {i+1}:")
+        print(f"
+  Concept {i+1}:")
         print(f"    Label: {concept.primary_label}")
         print(f"    ID: {concept.primary_id}")
         print(f"    Type: {concept.concept_type}")

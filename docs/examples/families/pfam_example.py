@@ -19,12 +19,15 @@ async def main():
         return
     
     query = "BRCA1"
-    print(f"\\nSearching for '{query}' concepts in Pfam...")
+    print(f"
+Searching for '{query}' concepts in Pfam...")
     results = await lookup.search_concepts(query, sources=[KnowledgeSource.PFAM])
     
-    print(f"\\nFound {results.total_found} results from Pfam:")
+    print(f"
+Found {results.total_found} results from Pfam:")
     for i, concept in enumerate(results.concepts[:5]):
-        print(f"\\n  Concept {i+1}:")
+        print(f"
+  Concept {i+1}:")
         print(f"    Label: {concept.primary_label}")
         print(f"    ID: {concept.primary_id}")
         print(f"    Type: {concept.concept_type}")

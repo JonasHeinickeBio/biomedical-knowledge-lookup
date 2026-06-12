@@ -19,12 +19,15 @@ async def main():
         return
     
     query = "apoptosis"
-    print(f"\\nSearching for '{query}' concepts in Geneontology...")
+    print(f"
+Searching for '{query}' concepts in Geneontology...")
     results = await lookup.search_concepts(query, sources=[KnowledgeSource.GENEONTOLOGY])
     
-    print(f"\\nFound {results.total_found} results from Geneontology:")
+    print(f"
+Found {results.total_found} results from Geneontology:")
     for i, concept in enumerate(results.concepts[:5]):
-        print(f"\\n  Concept {i+1}:")
+        print(f"
+  Concept {i+1}:")
         print(f"    Label: {concept.primary_label}")
         print(f"    ID: {concept.primary_id}")
         print(f"    Type: {concept.concept_type}")

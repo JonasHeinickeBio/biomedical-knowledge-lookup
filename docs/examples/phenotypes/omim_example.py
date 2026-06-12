@@ -23,12 +23,15 @@ async def main():
         return
     
     query = "143100"
-    print(f"\\nSearching for '{query}' concepts in OMIM...")
+    print(f"
+Searching for '{query}' concepts in OMIM...")
     results = await lookup.search_concepts(query, sources=[KnowledgeSource.OMIM])
     
-    print(f"\\nFound {results.total_found} results from OMIM:")
+    print(f"
+Found {results.total_found} results from OMIM:")
     for i, concept in enumerate(results.concepts[:5]):
-        print(f"\\n  Concept {i+1}:")
+        print(f"
+  Concept {i+1}:")
         print(f"    Label: {concept.primary_label}")
         print(f"    ID: {concept.primary_id}")
         print(f"    Type: {concept.concept_type}")
