@@ -17,6 +17,56 @@ logger = logging.getLogger(__name__)
 class UMLSAdapter(KnowledgeSourceAdapter):
     """Adapter for UMLS (Unified Medical Language System)."""
 
+    # Minimum confidence for exact name match vs query
+    _EXACT_MATCH_CONFIDENCE = 0.95
+    _PARTIAL_MATCH_CONFIDENCE = 0.75
+    _DETAILS_CONFIDENCE = 0.95  # UMLS is authoritative for detailed lookups
+
+    # Map UMLS source abbreviations to concept types
+    SOURCE_TYPE_MAP: dict[str, ConceptType] = {
+        # Diseases & Disorders
+        "snomedct": ConceptType.DISEASE,
+        "icd10cm": ConceptType.DISEASE,
+        "icd10": ConceptType.DISEASE,
+        "icd9cm": ConceptType.DISEASE,
+        "icd9": ConceptType.DISEASE,
+        "icpc": ConceptType.DISEASE,
+        "icpc2": ConceptType.DISEASE,
+        "omim": ConceptType.DISEASE,
+        "ordo": ConceptType.DISEASE,
+        "nci": ConceptType.DISEASE,
+        "meddra": ConceptType.DISEASE,
+        # Drugs & Chemicals
+        "rxnorm": ConceptType.DRUG,
+        "nddf": ConceptType.DRUG,
+        "drugbank": ConceptType.DRUG,
+        "chembl": ConceptType.CHEMICAL,
+        "pubchem": ConceptType.CHEMICAL,
+        "mesh": ConceptType.CHEMICAL,
+        "msh": ConceptType.CHEMICAL,  # UMLS abbreviation for MeSH
+        # Genes & Proteins
+        "hgnc": ConceptType.GENE,
+        "hgnc.symbol": ConceptType.GENE,
+        "uniprot": ConceptType.GENE,
+        "ensembl": ConceptType.GENE,
+        "refseq": ConceptType.GENE,
+        "genbank": ConceptType.GENE,
+        # Phenotypes
+        "hpo": ConceptType.PHENOTYPE,
+        "phenonet": ConceptType.PHENOTYPE,
+        # Anatomy
+        "fma": ConceptType.ANATOMICAL_ENTITY,
+        "uberon": ConceptType.ANATOMICAL_ENTITY,
+        # Biological Processes
+        "go": ConceptType.BIOLOGICAL_PROCESS,
+        "kegg": ConceptType.PATHWAY,
+        "reactome": ConceptType.PATHWAY,
+        # Procedures & Interventions
+        "cpt": ConceptType.PROCEDURE,
+        "icd10pcs": ConceptType.PROCEDURE,
+        "loinc": ConceptType.PROCEDURE,
+    }
+
     def __init__(self, config: LookupConfig):
         super().__init__(config)
         self.client: OptimizedUMLSClient | None = None
@@ -50,7 +100,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
 
             concepts = []
             for result in results[:limit]:
-                concept = self._convert_search_result_to_concept(result)
+                concept = self._convert_search_result_to_concept(result, query)
                 concepts.append(concept)
 
             logger.info(f"UMLS search for '{query}' returned {len(concepts)} concepts")
@@ -79,8 +129,16 @@ class UMLSAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get UMLS concept details for '{concept_id}': {e}")
             return None
 
-    def _convert_search_result_to_concept(self, result) -> UnifiedConcept:
-        """Convert UMLS search result to unified concept."""
+    def _convert_search_result_to_concept(self, result, query: str) -> UnifiedConcept:
+        """Convert UMLS search result to unified concept.
+
+        Args:
+            result: UMLSSearchResult object from the UMLS client.
+            query: The original search query used for confidence scoring.
+
+        Returns:
+            UnifiedConcept with available metadata.
+        """
         # Determine concept type from source
         concept_type = self._determine_concept_type_from_source(result.source)
 
@@ -100,13 +158,15 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         if hasattr(result, "source") and result.source:
             concept.categories.append(result.source)
 
-        # Set confidence based on exact match
-        if (
-            result.name.lower() == result.name.lower()
-        ):  # This would be the query in real implementation
-            concept.confidence_score = 0.9
+        # Set confidence based on exact match against the query
+        query_lower = query.strip().lower()
+        name_lower = result.name.strip().lower()
+        if name_lower == query_lower:
+            concept.confidence_score = self._EXACT_MATCH_CONFIDENCE
+        elif query_lower in name_lower or name_lower in query_lower:
+            concept.confidence_score = self._PARTIAL_MATCH_CONFIDENCE + 0.1
         else:
-            concept.confidence_score = 0.7
+            concept.confidence_score = self._PARTIAL_MATCH_CONFIDENCE
 
         concept.source_data[KnowledgeSource.UMLS] = {
             "ui": result.ui,
@@ -153,7 +213,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
                 concept.related.append(related_cui)
 
         # Set confidence score
-        concept.confidence_score = 0.95  # UMLS is authoritative
+        concept.confidence_score = self._DETAILS_CONFIDENCE  # UMLS is authoritative
 
         # Store raw UMLS data
         concept.source_data[KnowledgeSource.UMLS] = {
@@ -168,23 +228,18 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         return concept
 
     def _determine_concept_type_from_source(self, source: str) -> ConceptType:
-        """Determine concept type from UMLS source vocabulary."""
+        """Determine concept type from UMLS source vocabulary.
+
+        Uses SOURCE_TYPE_MAP to map known UMLS source abbreviations to concept types.
+        Keys are sorted by length (descending) so that more specific matches (e.g.
+        ``icd10pcs``) take priority over more general ones (e.g. ``icd10``).
+        Falls back to UNKNOWN for unmapped sources.
+        """
         source_lower = source.lower()
 
-        # Map UMLS sources to concept types
-        if "snomedct" in source_lower:
-            return ConceptType.DISEASE  # Often diseases in SNOMED CT
-        elif "icd" in source_lower:
-            return ConceptType.DISEASE
-        elif "mesh" in source_lower:
-            return ConceptType.UNKNOWN  # MeSH covers many categories
-        elif "rxnorm" in source_lower:
-            return ConceptType.DRUG
-        elif "hgnc" in source_lower:
-            return ConceptType.GENE
-        elif "go" in source_lower:
-            return ConceptType.UNKNOWN  # Gene Ontology
-        elif "hpo" in source_lower:
-            return ConceptType.PHENOTYPE
+        # Check from most-specific (longest) to least-specific (shortest)
+        for key in sorted(self.SOURCE_TYPE_MAP, key=len, reverse=True):
+            if key in source_lower:
+                return self.SOURCE_TYPE_MAP[key]
 
         return ConceptType.UNKNOWN
