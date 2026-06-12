@@ -12,6 +12,18 @@ import pytest
 # Add tests directory to path for fixture imports
 sys.path.insert(0, str(Path(__file__).parent))
 
+# ---------------------------------------------------------------------------
+# Mock heavy external dependencies BEFORE any knowledge_lookup import.
+# knowledge_lookup/__init__.py loads ALL adapter modules eagerly, so these
+# mocks must be in sys.modules before the first `from knowledge_lookup ...`
+# statement to prevent actual network connections during unit tests.
+# ---------------------------------------------------------------------------
+mock_chembl = MagicMock()
+sys.modules["chembl_webresource_client"] = mock_chembl
+sys.modules["chembl_webresource_client.new_client"] = mock_chembl
+mock_bioservices = MagicMock()
+sys.modules["bioservices"] = mock_bioservices
+
 from knowledge_lookup import LookupConfig
 from knowledge_lookup.models import (
     ConceptType,

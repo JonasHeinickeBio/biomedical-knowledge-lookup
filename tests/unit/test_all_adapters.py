@@ -11,13 +11,6 @@ pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters import ADAPTER_CLASSES
 from knowledge_lookup.models import UnifiedConcept
 
-# Mock missing dependencies globally for this test module
-mock_chembl = MagicMock()
-sys.modules["chembl_webresource_client"] = mock_chembl
-sys.modules["chembl_webresource_client.new_client"] = mock_chembl
-mock_bioservices = MagicMock()
-sys.modules["bioservices"] = mock_bioservices
-
 
 class TestAllAdapters:
     """Generic tests for all adapter classes."""
