@@ -1,0 +1,34 @@
+[ERROR] base_events.py 1833: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x738f7c0d02c0>
+[ERROR] base_events.py 1833: Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x738f7b05e510>, 17790.267187419)])']
+connector: <aiohttp.connector.TCPConnector object at 0x738f7b16ddf0>
+Checking if OBOFoundry adapter is available...
+  ✓ OBOFoundry adapter is available
+\nSearching for 'cancer' concepts in OBOFoundry...
+\nFound 23 results from OBOFoundry:
+\n  Concept 1:
+    Label: cancer
+    ID: DOID_162
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+\n  Concept 2:
+    Label: Prostatic Neoplasms, Castration-Resistant
+    ID: mesh_D064129
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+\n  Concept 3:
+    Label: Neoplasms, Second Primary
+    ID: mesh_D016609
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+\n  Concept 4:
+    Label: Cancer Pain
+    ID: mesh_D000072716
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+\n  Concept 5:
+    Label: The Barbara Ann Karmanos Cancer Institute
+    ID: ror_00ee40h97
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8

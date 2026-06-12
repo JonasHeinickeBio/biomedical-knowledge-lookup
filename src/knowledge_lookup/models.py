@@ -47,6 +47,7 @@ class KnowledgeSource(Enum):
     EUROPEPMC = "europepmc"
     OMIM = "omim"
     CLINVAR = "clinvar"
+    DBVAR = "dbvar"
     COSMIC = "cosmic"
     PDB = "pdb"
     INTERPRO = "interpro"

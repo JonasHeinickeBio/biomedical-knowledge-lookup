@@ -1,0 +1,34 @@
+[ERROR] base_events.py 1833: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x70a8ca030d10>
+[ERROR] base_events.py 1833: Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x70a8c8eda580>, 17760.815529802)])']
+connector: <aiohttp.connector.TCPConnector object at 0x70a8c9f1b170>
+Checking if InterPro adapter is available...
+  ✓ InterPro adapter is available
+\nSearching for 'BRCA1' concepts in InterPro...
+\nFound 10 results from InterPro:
+\n  Concept 1:
+    Label: BRCA1-A complex subunit BRE
+    ID: InterPro:IPR010358
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85
+\n  Concept 2:
+    Label: Cofactor of BRCA1
+    ID: InterPro:IPR010405
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85
+\n  Concept 3:
+    Label: Breast cancer type 1 susceptibility protein (BRCA1)
+    ID: InterPro:IPR011364
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85
+\n  Concept 4:
+    Label: BRCA1-associated 2/ETP1, RRM
+    ID: InterPro:IPR011422
+    Type: ConceptType.MOLECULAR_ENTITY
+    Confidence: 0.85
+\n  Concept 5:
+    Label: BRCA1, serine-rich domain
+    ID: InterPro:IPR025994
+    Type: ConceptType.MOLECULAR_ENTITY
+    Confidence: 0.85

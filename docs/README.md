@@ -84,7 +84,18 @@ poetry install
 - AIOHTTP (async HTTP client)
 - Pydantic (data validation)
 
----
+### Environment Setup
+
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -e .
+```
+
+## Quick Start
 
 ## Quick Start
 
@@ -109,6 +120,9 @@ for concept in result.concepts:
     print(f"{concept.primary_label}: {concept.concept_type.value}")
     print(f"  ID: {concept.primary_id}")
     print(f"  URL: {concept.get_identifier(KnowledgeSource.OPENTARGETS).url}")
+
+# Don't forget to close the lookup
+await lookup.close()
 ```
 
 ### Search by Entity Type
@@ -129,30 +143,57 @@ for concept in results.concepts:
     print(f"Biotype: {details.definitions}")
 ```
 
+### Configuration Example
+
+```python
+from knowledge_lookup import CentralKnowledgeLookup, LookupConfig
+
+# Configure with custom settings
+config = LookupConfig(
+    cache_enabled=True,           # Enable caching
+    cache_ttl=3600,              # Cache for 1 hour
+    timeout_per_source=30.0,     # 30 second timeout
+    max_results_per_source=50    # Max 50 results per source
+)
+
+lookup = CentralKnowledgeLookup(config)
+```
+
+### Close the Lookup
+
+Always close the lookup when done to clean up resources:
+
+```python
+await lookup.close()
+```
+
 ---
 
 ## Documentation Structure
 
 ```
 docs/
-├── README.md                  # This file - Overview and quick start
-├── getting_started.md         # Installation and basic usage
-├── api_reference.md           # Complete API documentation
-├── architecture.md            # System architecture and design
-├── adapters/
-│   ├── index.md               # Adapter index and category listing
-│   ├── opentargets_adapter.md # Open Targets Platform
-│   ├── chembl_adapter.md      # ChEMBL Database
-│   ├── disgenet_adapter.md    # Gene-Disease Associations
-│   ├── uniprot_adapter.md     # UniProt Proteins
-│   ├── mondo_adapter.md       # Mondo Disease Ontology
-│   ├── ols_adapter.md         # Ontology Lookup Service
-│   ├── additional_adapters.md # Additional supported sources
-│   └── images/
-│       └── architecture.md    # Architecture diagrams
-└── examples/
-    ├── basic_usage.ipynb      # Basic usage examples
-    └── advanced_usage.ipynb   # Advanced integration patterns
+├── README.md                        # This file - Overview and quick start
+├── installation.md                  # Installation guide (4 methods, verification, troubleshooting)
+├── architecture.md                  # System architecture, core components, data flow
+├── guides/                          # In-depth guides for specific topics
+│   ├── api_keys.md                  # API key setup for 7+ sources
+│   ├── caching.md                   # Caching configuration and usage
+│   ├── rate_limiting.md             # Rate limiting strategies and best practices
+│   ├── error_handling.md            # Error handling patterns and examples
+│   └── troubleshooting.md           # Common errors, debugging, performance tips
+├── examples/                        # Usage examples and notebooks
+│   ├── notebooks/                   # Jupyter notebooks (coming soon)
+│   └── use_cases.md                 # Real-world use cases
+├── adapters/                        # Knowledge source adapters
+│   ├── index.md                     # Adapter index and categories
+│   ├── core/                        # Core adapters (OpenTargets, ChEMBL, MONDO)
+│   ├── chemical/                    # Chemical/compound sources
+│   ├── protein/                     # Protein/gene sources
+│   ├── disease/                     # Disease/ontology sources
+│   ├── additional/                  # Additional supported sources
+│   └── images/                      # Architecture diagrams
+└── contributing.md                  # Contribution guide with adapter workflow
 ```
 
 ### Documentation Files
@@ -160,12 +201,16 @@ docs/
 | File | Description |
 |------|-------------|
 | `README.md` | Overview, features, quick start |
-| `getting_started.md` | Installation and first steps |
-| `api_reference.md` | Complete API specifications |
+| `installation.md` | Installation guide (pip, poetry, source, Docker) |
+| `architecture.md` | System architecture and design patterns |
+| `guides/api_keys.md` | API key setup for 7+ sources |
+| `guides/caching.md` | Caching configuration and usage |
+| `guides/rate_limiting.md` | Rate limiting strategies |
+| `guides/error_handling.md` | Error handling patterns |
+| `examples/use_cases.md` | Real-world use cases |
+| `examples/notebooks/` | Jupyter notebooks |
 | `adapters/index.md` | All adapters by category |
-| `adapters/opentargets_adapter.md` | Open Targets detailed docs |
-| `adapters/additional_adapters.md` | Additional supported sources |
-| `examples/` | Jupyter notebook examples |
+| `contributing.md` | Contribution guide with adapter workflow |
 
 ---
 
@@ -194,8 +239,23 @@ docs/
 - **WikiData** - Knowledge base
 - **DBPedia** - Structured data
 - **OxO** - Ontology cross-references
+- **UMLS** - Unified Medical Language System
+- **DrugBank** - Drug database
+- **KEGG** - Kyoto Encyclopedia of Genes and Genomes
 
-See `adapters/index.md` for the complete list with descriptions.
+See `adapters/index.md` for the complete list with descriptions and implementation status.
+
+### API Key Configuration
+
+Some sources require API keys. Set them as environment variables:
+
+```bash
+export UMLS_API_KEY="your-umls-api-key"
+export DISGENET_API_KEY="your-disgenet-api-key"
+export BIOPORTAL_API_KEY="your-bioportal-api-key"
+```
+
+See `guides/api_keys.md` for detailed setup instructions for each source.
 
 ---
 
@@ -277,18 +337,24 @@ config.rate_limits[KnowledgeSource.CHEMBL] = 1.0
 config.timeout_per_source = 30.0
 ```
 
-### API Key Configuration
+### Advanced Configuration
 
 ```python
-import os
-
-# Set required API keys as environment variables
-os.environ["UMLS_API_KEY"] = "your-umls-api-key"
-os.environ["DISGENET_API_KEY"] = "your-disgenet-api-key"
-os.environ["BIOPORTAL_API_KEY"] = "your-bioportal-api-key"
+config = LookupConfig(
+    cache_enabled=True,           # Enable caching
+    cache_ttl=3600,              # Cache for 1 hour
+    cache_ttl_by_source={        # Per-source TTL overrides
+        "BioPortal": 7200,       # 2 hours for BioPortal
+        "UMLS": 1800,            # 30 minutes for UMLS
+    },
+    cache_dir="./cache",         # Cache directory
+    cache_max_size=1000,         # Maximum cached items
+    timeout_per_source=30.0,     # Timeout per source
+    max_results_per_source=50    # Max results per source
+)
 ```
 
----
+See `guides/api_keys.md` for API key setup and `guides/caching.md` for caching documentation.
 
 ## Contributing
 
@@ -320,6 +386,37 @@ poetry run pre-commit run --all-files
 
 ---
 
+## Examples and Tutorials
+
+### Use Cases
+
+See `examples/use_cases.md` for real-world examples:
+
+- **Drug Discovery** - Find drug targets and repurposing opportunities
+- **Drug Repurposing** - Identify existing drugs for new diseases
+- **Gene Discovery** - Find genes associated with diseases
+- **Text Mining** - Extract knowledge from literature
+- **Clinical Support** - Query disease ontologies for clinical decision support
+- **Knowledge Graphs** - Build knowledge graphs from multiple sources
+
+### Python Examples
+
+See `examples/python/` for standalone Python scripts:
+- `opentargets_example.py` - Open Targets Platform
+- `chembl_example.py` - ChEMBL Database
+- `mondo_example.py` - Mondo Disease Ontology
+- And more...
+
+### Notebooks
+
+For interactive examples, see `examples/notebooks/`:
+- `01-getting-started.ipynb` - Basic usage
+- `02-api-keys.ipynb` - API key configuration
+- `03-rate-limiting.ipynb` - Rate limiting
+- `04-error-handling.ipynb` - Error handling
+
+---
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -341,7 +438,27 @@ If you use this framework in your research, please cite:
 
 ---
 
+## Changelog
+
+### v1.0.0 (Current)
+
+- Unified API for 29+ biomedical knowledge sources
+- Async/await support throughout
+- Caching system for performance optimization
+- Rate limiting with automatic retry
+- Comprehensive error handling
+- Full type hints and Pydantic models
+- Documentation structure overhaul with guides
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+
+---
+
 ## Acknowledgments
+
+---
+
+# Acknowledgments
 
 This framework integrates data from:
 
@@ -351,7 +468,17 @@ This framework integrates data from:
 - [UniProt](https://www.uniprot.org/)
 - [EBI Ontology Lookup Service](https://www.ebi.ac.uk/ols4/)
 - [NCBO BioPortal](https://bioportal.bioontology.org/)
+- [DisGeNET](https://www.disgenet.org/)
+- [Reactome](https://reactome.org/)
+- [PubChem](https://pubchem.ncbi.nlm.nih.gov/)
+- [KEGG](https://www.genome.jp/kegg/)
+- [DrugBank](https://www.drugbank.ca/)
+- [WikiData](https://www.wikidata.org/)
 
 ---
 
 *For more information, see the [full documentation](https://biomedical-knowledge-lookup.readthedocs.io/).*
+
+*For support, please open an issue on [GitHub](https://github.com/your-org/biomedical-knowledge-lookup/issues).*
+
+*For API documentation, see `docs/guides/api_keys.md` and `docs/examples/use_cases.md`.*

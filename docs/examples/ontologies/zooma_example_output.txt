@@ -1,0 +1,14 @@
+[ERROR] base_events.py 1833: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x726501527530>
+[ERROR] base_events.py 1833: Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x7264ff92e5f0>, 17932.106798539)])']
+connector: <aiohttp.connector.TCPConnector object at 0x7264ff8899a0>
+Checking if Zooma adapter is available...
+  ✓ Zooma adapter is available
+\nSearching for 'cancer' concepts in Zooma...
+\nFound 1 results from Zooma:
+\n  Concept 1:
+    Label: cancer
+    ID: http://purl.obolibrary.org/obo/MONDO_0004992
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.9

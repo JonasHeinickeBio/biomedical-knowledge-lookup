@@ -1,0 +1,34 @@
+[ERROR] base_events.py 1833: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x75daae608800>
+[ERROR] base_events.py 1833: Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x75daac2d2580>, 19053.589655026)])']
+connector: <aiohttp.connector.TCPConnector object at 0x75daac2e4710>
+Checking if Opentargets adapter is available...
+  ✓ Opentargets adapter is available
+\nSearching for 'cancer' concepts in Opentargets...
+\nFound 25 results from Opentargets:
+\n  Concept 1:
+    Label: MONDO_0004992
+    ID: MONDO_0004992
+    Type: ConceptType.GENE
+    Confidence: 0.9
+\n  Concept 2:
+    Label: Orphanet_145
+    ID: Orphanet_145
+    Type: ConceptType.GENE
+    Confidence: 0.9
+\n  Concept 3:
+    Label: ENSG00000139618
+    ID: ENSG00000139618
+    Type: ConceptType.GENE
+    Confidence: 0.9
+\n  Concept 4:
+    Label: MONDO_0003582
+    ID: MONDO_0003582
+    Type: ConceptType.GENE
+    Confidence: 0.9
+\n  Concept 5:
+    Label: ENSG00000012048
+    ID: ENSG00000012048
+    Type: ConceptType.GENE
+    Confidence: 0.9

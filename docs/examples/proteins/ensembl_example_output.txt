@@ -1,0 +1,16 @@
+[ERROR] base_events.py 1833: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x774c13f972c0>
+[ERROR] base_events.py 1833: Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x774c13e225f0>, 17703.746529037)])']
+connector: <aiohttp.connector.TCPConnector object at 0x774c406a03e0>
+Checking if Ensembl adapter is available...
+  ✓ Ensembl adapter is available
+\nSearching for 'BRCA1' concepts in Ensembl...
+\nFound 1 results from Ensembl:
+\n  Concept 1:
+    Label: BRCA1
+    ID: ENSG00000012048
+    Type: ConceptType.GENE
+    Confidence: 1.0
+    Definitions (1):
+      - BRCA1 DNA repair associated [Source:HGNC Symbol;Acc:HGNC:1100]

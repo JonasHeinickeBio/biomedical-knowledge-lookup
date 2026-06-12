@@ -8,58 +8,84 @@ This directory contains comprehensive documentation for all knowledge source ada
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
-| [ChEMBL](chembl_adapter.md) | [Documentation](chembl_adapter.md) | ChEMBL Database - Bioactivities, drug targets, compound properties |
-| [DisGeNET](disgenet_adapter.md) | [Documentation](disgenet_adapter.md) | Gene-Disease Associations with evidence scores |
-| [MONDO](mondo_adapter.md) | [Documentation](mondo_adapter.md) | Mondo Disease Ontology - Standardized disease classification |
-| [OLS](ols_adapter.md) | [Documentation](ols_adapter.md) | Ontology Lookup Service (EBI) - General ontology search |
-| [OpenTargets](opentargets_adapter.md) | [Documentation](opentargets_adapter.md) | Open Targets Platform - Drug target and disease associations |
-| [UniProt](uniprot_adapter.md) | [Documentation](uniprot_adapter.md) | UniProt - Protein sequences and functional annotations |
-| [UMLS](umls_adapter.md) | [Documentation](umls_adapter.md) | Unified Medical Language System - Comprehensive terminology |
+| [ChEMBL](core/chembl_adapter.md) | [Documentation](core/chembl_adapter.md) | ChEMBL Database - Bioactivities, drug targets, compound properties |
+| [DisGeNET](core/disgenet_adapter.md) | [Documentation](core/disgenet_adapter.md) | Gene-Disease Associations with evidence scores |
+| [MONDO](core/mondo_adapter.md) | [Documentation](core/mondo_adapter.md) | Mondo Disease Ontology - Standardized disease classification |
+| [OLS](core/ols_adapter.md) | [Documentation](core/ols_adapter.md) | Ontology Lookup Service (EBI) - General ontology search |
+| [OpenTargets](core/opentargets_adapter.md) | [Documentation](core/opentargets_adapter.md) | Open Targets Platform - Drug target and disease associations |
+| [UniProt](core/uniprot_adapter.md) | [Documentation](core/uniprot_adapter.md) | UniProt - Protein sequences and functional annotations |
+| [UMLS](core/umls_adapter.md) | [Documentation](core/umls_adapter.md) | Unified Medical Language System - Comprehensive terminology |
 
 ### Chemicals & Compounds
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
-| [PubChem](pubchem_adapter.md) | [Documentation](pubchem_adapter.md) | PubChem Compounds - Chemical compounds and properties |
-| [UniChem](unichem_adapter.md) | [Documentation](unichem_adapter.md) | UniChem - Cross-reference between compound databases |
-| [DrugBank](additional_adapters.md#drugbank-adapter) | [Additional Adapters](additional_adapters.md#drugbank-adapter) | DrugBank - Drug and pharmaceutical information |
+| [PubChem](chemicals/pubchem_adapter.md) | [Documentation](chemicals/pubchem_adapter.md) | PubChem Compounds - Chemical compounds and properties |
+| [UniChem](chemicals/unichem_adapter.md) | [Documentation](chemicals/unichem_adapter.md) | UniChem - Cross-reference between compound databases |
+| [DrugBank](chemicals/drugbank_adapter.md) | [Documentation](chemicals/drugbank_adapter.md) | DrugBank - Drug and pharmaceutical information |
 
 ### Proteins & Genes
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
-| [Ensembl](additional_adapters.md#ensembl-adapter) | [Additional Adapters](additional_adapters.md#ensembl-adapter) | Ensembl Genome Annotation |
+| [Ensembl](proteins/ensembl_adapter.md) | [Documentation](proteins/ensembl_adapter.md) | Ensembl Genome Annotation |
+| [HGNC](proteins/hgnc_adapter.md) | [Documentation](proteins/hgnc_adapter.md) | HGNC Human Gene Nomenclature |
+| [UniProt](proteins/uniprot_adapter.md) | [Documentation](proteins/uniprot_adapter.md) | UniProt - Protein sequences |
 
-### Ontology Services
-
-| Adapter | Documentation | Description |
-|---------|--------------|-------------|
-| [BioOntology](bioontology_adapter.md) | [Documentation](bioontology_adapter.md) | BioOntology API (NCBO) |
-| [OBOFoundry](additional_adapters.md#obo-foundry-adapter) | [Additional Adapters](additional_adapters.md#obo-foundry-adapter) | OBO Foundry Ontologies |
-
-### Pathways & Networks
+### Protein Families
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
-| [Reactome](additional_adapters.md#reactome-adapter) | [Additional Adapters](additional_adapters.md#reactome-adapter) | Reactome - Biological Pathways |
+| [InterPro](families/interpro_adapter.md) | [Documentation](families/interpro_adapter.md) | InterPro - Protein domains and families |
+| [Pfam](families/pfam_adapter.md) | [Documentation](families/pfam_adapter.md) | Pfam - Protein family database |
+| [PDB](families/pdb_adapter.md) | [Documentation](families/pdb_adapter.md) | PDB - Protein structural data |
+| [STRING](families/string_adapter.md) | [Documentation](families/string_adapter.md) | STRING - Protein-protein interactions |
 
 ### Phenotypes & Annotations
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
-| [HPO](additional_adapters.md#hpo-human-phenotype-ontology-adapter) | [Additional Adapters](additional_adapters.md#hpo-human-phenotype-ontology-adapter) | Human Phenotype Ontology |
-| [GO](additional_adapters.md#gene-ontology-go-adapter) | [Additional Adapters](additional_adapters.md#gene-ontology-go-adapter) | Gene Ontology |
+| [HPO](phenotypes/hpo_adapter.md) | [Documentation](phenotypes/hpo_adapter.md) | Human Phenotype Ontology |
+| [GO](phenotypes/geneontology_adapter.md) | [Documentation](phenotypes/geneontology_adapter.md) | Gene Ontology functional annotations |
+| [QuickGO](phenotypes/quickgo_adapter.md) | [Documentation](phenotypes/quickgo_adapter.md) | QuickGO - GO annotations |
+| [ClinVar](phenotypes/clinvar_adapter.md) | [Documentation](phenotypes/clinvar_adapter.md) | ClinVar - Genetic variations |
+| [DBVar](phenotypes/dbvar_adapter.md) | [Documentation](phenotypes/dbvar_adapter.md) | DBVar - Genomic structural variation |
+| [OMIM](phenotypes/omim_adapter.md) | [Documentation](phenotypes/omim_adapter.md) | OMIM - Mendelian inheritance in man |
+
+### Ontology Services
+
+| Adapter | Documentation | Description |
+|---------|--------------|-------------|
+| [BioPortal](ontologies/bioportal_adapter.md) | [Documentation](ontologies/bioportal_adapter.md) | NCBI BioPortal Ontology Service |
+| [BioOntology](ontologies/bioontology_adapter.md) | [Documentation](ontologies/bioontology_adapter.md) | BioOntology API (NCBO) |
+| [OBOFoundry](ontologies/obofoundry_adapter.md) | [Documentation](ontologies/obofoundry_adapter.md) | OBO Foundry Ontologies |
+| [ZOOMA](ontologies/zooma_adapter.md) | [Documentation](ontologies/zooma_adapter.md) | Ontology Mapping Service |
+| [EBI OLS](ontologies/ebiols_adapter.md) | [Documentation](ontologies/ebiols_adapter.md) | EBI Ontology Lookup Service |
+
+### Pathways & Networks
+
+| Adapter | Documentation | Description |
+|---------|--------------|-------------|
+| [Reactome](pathways/reactome_adapter.md) | [Documentation](pathways/reactome_adapter.md) | Reactome - Biological Pathways |
+| [KEGG](pathways/kegg_adapter.md) | [Documentation](pathways/kegg_adapter.md) | KEGG - Pathways and diseases |
+
+### Literature & Publications
+
+| Adapter | Documentation | Description |
+|---------|--------------|-------------|
+| [EuropePMC](literature/europepmc_adapter.md) | [Documentation](literature/europepmc_adapter.md) | Europe PubMed Central |
+| [EUtils](other/eutils_adapter.md) | [Documentation](other/eutils_adapter.md) | NCBI Entrez Utilities (Pubmed, Gene, Protein, Taxonomy) |
 
 ### Other Services
 
 | Adapter | Documentation | Description |
 |---------|--------------|-------------|
-| [WikiData](additional_adapters.md#wikidata-adapter) | [Additional Adapters](additional_adapters.md#wikidata-adapter) | WikiData Knowledge Base |
-| [DBPedia](additional_adapters.md#dbpedia-adapter) | [Additional Adapters](additional_adapters.md#dbpedia-adapter) | DBpedia Structured Data |
-| [OxO](additional_adapters.md#oxo-adapter) | [Additional Adapters](additional_adapters.md#oxo-adapter) | Ontology Cross-references |
-| [TYTO](additional_adapters.md#tyto-adapter) | [Additional Adapters](additional_adapters.md#tyto-adapter) | Ontology Term Recognition |
-| [ZOOMA](additional_adapters.md#zooma-adapter) | [Additional Adapters](additional_adapters.md#zooma-adapter) | Ontology Mapping Service |
-| [EBI OLS](additional_adapters.md#ebi-ols-alternative-adapter) | [Additional Adapters](additional_adapters.md#ebi-ols-alternative-adapter) | EBI Ontology Lookup Service |
+| [WikiData](other/wikidata_adapter.md) | [Documentation](other/wikidata_adapter.md) | WikiData Knowledge Base |
+| [DBPedia](other/dbpedia_adapter.md) | [Documentation](other/dbpedia_adapter.md) | DBpedia Structured Data |
+| [OxO](other/oxo_adapter.md) | [Documentation](other/oxo_adapter.md) | Ontology Cross-references |
+| [TYTO](other/tyto_adapter.md) | [Documentation](other/tyto_adapter.md) | Ontology Term Recognition |
+| [COSMIC](other/cosmic_adapter.md) | [Documentation](other/cosmic_adapter.md) | Catalogue of Somatic Mutations in Cancer |
+| [BioLinker](other/biolinker_adapter.md) | [Documentation](other/biolinker_adapter.md) | TIB BioLinker AI Entity and Relation Extraction |
 
 ## Quick Reference
 
@@ -67,24 +93,46 @@ This directory contains comprehensive documentation for all knowledge source ada
 
 #### Diseases & Phenotypes
 - **MONDO** - Standardized disease classification
-- **HPO** - Human phenotype ontology (via Additional Adapters)
+- **HPO** - Human phenotype ontology
 - **DisGeNET** - Gene-disease associations with evidence scores
+- **ClinVar** - Genetic variations and clinical significance
+- **OMIM** - Mendelian inheritance in man
 
 #### Chemicals & Drugs
 - **ChEMBL** - Bioactivities, drug targets, compound properties
 - **UniChem** - Cross-reference between compound databases
 - **PubChem** - Chemical compounds and molecular properties
+- **DrugBank** - Drug and pharmaceutical information
 
 #### Proteins & Genes
 - **UniProt** - Protein sequences and functional annotations
 - **Ensembl** - Genome annotation
-- **DisGeNET** - Gene-disease associations
+- **HGNC** - Human gene nomenclature
+- **InterPro** - Protein domains and families
+- **Pfam** - Protein family database
 
 #### Ontology Services
+- **BioPortal** - NCBI BioPortal ontology service
 - **OLS** - General ontology search
 - **BioOntology** - BioPortal API wrapper
 - **OBOFoundry** - OBO Foundry collection
 - **ZOOMA** - Automated ontology mapping
+
+#### Pathways & Networks
+- **Reactome** - Biological pathways
+- **KEGG** - Pathways and diseases
+- **STRING** - Protein-protein interactions
+
+#### Literature & Publications
+- **EuropePMC** - PubMed Central literature
+
+#### Annotations
+- **GO** - Gene Ontology functional annotations
+- **QuickGO** - Quick GO annotations
+
+#### Structural Data
+- **PDB** - Protein structural data
+- **dbVar** - Genomic structural variation (planned)
 
 ## Documentation Structure
 
@@ -136,11 +184,13 @@ Most sources are public APIs. Some require API keys:
 | CHEMBL | No (optional) | `CHEMBL_API_KEY` |
 | Others | No | N/A |
 
+See `docs/guides/api_keys.md` for detailed API key setup.
+
 ## Contributing
 
 To add documentation for a new adapter:
 
-1. Create a markdown file in this directory (e.g., `my_adapter.md`)
+1. Create a markdown file in the appropriate subfolder (e.g., `core/my_adapter.md`)
 2. Follow the structure of existing adapter documentation
 3. Update this index with a link to your new documentation
 4. Add the adapter to the main [README.md](../README.md) table
@@ -150,3 +200,7 @@ To add documentation for a new adapter:
 - [Main Documentation](../README.md) - Overview of all adapters
 - [API Reference](../api_reference.md) - API specifications
 - [Getting Started](../getting_started.md) - Installation and setup
+- [API Keys Guide](../guides/api_keys.md) - API key configuration
+- [Caching Guide](../guides/caching.md) - Caching configuration
+- [Rate Limiting Guide](../guides/rate_limiting.md) - Rate limiting strategies
+- [Error Handling Guide](../guides/error_handling.md) - Error handling patterns

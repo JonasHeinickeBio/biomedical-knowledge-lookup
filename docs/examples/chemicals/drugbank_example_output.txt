@@ -1,0 +1,10 @@
+[ERROR] base_events.py 1833: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7afbca5c54c0>
+[ERROR] base_events.py 1833: Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x7afbc81b6580>, 17677.872813083)])']
+connector: <aiohttp.connector.TCPConnector object at 0x7afbc81c9700>
+Checking if Drugbank adapter is available...
+  ✓ Drugbank adapter is available
+\nSearching for 'aspirin' concepts in Drugbank...
+\nFound 0 results from Drugbank:
+  No results found for '{query}'

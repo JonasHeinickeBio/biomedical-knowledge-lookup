@@ -1,0 +1,29 @@
+Checking if Umls adapter is available...
+  ✓ Umls adapter is available
+\nSearching for 'cancer' concepts in Umls...
+\nFound 50 results from Umls:
+\n  Concept 1:
+    Label: Malignant Neoplasms
+    ID: C0006826
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.9
+\n  Concept 2:
+    Label: Neoplasms
+    ID: C0027651
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.9
+\n  Concept 3:
+    Label: Cancer <Cancridae>
+    ID: C0998265
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.9
+\n  Concept 4:
+    Label: Specialty Type - cancer
+    ID: C1547140
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.9
+\n  Concept 5:
+    Label: Uterine Cancer
+    ID: C0153567
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.9

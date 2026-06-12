@@ -1,0 +1,45 @@
+[ERROR] base_events.py 1833: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x73e7387b76b0>
+[ERROR] base_events.py 1833: Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x73e73861a580>, 19075.616605529)])']
+connector: <aiohttp.connector.TCPConnector object at 0x73e738754230>
+Checking if Ols adapter is available...
+  ✓ Ols adapter is available
+\nSearching for 'cancer' concepts in Ols...
+\nFound 23 results from Ols:
+\n  Concept 1:
+    Label: cancer
+    ID: http://purl.obolibrary.org/obo/DOID_162
+    Type: ConceptType.DISEASE
+    Confidence: 0.8
+    Definitions (6):
+      - A tumor composed of atypical neoplastic, often pleomorphic cells that invade other tissues. Malignant neoplasms often metastasize to distant anatomic sites and may recur after excision. The most common malignant neoplasms are carcinomas (adenocarcinomas or squamous cell carcinomas), Hodgkin and non-Hodgkin lymphomas, leukemias, melanomas, and sarcomas.
+      - A disease of cellular proliferation that is malignant and primary, characterized by uncontrolled cellular proliferation, local cell invasion and metastasis.
+\n  Concept 2:
+    Label: Prostatic Neoplasms, Castration-Resistant
+    ID: http://id.nlm.nih.gov/mesh/D064129
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+    Definitions (1):
+      - Tumors or cancer of the PROSTATE which can grow in the presence of low or residual amount of androgen hormones such as TESTOSTERONE.
+\n  Concept 3:
+    Label: Neoplasms, Second Primary
+    ID: http://id.nlm.nih.gov/mesh/D016609
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+    Definitions (1):
+      - Abnormal growths of tissue that follow a previous neoplasm but are not metastases of the latter. The second neoplasm may have the same or different histological type and can occur in the same or different organs as the previous neoplasm but in all cases arises from an independent oncogenic event. The development of the second neoplasm may or may not be related to the treatment for the previous neoplasm since genetic risk or predisposing factors may actually be the cause.
+\n  Concept 4:
+    Label: Cancer Pain
+    ID: http://id.nlm.nih.gov/mesh/D000072716
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+    Definitions (1):
+      - Pain that may be caused by or related to cellular, tissue, and systemic changes that occur during NEOPLASM growth, tissue invasion, and METASTASIS.
+\n  Concept 5:
+    Label: The Barbara Ann Karmanos Cancer Institute
+    ID: https://ror.org/00ee40h97
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+    Definitions (1):
+      - a facility in Detroit established in 1978

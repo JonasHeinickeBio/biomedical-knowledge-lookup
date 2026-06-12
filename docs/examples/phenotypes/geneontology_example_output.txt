@@ -1,0 +1,44 @@
+[ERROR] base_events.py 1833: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7294c22069c0>
+[ERROR] base_events.py 1833: Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x7294c13d65f0>, 17732.705504527)])']
+connector: <aiohttp.connector.TCPConnector object at 0x7294c14bb350>
+Checking if Geneontology adapter is available...
+  ✓ Geneontology adapter is available
+\nSearching for 'apoptosis' concepts in Geneontology...
+\nFound 50 results from Geneontology:
+\n  Concept 1:
+    Label: execution phase of apoptosis
+    ID: GO:0097194
+    Type: ConceptType.GENE
+    Confidence: 0.95
+    Definitions (1):
+      - A stage of the apoptotic process that starts with the controlled breakdown of the cell through the action of effector caspases or other effector molecules (e.g. cathepsins, calpains etc.). Key steps of the execution phase are rounding-up of the cell, retraction of pseudopodes, reduction of cellular volume (pyknosis), chromatin condensation, nuclear fragmentation (karyorrhexis), plasma membrane blebbing and fragmentation of the cell into apoptotic bodies. When the execution phase is completed, the cell has died.
+\n  Concept 2:
+    Label: lymphocyte apoptotic process
+    ID: GO:0070227
+    Type: ConceptType.GENE
+    Confidence: 0.95
+    Definitions (1):
+      - Any apoptotic process in a lymphocyte, a leukocyte commonly found in the blood and lymph that has the characteristics of a large nucleus, a neutral staining cytoplasm, and prominent heterochromatin.
+\n  Concept 3:
+    Label: hepatoblast apoptotic process
+    ID: GO:1902489
+    Type: ConceptType.GENE
+    Confidence: 0.95
+    Definitions (1):
+      - Any apoptotic process in a hepatoblast.
+\n  Concept 4:
+    Label: oligodendrocyte apoptotic process
+    ID: GO:0097252
+    Type: ConceptType.GENE
+    Confidence: 0.95
+    Definitions (1):
+      - Any apoptotic process in an oligodendrocyte. Oligodendrocytes belong to a class of large neuroglial (macroglial) cells in the central nervous system, where they form the insulating myelin sheath of axons.
+\n  Concept 5:
+    Label: keratinocyte apoptotic process
+    ID: GO:0097283
+    Type: ConceptType.GENE
+    Confidence: 0.95
+    Definitions (1):
+      - Any apoptotic process in a keratinocyte. A keratinocyte is an epidermal cell which synthesizes keratin and undergoes a characteristic change as it moves upward from the basal layers of the epidermis to the cornified (horny) layer of the skin.

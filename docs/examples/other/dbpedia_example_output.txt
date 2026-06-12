@@ -1,0 +1,34 @@
+[ERROR] base_events.py 1833: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x74783c7e60f0>
+[ERROR] base_events.py 1833: Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x74783abf6660>, 17673.659423032)])']
+connector: <aiohttp.connector.TCPConnector object at 0x74783cf9dd90>
+Checking if Dbpedia adapter is available...
+  ✓ Dbpedia adapter is available
+\nSearching for 'cancer' concepts in Dbpedia...
+\nFound 9 results from Dbpedia:
+\n  Concept 1:
+    Label: Cancer
+    ID: Cancer
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.6
+\n  Concept 2:
+    Label: Szent-Györgyi Prize for Progress in Cancer Research
+    ID: Szent-Györgyi_Prize_for_Progress_in_Cancer_Research
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.6
+\n  Concept 3:
+    Label: Alvin J. Siteman Cancer Center
+    ID: Alvin_J._Siteman_Cancer_Center
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.6
+\n  Concept 4:
+    Label: Breast Cancer Research Foundation
+    ID: Breast_Cancer_Research_Foundation
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.6
+\n  Concept 5:
+    Label: The Cancer Conspiracy
+    ID: The_Cancer_Conspiracy
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.6

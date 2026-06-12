@@ -7,6 +7,7 @@ This package contains adapters for various knowledge sources.
 from .biolinker_adapter import BioLinkerAdapter
 from .bioontology_adapter import BioOntologyAdapter
 from .bioportal_adapter import BioPortalAdapter
+from .chembl_adapter import ChEMBLAdapter
 from .clinvar_adapter import ClinVarAdapter
 from .cosmic_adapter import COSMICAdapter
 from .dbpedia_adapter import DBpediaAdapter
@@ -52,6 +53,7 @@ __all__ = [
     "BioOntologyAdapter",
     "MondoAdapter",
     "UniProtAdapter",
+    "ChEMBLAdapter",
     "DisGeNETAdapter",
     "OpenTargetsAdapter",
     "ReactomeAdapter",
@@ -100,6 +102,7 @@ ADAPTER_CLASSES = {
     KnowledgeSource.REACTOME: ReactomeAdapter,
     KnowledgeSource.PUBCHEM: PubChemAdapter,
     KnowledgeSource.DRUGBANK: DrugBankAdapter,
+    KnowledgeSource.CHEMBL: ChEMBLAdapter,
     KnowledgeSource.GENEONTOLOGY: GeneOntologyAdapter,
     KnowledgeSource.HPO: HPOAdapter,
     KnowledgeSource.OBOFOUNDRY: OBOFoundryAdapter,

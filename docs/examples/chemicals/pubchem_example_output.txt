@@ -1,0 +1,14 @@
+[ERROR] base_events.py 1833: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7daaad08ae70>
+[ERROR] base_events.py 1833: Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x7daaab5ba510>, 17832.340848303)])']
+connector: <aiohttp.connector.TCPConnector object at 0x7daad8d4b140>
+Checking if Pubchem adapter is available...
+  ✓ Pubchem adapter is available
+\nSearching for 'aspirin' concepts in Pubchem...
+\nFound 1 results from Pubchem:
+\n  Concept 1:
+    Label: Aspirin
+    ID: 2244
+    Type: ConceptType.CHEMICAL
+    Confidence: 0.9
