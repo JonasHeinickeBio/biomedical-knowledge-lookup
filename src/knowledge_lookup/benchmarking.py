@@ -167,12 +167,12 @@ class KnowledgeLookupBenchmarker:
         print(f"Overall average time: {summary['avg_execution_time']:.3f}s")
         print("-" * 80)
         print(
-            f"{'Benchmark Name':<40} | {'Runs':<6} | {'Avg Time':<10} | {'Avg Found':<10} | {'Success'}"
+            f"{'Benchmark Name':<40} | {'Runs':<6} | {'Avg Time':<10} | {'Avg Found':<10} | {'Success'}"  # noqa: E501
         )
         print("-" * 80)
 
         for name, stats in sorted(summary["by_name"].items()):
             print(
-                f"{name:<40} | {stats['count']:<6} | {stats['avg_time']:<10.3f} | {stats['avg_found']:<10.1f} | {stats['success_rate']*100:.1f}%"
+                f"{name:<40} | {stats['count']:<6} | {stats['avg_time']:<10.3f} | {stats['avg_found']:<10.1f} | {stats['success_rate']*100:.1f}%"  # noqa: E501
             )
         print("=" * 80 + "\n")

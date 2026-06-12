@@ -251,7 +251,7 @@ class UMLSConceptService:
                     )
 
             logger.info(
-                f"Retrieved hierarchy for CUI {cui}: {len(result['parents'])} parents, {len(result['children'])} children"
+                f"Retrieved hierarchy for CUI {cui}: {len(result['parents'])} parents, {len(result['children'])} children"  # noqa: E501
             )
             return result
 

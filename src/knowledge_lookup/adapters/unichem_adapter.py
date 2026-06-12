@@ -284,18 +284,18 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             11: f"https://www.ebi.ac.uk/arrayexpress/experiments/{compound_id}",  # ArrayExpress
             12: f"https://www.ebi.ac.uk/pride/archive/projects/{compound_id}",  # PRIDE
             13: f"https://www.ebi.ac.uk/metabolights/{compound_id}",  # Metabolights
-            14: f"https://www.ebi.ac.uk/ols/ontologies/chebi/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # ChEBI (OLS)
-            15: f"https://www.ncbi.nlm.nih.gov/nuccore/{compound_id}",  # NCBI Nucleotide
-            16: f"https://www.ncbi.nlm.nih.gov/protein/{compound_id}",  # NCBI Protein
-            17: f"https://www.ncbi.nlm.nih.gov/gene/{compound_id}",  # NCBI Gene
-            18: f"https://www.ebi.ac.uk/ols/ontologies/go/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # GO
-            19: f"https://www.ebi.ac.uk/ols/ontologies/efo/terms?iri=http://www.ebi.ac.uk/efo/{compound_id}",  # EFO
-            20: f"https://www.ebi.ac.uk/ols/ontologies/hp/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # HP
-            21: f"https://www.ebi.ac.uk/ols/ontologies/mp/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # MP
-            22: f"https://www.ebi.ac.uk/ols/ontologies/ordo/terms?iri=http://www.orpha.net/ORDO/{compound_id}",  # ORDO
-            23: f"https://www.ebi.ac.uk/ols/ontologies/mondo/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # MONDO
-            24: f"https://www.ebi.ac.uk/ols/ontologies/ncit/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # NCIT
-            25: f"https://www.ebi.ac.uk/ols/ontologies/omim/terms?iri=https://omim.org/entry/{compound_id}",  # OMIM
+            14: f"https://www.ebi.ac.uk/ols/ontologies/chebi/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # ChEBI (OLS)
+            15: f"https://www.ncbi.nlm.nih.gov/nuccore/{compound_id}",  # noqa: E501  # NCBI Nucleotide
+            16: f"https://www.ncbi.nlm.nih.gov/protein/{compound_id}",  # noqa: E501  # NCBI Protein
+            17: f"https://www.ncbi.nlm.nih.gov/gene/{compound_id}",  # noqa: E501  # NCBI Gene
+            18: f"https://www.ebi.ac.uk/ols/ontologies/go/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # GO
+            19: f"https://www.ebi.ac.uk/ols/ontologies/efo/terms?iri=http://www.ebi.ac.uk/efo/{compound_id}",  # noqa: E501  # EFO
+            20: f"https://www.ebi.ac.uk/ols/ontologies/hp/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # HP
+            21: f"https://www.ebi.ac.uk/ols/ontologies/mp/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # MP
+            22: f"https://www.ebi.ac.uk/ols/ontologies/ordo/terms?iri=http://www.orpha.net/ORDO/{compound_id}",  # noqa: E501  # ORDO
+            23: f"https://www.ebi.ac.uk/ols/ontologies/mondo/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # MONDO
+            24: f"https://www.ebi.ac.uk/ols/ontologies/ncit/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # NCIT
+            25: f"https://www.ebi.ac.uk/ols/ontologies/omim/terms?iri=https://omim.org/entry/{compound_id}",  # noqa: E501  # OMIM
         }
 
         # Try to get URL from predefined patterns

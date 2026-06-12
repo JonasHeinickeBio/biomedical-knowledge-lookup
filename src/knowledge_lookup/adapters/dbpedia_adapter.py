@@ -62,7 +62,7 @@ class DBpediaAdapter(KnowledgeSourceAdapter):
             sparql_query = f"""
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX dbo: <http://dbpedia.org/ontology/>
-            SELECT DISTINCT ?resource ?label ?abstract ?type (IF(LCASE(STR(?label)) = "{query.lower()}", 1, 0) AS ?exactMatch) WHERE {{
+            SELECT DISTINCT ?resource ?label ?abstract ?type (IF(LCASE(STR(?label)) = "{query.lower()}", 1, 0) AS ?exactMatch) WHERE {{  # noqa: E501
               ?resource rdfs:label ?label .
               ?label bif:contains "'{query}'" .
               FILTER (lang(?label) = 'en')
@@ -70,7 +70,7 @@ class DBpediaAdapter(KnowledgeSourceAdapter):
               OPTIONAL {{ ?resource rdf:type ?type }}
             }}
             ORDER BY DESC(?exactMatch)
-            """
+            """  # noqa: E501
             data = await self.run_sparql_query(sparql_query, limit=min(limit, 50))
             concepts = []
             if "results" in data and "bindings" in data["results"]:

@@ -5,11 +5,6 @@ Example: Using the EuropePMC Adapter for Biomedical Concept Lookup
 from knowledge_lookup import LookupConfig, create_knowledge_lookup
 from knowledge_lookup.models import KnowledgeSource
 
-NL = "
-"
-
-
-
 async def main():
     # Create lookup instance
     # For adapters requiring API keys, pass the key via api_keys parameter
@@ -23,12 +18,12 @@ async def main():
         return
     
     query = "cancer"
-    print(f"\\nSearching for '{query}' concepts in EuropePMC...")
+    print(f"\nSearching for '{query}' concepts in EuropePMC...")
     results = await lookup.search_concepts(query, sources=[KnowledgeSource.EUROPEPMC])
     
-    print(f"\\nFound {results.total_found} results from EuropePMC:")
+    print(f"\nFound {results.total_found} results from EuropePMC:")
     for i, concept in enumerate(results.concepts[:5]):
-        print(f"\\n  Concept {i+1}:")
+        print(f"\n  Concept {i+1}:")
         print(f"    Label: {concept.primary_label}")
         print(f"    ID: {concept.primary_id}")
         print(f"    Type: {concept.concept_type}")
@@ -45,7 +40,7 @@ async def main():
                 print(f"      - {mapping.source_id}: {mapping.source_label}")
     
     if not results.concepts:
-        print("  No results found for '{query}'")
+        print(f"  No results found for '{query}'")
 
 
 if __name__ == "__main__":

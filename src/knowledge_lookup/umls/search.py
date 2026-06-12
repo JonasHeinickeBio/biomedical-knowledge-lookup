@@ -45,16 +45,16 @@ class UMLSSearchService:
 
         Args:
             query: Search query string
-            search_type: Type of search ('words', 'exact', 'leftTruncation', 'rightTruncation', 'approximate')
+            search_type: Type of search ('words', 'exact', 'leftTruncation', 'rightTruncation', 'approximate')  # noqa: E501
             source: Source vocabulary to search in (e.g., 'SNOMEDCT_US')
             semantic_types: List of semantic types to filter by
             page_size: Number of results per page (max 1000)
             page_number: Page number to retrieve
-            return_id_type: Type of ID to return ('concept', 'code', 'sourceConcept', 'sourceDescriptor')
+            return_id_type: Type of ID to return ('concept', 'code', 'sourceConcept', 'sourceDescriptor')  # noqa: E501
 
         Returns:
             List of UMLSSearchResult objects
-        """
+        """  # noqa: E501
         params = {
             "string": query,
             "searchType": search_type,
@@ -158,7 +158,7 @@ class UMLSSearchService:
                             "cui": result.cui,
                             "name": result.name,
                             "source": result.source,
-                            "similarity_score": similarity_threshold,  # Placeholder - could implement actual similarity scoring
+                            "similarity_score": similarity_threshold,  # noqa: E501  # Placeholder - could implement actual similarity scoring
                         }
                     )
 

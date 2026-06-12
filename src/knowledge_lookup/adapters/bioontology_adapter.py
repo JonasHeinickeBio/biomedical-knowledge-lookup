@@ -194,8 +194,9 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
         **kwargs,
     ) -> Any | None:
         """
-        Fetch concept details. Use 'raw' for full metadata, 'minimal' for reduced metadata, default for parsed object.
-        """
+        Fetch concept details. Use 'raw' for full metadata, 'minimal' for reduced metadata,  # noqa: E501
+        default for parsed object.
+        """  # noqa: E501
         if not self.api_key:
             logger.warning("BioOntology API key not available")
             return None
@@ -341,7 +342,8 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
         self, concept, links, concept_id, extra_params: dict[str, Any] | None = None
     ):
         """
-        Fetch related resources (children, parents, ancestors, etc.) and add to concept.source_data.
+        Fetch related resources (children, parents, ancestors, etc.) and add  # noqa: E501
+        to concept.source_data.
         """
         related_keys = [
             "children",

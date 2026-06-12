@@ -253,13 +253,13 @@ class UMLSCodeLookupClient:
                 if not results:
                     if page == 1:
                         logger.info(
-                            f"No codes found for CUI {cui} in vocabulary {target_vocabulary}"
+                            f"No codes found for CUI {cui} in vocabulary {target_vocabulary}"  # noqa: E501
                         )
                         mappings.append(
                             CodeMapping(
                                 cui=cui,
                                 target_vocabulary=target_vocabulary,
-                                error_message=f"No codes found for CUI {cui} in vocabulary {target_vocabulary}",
+                                error_message=f"No codes found for CUI {cui} in vocabulary {target_vocabulary}",  # noqa: E501
                             )
                         )
                     break

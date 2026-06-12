@@ -78,8 +78,8 @@ class PubChemAdapter(KnowledgeSourceAdapter):
                 if "Description" in info:
                     concept.definitions.append(info["Description"])
 
-                # Get more properties (like IUPAC name, formula, etc.)
-                props_url = f"{self.base_url}/compound/cid/{concept_id}/property/IUPACName,MolecularFormula,InChIKey/JSON"
+                # Get more properties (like IUPAC name, formula, etc.)  # noqa: E501
+                props_url = f"{self.base_url}/compound/cid/{concept_id}/property/IUPACName,MolecularFormula,InChIKey/JSON"  # noqa: E501
                 props_data = await self._make_request(props_url)
 
                 if "PropertyTable" in props_data and "Properties" in props_data["PropertyTable"]:

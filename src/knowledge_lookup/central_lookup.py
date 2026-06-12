@@ -522,7 +522,7 @@ class CentralKnowledgeLookup:
         lines.append("-" * max_width)
 
         # Table header
-        header = f"{'#':<3} {'Label':<{label_width}} {'ID':<{id_width}} {'Sources':<{sources_width}} {'Confidence':<10} {'Type':<15}"
+        header = f"{'#':<3} {'Label':<{label_width}} {'ID':<{id_width}} {'Sources':<{sources_width}} {'Confidence':<10} {'Type':<15}"  # noqa: E501
         lines.append(header)
         lines.append("-" * max_width)
 
@@ -534,7 +534,7 @@ class CentralKnowledgeLookup:
             confidence = f"{concept.confidence_score:.2f}"
             concept_type = concept.concept_type.value[:14]
 
-            row = f"{i:<3} {label:<{label_width}} {concept_id:<{id_width}} {sources:<{sources_width}} {confidence:<10} {concept_type:<15}"
+            row = f"{i:<3} {label:<{label_width}} {concept_id:<{id_width}} {sources:<{sources_width}} {confidence:<10} {concept_type:<15}"  # noqa: E501
             lines.append(row)
 
         if len(result.concepts) > 20:
@@ -608,7 +608,7 @@ class CentralKnowledgeLookup:
 
         if len(result.concepts) > 10:
             lines.append(
-                f"\n... and {len(result.concepts) - 10} more results (use export functions for full data)"
+                f"\n... and {len(result.concepts) - 10} more results (use export functions for full data)"  # noqa: E501
             )
 
         return "\n".join(lines)
@@ -988,7 +988,7 @@ class CentralKnowledgeLookup:
         lines.append(f"Sources queried: {len(result.sources_queried)}")
         lines.append(f"Sources succeeded: {len(result.sources_succeeded)}")
         lines.append(
-            f"Success rate: {len(result.sources_succeeded) / len(result.sources_queried) * 100:.1f}%"
+            f"Success rate: {len(result.sources_succeeded) / len(result.sources_queried) * 100:.1f}%"  # noqa: E501
         )
         lines.append("")
 
@@ -1016,7 +1016,7 @@ class CentralKnowledgeLookup:
             lines.append("-" * 40)
             lines.append(f"Average confidence score: {avg_confidence:.3f}")
             lines.append(
-                f"High confidence results (>0.8): {high_confidence} ({high_confidence / len(result.concepts) * 100:.1f}%)"
+                f"High confidence results (>0.8): {high_confidence} ({high_confidence / len(result.concepts) * 100:.1f}%)"  # noqa: E501
             )
             lines.append(
                 f"Multi-source concepts: {len([c for c in result.concepts if len(c.sources) > 1])}"
@@ -1050,7 +1050,7 @@ class CentralKnowledgeLookup:
             lines.append("• Few results found. Consider using synonyms or related terms.")
         elif len(source_stats) == 1:
             lines.append(
-                "• Results from single source. Consider enabling more sources for comprehensive coverage."
+                "• Results from single source. Consider enabling more sources for comprehensive coverage."  # noqa: E501
             )
 
         if result.errors:

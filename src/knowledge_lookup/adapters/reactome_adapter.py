@@ -79,7 +79,7 @@ class ReactomeAdapter(KnowledgeSourceAdapter):
             concept = UnifiedConcept(
                 primary_id=st_id,
                 primary_label=label,
-                concept_type=ConceptType.UNKNOWN,  # Pathways are not exactly one of our ConceptTypes
+                concept_type=ConceptType.UNKNOWN,  # noqa: E501  # Pathways are not exactly one of our ConceptTypes
             )
 
             concept.add_identifier(

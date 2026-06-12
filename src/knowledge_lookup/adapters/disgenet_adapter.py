@@ -95,12 +95,12 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
             chemical_association: str
             source: List[str]
             evidence_level: List[str]
-            min_score, max_score, min_ei, max_ei, min_dsi, max_dsi, min_dpi, max_dpi, min_pli, max_pli: float
+            min_score, max_score, min_ei, max_ei, min_dsi, max_dsi, min_dpi, max_dpi, min_pli, max_pli: float  # noqa: E501
             min_numCTs: int
             min_yearInitial, max_yearInitial, min_yearFinal, max_yearFinal: int
             type: str
             dis_class_list: List[str]
-            disease_prevalence_class, disease_prevalence_geo_area, disease_prevalence_type, disease_inheritance: str
+            disease_prevalence_class, disease_prevalence_geo_area, disease_prevalence_type, disease_inheritance: str  # noqa: E501
             order_by: List[str]
             page_number: int
 
@@ -113,7 +113,7 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
             }
             result = await adapter.get_gene_disease_associations(params)
             result_raw = await adapter.get_gene_disease_associations(params, raw=True)
-        """
+        """  # noqa: E501
         clean_params = {k: v for k, v in params.items() if v is not None}
         headers = {
             "Authorization": self.api_key or "",
@@ -177,12 +177,12 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
             chemical_association: str
             source: List[str]
             evidence_level: List[str]
-            min_score, max_score, min_ei, max_ei, min_dsi, max_dsi, min_dpi, max_dpi, min_pli, max_pli: float
+            min_score, max_score, min_ei, max_ei, min_dsi, max_dsi, min_dpi, max_dpi, min_pli, max_pli: float  # noqa: E501
             min_numCTs: int
             min_yearInitial, max_yearInitial, min_yearFinal, max_yearFinal: int
             type: str
             dis_class_list: List[str]
-            disease_prevalence_class, disease_prevalence_geo_area, disease_prevalence_type, disease_inheritance: str
+            disease_prevalence_class, disease_prevalence_geo_area, disease_prevalence_type, disease_inheritance: str  # noqa: E501
             order_by: List[str]
             page_number: int
 
@@ -193,9 +193,9 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
                 "min_score": 0.2,
                 "page_number": 0
             }
-            result = await adapter.get_gene_disease_associations(params)
-            result_raw = await adapter.get_gene_disease_associations(params, raw=True)
-        """
+            result = await adapter.get_gene_disease_associations_evidence(params)
+            result_raw = await adapter.get_gene_disease_associations_evidence(params, raw=True)
+        """  # noqa: E501
         clean_params = {k: v for k, v in params.items() if v is not None}
         headers = {
             "Authorization": self.api_key or "",
@@ -269,6 +269,6 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
                 concept.source_data[KnowledgeSource.DISGENET] = item
                 concepts.append(concept)
         logger.info(
-            f"DisGeNET search for gene {params.get('gene_ncbi_id', query)} returned {len(concepts)} concepts (limit {limit})"
+            f"DisGeNET search for gene {params.get('gene_ncbi_id', query)} returned {len(concepts)} concepts (limit {limit})"  # noqa: E501
         )
         return concepts

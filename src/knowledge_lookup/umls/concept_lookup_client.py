@@ -225,16 +225,16 @@ class UMLSConceptLookupClient:
                 if not results:
                     if page == 1:
                         logger.info(
-                            f"No concepts found for code {code} in vocabulary {source_vocabulary}"
+                            f"No concepts found for code {code} in vocabulary {source_vocabulary}"  # noqa: E501
                         )
                         mappings.append(
                             ConceptMapping(
                                 code=code,
                                 source_vocabulary=source_vocabulary,
-                                error_message=f"No concepts found for code {code} in vocabulary {source_vocabulary}",
+                                error_message=f"No concepts found for code {code} in vocabulary {source_vocabulary}",  # noqa: E501
                             )
                         )
-                    break
+                        break
 
                 for result in results:
                     mapping = ConceptMapping(

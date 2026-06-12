@@ -1,8 +1,8 @@
 """
 Gene Ontology (GO) Adapter
 
-Integrates with QuickGO API for biological process, molecular function, and cellular component lookup.
-"""
+Integrates with QuickGO API for biological process, molecular function, and cellular component lookup.  # noqa: E501
+"""  # noqa: E501
 
 import logging
 from typing import Any

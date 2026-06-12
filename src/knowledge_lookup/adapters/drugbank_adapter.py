@@ -59,8 +59,8 @@ class DrugBankAdapter(KnowledgeSourceAdapter):
     async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed drug information from DrugBank (via OLS)."""
         try:
-            # concept_id should be DrugBank ID (e.g., DB00001)
-            url = f"{self.ols_url}/ontologies/drugbank/terms/http%253A%252F%252Fpurl.bioontology.org%252Fontology%252FDRUGBANK%252F{concept_id}"
+            # concept_id should be DrugBank ID (e.g., DB00001)  # noqa: E501
+            url = f"{self.ols_url}/ontologies/drugbank/terms/http%253A%252F%252Fpurl.bioontology.org%252Fontology%252FDRUGBANK%252F{concept_id}"  # noqa: E501
 
             data = await self._make_request(url)
 

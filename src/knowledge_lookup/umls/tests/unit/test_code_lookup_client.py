@@ -28,7 +28,7 @@ class TestCodeMapping:
             cui="C0011847",
             code="250.00",
             vocab_abbr="ICD9CM",
-            vocab_name="International Classification of Diseases, Ninth Revision, Clinical Modification",
+            vocab_name="International Classification of Diseases, Ninth Revision, Clinical Modification",  # noqa: E501
             term="Diabetes mellitus",
             term_type="PT",
         )

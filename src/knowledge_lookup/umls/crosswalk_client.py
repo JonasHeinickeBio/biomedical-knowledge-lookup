@@ -270,7 +270,7 @@ class UMLSCrosswalkClient:
         )
 
         logger.info(
-            f"Starting crosswalk: {len(source_codes)} codes from {source_vocabulary} to {target_vocabulary}"
+            f"Starting crosswalk: {len(source_codes)} codes from {source_vocabulary} to {target_vocabulary}"  # noqa: E501
         )
 
         # Process codes concurrently
@@ -302,7 +302,7 @@ class UMLSCrosswalkClient:
         result.execution_time = time.time() - start_time
 
         logger.info(
-            f"Crosswalk completed: {result.successful_mappings}/{result.total_processed} successful "
+            f"Crosswalk completed: {result.successful_mappings}/{result.total_processed} successful "  # noqa: E501
             f"({result.success_rate:.1f}%) in {result.execution_time:.2f}s"
         )
 

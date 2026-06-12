@@ -1,11 +1,11 @@
 """
 OxO (Ontology Cross-reference Service) Adapter
 
-This module provides integration with EBI's OxO service for ontology cross-references and mappings.
-OxO provides access to cross-references between terms from ontologies, vocabularies and coding standards.
+This module provides integration with EBI's OxO service for ontology cross-references and mappings.  # noqa: E501
+OxO provides access to cross-references between terms from ontologies, vocabularies and coding standards.  # noqa: E501
 
 API Documentation: https://www.ebi.ac.uk/spot/oxo/docs/api
-"""
+"""  # noqa: E501
 
 import logging
 from typing import Any

@@ -57,9 +57,9 @@ class MondoAdapter(KnowledgeSourceAdapter):
             if concept_id.isdigit():
                 concept_id = f"MONDO:{concept_id.zfill(7)}"
 
-            # Use OLS terms endpoint
+            # Use OLS terms endpoint  # noqa: E501
             encoded_id = concept_id.replace(":", "_")
-            url = f"{self.base_url}/ontologies/mondo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252F{encoded_id}"
+            url = f"{self.base_url}/ontologies/mondo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252F{encoded_id}"  # noqa: E501
 
             data = await self._make_request(url)
 

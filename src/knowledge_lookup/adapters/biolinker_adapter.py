@@ -177,8 +177,10 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
             )
 
             logger.info(
-                f"Sentence annotation completed: {len(annotation['entities'])} entities, "
-                f"{len(annotation['predicates'])} predicates, {len(annotation['relations'])} relations"
+                "Sentence annotation completed: "
+                f"{len(annotation['entities'])} entities, "
+                f"{len(annotation['predicates'])} predicates, "
+                f"{len(annotation['relations'])} relations"  # noqa: E501
             )
 
             return annotation

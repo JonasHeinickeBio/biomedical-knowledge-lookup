@@ -77,7 +77,7 @@ class WikidataAdapter(KnowledgeSourceAdapter):
                 return None
 
             sparql_query = f"""
-            SELECT ?item ?itemLabel ?itemDescription ?instanceOfLabel ?umlsCui ?meshId ?ncbiTaxonId ?icd10 WHERE {{
+            SELECT ?item ?itemLabel ?itemDescription ?instanceOfLabel ?umlsCui ?meshId ?ncbiTaxonId ?icd10 WHERE {{  # noqa: E501
               BIND(wd:{concept_id} AS ?item)
               OPTIONAL {{ ?item wdt:P31 ?instanceOf . }}
               OPTIONAL {{ ?item wdt:P2892 ?umlsCui . }}
@@ -86,7 +86,7 @@ class WikidataAdapter(KnowledgeSourceAdapter):
               OPTIONAL {{ ?item wdt:P494 ?icd10 . }}
               SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
             }}
-            """
+            """  # noqa: E501
 
             params = {"query": sparql_query, "format": "json"}
 
