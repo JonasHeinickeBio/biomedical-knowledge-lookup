@@ -1,0 +1,23 @@
+Checking if Chembl adapter is available...
+  ✓ Chembl adapter is available
+
+Searching for 'cancer' concepts in Chembl...
+
+Found 2 results from Chembl:
+
+  Concept 1:
+    Label: Metformin
+    ID: CHEMBL1234
+    Type: ConceptType.CHEMICAL
+    Confidence: 0.8
+    Definitions (1):
+      - A metabolic disorder characterized by high blood glucose
+    Mappings (2):
+      - Glucophage: Glucophage
+      - Dimethylbiguanide: Dimethylbiguanide
+
+  Concept 2:
+    Label: Insulin
+    ID: CHEMBL5678
+    Type: ConceptType.CHEMICAL
+    Confidence: 0.8

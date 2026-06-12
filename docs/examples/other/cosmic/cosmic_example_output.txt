@@ -1,0 +1,80 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Note: COSMIC_API_KEY is not set
+Skipping cosmic - API key required but not set
+
+Set the environment variable to run this example:
+  export COSMIC_API_KEY='your_api_key_here'
+
+--- Script ---
+"""
+Example: Using the COSMIC Adapter for Biomedical Concept Lookup
+"""
+
+from knowledge_lookup import LookupConfig, create_knowledge_lookup
+from knowledge_lookup.models import KnowledgeSource
+
+
+async def main():
+    # Note: COSMIC adapter may require an API key
+    # Set COSMIC_API_KEY environment variable
+    # os.environ['COSMIC_API_KEY'] = 'your_api_key_here'
+    
+    config = LookupConfig(
+        max_results_per_source=20,
+        timeout_per_source=30.0,
+        enabled_sources=[KnowledgeSource.COSMIC],
+    )
+    
+    lookup = create_knowledge_lookup(config=config)
+    
+    print(f"Checking if COSMIC adapter is available...")
+    if lookup:
+        print(f"  ✓ COSMIC adapter is available")
+    else:
+        print(f"  ✗ COSMIC adapter is not available")
+        return
+    
+    query = "BRAF"
+
+    print(f"\Searching for 'BRAF' concepts in COSMIC...")
+    results = await lookup.search_concepts(query, sources=[KnowledgeSource.COSMIC])
+    
+
+    print(f"\Found {len(results)} results from COSMIC:")
+    for i, result in enumerate(results[:5]):
+
+        print(f"\  Result {i+1}:")
+        print(f"    Concept: {result.primary_label}")
+        print(f"    ID: {result.primary_id}")
+        print(f"    Source: {result.source}")
+        print(f"    Type: {result.concept_type}")
+        
+        if result.mappings:
+            print(f"    Mappings ({len(result.mappings)}):")
+            for mapping in result.mappings[:3]:
+                print(f"      - {mapping.source_id}: {mapping.source_label}")
+        
+        if i == 0 and result.primary_id:
+
+            print(f"\  Getting detailed information for: {result.primary_id}")
+            try:
+                details = await lookup.get_concept_details(result.primary_id, sources=[KnowledgeSource.COSMIC])
+                if details:
+                    print(f"    Details found:")
+                    print(f"      Label: {details.primary_label}")
+                    print(f"      Type: {details.concept_type}")
+                else:
+                    print(f"    No detailed information available")
+            except Exception as e:
+                print(f"    Error getting details: {e}")
+    else:
+        print("  No results found for 'BRAF'")
+
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())

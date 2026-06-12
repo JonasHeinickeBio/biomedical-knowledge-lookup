@@ -1,0 +1,12 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Checking if BioLinker adapter is available...
+  ✓ BioLinker adapter is available
+
+Searching for 'cancer' concepts in BioLinker...
+
+Found 0 results from BioLinker:
+  No results found for 'cancer'

@@ -1,9 +1,0 @@
-[ERROR] base.py 139: Request failed for hpo: 404, message='Not Found', url='https://hpo.jax.org/api/ontological/search?q=fever'
-[ERROR] hpo_adapter.py 48: HPO search failed for 'fever': 404, message='Not Found', url='https://hpo.jax.org/api/ontological/search?q=fever'
-[ERROR] base_events.py 1833: Unclosed client session
-client_session: <aiohttp.client.ClientSession object at 0x7db42d0ae300>
-Checking if HPO adapter is available...
-  ✓ HPO adapter is available
-\nSearching for 'fever' concepts in HPO...
-\nFound 0 results from HPO:
-  No results found for '{query}'

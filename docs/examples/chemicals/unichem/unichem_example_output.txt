@@ -1,0 +1,12 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Checking if UniChem adapter is available...
+  ✓ UniChem adapter is available
+
+Searching for 'CHEMBL1201' concepts in UniChem...
+
+Found 0 results from UniChem:
+  No results found for 'CHEMBL1201'

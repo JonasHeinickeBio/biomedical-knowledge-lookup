@@ -1,0 +1,12 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Checking if Tyto adapter is available...
+  ✓ Tyto adapter is available
+
+Searching for 'cancer' concepts in Tyto...
+
+Found 0 results from Tyto:
+  No results found for 'cancer'

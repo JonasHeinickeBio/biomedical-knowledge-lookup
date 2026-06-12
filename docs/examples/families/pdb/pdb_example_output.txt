@@ -1,0 +1,36 @@
+Checking if PDB adapter is available...
+  ✓ PDB adapter is available
+
+Searching for '6vxx' concepts in PDB...
+
+Found 25 results from PDB:
+
+  Concept 1:
+    Label: Structure of the SARS-CoV-2 spike glycoprotein (closed state)
+    ID: PDB:6VXX
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85
+
+  Concept 2:
+    Label: Spike Protein of RaTG13 Bat Coronavirus in Closed Conformation
+    ID: PDB:6ZGF
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85
+
+  Concept 3:
+    Label: Furin Cleaved Spike Protein of SARS-CoV-2 with One RBD Erect
+    ID: PDB:6ZGG
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85
+
+  Concept 4:
+    Label: Furin Cleaved Spike Protein of SARS-CoV-2 in Intermediate Conformation
+    ID: PDB:6ZGH
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85
+
+  Concept 5:
+    Label: Cryo-EM structure of a biotinylated SARS-CoV-2 spike probe in the prefusion state (RBDs down)
+    ID: PDB:6XF5
+    Type: ConceptType.PROTEIN
+    Confidence: 0.85

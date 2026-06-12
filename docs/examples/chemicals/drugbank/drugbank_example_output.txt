@@ -1,0 +1,12 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Checking if Drugbank adapter is available...
+  ✓ Drugbank adapter is available
+
+Searching for 'aspirin' concepts in Drugbank...
+
+Found 0 results from Drugbank:
+  No results found for 'aspirin'

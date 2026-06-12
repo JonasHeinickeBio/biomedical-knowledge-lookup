@@ -1,6 +1,0 @@
-[ERROR] quickgo_adapter.py 36: bioservices not available for QuickGO adapter
-Checking if QuickGO adapter is available...
-  ✓ QuickGO adapter is available
-\nSearching for 'apoptosis' concepts in QuickGO...
-\nFound 0 results from QuickGO:
-  No results found for '{query}'

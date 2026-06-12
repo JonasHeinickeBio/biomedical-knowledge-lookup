@@ -7,76 +7,71 @@ This directory contains examples for using the various adapters in the biomedica
 ```
 docs/examples/
 ├── README.md (this file)
-├── availability_status.md    # Adapter availability and API key requirements
-├── use_cases.md              # Common use cases and patterns
-├── generate_status.py        # Generate availability status
-├── generate_all_examples.py  # Generate all example scripts
-├── all_adapters_test_results.json  # Test results
-├── notebooks/                # Jupyter notebooks
+├── availability_status.md         # Adapter availability and API key requirements
+├── use_cases.md                   # Common use cases and patterns
+├── generate_status.py             # Generate availability status
+├── generate_all_examples.py       # Generate all example scripts
+├── all_adapters_test_results.json # Test results
+├── notebooks/                     # Jupyter notebooks
 │   ├── 01-getting-started.ipynb
 │   ├── 02-api-keys.ipynb
 │   ├── 03-rate-limiting.ipynb
 │   ├── 04-error-handling.ipynb
 │   └── README.md
-├── python/                   # Standalone Python scripts
 │
-├── core/                     # Core knowledge sources (8 examples)
-│   ├── ols_example.py
-│   ├── umls_example.py
-│   ├── opentargets_example.py
-│   ├── chembl_example.py
-│   ├── disgenet_example.py
-│   ├── mondo_example.py
-│   ├── uniprot_example.py
-│   └── ...
+├── core/                          # Core knowledge sources
+│   ├── ols/
+│   ├── umls/
+│   ├── opentargets/
+│   ├── chembl/
+│   ├── disgenet/
+│   └── mondo/
 │
-├── chemicals/                # Drug and compound sources (3 examples)
-│   ├── drugbank_example.py
-│   ├── pubchem_example.py
-│   └── unichem_example.py
+├── chemicals/                     # Drug and compound sources
+│   ├── drugbank/
+│   ├── pubchem/
+│   └── unichem/
 │
-├── phenotypes/               # Phenotype and disease sources (7 examples)
-│   ├── hpo_example.py
-│   ├── geneontology_example.py
-│   ├── omim_example.py
-│   ├── clinvar_example.py
-│   ├── dbvar_example.py
-│   ├── quickgo_example.py
-│   └── ...
+├── phenotypes/                    # Phenotype and disease sources
+│   ├── hpo/
+│   ├── geneontology/
+│   ├── omim/
+│   ├── clinvar/
+│   └── quickgo/
 │
-├── proteins/                 # Protein and gene sources (3 examples)
-│   ├── uniprot_example.py
-│   ├── ensembl_example.py
-│   └── hgnc_example.py
+├── proteins/                      # Protein and gene sources
+│   ├── uniprot/
+│   ├── ensembl/
+│   └── hgnc/
 │
-├── pathways/                 # Pathway databases (2 examples)
-│   ├── reactome_example.py
-│   └── kegg_example.py
+├── pathways/                      # Pathway databases
+│   ├── reactome/
+│   └── kegg/
 │
-├── ontologies/               # Ontology services (5 examples)
-│   ├── bioontology_example.py
-│   ├── bioportal_example.py
-│   ├── ebiols_example.py
-│   ├── obofoundry_example.py
-│   └── zooma_example.py
+├── ontologies/                    # Ontology services
+│   ├── bioontology/
+│   ├── bioportal/
+│   ├── ebiols/
+│   ├── obofoundry/
+│   └── zooma/
 │
-├── families/                 # Protein families (4 examples)
-│   ├── interpro_example.py
-│   ├── pfam_example.py
-│   ├── pdb_example.py
-│   └── string_example.py
+├── families/                      # Protein families
+│   ├── interpro/
+│   ├── pfam/
+│   ├── pdb/
+│   └── string/
 │
-├── literature/               # Literature sources (2 examples)
-│   ├── europepmc_example.py
-│   └── eutils_example.py
+├── literature/                    # Literature sources
+│   ├── europepmc/
+│   └── eutils/
 │
-└── other/                    # Other/specialized sources (6 examples)
-    ├── biolinker_example.py
-    ├── cosmic_example.py
-    ├── dbpedia_example.py
-    ├── oxo_example.py
-    ├── tyto_example.py
-    └── wikidata_example.py
+└── other/                         # Other/specialized sources
+    ├── biolinker/
+    ├── cosmic/
+    ├── dbpedia/
+    ├── oxo/
+    ├── tyto/
+    └── wikidata/
 ```
 
 ## Quick Start
@@ -90,85 +85,51 @@ export COSMIC_API_KEY="your_api_key"
 export OMIM_API_KEY="your_api_key"
 
 # Run a specific example
-poetry run python docs/examples/core/ols_example.py
-poetry run python docs/examples/phenotypes/hpo_example.py
-poetry run python docs/examples/chemicals/pubchem_example.py
+poetry run python docs/examples/core/ols/ols_example.py
+poetry run python docs/examples/phenotypes/hpo/hpo_example.py
+poetry run python docs/examples/chemicals/pubchem/pubchem_example.py
 ```
 
 ## Available Examples
 
-### Core Knowledge Sources (`core/`)
 | Adapter | Description | Example |
 |---------|-------------|---------|
-| OLS | Ontology Lookup Service | `core/ols_example.py` |
-| UMLS | Unified Medical Language System | `core/umls_example.py` |
-| OpenTargets | Drug targets and disease associations | `core/opentargets_example.py` |
-| ChEMBL | Bioactive drug-like molecules | `core/chembl_example.py` |
-| DisGeNET | Gene-disease associations | `core/disgenet_example.py` |
-| Mondo | Disease ontology | `core/mondo_example.py` |
-| UniProt | Protein sequences and functions | `core/uniprot_example.py` |
-
-### Chemicals (`chemicals/`)
-| Adapter | Description | Example |
-|---------|-------------|---------|
-| DrugBank | Drug information and targets | `chemicals/drugbank_example.py` |
-| PubChem | Chemical compounds and structures | `chemicals/pubchem_example.py` |
-| UniChem | Drug cross-references | `chemicals/unichem_example.py` |
-
-### Phenotypes (`phenotypes/`)
-| Adapter | Description | Example |
-|---------|-------------|---------|
-| HPO | Human phenotype ontology | `phenotypes/hpo_example.py` |
-| GeneOntology | Gene function annotations | `phenotypes/geneontology_example.py` |
-| OMIM | Online Mendelian Inheritance in Man | `phenotypes/omim_example.py` |
-| ClinVar | Genomic variations and clinical significance | `phenotypes/clinvar_example.py` |
-| QuickGO | Gene Ontology browser | `phenotypes/quickgo_example.py` |
-
-### Proteins (`proteins/`)
-| Adapter | Description | Example |
-|---------|-------------|---------|
-| UniProt | Protein sequences and functions | `proteins/uniprot_example.py` |
-| Ensembl | Genome annotation | `proteins/ensembl_example.py` |
-| HGNC | Human gene nomenclature | `proteins/hgnc_example.py` |
-
-### Pathways (`pathways/`)
-| Adapter | Description | Example |
-|---------|-------------|---------|
-| Reactome | Biological pathways | `pathways/reactome_example.py` |
-| KEGG | Pathways and disease maps | `pathways/kegg_example.py` |
-
-### Ontologies (`ontologies/`)
-| Adapter | Description | Example |
-|---------|-------------|---------|
-| Bioontology | BioOntology API | `ontologies/bioontology_example.py` |
-| BioPortal | NCBI BioPortal ontologies | `ontologies/bioportal_example.py` |
-| EBIOLS | EBI Ontology Lookup Service | `ontologies/ebiols_example.py` |
-| OBOFoundry | Interoperable ontologies | `ontologies/obofoundry_example.py` |
-| Zooma | Ontology annotation mapping | `ontologies/zooma_example.py` |
-
-### Families (`families/`)
-| Adapter | Description | Example |
-|---------|-------------|---------|
-| InterPro | Protein domain classification | `families/interpro_example.py` |
-| Pfam | Protein family database | `families/pfam_example.py` |
-| PDB | Protein 3D structures | `families/pdb_example.py` |
-| STRING | Protein-protein interactions | `families/string_example.py` |
-
-### Literature (`literature/`)
-| Adapter | Description | Example |
-|---------|-------------|---------|
-| EuropePMC | Europe PMC literature search | `literature/europepmc_example.py` |
-| EUtils | NCBI E-utilities | `literature/eutils_example.py` |
-
-### Other (`other/`)
-| Adapter | Description | Example |
-|---------|-------------|---------|
-| Biolinker | Biomedical concept linking | `other/biolinker_example.py` |
-| Cosmic | Cancer gene mutations | `other/cosmic_example.py` |
-| DBpedia | Wikipedia structured data | `other/dbpedia_example.py` |
-| OxO | Ontology cross-references | `other/oxo_example.py` |
-| Tyto | Ontology terms lookup | `other/tyto_example.py` |
-| Wikidata | General knowledge from Wikidata | `other/wikidata_example.py` |
+| OLS | Ontology Lookup Service | `core/ols/ols_example.py` |
+| UMLS | Unified Medical Language System | `core/umls/umls_example.py` |
+| OpenTargets | Drug targets and disease associations | `core/opentargets/opentargets_example.py` |
+| ChEMBL | Bioactive drug-like molecules | `core/chembl/chembl_example.py` |
+| DisGeNET | Gene-disease associations | `core/disgenet/disgenet_example.py` |
+| Mondo | Disease ontology | `core/mondo/mondo_example.py` |
+| DrugBank | Drug information and targets | `chemicals/drugbank/drugbank_example.py` |
+| PubChem | Chemical compounds and structures | `chemicals/pubchem/pubchem_example.py` |
+| UniChem | Drug cross-references | `chemicals/unichem/unichem_example.py` |
+| HPO | Human phenotype ontology | `phenotypes/hpo/hpo_example.py` |
+| GeneOntology | Gene function annotations | `phenotypes/geneontology/geneontology_example.py` |
+| OMIM | Online Mendelian Inheritance in Man | `phenotypes/omim/omim_example.py` |
+| ClinVar | Genomic variations and clinical significance | `phenotypes/clinvar/clinvar_example.py` |
+| QuickGO | Gene Ontology browser | `phenotypes/quickgo/quickgo_example.py` |
+| UniProt | Protein sequences and functions | `proteins/uniprot/uniprot_example.py` |
+| Ensembl | Genome annotation | `proteins/ensembl/ensembl_example.py` |
+| HGNC | Human gene nomenclature | `proteins/hgnc/hgnc_example.py` |
+| Reactome | Biological pathways | `pathways/reactome/reactome_example.py` |
+| KEGG | Pathways and disease maps | `pathways/kegg/kegg_example.py` |
+| Bioontology | BioOntology API | `ontologies/bioontology/bioontology_example.py` |
+| BioPortal | NCBI BioPortal ontologies | `ontologies/bioportal/bioportal_example.py` |
+| EBIOLS | EBI Ontology Lookup Service | `ontologies/ebiols/ebiols_example.py` |
+| OBOFoundry | Interoperable ontologies | `ontologies/obofoundry/obofoundry_example.py` |
+| Zooma | Ontology annotation mapping | `ontologies/zooma/zooma_example.py` |
+| InterPro | Protein domain classification | `families/interpro/interpro_example.py` |
+| Pfam | Protein family database | `families/pfam/pfam_example.py` |
+| PDB | Protein 3D structures | `families/pdb/pdb_example.py` |
+| STRING | Protein-protein interactions | `families/string/string_example.py` |
+| EuropePMC | Europe PMC literature search | `literature/europepmc/europepmc_example.py` |
+| EUtils | NCBI E-utilities | `literature/eutils/eutils_example.py` |
+| Biolinker | Biomedical concept linking | `other/biolinker/biolinker_example.py` |
+| Cosmic | Cancer gene mutations | `other/cosmic/cosmic_example.py` |
+| DBpedia | Wikipedia structured data | `other/dbpedia/dbpedia_example.py` |
+| OxO | Ontology cross-references | `other/oxo/oxo_example.py` |
+| Tyto | Ontology terms lookup | `other/tyto/tyto_example.py` |
+| Wikidata | General knowledge from Wikidata | `other/wikidata/wikidata_example.py` |
 
 ## Adapter Status
 
@@ -225,16 +186,7 @@ details = await lookup.get_concept_details("DOID:9351", source=KnowledgeSource.O
 ## Examples Without API Keys
 
 The following adapters work without any API keys:
-
-**Core:** OLS, UMLS, OpenTargets, ChEMBL, DisGeNET, Mondo, UniProt
-**Chemicals:** DrugBank, PubChem, UniChem
-**Phenotypes:** HPO, GeneOntology, ClinVar, QuickGO
-**Proteins:** Ensembl, HGNC
-**Pathways:** Reactome, KEGG
-**Ontologies:** Bioontology, BioPortal, EBIOLS, OBOFoundry, Zooma
-**Families:** InterPro, Pfam, PDB, STRING
-**Literature:** EuropePMC, EUtils
-**Other:** Biolinker, DBpedia, OxO, Tyto, Wikidata
+OLS, UMLS, OpenTargets, ChEMBL, DisGeNET, Mondo, UniProt, DrugBank, PubChem, UniChem, HPO, GeneOntology, ClinVar, QuickGO, Ensembl, HGNC, Reactome, KEGG, Bioontology, BioPortal, EBIOLS, OBOFoundry, Zooma, InterPro, Pfam, PDB, STRING, EuropePMC, EUtils, Biolinker, DBpedia, OxO, Tyto, Wikidata
 
 ## Examples Requiring API Keys
 

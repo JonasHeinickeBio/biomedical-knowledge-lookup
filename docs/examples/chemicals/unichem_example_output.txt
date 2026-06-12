@@ -1,8 +1,0 @@
-[ERROR] unichem_adapter.py 29: bioservices not available. Install with: pip install bioservices
-[WARNING] central_lookup.py 91: unichem adapter not available
-[WARNING] central_lookup.py 190: No available sources for query
-Checking if UniChem adapter is available...
-  ✓ UniChem adapter is available
-\nSearching for 'CHEMBL1201' concepts in UniChem...
-\nFound 0 results from UniChem:
-  No results found for '{query}'

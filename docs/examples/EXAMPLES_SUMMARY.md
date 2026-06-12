@@ -9,11 +9,11 @@ Generated **36 example scripts** covering all adapters in the project. Each exam
 ## Files Created
 
 ### Example Scripts
-- **36 files** in `docs/examples/` named `{adapter_name}_example.py`
+- **36 files** in `docs/examples/{category}/{adapter_name}/` named `{adapter_name}_example.py`
 - Each script demonstrates: adapter initialization, search, and result processing
 
 ### Output Files
-- **36 output files** in `docs/examples/` named `{adapter_name}_example_output.txt`
+- **36 output files** in `docs/examples/{category}/{adapter_name}/` named `{adapter_name}_example_output.txt`
 - Captures actual output from running the examples
 
 ### Documentation
@@ -93,13 +93,13 @@ Each example follows this pattern:
 
 ### For adapters without API keys:
 ```bash
-poetry run python docs/examples/{adapter_name}_example.py
+poetry run python docs/examples/{category}/{adapter_name}/{adapter_name}_example.py
 ```
 
 ### For adapters requiring API keys:
 ```bash
 export BIOPORTAL_API_KEY="your_api_key"
-poetry run python docs/examples/bioportal_example.py
+poetry run python docs/examples/ontologies/bioportal/bioportal_example.py
 ```
 
 ## Integration with CI/CD

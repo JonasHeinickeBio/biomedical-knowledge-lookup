@@ -1,0 +1,36 @@
+Checking if Clinvar adapter is available...
+  ✓ Clinvar adapter is available
+
+Searching for 'BRCA1' concepts in Clinvar...
+
+Found 20 results from Clinvar:
+
+  Concept 1:
+    Label: NM_000059.4(BRCA2):c.8021A>G (p.Lys2674Arg)
+    ID: ClinVar:4852578
+    Type: ConceptType.MOLECULAR_ENTITY
+    Confidence: 0.85
+
+  Concept 2:
+    Label: NM_007294.4(BRCA1):c.30dup (p.Val11fs)
+    ID: ClinVar:4852577
+    Type: ConceptType.MOLECULAR_ENTITY
+    Confidence: 0.85
+
+  Concept 3:
+    Label: NM_000059.4(BRCA2):c.1047dup (p.Glu350fs)
+    ID: ClinVar:4852576
+    Type: ConceptType.MOLECULAR_ENTITY
+    Confidence: 0.85
+
+  Concept 4:
+    Label: NM_000059.4(BRCA2):c.5643dup (p.Ser1882fs)
+    ID: ClinVar:4852575
+    Type: ConceptType.MOLECULAR_ENTITY
+    Confidence: 0.85
+
+  Concept 5:
+    Label: GRCh38/hg38 Xq28(chrX:154890748-155334361)x1
+    ID: ClinVar:4852102
+    Type: ConceptType.MOLECULAR_ENTITY
+    Confidence: 0.85

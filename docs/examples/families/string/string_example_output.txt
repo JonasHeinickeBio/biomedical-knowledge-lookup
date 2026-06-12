@@ -1,0 +1,12 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Checking if STRING adapter is available...
+  ✓ STRING adapter is available
+
+Searching for 'TP53' concepts in STRING...
+
+Found 0 results from STRING:
+  No results found for 'TP53'

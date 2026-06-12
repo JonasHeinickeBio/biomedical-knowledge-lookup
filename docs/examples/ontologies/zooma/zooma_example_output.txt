@@ -1,0 +1,12 @@
+Checking if Zooma adapter is available...
+  ✓ Zooma adapter is available
+
+Searching for 'cancer' concepts in Zooma...
+
+Found 1 results from Zooma:
+
+  Concept 1:
+    Label: cancer
+    ID: http://purl.obolibrary.org/obo/MONDO_0004992
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.9
