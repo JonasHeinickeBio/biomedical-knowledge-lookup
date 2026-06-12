@@ -4,8 +4,9 @@ Unit tests for BioLinkerAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.biolinker_adapter import BioLinkerAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

@@ -5,21 +5,22 @@ This module contains data classes and models used throughout the UMLS client.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Any
+from typing import Any
 
 
 @dataclass
 class UMLSConcept:
     """Represents a UMLS concept with its properties."""
+
     cui: str
     name: str
-    semantic_types: List[str]
-    definitions: List[str]
-    synonyms: List[str]
-    sources: List[str]
-    atoms: List[Dict[str, Any]]
-    relationships: List[Dict[str, Any]]
-    
+    semantic_types: list[str]
+    definitions: list[str]
+    synonyms: list[str]
+    sources: list[str]
+    atoms: list[dict[str, Any]]
+    relationships: list[dict[str, Any]]
+
     def __post_init__(self):
         """Ensure all fields are properly initialized."""
         if not isinstance(self.semantic_types, list):
@@ -39,20 +40,21 @@ class UMLSConcept:
 @dataclass
 class UMLSSearchResult:
     """Represents a search result from UMLS."""
+
     cui: str
     name: str
     ui: str
     source: str
     source_concept_id: str
     root_source: str
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
-            'cui': self.cui,
-            'name': self.name,
-            'ui': self.ui,
-            'source': self.source,
-            'source_concept_id': self.source_concept_id,
-            'root_source': self.root_source
+            "cui": self.cui,
+            "name": self.name,
+            "ui": self.ui,
+            "source": self.source,
+            "source_concept_id": self.source_concept_id,
+            "root_source": self.root_source,
         }

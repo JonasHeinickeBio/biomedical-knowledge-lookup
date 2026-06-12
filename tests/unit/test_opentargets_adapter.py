@@ -4,8 +4,9 @@ Unit tests for OpenTargetsAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.opentargets_adapter import OpenTargetsAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
@@ -71,22 +72,20 @@ class TestOpenTargetsAdapter:
         assert len(results) == 0
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_http_error(self, mock_get, adapter):
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_search_concepts_http_error(self, mock_make_request, adapter):
         """Test search concepts with HTTP error."""
-        mock_response = AsyncMock()
-        mock_response.status = 500
-        mock_get.return_value.__aenter__.return_value = mock_response
+        mock_make_request.side_effect = Exception("HTTP error")
 
         results = await adapter.search_concepts("test")
         assert isinstance(results, list)
         assert len(results) == 0
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_network_error(self, mock_get, adapter):
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_search_concepts_network_error(self, mock_make_request, adapter):
         """Test search concepts with network error."""
-        mock_get.side_effect = Exception("Network error")
+        mock_make_request.side_effect = Exception("Network error")
 
         results = await adapter.search_concepts("test")
         assert isinstance(results, list)

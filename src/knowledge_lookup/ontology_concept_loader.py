@@ -8,7 +8,7 @@ and dynamically generates concept type handlers for the RDF converter.
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any
 
 from rdflib import OWL, RDF, RDFS, Graph, URIRef
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class OntologyConceptLoader:
     """Loads concept types dynamically from ontology files."""
 
-    def __init__(self, ontology_dir: Optional[str] = None):
+    def __init__(self, ontology_dir: str | None = None):
         """
         Initialize the ontology loader.
 
@@ -40,7 +40,7 @@ class OntologyConceptLoader:
             )
 
         self.ontology_dir = Path(ontology_dir)
-        self._ontology_graph = None
+        self._ontology_graph: Any = None
 
     def load_ontology_graph(self) -> Graph:
         """Load and merge all ontology TTL files into a single graph."""
@@ -70,7 +70,7 @@ class OntologyConceptLoader:
         logger.info(f"Loaded ontology graph with {len(graph)} triples")
         return graph
 
-    def extract_concept_classes(self) -> Dict[str, str]:
+    def extract_concept_classes(self) -> dict[str, str]:
         """
         Extract all owl:Class concepts from the ontology.
 
@@ -103,7 +103,7 @@ class OntologyConceptLoader:
         logger.info(f"Extracted {len(concepts)} concept classes from ontology")
         return concepts
 
-    def get_concept_hierarchy(self) -> Dict[str, List[str]]:
+    def get_concept_hierarchy(self) -> dict[str, list[str]]:
         """
         Extract concept hierarchy (subclass relationships).
 
@@ -111,7 +111,7 @@ class OntologyConceptLoader:
             Dictionary mapping parent concepts to their children
         """
         graph = self.load_ontology_graph()
-        hierarchy = {}
+        hierarchy: dict[str, list[str]] = {}
 
         # Query for rdfs:subClassOf relationships
         for subj, obj in graph.subject_objects(RDFS.subClassOf):
@@ -134,7 +134,7 @@ class OntologyConceptLoader:
         else:
             return uri_str.split("/")[-1]
 
-    def create_dynamic_concept_types(self) -> Dict[str, str]:
+    def create_dynamic_concept_types(self) -> dict[str, str]:
         """
         Create a mapping of concept names to their normalized enum-style names.
 
@@ -145,7 +145,7 @@ class OntologyConceptLoader:
 
         # Normalize concept names to enum-style (UPPER_CASE)
         normalized_mapping = {}
-        for concept_name, label in concepts.items():
+        for concept_name, _label in concepts.items():
             # Convert to UPPER_CASE with underscores
             normalized = concept_name.upper().replace("-", "_").replace(" ", "_")
             normalized_mapping[concept_name] = normalized
@@ -165,7 +165,7 @@ def create_dynamic_concept_enum():
 
     # Create enum members
     enum_members = {}
-    for concept_name, label in concepts.items():
+    for concept_name, _label in concepts.items():
         # Normalize to UPPER_CASE
         enum_name = concept_name.upper().replace("-", "_").replace(" ", "_")
         # Use the original name as the value for backward compatibility
@@ -175,7 +175,7 @@ def create_dynamic_concept_enum():
     enum_members["UNKNOWN"] = "unknown"
 
     # Create the enum class
-    DynamicConceptType = Enum("ConceptType", enum_members)
+    DynamicConceptType = Enum("ConceptType", enum_members)  # type: ignore
 
     return DynamicConceptType
 
@@ -253,7 +253,7 @@ if __name__ == "__main__":
         DynamicConceptType = create_dynamic_concept_enum()
         print(f"\nDynamic ConceptType enum created with {len(DynamicConceptType)} members")
         print("Sample members:")
-        for i, member in enumerate(list(DynamicConceptType)[:5]):
+        for _i, member in enumerate(list(DynamicConceptType)[:5]):
             print(f"  - {member.name}: {member.value}")
         if len(DynamicConceptType) > 5:
             print(f"  ... and {len(DynamicConceptType) - 5} more")

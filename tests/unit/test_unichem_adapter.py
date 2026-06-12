@@ -4,8 +4,9 @@ Unit tests for UniChemAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.unichem_adapter import UniChemAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

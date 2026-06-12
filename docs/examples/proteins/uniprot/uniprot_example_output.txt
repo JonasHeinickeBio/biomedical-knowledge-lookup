@@ -1,0 +1,50 @@
+Checking if UniProt adapter is available...
+  ✓ UniProt adapter is available
+
+Searching for 'p53' concepts in UniProt...
+
+Found 14 results from UniProt:
+
+  Concept 1:
+    Label: TP53
+    ID: Q29537
+    Type: ConceptType.PROTEIN
+    Confidence: 0.95
+    Definitions (8):
+      - Multifunctional transcription factor that induces cell cycle arrest, DNA repair or apoptosis upon binding to its target DNA sequence (PubMed:11025664, PubMed:12524540, PubMed:12810724, PubMed:15186775, PubMed:15340061, PubMed:17317671, PubMed:17349958, PubMed:19556538, PubMed:20673990, PubMed:20959462, PubMed:22726440, PubMed:24051492, PubMed:24652652, PubMed:35618207, PubMed:36634798, PubMed:38653238, PubMed:9840937). Acts as a tumor suppressor in many tumor types; induces growth arrest or apoptosis depending on the physiological circumstances and cell type (PubMed:11025664, PubMed:12524540, PubMed:12810724, PubMed:15186775, PubMed:15340061, PubMed:17189187, PubMed:17317671, PubMed:17349958, PubMed:19556538, PubMed:20673990, PubMed:20959462, PubMed:22726440, PubMed:24051492, PubMed:24652652, PubMed:38653238, PubMed:9840937). Negatively regulates cell division by controlling expression of a set of genes required for this process (PubMed:11025664, PubMed:12524540, PubMed:12810724, PubMed:15186775, PubMed:15340061, PubMed:17317671, PubMed:17349958, PubMed:19556538, PubMed:20673990, PubMed:20959462, PubMed:22726440, PubMed:24051492, PubMed:24652652, PubMed:9840937). One of the activated genes is an inhibitor of cyclin-dependent kinases. Apoptosis induction seems to be mediated either by stimulation of BAX and FAS antigen expression, or by repression of Bcl-2 expression (PubMed:12524540, PubMed:17189187). Its pro-apoptotic activity is activated via its interaction with PPP1R13B/ASPP1 or TP53BP2/ASPP2 (PubMed:12524540). However, this activity is inhibited when the interaction with PPP1R13B/ASPP1 or TP53BP2/ASPP2 is displaced by PPP1R13L/iASPP (PubMed:12524540). In cooperation with mitochondrial PPIF is involved in activating oxidative stress-induced necrosis; the function is largely independent of transcription. Induces the transcription of long intergenic non-coding RNA p21 (lincRNA-p21) and lincRNA-Mkln1. LincRNA-p21 participates in TP53-dependent transcriptional repression leading to apoptosis and seems to have an effect on cell-cycle regulation. Implicated in Notch signaling cross-over. Prevents CDK7 kinase activity when associated to CAK complex in response to DNA damage, thus stopping cell cycle progression. Isoform 2 enhances the transactivation activity of isoform 1 from some but not all TP53-inducible promoters. Isoform 4 suppresses transactivation activity and impairs growth suppression mediated by isoform 1. Isoform 7 inhibits isoform 1-mediated apoptosis. Regulates the circadian clock by repressing CLOCK-BMAL1-mediated transcriptional activation of PER2 (PubMed:24051492)
+      - Multifunctional transcription factor that induces cell cycle arrest, DNA repair or apoptosis upon binding to its target DNA sequence. Acts as a tumor suppressor in many tumor types; induces growth arrest or apoptosis depending on the physiological circumstances and cell type. Negatively regulates cell division by controlling expression of a set of genes required for this process. One of the activated genes is an inhibitor of cyclin-dependent kinases. Apoptosis induction seems to be mediated either by stimulation of bax and fas antigen expression, or by repression of Bcl-2 expression. Positively regulates apoptosis in the early-stage embryo in response to UV irradiation (PubMed:15529176)
+
+  Concept 2:
+    Label: TP53BP1
+    ID: Q12888
+    Type: ConceptType.PROTEIN
+    Confidence: 0.95
+    Definitions (2):
+      - Double-strand break (DSB) repair protein involved in response to DNA damage, telomere dynamics and class-switch recombination (CSR) during antibody genesis (PubMed:15077110, PubMed:15159415, PubMed:20362325, PubMed:20453858, PubMed:23333305, PubMed:26308889). Plays a key role in the repair of double-strand DNA breaks (DSBs) in response to DNA damage by promoting non-homologous end joining (NHEJ)-mediated repair of DSBs and specifically counteracting the function of the homologous recombination (HR) repair protein BRCA1 (PubMed:20362325, PubMed:23333305, PubMed:30297459). In response to DSBs, phosphorylation by ATM promotes interaction with RIF1 and dissociation from NUDT16L1/TIRR, leading to recruitment to DSBs sites. Recruited to DSBs sites by recognizing and binding histone H2A monoubiquitinated at 'Lys-15' (H2AK15Ub) and histone H4 dimethylated at 'Lys-20' (H4K20me2), two histone marks that are present at DSBs sites. Required for immunoglobulin class-switch recombination (CSR) during antibody genesis, a process that involves the generation of DNA DSBs (PubMed:15077110, PubMed:15159415). Participates in the repair and the orientation of the broken DNA ends during CSR (PubMed:26308889). In contrast, it is not required for classic NHEJ and V(D)J recombination (PubMed:15159415). Promotes NHEJ of dysfunctional telomeres (By similarity)
+      - Double-strand break (DSB) repair protein involved in response to DNA damage, telomere dynamics and class-switch recombination (CSR) during antibody genesis (PubMed:12364621, PubMed:17190600, PubMed:21144835, PubMed:22553214, PubMed:23333306, PubMed:27153538, PubMed:28241136, PubMed:31135337, PubMed:37696958). Plays a key role in the repair of double-strand DNA breaks (DSBs) in response to DNA damage by promoting non-homologous end joining (NHEJ)-mediated repair of DSBs and specifically counteracting the function of the homologous recombination (HR) repair protein BRCA1 (PubMed:22553214, PubMed:23333306, PubMed:23727112, PubMed:27153538, PubMed:31135337). In response to DSBs, phosphorylation by ATM promotes interaction with RIF1 and dissociation from NUDT16L1/TIRR, leading to recruitment to DSBs sites (PubMed:28241136). Recruited to DSBs sites by recognizing and binding histone H2A monoubiquitinated at 'Lys-15' (H2AK15Ub) and histone H4 dimethylated at 'Lys-20' (H4K20me2), two histone marks that are present at DSBs sites (PubMed:17190600, PubMed:23760478, PubMed:27153538, PubMed:28241136). Required for immunoglobulin class-switch recombination (CSR) during antibody genesis, a process that involves the generation of DNA DSBs (PubMed:23345425). Participates in the repair and the orientation of the broken DNA ends during CSR (By similarity). In contrast, it is not required for classic NHEJ and V(D)J recombination (By similarity). Promotes NHEJ of dysfunctional telomeres via interaction with PAXIP1 (PubMed:23727112)
+
+  Concept 3:
+    Label: PP2C53
+    ID: Q6L4R7
+    Type: ConceptType.PROTEIN
+    Confidence: 0.95
+    Definitions (1):
+      - Protein phosphatase that acts as a negative regulator of abscisic acid (ABA) signaling. Involved in the regulation of root architecture development and drought resistance. Can dephosphorylate SAPK8 and SAPK10 in vitro. Together with PYL10, SAPK8 and SAPK10, may form an ABA signaling module involved in stress response
+
+  Concept 4:
+    Label: TP73
+    ID: O15350
+    Type: ConceptType.PROTEIN
+    Confidence: 0.95
+    Definitions (3):
+      - Participates in the apoptotic response to DNA damage. Isoforms containing the transactivation domain are pro-apoptotic, isoforms lacking the domain are anti-apoptotic and block the function of p53 and transactivating p73 isoforms. May be a tumor suppressor protein. Is an activator of FOXJ1 expression (By similarity). It is an essential factor for the positive regulation of lung ciliated cell differentiation (PubMed:34077761)
+      - Participates in the apoptotic response to DNA damage. May be a tumor suppressor protein (By similarity). Is an activator of FOXJ1 expression, essential for the positive regulation of lung ciliated cell differentiation (By similarity)
+
+  Concept 5:
+    Label: PER53
+    ID: Q42578
+    Type: ConceptType.PROTEIN
+    Confidence: 0.95
+    Definitions (2):
+
+      - Closely linked to lignin formation by showing monolignol substrate specificity

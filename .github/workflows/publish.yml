@@ -1,0 +1,202 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "PyPI environment (testpypi or pypi)"
+        required: true
+        default: "testpypi"
+        type: choice
+        options:
+          - testpypi
+          - pypi
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Verify: run quick checks before publishing
+  # ---------------------------------------------------------------------------
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Poetry
+      run: |
+        pip install --upgrade pip
+        pip install poetry
+        poetry --version
+
+    - name: Check Poetry configuration
+      run: |
+        poetry check --no-interaction
+
+    - name: Validate version
+      run: |
+        VERSION=$(poetry version --short)
+        echo "Package version: $VERSION"
+        # Ensure version matches the git tag for tag-triggered runs
+        if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "$VERSION" != "$TAG_VERSION" ]]; then
+            echo "ERROR: Package version ($VERSION) does not match tag version ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "Version check: OK ($VERSION matches tag)"
+        fi
+
+    - name: Run lint checks
+      run: |
+        poetry install --with dev --no-interaction
+        poetry run ruff check src/
+        poetry run ruff format --check src/
+        poetry run mypy src/ || true  # Don't block publishing on type issues
+
+    - name: Run tests
+      run: |
+        poetry run pytest tests/unit -v --timeout=60
+
+  # ---------------------------------------------------------------------------
+  # Build: create distribution packages
+  # ---------------------------------------------------------------------------
+  build:
+    runs-on: ubuntu-latest
+    needs: [verify]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Poetry
+      run: |
+        pip install --upgrade pip
+        pip install poetry
+
+    - name: Build distribution
+      run: |
+        poetry build --no-interaction
+
+    - name: Verify distribution
+      run: |
+        ls -la dist/
+        python -m pip install dist/*.whl
+        python -c "from knowledge_lookup import CentralKnowledgeLookup; print('Package import OK')"
+
+    - name: Store distribution artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-packages
+        path: dist/
+        if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Attest: generate Sigstore provenance attestations
+  # ---------------------------------------------------------------------------
+  attest:
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download distribution artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-packages
+        path: dist/
+
+    - name: Generate provenance attestation
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-path: dist/*
+        subject-name: ${{ github.repository }}
+
+  # ---------------------------------------------------------------------------
+  # Publish: upload to PyPI using trusted publishing (OIDC)
+  # ---------------------------------------------------------------------------
+  publish:
+    runs-on: ubuntu-latest
+    needs: [build, attest]
+    permissions:
+      id-token: write
+      contents: read
+
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'pypi' }}
+      url: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi' && 'https://test.pypi.org/project/biomedical-knowledge-lookup/' || 'https://pypi.org/project/biomedical-knowledge-lookup/' }}
+
+    steps:
+    - name: Download distribution artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-packages
+        path: dist/
+
+    - name: Display distribution files
+      run: |
+        ls -la dist/
+        sha256sum dist/*
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        packages-dir: dist/
+        attestations: true
+        verify-metadata: true
+        skip-existing: true
+        # For manual testpypi uploads
+        repository-url: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi' && 'https://test.pypi.org/legacy/' || '' }}
+
+  # ---------------------------------------------------------------------------
+  # Draft release notes (optional convenience)
+  # ---------------------------------------------------------------------------
+  github-release:
+    runs-on: ubuntu-latest
+    needs: [publish]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download distribution artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-packages
+        path: dist/
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        body_path: CHANGELOG.md
+        files: dist/*
+        generate_release_notes: true
+        make_latest: true

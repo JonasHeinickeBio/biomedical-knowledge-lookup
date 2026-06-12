@@ -6,7 +6,7 @@ Common data structures for unified knowledge graph lookups.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 
 class KnowledgeSource(Enum):
@@ -44,6 +44,15 @@ class KnowledgeSource(Enum):
     MYGENEINFO = "mygeneinfo"
     HGNC = "hgnc"
     EUTILS = "eutils"
+    EUROPEPMC = "europepmc"
+    OMIM = "omim"
+    CLINVAR = "clinvar"
+    DBVAR = "dbvar"
+    COSMIC = "cosmic"
+    PDB = "pdb"
+    INTERPRO = "interpro"
+    PFAM = "pfam"
+    STRING = "string"
 
 
 class ConceptType(Enum):
@@ -79,6 +88,9 @@ class ConceptType(Enum):
     CELL_TYPE = "cell_type"
     CELLULAR_COMPONENT = "cellular_component"
 
+    # Procedures
+    PROCEDURE = "procedure"
+
     # Biological processes
     BIOLOGICAL_PROCESS = "biological_process"
     PHYSIOLOGICAL_PROCESS = "physiological_process"
@@ -113,7 +125,6 @@ class ConceptType(Enum):
     # Other entities
     PERSON = "person"
     ORGANISM = "organism"
-    PROCEDURE = "procedure"
     PATHWAY = "pathway"  # Keeping for backward compatibility
     ANATOMY = "anatomy"  # Keeping for backward compatibility
 
@@ -126,8 +137,8 @@ class ConceptIdentifier:
 
     source: KnowledgeSource
     identifier: str
-    label: Optional[str] = None
-    url: Optional[str] = None
+    label: str | None = None
+    url: str | None = None
 
     def __str__(self) -> str:
         return f"{self.source.value}:{self.identifier}"
@@ -141,7 +152,7 @@ class ConceptMapping:
     to_concept: ConceptIdentifier
     mapping_type: str = "exact"  # exact, narrow, broad, related
     confidence: float = 1.0
-    source: Optional[str] = None
+    source: str | None = None
 
 
 @dataclass
@@ -156,37 +167,37 @@ class UnifiedConcept:
     concept_type: ConceptType = ConceptType.UNKNOWN
 
     # Cross-references
-    identifiers: List[ConceptIdentifier] = field(default_factory=list)
-    mappings: List[ConceptMapping] = field(default_factory=list)
+    identifiers: list[ConceptIdentifier] = field(default_factory=list)
+    mappings: list[ConceptMapping] = field(default_factory=list)
 
     # Labels and descriptions
-    labels: Dict[str, str] = field(default_factory=dict)  # language -> label
-    synonyms: List[str] = field(default_factory=list)
-    definitions: List[str] = field(default_factory=list)
+    labels: dict[str, str] = field(default_factory=dict)  # language -> label
+    synonyms: list[str] = field(default_factory=list)
+    definitions: list[str] = field(default_factory=list)
 
     # Classification
-    semantic_types: List[str] = field(default_factory=list)
-    categories: List[str] = field(default_factory=list)
+    semantic_types: list[str] = field(default_factory=list)
+    categories: list[str] = field(default_factory=list)
 
     # Relationships
-    parents: List[str] = field(default_factory=list)
-    children: List[str] = field(default_factory=list)
-    related: List[str] = field(default_factory=list)
+    parents: list[str] = field(default_factory=list)
+    children: list[str] = field(default_factory=list)
+    related: list[str] = field(default_factory=list)
 
     # Metadata
-    sources: Set[KnowledgeSource] = field(default_factory=set)
+    sources: set[KnowledgeSource] = field(default_factory=set)
     confidence_score: float = 0.0
-    last_updated: Optional[str] = None
+    last_updated: str | None = None
 
     # Raw data from sources
-    source_data: Dict[KnowledgeSource, Dict[str, Any]] = field(default_factory=dict)
+    source_data: dict[KnowledgeSource, Any] = field(default_factory=dict)
 
     def add_identifier(
         self,
         source: KnowledgeSource,
         identifier: str,
-        label: Optional[str] = None,
-        url: Optional[str] = None,
+        label: str | None = None,
+        url: str | None = None,
     ):
         """Add a cross-reference identifier."""
         concept_id = ConceptIdentifier(source, identifier, label, url)
@@ -199,7 +210,7 @@ class UnifiedConcept:
         target_id: str,
         mapping_type: str = "exact",
         confidence: float = 1.0,
-        mapping_source: Optional[str] = None,
+        mapping_source: str | None = None,
     ):
         """Add a mapping to another concept."""
         from_concept = ConceptIdentifier(KnowledgeSource.UMLS, self.primary_id, self.primary_label)
@@ -209,7 +220,7 @@ class UnifiedConcept:
         )
         self.mappings.append(mapping)
 
-    def get_identifier(self, source: KnowledgeSource) -> Optional[ConceptIdentifier]:
+    def get_identifier(self, source: KnowledgeSource) -> ConceptIdentifier | None:
         """Get identifier for a specific source."""
         for identifier in self.identifiers:
             if identifier.source == source:
@@ -268,15 +279,15 @@ class LookupResult:
     """Result of a knowledge lookup operation."""
 
     query: str
-    concepts: List[UnifiedConcept] = field(default_factory=list)
+    concepts: list[UnifiedConcept] = field(default_factory=list)
     total_found: int = 0
-    sources_queried: List[KnowledgeSource] = field(default_factory=list)
-    sources_succeeded: List[KnowledgeSource] = field(default_factory=list)
-    sources_failed: List[KnowledgeSource] = field(default_factory=list)
+    sources_queried: list[KnowledgeSource] = field(default_factory=list)
+    sources_succeeded: list[KnowledgeSource] = field(default_factory=list)
+    sources_failed: list[KnowledgeSource] = field(default_factory=list)
     execution_time: float = 0.0
-    errors: Dict[KnowledgeSource, str] = field(default_factory=dict)
+    errors: dict[KnowledgeSource, str] = field(default_factory=dict)
 
-    def add_concepts(self, concepts: List[UnifiedConcept], source: KnowledgeSource):
+    def add_concepts(self, concepts: list[UnifiedConcept], source: KnowledgeSource):
         """Add concepts from a specific source."""
         self.concepts.extend(concepts)
         self.total_found += len(concepts)
@@ -289,13 +300,13 @@ class LookupResult:
         if source not in self.sources_failed:
             self.sources_failed.append(source)
 
-    def get_best_matches(self, limit: int = 10) -> List[UnifiedConcept]:
+    def get_best_matches(self, limit: int = 10) -> list[UnifiedConcept]:
         """Get the best matching concepts sorted by confidence."""
         return sorted(self.concepts, key=lambda c: c.confidence_score, reverse=True)[:limit]
 
-    def group_by_source(self) -> Dict[KnowledgeSource, List[UnifiedConcept]]:
+    def group_by_source(self) -> dict[KnowledgeSource, list[UnifiedConcept]]:
         """Group concepts by their primary source."""
-        grouped = {}
+        grouped: dict[KnowledgeSource, list[UnifiedConcept]] = {}
         for concept in self.concepts:
             for source in concept.sources:
                 if source not in grouped:
@@ -309,7 +320,7 @@ class LookupConfig:
     """Configuration for knowledge lookup operations."""
 
     # Sources to query
-    enabled_sources: List[KnowledgeSource] = field(default_factory=list)
+    enabled_sources: list[KnowledgeSource] = field(default_factory=list)
 
     # Query parameters
     max_results_per_source: int = 20
@@ -318,11 +329,11 @@ class LookupConfig:
 
     # Result filtering
     min_confidence_threshold: float = 0.0
-    preferred_languages: List[str] = field(default_factory=lambda: ["en"])
-    concept_types: Optional[List[ConceptType]] = None
+    preferred_languages: list[str] = field(default_factory=lambda: ["en"])
+    concept_types: list[ConceptType] | None = None
 
     # Rate limiting
-    rate_limits: Dict[KnowledgeSource, float] = field(default_factory=dict)
+    rate_limits: dict[KnowledgeSource, float] = field(default_factory=dict)
 
     @classmethod
     def with_all_sources(cls) -> "LookupConfig":
@@ -338,9 +349,9 @@ class LookupConfig:
     enable_ontology_mapping: bool = True
 
     # API keys for external services
-    api_keys: Dict[str, str] = field(default_factory=dict)
+    api_keys: dict[str, str] = field(default_factory=dict)
 
-    def get_api_key(self, service: str) -> Optional[str]:
+    def get_api_key(self, service: str) -> str | None:
         """Get API key for a specific service. Checks config first, then .env."""
         key = self.api_keys.get(service)
         if key:

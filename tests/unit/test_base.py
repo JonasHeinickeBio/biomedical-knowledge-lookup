@@ -5,6 +5,8 @@ Unit tests for base adapter.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.base import KnowledgeSourceAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

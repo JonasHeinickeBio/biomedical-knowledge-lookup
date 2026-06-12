@@ -5,6 +5,8 @@ Unit tests for UniProtAdapter.
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.uniprot_adapter import UniProtAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

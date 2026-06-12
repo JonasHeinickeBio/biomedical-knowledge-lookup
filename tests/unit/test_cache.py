@@ -4,13 +4,16 @@ Unit tests for knowledge lookup cache system.
 
 import tempfile
 from pathlib import Path
+
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.cache import (
-    KnowledgeLookupCache, 
-    MemoryCacheBackend, 
     DiskCacheBackend,
-    get_cache, 
-    init_cache
+    KnowledgeLookupCache,
+    MemoryCacheBackend,
+    get_cache,
+    init_cache,
 )
 
 

@@ -4,8 +4,9 @@ Unit tests for EBIOLSAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.ebiols_adapter import EBIOLSAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

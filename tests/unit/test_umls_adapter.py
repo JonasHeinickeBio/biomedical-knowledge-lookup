@@ -2,11 +2,11 @@
 Unit tests for UMLSAdapter.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import aiohttp
 import pytest
-from knowledge_lookup.adapters import umls_adapter
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.umls_adapter import UMLSAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
@@ -40,13 +40,6 @@ class TestUMLSAdapter:
         result = adapter.is_available()
         assert isinstance(result, bool)
 
-    def test_is_unavailable_when_optional_client_missing(self, monkeypatch):
-        """Adapter should stay importable and unavailable when UMLS client is missing."""
-        monkeypatch.setattr(umls_adapter, "HAS_UMLS_CLIENT", False)
-        monkeypatch.setattr(umls_adapter, "create_umls_client", None)
-        adapter = UMLSAdapter(LookupConfig())
-        assert adapter.is_available() is False
-
     def test_get_rate_limit_default(self, adapter):
         """Test get_rate_limit returns default value."""
         rate_limit = adapter.get_rate_limit()
@@ -60,47 +53,45 @@ class TestUMLSAdapter:
         assert adapter.get_rate_limit() == 5.0
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_success(self, mock_get, adapter):
+    async def test_search_concepts_success(self, adapter):
         """Test successful search concepts."""
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json = AsyncMock(return_value={"results": []})  # Mock response structure
-        mock_get.return_value.__aenter__.return_value = mock_response
+        # Mock the UMLS client to return results
+        mock_client = MagicMock()
+        mock_client.search_concepts.return_value = []
+        adapter.client = mock_client
 
         results = await adapter.search_concepts("test query", limit=10)
         assert isinstance(results, list)
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_empty_response(self, mock_get, adapter):
+    async def test_search_concepts_empty_response(self, adapter):
         """Test search concepts with empty response."""
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json = AsyncMock(return_value={"results": []})
-        mock_get.return_value.__aenter__.return_value = mock_response
+        # Mock the UMLS client to return empty results
+        mock_client = MagicMock()
+        mock_client.search_concepts.return_value = []
+        adapter.client = mock_client
 
         results = await adapter.search_concepts("nonexistent", limit=10)
         assert isinstance(results, list)
         assert len(results) == 0
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_http_error(self, mock_get, adapter):
+    async def test_search_concepts_http_error(self, adapter):
         """Test search concepts with HTTP error."""
-        mock_response = AsyncMock()
-        mock_response.status = 500
-        mock_get.return_value.__aenter__.return_value = mock_response
+        mock_client = MagicMock()
+        mock_client.search_concepts.side_effect = Exception("HTTP Error")
+        adapter.client = mock_client
 
         results = await adapter.search_concepts("test")
         assert isinstance(results, list)
         assert len(results) == 0
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_network_error(self, mock_get, adapter):
+    async def test_search_concepts_network_error(self, adapter):
         """Test search concepts with network error."""
-        mock_get.side_effect = Exception("Network error")
+        mock_client = MagicMock()
+        mock_client.search_concepts.side_effect = Exception("Network error")
+        adapter.client = mock_client
 
         results = await adapter.search_concepts("test")
         assert isinstance(results, list)

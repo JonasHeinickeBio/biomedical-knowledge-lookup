@@ -1,0 +1,44 @@
+Checking if EuropePMC adapter is available...
+  ✓ EuropePMC adapter is available
+
+Searching for 'cancer' concepts in EuropePMC...
+
+Found 25 results from EuropePMC:
+
+  Concept 1:
+    Label: Five-year follow-up of the SABR-5 trial: primary toxicity analysis of stereotactic ablative radiotherapy for up to five oligometastases.
+    ID: PMID:42140754
+    Type: ConceptType.CITATION
+    Confidence: 0.85
+    Definitions (1):
+      - <h4>Background and purpose</h4>SABR-5 was a provincially coordinated, single-arm phase II trial of SABR for patients with up to five extracranial metastases across all six BC Cancer centres. The primary objective was to prospectively quantify treatment-related toxicity in a population-based setting. This analysis reports extended follow-up and long-term toxicity outcomes.<h4>Materials and methods</h4>Adults with oligometastatic or oligoprogressive disease (≤5 extracranial metastases) were enrolled between 2016 and 2020, when SABR for these indications in BC was available only through this trial. All grade ≥ 3 events underwent central review by a provincial toxicity committee. Toxicity was evaluated using crude per-patient rates, cumulative incidence methods, annual landmark analyses to year 5, and assessment of toxicity duration. Median follow-up for this update was 54.2 months.<h4>Results</h4>A total of 380 patients were treated (median age 69 years; 32% female). Most patients (91%) h
+
+  Concept 2:
+    Label: OLIGOPELVIS 2-GETUG P12- elective nodal radiotherapy for oligorecurrent pelvic/para-aortic nodes in prostate cancer: early toxicity of a randomized phase 3 trial.
+    ID: PMID:42140755
+    Type: ConceptType.CITATION
+    Confidence: 0.85
+    Definitions (1):
+      - <h4>Purpose</h4>/objective: Limited pelvic/para-aortic nodal relapse of prostate cancer after radical local treatment remains a major challenge for locoregional salvage strategies. Salvage Elective Nodes radiotherapy (ENRT) is an appealing option, but concerns persist regarding its toxicity. This study evaluates the 18-months toxicity profile of salvage ENRT combined with intermittent androgen deprivation therapy (iADT) in patients with pelvic and para-aortic oligometastatic disease, compared with iADT alone.<h4>Material</h4>/Methods: OLIGOPELVIS-2/GETUG P12 was a prospective, multicenter, randomized phase III trial. Patients were randomized 1:1 to arm A (6-months iADT alone) or arm B (6-months iADT + ENRT: 54 Gy/1.8 Gy per fraction to the pelvic lymph nodes and 66 Gy/2.2 Gy per fraction to pathological nodes). ENRT started after three months of iADT. After analyzing relapse patterns in the OLIGOPELVIS GETUG P07 study, a December 22, 2021 amendment permitted the inclusion of para-aorti
+
+  Concept 3:
+    Label: Prostate Cancer Care for Men with an Intellectual Disability: A Population-based Cohort Study of Symptoms, Diagnosis, Treatment, and Survival.
+    ID: PMID:41720694
+    Type: ConceptType.CITATION
+    Confidence: 0.85
+    Definitions (1):
+      - <h4>Background and objective</h4>Intellectual disability (ID) is increasingly recognised as a hidden driver of cancer mortality. However, evidence on prostate cancer (PC) care in this population is limited.<h4>Methods</h4>The study population comprised 29 554 men with an ID and 518 739 comparators from the Clinical Practice Research Datalink Aurum database, which is linked to hospital, mortality, and cancer registry data. Poisson and Cox regression analyses were used to estimate incidence rate ratios (IRRs), risk ratios (RRs), and hazard ratios (HRs) with 95% confidence intervals (CIs) for outcomes related to PC presentation, diagnosis, treatment, and survival.<h4>Key findings and limitations</h4>The ID group presented more frequently with symptoms suggestive of PC (IRR 1.35, 95% CI 1.28-1.43) but were less likely to have a prostate-specific antigen (PSA) test within 90 d (RR 0.66, 95% CI 0.63-0.70). Following detection of elevated PSA, the ID group had fewer referrals (RR 0.83, 95% CI
+
+  Concept 4:
+    Label: Metastatic breast cancer: ESMO Clinical Practice Guideline for diagnosis, treatment and follow-up&lt;sup&gt;†&lt;/sup&gt;.
+    ID: PMID:42217581
+    Type: ConceptType.CITATION
+    Confidence: 0.85
+
+  Concept 5:
+    Label: [THE INDICATORS OF MORBIDITY, MORTALITY, ONE-YEAR LETHALITY AND DESOLATION OF PATIENTS WITH CERVICAL CANCER IN THE OSH OBLAST OF THE KYRGYZ REPUBLIC].
+    ID: PMID:42024589
+    Type: ConceptType.CITATION
+    Confidence: 0.85
+    Definitions (1):
+      - The purpose of the study is to evaluate morbidity, mortality, one-year lethality, and desolation of patients with cervical cancer in the Osh Oblast of the Kyrgyz Republic. The data about patients with cervical cancer in 2010-2023 was included in the study. The average value of morbidity of cervical cancer in the Osh region of the Kyrgyz Republic (over 14 years) made up to 10,3 ±3,6%000. The growth rate of indicator of morbidity of cervical cancer was 51,2%. The increase in mortality from cervical cancer was unsatisfactory in terms of the onco-gynecological service from 0.3%000 in 2010 to 5.3%000 in 2023. The growth rate was very high, exceeding 1 600%. The improvement and refinement of comprehensive therapy of patients with cervical cancer was evidenced by decrease of one-year mortality from 41.0% to 13.0%. The rate of decline was 68.3%. The positive trend is also observed in the rate of desolation of patients with cervical cancer, which decreased from 62.0% to 24.0%, as result of incr

@@ -4,8 +4,9 @@ Unit tests for GeneOntologyAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.geneontology_adapter import GeneOntologyAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

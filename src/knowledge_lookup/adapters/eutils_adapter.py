@@ -7,7 +7,6 @@ Critical for literature mining and gene information in ME/CFS research.
 """
 
 import logging
-from typing import List
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
@@ -21,7 +20,7 @@ class EUtilsAdapter(KnowledgeSourceAdapter):
     def get_source(self):
         return KnowledgeSource.EUTILS
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """
         Search NCBI databases for biomedical concepts.
 
@@ -40,7 +39,8 @@ class EUtilsAdapter(KnowledgeSourceAdapter):
             return []
 
         # Set email for NCBI (required by their policy)
-        eu = EUtils(email="aipais@example.com")  # TODO: Make configurable
+        email = self.config.get_api_key("ncbi_email") or "anonymous@example.com"
+        eu = EUtils(email=email)
         results = []
 
         try:
@@ -187,7 +187,8 @@ class EUtilsAdapter(KnowledgeSourceAdapter):
             logger.error("bioservices not available for EUtils adapter")
             return None
 
-        eu = EUtils(email="aipais@example.com")  # TODO: Make configurable
+        email = self.config.get_api_key("ncbi_email") or "anonymous@example.com"
+        eu = EUtils(email=email)
 
         try:
             # Parse concept ID to determine database and ID

@@ -13,7 +13,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class CacheEntry:
     key: str
     value: Any
     created_at: float
-    ttl: Optional[float] = None
+    ttl: float | None = None
     access_count: int = 0
     last_accessed: float = field(default_factory=time.time)
 
@@ -35,7 +35,7 @@ class CacheEntry:
             return False
         return time.time() - self.created_at > self.ttl
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "key": self.key,
@@ -47,7 +47,7 @@ class CacheEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CacheEntry":
+    def from_dict(cls, data: dict[str, Any]) -> "CacheEntry":
         """Create from dictionary (deserialization)."""
         return cls(
             key=data["key"],
@@ -75,7 +75,7 @@ class CacheStats:
         total = self.hits + self.misses
         return self.hits / total if total > 0 else 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert stats to dictionary."""
         return {
             "hits": self.hits,
@@ -91,12 +91,12 @@ class CacheBackend(ABC):
     """Abstract base class for cache backends."""
 
     @abstractmethod
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Retrieve a value from cache."""
         pass
 
     @abstractmethod
-    def set(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
+    def set(self, key: str, value: Any, ttl: float | None = None) -> None:
         """Store a value in cache."""
         pass
 
@@ -125,12 +125,12 @@ class MemoryCacheBackend(CacheBackend):
     """In-memory cache backend with TTL support."""
 
     def __init__(self, max_size: int = 1000):
-        self._cache: Dict[str, CacheEntry] = {}
+        self._cache: dict[str, CacheEntry] = {}
         self._max_size = max_size
         self._lock = threading.RLock()
         self._stats = CacheStats()
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Retrieve a value from memory cache."""
         with self._lock:
             entry = self._cache.get(key)
@@ -148,7 +148,7 @@ class MemoryCacheBackend(CacheBackend):
             self._stats.hits += 1
             return entry.value
 
-    def set(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
+    def set(self, key: str, value: Any, ttl: float | None = None) -> None:
         """Store a value in memory cache."""
         with self._lock:
             if key in self._cache:
@@ -212,16 +212,17 @@ class MemoryCacheBackend(CacheBackend):
 class DiskCacheBackend(CacheBackend):
     """Disk-based cache backend with persistence."""
 
-    def __init__(self, cache_dir: Union[str, Path], max_size: int = 10000):
+    def __init__(self, cache_dir: str | Path, max_size: int = 10000):
         self._cache_dir = Path(cache_dir)
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._max_size = max_size
         self._lock = threading.RLock()
         self._stats = CacheStats()
         self._index_file = self._cache_dir / "cache_index.json"
+        self._index: dict[str, Any] = {}
         self._load_index()
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Retrieve a value from disk cache."""
         with self._lock:
             cache_file = self._get_cache_file(key)
@@ -231,7 +232,7 @@ class DiskCacheBackend(CacheBackend):
                 return None
 
             try:
-                with open(cache_file, "r", encoding="utf-8") as f:
+                with open(cache_file, encoding="utf-8") as f:
                     data = json.load(f)
 
                 entry = CacheEntry.from_dict(data)
@@ -252,7 +253,7 @@ class DiskCacheBackend(CacheBackend):
                 self._stats.misses += 1
                 return None
 
-    def set(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
+    def set(self, key: str, value: Any, ttl: float | None = None) -> None:
         """Store a value in disk cache."""
         with self._lock:
             entry = CacheEntry(key=key, value=value, created_at=time.time(), ttl=ttl)
@@ -363,7 +364,7 @@ class DiskCacheBackend(CacheBackend):
 
         if self._index_file.exists():
             try:
-                with open(self._index_file, "r", encoding="utf-8") as f:
+                with open(self._index_file, encoding="utf-8") as f:
                     self._index = json.load(f)
             except Exception as e:
                 logger.warning(f"Failed to load cache index: {e}")
@@ -393,9 +394,9 @@ class KnowledgeLookupCache:
     def __init__(
         self,
         memory_max_size: int = 1000,
-        disk_cache_dir: Optional[Union[str, Path]] = None,
+        disk_cache_dir: str | Path | None = None,
         disk_max_size: int = 10000,
-        default_ttl: Optional[float] = None,
+        default_ttl: float | None = None,
         cleanup_interval: float = 300,  # 5 minutes
     ):
         """
@@ -423,7 +424,7 @@ class KnowledgeLookupCache:
         self._cleanup_thread = threading.Thread(target=self._cleanup_worker, daemon=True)
         self._cleanup_thread.start()
 
-    def get(self, key: str, namespace: str = "") -> Optional[Any]:
+    def get(self, key: str, namespace: str = "") -> Any | None:
         """
         Retrieve a value from cache.
 
@@ -451,7 +452,7 @@ class KnowledgeLookupCache:
 
         return None
 
-    def set(self, key: str, value: Any, ttl: Optional[float] = None, namespace: str = "") -> None:
+    def set(self, key: str, value: Any, ttl: float | None = None, namespace: str = "") -> None:
         """
         Store a value in cache.
 
@@ -506,7 +507,7 @@ class KnowledgeLookupCache:
             # For now, we'll clear all (can be optimized later)
             logger.warning("Namespace-specific clearing not implemented, clearing all")
 
-    def cleanup(self) -> Dict[str, int]:
+    def cleanup(self) -> dict[str, int]:
         """
         Manually trigger cleanup of expired entries.
 
@@ -526,7 +527,7 @@ class KnowledgeLookupCache:
                 "total_evicted": memory_cleaned + disk_cleaned,
             }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         Get cache performance statistics.
 
@@ -544,11 +545,23 @@ class KnowledgeLookupCache:
                 "misses": memory_stats.misses + disk_stats.misses,
                 "sets": memory_stats.sets + disk_stats.sets,
                 "evictions": memory_stats.evictions + disk_stats.evictions,
-                "hit_rate": (memory_stats.hits + disk_stats.hits)
-                / (memory_stats.hits + disk_stats.hits + memory_stats.misses + disk_stats.misses)
-                if (memory_stats.hits + disk_stats.hits + memory_stats.misses + disk_stats.misses)
-                > 0
-                else 0.0,
+                "hit_rate": (
+                    (memory_stats.hits + disk_stats.hits)
+                    / (
+                        memory_stats.hits
+                        + disk_stats.hits
+                        + memory_stats.misses
+                        + disk_stats.misses
+                    )
+                    if (
+                        memory_stats.hits
+                        + disk_stats.hits
+                        + memory_stats.misses
+                        + disk_stats.misses
+                    )
+                    > 0
+                    else 0.0
+                ),
             },
             "sizes": {
                 "memory": self._memory_cache.size(),
@@ -573,7 +586,7 @@ class KnowledgeLookupCache:
 
 
 # Global cache instance for easy access
-_cache_instance: Optional[KnowledgeLookupCache] = None
+_cache_instance: KnowledgeLookupCache | None = None
 
 
 def get_cache() -> KnowledgeLookupCache:
@@ -586,9 +599,9 @@ def get_cache() -> KnowledgeLookupCache:
 
 def init_cache(
     memory_max_size: int = 1000,
-    disk_cache_dir: Optional[Union[str, Path]] = None,
+    disk_cache_dir: str | Path | None = None,
     disk_max_size: int = 10000,
-    default_ttl: Optional[float] = 3600,  # 1 hour
+    default_ttl: float | None = 3600,  # 1 hour
     cleanup_interval: float = 300,
 ) -> KnowledgeLookupCache:
     """

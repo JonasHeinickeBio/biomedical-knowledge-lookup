@@ -4,8 +4,9 @@ Unit tests for WikidataAdapter.
 
 from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
+
+pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.wikidata_adapter import WikidataAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

@@ -3,7 +3,7 @@ Adapter for BioOntology.org (now part of BioPortal).
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
@@ -28,18 +28,18 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return self.api_key is not None
 
-    _api_endpoints: Optional[Dict[str, str]] = None
+    _api_endpoints: dict[str, str] | None = None
 
     @property
-    def endpoints(self) -> Dict[str, str]:
+    def endpoints(self) -> dict[str, str]:
         """
         Return cached endpoints if available, else empty dict.
         """
         return self._api_endpoints if isinstance(self._api_endpoints, dict) else {}
 
     def _build_params(
-        self, extra_params: Optional[Dict[str, Any]] = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, extra_params: dict[str, Any] | None = None, **kwargs
+    ) -> dict[str, Any]:
         params = {
             "apikey": self.api_key,
             "format": kwargs.get("format", "json"),
@@ -61,7 +61,7 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             params.update(extra_params)
         return params
 
-    def _build_headers(self, use_auth_header: bool = False) -> Dict[str, str]:
+    def _build_headers(self, use_auth_header: bool = False) -> dict[str, str]:
         headers = {}
         if use_auth_header and self.api_key:
             headers["Authorization"] = f"apikey token={self.api_key}"
@@ -70,10 +70,11 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
     async def _make_request(
         self,
         url: str,
-        params: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
+        params: dict[Any, Any] | None = None,
+        headers: dict[Any, Any] | None = None,
+        json_data: dict[Any, Any] | None = None,
         use_auth_header: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Make an async HTTP request, logging the URL, params, and headers for debugging.
         """
@@ -91,7 +92,7 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             logger.error(f"API request failed for URL {url}: {e}")
             return {}
 
-    async def fetch_api_endpoints(self) -> Dict[str, str]:
+    async def fetch_api_endpoints(self) -> dict[str, str]:
         """
         Fetch and cache available API endpoints from the BioOntology API root.
         """
@@ -111,8 +112,8 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             return {}
 
     async def call_endpoint(
-        self, endpoint_name: str, params: Optional[Dict[str, Any]] = None
-    ) -> Optional[dict]:
+        self, endpoint_name: str, params: dict[str, Any] | None = None
+    ) -> dict | None:
         """
         Call any BioOntology API endpoint by name, using cached endpoints if available.
         """
@@ -138,9 +139,9 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
         query: str,
         limit: int = 20,
         raw: bool = False,
-        extra_params: Optional[Dict[str, Any]] = None,
+        extra_params: dict[str, Any] | None = None,
         **kwargs,
-    ) -> List[Any]:
+    ) -> list[Any]:
         if not self.api_key:
             logger.warning("BioOntology API key not available")
             return []
@@ -172,7 +173,7 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
         }
         return url, params
 
-    def _parse_search_response(self, data: dict, limit: int) -> List[UnifiedConcept]:
+    def _parse_search_response(self, data: dict, limit: int) -> list[UnifiedConcept]:
         concepts = []
         if "collection" in data:
             for item in data["collection"][:limit]:
@@ -184,17 +185,18 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
     async def get_concept_details(
         self,
         concept_id: str,
-        ontology: Optional[str] = None,
+        ontology: str | None = None,
         fetch_related: bool = True,
-        extra_params: Optional[Dict[str, Any]] = None,
+        extra_params: dict[str, Any] | None = None,
         use_auth_header: bool = False,
         minimal: bool = False,
         raw: bool = False,
         **kwargs,
-    ) -> Optional[Any]:
+    ) -> Any | None:
         """
-        Fetch concept details. Use 'raw' for full metadata, 'minimal' for reduced metadata, default for parsed object.
-        """
+        Fetch concept details. Use 'raw' for full metadata, 'minimal' for reduced metadata,  # noqa: E501
+        default for parsed object.
+        """  # noqa: E501
         if not self.api_key:
             logger.warning("BioOntology API key not available")
             return None
@@ -239,14 +241,61 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             "obsolete": concept_details.get("obsolete"),
         }
 
-    # Removed get_concept_details_minimal: now handled by get_concept_details(minimal=True)
+    async def annotate(
+        self,
+        text: str,
+        ontologies: str | None = None,
+        longest_only: bool = True,
+        extra_params: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> Any:
+        """
+        Annotate text using the BioOntology Annotator endpoint.
+
+        Examines the input text and returns relevant ontology classes.
+
+        Args:
+            text: The text to annotate.
+            ontologies: Comma-separated list of ontology IDs to limit annotation.
+            longest_only: Return only the longest match per phrase.
+            extra_params: Additional query parameters.
+
+        Returns:
+            Raw annotation response list from BioOntology API, or empty list on failure.
+        """
+        if not self.api_key:
+            logger.warning("BioOntology API key not available for annotation")
+            return []
+
+        url = f"{self.base_url}/annotator"
+        params: dict[str, Any] = {
+            "apikey": self.api_key,
+            "text": text,
+            "longest_only": str(longest_only).lower(),
+        }
+        if ontologies:
+            params["ontologies"] = ontologies
+        if extra_params:
+            params.update(extra_params)
+
+        logger.info(f"BioOntology annotate URL: {url}")
+        logger.info(f"BioOntology annotate text (first 80 chars): {text[:80]}")
+        try:
+            data = await self._make_request(url, params)
+            if isinstance(data, list):
+                return data
+            # Some responses may be a dict with a key
+            return data.get("annotations", data.get("results", []))
+        except Exception as e:
+            logger.error(f"BioOntology annotate failed: {e}")
+            return []
 
     async def batch_annotate(
         self,
-        texts: List[str],
-        ontologies: Optional[str] = None,
+        texts: list[str],
+        ontologies: str | None = None,
         longest_only: bool = True,
-        extra_params: Optional[Dict[str, Any]] = None,
+        extra_params: dict[str, Any] | None = None,
         **kwargs,
     ) -> Any:
         """
@@ -267,10 +316,10 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
 
     async def get_analytics(
         self,
-        ontology: Optional[str] = None,
-        month: Optional[int] = None,
-        year: Optional[int] = None,
-        extra_params: Optional[Dict[str, Any]] = None,
+        ontology: str | None = None,
+        month: int | None = None,
+        year: int | None = None,
+        extra_params: dict[str, Any] | None = None,
         **kwargs,
     ) -> Any:
         """
@@ -290,10 +339,11 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             return None
 
     async def _fetch_related_resources(
-        self, concept, links, concept_id, extra_params: Optional[Dict[str, Any]] = None
+        self, concept, links, concept_id, extra_params: dict[str, Any] | None = None
     ):
         """
-        Fetch related resources (children, parents, ancestors, etc.) and add to concept.source_data.
+        Fetch related resources (children, parents, ancestors, etc.) and add  # noqa: E501
+        to concept.source_data.
         """
         related_keys = [
             "children",
@@ -321,7 +371,7 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
                         f"Failed to fetch related resource '{key}' for concept '{concept_id}': {e}"
                     )
 
-    def _build_details_request(self, concept_id: str, ontology: Optional[str] = None) -> tuple:
+    def _build_details_request(self, concept_id: str, ontology: str | None = None) -> tuple:
         # Always use data.bioontology.org API endpoint
         from urllib.parse import quote
 
@@ -339,12 +389,12 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
         }
         return url, params
 
-    def _parse_details_response(self, data: dict) -> Optional[UnifiedConcept]:
+    def _parse_details_response(self, data: dict) -> UnifiedConcept | None:
         return self._convert_bioontology_result_to_concept(data)
 
     def _convert_bioontology_result_to_concept(
-        self, result: Dict[str, Any]
-    ) -> Optional[UnifiedConcept]:
+        self, result: dict[str, Any]
+    ) -> UnifiedConcept | None:
         try:
             concept_id = result.get("@id", "")
             label = result.get("prefLabel", "")

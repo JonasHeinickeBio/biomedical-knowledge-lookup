@@ -1,0 +1,12 @@
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
+║  The adapter does not return valid search results.  ║
+╚══════════════════════════════════════════════════════╝
+
+Checking if HPO adapter is available...
+  ✓ HPO adapter is available
+
+Searching for 'fever' concepts in HPO...
+
+Found 0 results from HPO:
+  No results found for 'fever'

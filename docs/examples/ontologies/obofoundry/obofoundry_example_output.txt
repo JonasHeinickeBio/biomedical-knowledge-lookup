@@ -1,0 +1,36 @@
+Checking if OBOFoundry adapter is available...
+  ✓ OBOFoundry adapter is available
+
+Searching for 'cancer' concepts in OBOFoundry...
+
+Found 23 results from OBOFoundry:
+
+  Concept 1:
+    Label: cancer
+    ID: DOID_162
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+
+  Concept 2:
+    Label: Prostatic Neoplasms, Castration-Resistant
+    ID: mesh_D064129
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+
+  Concept 3:
+    Label: Neoplasms, Second Primary
+    ID: mesh_D016609
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+
+  Concept 4:
+    Label: Cancer Pain
+    ID: mesh_D000072716
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8
+
+  Concept 5:
+    Label: The Barbara Ann Karmanos Cancer Institute
+    ID: ror_00ee40h97
+    Type: ConceptType.UNKNOWN
+    Confidence: 0.8

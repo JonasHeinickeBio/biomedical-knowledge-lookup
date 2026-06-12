@@ -7,7 +7,7 @@ UniChem provides mappings between chemical compound identifiers across different
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..cache import get_cache
@@ -38,7 +38,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return self.unichem is not None
 
-    async def search_concepts(self, query: str, limit: int = 20) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """
         Search UniChem for compounds by identifier.
 
@@ -66,7 +66,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"UniChem search failed for '{query}': {e}")
             return []
 
-    def _determine_search_strategy(self, query: str, limit: int) -> List[UnifiedConcept]:
+    def _determine_search_strategy(self, query: str, limit: int) -> list[UnifiedConcept]:
         """Determine the appropriate search strategy based on query format."""
         concepts = []
 
@@ -90,7 +90,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
 
         return concepts
 
-    def _search_by_uci(self, query: str, limit: int) -> List[UnifiedConcept]:
+    def _search_by_uci(self, query: str, limit: int) -> list[UnifiedConcept]:
         """Search by UniChem Compound Identifier (UCI)."""
         if not query.isdigit() or not self.unichem:
             return []
@@ -99,7 +99,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
         compound_data = self.unichem.get_compounds(query, "uci")
         return self._extract_concepts_from_compound_data(compound_data, limit)
 
-    def _search_by_inchikey(self, query: str, limit: int) -> List[UnifiedConcept]:
+    def _search_by_inchikey(self, query: str, limit: int) -> list[UnifiedConcept]:
         """Search by InChIKey."""
         if not (len(query) == 27 and query.count("-") == 2) or not self.unichem:
             return []
@@ -107,7 +107,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
         compound_data = self.unichem.get_compounds(query, "inchikey")
         return self._extract_concepts_from_compound_data(compound_data, limit)
 
-    def _search_by_inchi(self, query: str, limit: int) -> List[UnifiedConcept]:
+    def _search_by_inchi(self, query: str, limit: int) -> list[UnifiedConcept]:
         """Search by InChI."""
         if not query.startswith("InChI=") or not self.unichem:
             return []
@@ -115,7 +115,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
         compound_data = self.unichem.get_compounds(query, "inchi")
         return self._extract_concepts_from_compound_data(compound_data, limit)
 
-    def _search_by_source_id(self, query: str, limit: int) -> List[UnifiedConcept]:
+    def _search_by_source_id(self, query: str, limit: int) -> list[UnifiedConcept]:
         """Search by source compound ID across common databases."""
         if not self.unichem:
             return []
@@ -137,10 +137,10 @@ class UniChemAdapter(KnowledgeSourceAdapter):
         return concepts
 
     def _extract_concepts_from_compound_data(
-        self, compound_data: Optional[Dict[str, Any]], limit: int
-    ) -> List[UnifiedConcept]:
+        self, compound_data: dict[str, Any] | None, limit: int
+    ) -> list[UnifiedConcept]:
         """Extract UnifiedConcept objects from compound data."""
-        concepts = []
+        concepts: list[UnifiedConcept] = []
 
         if not compound_data or "compounds" not in compound_data:
             return concepts
@@ -152,7 +152,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
 
         return concepts
 
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """
         Get detailed compound information from UniChem.
 
@@ -181,7 +181,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get UniChem concept details for '{concept_id}': {e}")
             return None
 
-    async def get_cross_references(self, concept_id: str) -> Dict[str, List[Dict[str, str]]]:
+    async def get_cross_references(self, concept_id: str) -> dict[str, list[dict[str, str]]]:
         """
         Get cross-references for a compound from all sources, including URLs.
 
@@ -206,7 +206,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get cross-references for '{concept_id}': {e}")
             return {}
 
-    def _find_compound_data(self, concept_id: str) -> Optional[Dict[str, Any]]:
+    def _find_compound_data(self, concept_id: str) -> dict[str, Any] | None:
         """Find compound data by trying UCI first, then common sources."""
         if not self.unichem:
             return None
@@ -228,7 +228,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
 
         return None
 
-    def _is_valid_compound_data(self, compound_data: Optional[Dict[str, Any]]) -> bool:
+    def _is_valid_compound_data(self, compound_data: dict[str, Any] | None) -> bool:
         """Check if compound data is valid and contains compounds."""
         return (
             compound_data is not None
@@ -237,10 +237,10 @@ class UniChemAdapter(KnowledgeSourceAdapter):
         )
 
     async def _extract_cross_references_with_urls(
-        self, compound_data: Dict[str, Any]
-    ) -> Dict[str, List[Dict[str, str]]]:
+        self, compound_data: dict[str, Any]
+    ) -> dict[str, list[dict[str, str]]]:
         """Extract cross-references with URLs from compound data."""
-        xrefs = {}
+        xrefs: dict[str, list[dict[str, str]]] = {}
         compound = compound_data["compounds"][0]
         sources = compound.get("sources", [])
 
@@ -284,18 +284,18 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             11: f"https://www.ebi.ac.uk/arrayexpress/experiments/{compound_id}",  # ArrayExpress
             12: f"https://www.ebi.ac.uk/pride/archive/projects/{compound_id}",  # PRIDE
             13: f"https://www.ebi.ac.uk/metabolights/{compound_id}",  # Metabolights
-            14: f"https://www.ebi.ac.uk/ols/ontologies/chebi/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # ChEBI (OLS)
-            15: f"https://www.ncbi.nlm.nih.gov/nuccore/{compound_id}",  # NCBI Nucleotide
-            16: f"https://www.ncbi.nlm.nih.gov/protein/{compound_id}",  # NCBI Protein
-            17: f"https://www.ncbi.nlm.nih.gov/gene/{compound_id}",  # NCBI Gene
-            18: f"https://www.ebi.ac.uk/ols/ontologies/go/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # GO
-            19: f"https://www.ebi.ac.uk/ols/ontologies/efo/terms?iri=http://www.ebi.ac.uk/efo/{compound_id}",  # EFO
-            20: f"https://www.ebi.ac.uk/ols/ontologies/hp/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # HP
-            21: f"https://www.ebi.ac.uk/ols/ontologies/mp/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # MP
-            22: f"https://www.ebi.ac.uk/ols/ontologies/ordo/terms?iri=http://www.orpha.net/ORDO/{compound_id}",  # ORDO
-            23: f"https://www.ebi.ac.uk/ols/ontologies/mondo/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # MONDO
-            24: f"https://www.ebi.ac.uk/ols/ontologies/ncit/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # NCIT
-            25: f"https://www.ebi.ac.uk/ols/ontologies/omim/terms?iri=https://omim.org/entry/{compound_id}",  # OMIM
+            14: f"https://www.ebi.ac.uk/ols/ontologies/chebi/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # ChEBI (OLS)
+            15: f"https://www.ncbi.nlm.nih.gov/nuccore/{compound_id}",  # noqa: E501  # NCBI Nucleotide
+            16: f"https://www.ncbi.nlm.nih.gov/protein/{compound_id}",  # noqa: E501  # NCBI Protein
+            17: f"https://www.ncbi.nlm.nih.gov/gene/{compound_id}",  # noqa: E501  # NCBI Gene
+            18: f"https://www.ebi.ac.uk/ols/ontologies/go/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # GO
+            19: f"https://www.ebi.ac.uk/ols/ontologies/efo/terms?iri=http://www.ebi.ac.uk/efo/{compound_id}",  # noqa: E501  # EFO
+            20: f"https://www.ebi.ac.uk/ols/ontologies/hp/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # HP
+            21: f"https://www.ebi.ac.uk/ols/ontologies/mp/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # MP
+            22: f"https://www.ebi.ac.uk/ols/ontologies/ordo/terms?iri=http://www.orpha.net/ORDO/{compound_id}",  # noqa: E501  # ORDO
+            23: f"https://www.ebi.ac.uk/ols/ontologies/mondo/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # MONDO
+            24: f"https://www.ebi.ac.uk/ols/ontologies/ncit/terms?iri=http://purl.obolibrary.org/obo/{compound_id}",  # noqa: E501  # NCIT
+            25: f"https://www.ebi.ac.uk/ols/ontologies/omim/terms?iri=https://omim.org/entry/{compound_id}",  # noqa: E501  # OMIM
         }
 
         # Try to get URL from predefined patterns
@@ -322,13 +322,13 @@ class UniChemAdapter(KnowledgeSourceAdapter):
         # Final fallback - return a generic UniChem URL
         return f"https://www.ebi.ac.uk/unichem/compoundsources/{compound_id}"
 
-    def _get_source_name(self, source: Dict[str, Any]) -> str:
+    def _get_source_name(self, source: dict[str, Any]) -> str:
         """Get the best available name for a source."""
         return source.get("shortName", source.get("nameLong", f"source_{source.get('sourceID')}"))
 
     # Bioservices UniChem method wrappers
 
-    async def get_all_src_ids(self) -> List[int]:
+    async def get_all_src_ids(self) -> list[int]:
         """
         Obtain all src_ids of sources available in UniChem.
 
@@ -360,7 +360,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get all source IDs: {e}")
             return []
 
-    async def get_compounds(self, compound: str, source_type: str) -> Optional[Dict[str, Any]]:
+    async def get_compounds(self, compound: str, source_type: str) -> dict[str, Any] | None:
         """
         Get matched compounds information.
 
@@ -396,7 +396,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get compounds for '{compound}' from '{source_type}': {e}")
             return None
 
-    async def get_connectivity(self, compound: str, source_type: str) -> Optional[Dict[str, Any]]:
+    async def get_connectivity(self, compound: str, source_type: str) -> dict[str, Any] | None:
         """
         Fetch multiple source data sets for a given compound with common connectivity.
 
@@ -417,7 +417,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get connectivity for '{compound}': {e}")
             return None
 
-    async def get_id_from_name(self, name: str) -> Optional[int]:
+    async def get_id_from_name(self, name: str) -> int | None:
         """
         Return the ID of a source given its name.
 
@@ -437,7 +437,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get ID for source name '{name}': {e}")
             return None
 
-    async def get_images(self, uci: str, filename: Optional[str] = None) -> Optional[str]:
+    async def get_images(self, uci: str, filename: str | None = None) -> str | None:
         """
         Return/create compound image.
 
@@ -478,7 +478,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get InChI for InChIKey '{inchikey}': {e}")
             return []
 
-    async def get_source_info_by_id(self, source_id: int) -> Optional[Dict[str, Any]]:
+    async def get_source_info_by_id(self, source_id: int) -> dict[str, Any] | None:
         """
         Obtain all information on a source by querying with a source ID.
 
@@ -513,7 +513,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get source info for ID {source_id}: {e}")
             return None
 
-    async def get_source_info_by_name(self, source_name: str) -> Optional[Dict[str, Any]]:
+    async def get_source_info_by_name(self, source_name: str) -> dict[str, Any] | None:
         """
         Obtain all information on a source by querying with a source name.
 
@@ -550,7 +550,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get source info for name '{source_name}': {e}")
             return None
 
-    async def get_sources(self) -> Optional[Dict[str, Any]]:
+    async def get_sources(self) -> dict[str, Any] | None:
         """
         Get all information about all sources used in UniChem.
 
@@ -622,7 +622,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get verbose sources for InChIKey '{inchikey}': {e}")
             return []
 
-    async def get_structure(self, compound_id: str, src_id: str) -> Optional[Dict[str, Any]]:
+    async def get_structure(self, compound_id: str, src_id: str) -> dict[str, Any] | None:
         """
         Obtain structure(s) CURRENTLY assigned to a query compound ID.
 
@@ -645,7 +645,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             )
             return None
 
-    def _convert_compound_to_concept(self, compound: Dict[str, Any]) -> Optional[UnifiedConcept]:
+    def _convert_compound_to_concept(self, compound: dict[str, Any]) -> UnifiedConcept | None:
         """
         Convert UniChem compound data to UnifiedConcept.
 
@@ -672,7 +672,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             logger.error(f"Error converting UniChem compound to concept: {e}")
             return None
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> dict[str, Any]:
         """
         Get cache performance statistics for this adapter.
 
@@ -706,7 +706,7 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             f"https://www.ebi.ac.uk/unichem/compounds/{uci}",
         )
 
-    def _add_source_identifiers(self, concept: UnifiedConcept, compound: Dict[str, Any]) -> None:
+    def _add_source_identifiers(self, concept: UnifiedConcept, compound: dict[str, Any]) -> None:
         """Add identifiers from all sources."""
         sources = compound.get("sources", [])
 
@@ -723,13 +723,13 @@ class UniChemAdapter(KnowledgeSourceAdapter):
                     url,
                 )
 
-    def _add_source_categories(self, concept: UnifiedConcept, compound: Dict[str, Any]) -> None:
+    def _add_source_categories(self, concept: UnifiedConcept, compound: dict[str, Any]) -> None:
         """Add source names as categories."""
         sources = compound.get("sources", [])
         source_names = [s.get("shortName", "") for s in sources if s.get("shortName")]
         concept.categories.extend(source_names)
 
-    def _set_concept_metadata(self, concept: UnifiedConcept, compound: Dict[str, Any]) -> None:
+    def _set_concept_metadata(self, concept: UnifiedConcept, compound: dict[str, Any]) -> None:
         """Set confidence score and source data."""
         concept.confidence_score = 0.9
         concept.source_data[KnowledgeSource.UNICHEM] = compound

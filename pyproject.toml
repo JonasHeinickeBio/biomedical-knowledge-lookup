@@ -19,7 +19,7 @@ keywords = [
     "umls",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -31,6 +31,11 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 packages = [{ include = "knowledge_lookup", from = "src" }]
+
+[tool.poetry.urls]
+"Documentation" = "https://jonasheinickeBio.github.io/biomedical-knowledge-lookup/"
+"Issue Tracker" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/issues"
+"Changelog" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/blob/main/CHANGELOG.md"
 
 [tool.poetry.scripts]
 knowledge-lookup = "knowledge_lookup.__main__:app"
@@ -46,8 +51,12 @@ tenacity = "^8.2.0"
 backoff = "^2.2.0"
 python-dotenv = "^1.0.0"
 rich = "^13.0.0"
-typer = "^0.9.0"
+typer = ">=0.12.0,<1.0.0"
+chembl-webresource-client = "^0.10.9"
 umls-client = { version = "^0.1.0", optional = true }
+tyto = "^1.4"
+bioservices = "^1.16.0"
+setuptools = "^82.0.1"
 
 [tool.poetry.extras]
 umls = ["umls-client"]
@@ -56,11 +65,14 @@ umls = ["umls-client"]
 pytest = "^8.0.0"
 pytest-asyncio = "^0.21.0"
 pytest-cov = "^4.0.0"
-black = "^24.0.0"
+pytest-timeout = "^2.2.0"
 ruff = "^0.1.0"
 mypy = "^1.0.0"
 jupyter = "^1.0.0"
 ipykernel = "^6.0.0"
+pre-commit = "^4.5.1"
+linkml = "^1.8.0"
+linkml-runtime = "^1.8.0"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^7.0.0"
@@ -70,15 +82,8 @@ sphinx-rtd-theme = "^2.0.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.black]
+[line-length]
 line-length = 99
-include = '\.pyi?$'
-exclude = '''
-/(
-  \.git
-  | \.venv
-)/
-'''
 
 [tool.ruff]
 line-length = 99
@@ -95,7 +100,6 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "E501", # line too long, handled by black
     "B008", # do not perform function calls in argument defaults
     "C901", # too complex
 ]
@@ -109,11 +113,13 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "network: marks tests that require network access",
+    "functional: marks tests as functional adapter tests",
+    "api: marks tests that require API key authentication",
 ]
 
-
-[tool.coverage.run]
-source = ["src/knowledge_lookup"]
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
 omit = ["*/tests/*", "*/test_*.py", "*/__pycache__/*", "*/site-packages/*"]
 
 [tool.coverage.report]

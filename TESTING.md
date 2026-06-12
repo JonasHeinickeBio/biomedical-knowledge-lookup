@@ -91,7 +91,7 @@ async def test_search_concepts(mock_get, lookup_config):
     mock_response.status = 200
     mock_response.json = AsyncMock(return_value={"results": []})
     mock_get.return_value.__aenter__.return_value = mock_response
-    
+
     results = await adapter.search_concepts("diabetes")
     assert isinstance(results, list)
 ```
@@ -122,12 +122,12 @@ Performance tests benchmark critical operations:
 def test_cache_performance(cache):
     """Benchmark cache operations."""
     import time
-    
+
     start = time.time()
     for i in range(1000):
         cache.set(f"key_{i}", f"value_{i}")
     duration = time.time() - start
-    
+
     assert duration < 1.0  # Should complete in under 1 second
 ```
 
@@ -164,7 +164,7 @@ async def test_api_call(mock_get):
     mock_response.status = 200
     mock_response.json = AsyncMock(return_value={"data": "test"})
     mock_get.return_value.__aenter__.return_value = mock_response
-    
+
     # Your test code here
 ```
 

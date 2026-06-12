@@ -6,7 +6,7 @@ Integrates with NCBI BioPortal for ontology-based concept lookup.
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
@@ -29,9 +29,7 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return self.api_key is not None
 
-    async def search_concepts(
-        self, query: str, limit: int = 20, raw: bool = False
-    ) -> List[UnifiedConcept]:
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search BioPortal for concepts."""
         if not self.api_key:
             logger.warning("BioPortal API key not available")
@@ -47,8 +45,6 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
             }
 
             data = await self._make_request(url, params)
-            if raw:
-                return data
 
             concepts = []
             if "collection" in data:
@@ -64,7 +60,7 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
             logger.error(f"BioPortal search failed for '{query}': {e}")
             return []
 
-    async def get_concept_details(self, concept_id: str) -> Optional[UnifiedConcept]:
+    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed concept information from BioPortal."""
         if not self.api_key:
             return None
@@ -93,8 +89,8 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
             return None
 
     def _convert_bioportal_result_to_concept(
-        self, result: Dict[str, Any]
-    ) -> Optional[UnifiedConcept]:
+        self, result: dict[str, Any]
+    ) -> UnifiedConcept | None:
         """Convert BioPortal search result to unified concept."""
         try:
             concept_id = result.get("@id", "")
@@ -145,9 +141,7 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
             logger.error(f"Error converting BioPortal result: {e}")
             return None
 
-    def _convert_bioportal_concept_to_unified(
-        self, data: Dict[str, Any]
-    ) -> Optional[UnifiedConcept]:
+    def _convert_bioportal_concept_to_unified(self, data: dict[str, Any]) -> UnifiedConcept | None:
         """Convert detailed BioPortal concept to unified concept."""
         try:
             concept_id = data.get("@id", "")

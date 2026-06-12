@@ -2,6 +2,10 @@
 Unit tests for models.
 """
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 from knowledge_lookup.models import (
     ConceptType,
     KnowledgeSource,

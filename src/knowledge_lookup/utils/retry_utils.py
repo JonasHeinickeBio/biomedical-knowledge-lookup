@@ -4,7 +4,7 @@ Provides standardized retry decorators with sensible defaults for API calls.
 """
 
 import logging
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import backoff
 
@@ -12,9 +12,9 @@ import backoff
 def create_api_retry_decorator(
     max_tries: int = 4,
     backoff_strategy: Callable = backoff.expo,
-    is_retryable_error: Optional[Callable[[str], bool]] = None,
-    on_backoff: Optional[Callable] = None,
-    on_giveup: Optional[Callable] = None,
+    is_retryable_error: Callable[[str], bool] | None = None,
+    on_backoff: Callable | None = None,
+    on_giveup: Callable | None = None,
     logger_name: str = __name__,
 ) -> Callable:
     """
@@ -106,8 +106,8 @@ def create_api_retry_decorator(
 def create_http_retry_decorator(
     max_tries: int = 4,
     backoff_strategy: Callable = backoff.expo,
-    on_backoff: Optional[Callable] = None,
-    on_giveup: Optional[Callable] = None,
+    on_backoff: Callable | None = None,
+    on_giveup: Callable | None = None,
     logger_name: str = __name__,
 ) -> Callable:
     """
@@ -176,8 +176,8 @@ def create_http_retry_decorator(
 def create_chembl_retry_decorator(
     max_tries: int = 4,
     backoff_strategy: Callable = backoff.expo,
-    on_backoff: Optional[Callable] = None,
-    on_giveup: Optional[Callable] = None,
+    on_backoff: Callable | None = None,
+    on_giveup: Callable | None = None,
     logger_name: str = __name__,
 ) -> Callable:
     """

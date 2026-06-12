@@ -3,9 +3,27 @@ Pytest configuration and fixtures for the test suite.
 """
 
 import asyncio
+import sys
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
+# Add tests directory to path for fixture imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+# ---------------------------------------------------------------------------
+# Mock heavy external dependencies BEFORE any knowledge_lookup import.
+# knowledge_lookup/__init__.py loads ALL adapter modules eagerly, so these
+# mocks must be in sys.modules before the first `from knowledge_lookup ...`
+# statement to prevent actual network connections during unit tests.
+# ---------------------------------------------------------------------------
+mock_chembl = MagicMock()
+sys.modules["chembl_webresource_client"] = mock_chembl
+sys.modules["chembl_webresource_client.new_client"] = mock_chembl
+mock_bioservices = MagicMock()
+sys.modules["bioservices"] = mock_bioservices
+
 from knowledge_lookup import LookupConfig
 from knowledge_lookup.models import (
     ConceptType,
@@ -14,30 +32,6 @@ from knowledge_lookup.models import (
     UnifiedConcept,
 )
 
-# Fix Typer 0.9.x compatibility with Click 8.1+
-try:
-    import typer.core
-    import click
-    
-    def robust_metavar(original_func):
-        def wrapper(self, *args, **kwargs):
-            try:
-                return original_func(self, *args, **kwargs)
-            except TypeError:
-                # If it failed with TypeError, try calling with fewer args
-                if len(args) > 0:
-                    return wrapper(self, *args[:-1], **kwargs)
-                return original_func(self)
-        return wrapper
-
-    # Patch Click and Typer methods that commonly cause signature issues
-    click.ParamType.get_metavar = robust_metavar(click.ParamType.get_metavar)
-    click.Parameter.make_metavar = robust_metavar(click.Parameter.make_metavar)
-    typer.core.TyperArgument.make_metavar = robust_metavar(typer.core.TyperArgument.make_metavar)
-    typer.core.TyperOption.make_metavar = robust_metavar(typer.core.TyperOption.make_metavar)
-
-except (ImportError, AttributeError):
-    pass
 
 @pytest.fixture(scope="session")
 def event_loop():

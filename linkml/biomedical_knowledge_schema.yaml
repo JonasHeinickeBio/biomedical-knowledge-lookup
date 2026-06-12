@@ -1,0 +1,504 @@
+id: https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/linkml/schema
+name: biomedical_knowledge_schema
+description: "LinkML schema for biomedical knowledge lookup data models"
+prefixes:
+  linkml: https://w3id.org/linkml/
+  biok: https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/linkml/
+  biop: https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/
+  pymodels: https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/pydantic/
+  xsd: http://www.w3.org/2001/XMLSchema#
+
+default_prefix: biok
+
+types:
+  string:
+    uri: xsd:string
+    base: str
+  float:
+    uri: xsd:float
+    base: float
+  integer:
+    uri: xsd:integer
+    base: int
+  boolean:
+    uri: xsd:boolean
+    base: bool
+  datetime:
+    uri: xsd:dateTime
+    base: datetime
+  uri:
+    uri: xsd:anyURI
+    base: str
+
+enums:
+  KnowledgeSource:
+    description: "Enumeration of supported knowledge sources"
+    permissible_values:
+      UMLS:
+        description: "Unified Medical Language System"
+      OLS:
+        description: "Ontology Lookup Service"
+      BIOPORTAL:
+        description: "BioPortal"
+      BIOONTOLOGY:
+        description: "Bioontology"
+      OXO:
+        description: "Ontology X-References Ontology"
+      WIKIDATA:
+        description: "Wikidata"
+      DBPEDIA:
+        description: "DBpedia"
+      TYTO:
+        description: "Tyto"
+      ZOOMA:
+        description: "ZOOMA"
+      BIOLINKER:
+        description: "Biolinker"
+      NCBI:
+        description: "NCBI"
+      UNIPROT:
+        description: "UniProt"
+      ENSEMBL:
+        description: "Ensembl"
+      PUBCHEM:
+        description: "PubChem"
+      CHEMBL:
+        description: "ChEMBL"
+      UNICHEM:
+        description: "UniChem"
+      MONDO:
+        description: "MONDO"
+      DISGENET:
+        description: "DisGeNET"
+      OPENTARGETS:
+        description: "OpenTargets"
+      REACTOME:
+        description: "Reactome"
+      DRUGBANK:
+        description: "DrugBank"
+      GO:
+        description: "Gene Ontology"
+      GENEONTOLOGY:
+        description: "Gene Ontology"
+      HPO:
+        description: "Human Phenotype Ontology"
+      OBOFOUNDRY:
+        description: "OBO Foundry"
+      EBIOLS:
+        description: "EBI Ontology Lookup Service"
+      KEGG:
+        description: "KEGG"
+      QUICKGO:
+        description: "QuickGO"
+      MYGENEINFO:
+        description: "MyGene.info"
+      HGNC:
+        description: "HGNC"
+      EUTILS:
+        description: "EUtils"
+      EUROPEPMC:
+        description: "Europe PMC"
+      OMIM:
+        description: "OMIM"
+      CLINVAR:
+        description: "ClinVar"
+      COSMIC:
+        description: "COSMIC"
+      PDB:
+        description: "Protein Data Bank"
+      INTERPRO:
+        description: "InterPro"
+      PFAM:
+        description: "Pfam"
+      STRING:
+        description: "STRING"
+
+  ConceptType:
+    description: "Types of biological concepts based on AID-PAIS ontology"
+    permissible_values:
+      DISEASE:
+        description: "A disease or disorder"
+      SYMPTOM:
+        description: "A symptom"
+      PHENOTYPE:
+        description: "A phenotype"
+      TREATMENT:
+        description: "A treatment"
+      DEMOGRAPHIC:
+        description: "A demographic feature"
+      CASE_DEFINITION:
+        description: "A case definition"
+      PROGNOSIS:
+        description: "A prognosis"
+      MOLECULAR_ENTITY:
+        description: "A molecular entity"
+      GENE:
+        description: "A gene"
+      PROTEIN:
+        description: "A protein"
+      CYTOKINE:
+        description: "A cytokine"
+      METABOLITE:
+        description: "A metabolite"
+      BIOMARKER:
+        description: "A biomarker"
+      GENE_DISEASE_ASSOCIATION:
+        description: "A gene-disease association"
+      CHEMICAL:
+        description: "A chemical"
+      DRUG:
+        description: "A drug"
+      ANATOMICAL_ENTITY:
+        description: "An anatomical entity"
+      ORGAN_SYSTEM:
+        description: "An organ system"
+      ORGAN:
+        description: "An organ"
+      TISSUE:
+        description: "A tissue"
+      CELL_TYPE:
+        description: "A cell type"
+      CELLULAR_COMPONENT:
+        description: "A cellular component"
+      PROCEDURE:
+        description: "A procedure"
+      BIOLOGICAL_PROCESS:
+        description: "A biological process"
+      PHYSIOLOGICAL_PROCESS:
+        description: "A physiological process"
+      PATHOPHYSIOLOGICAL_PROCESS:
+        description: "A pathophysiological process"
+      MOLECULAR_FUNCTION:
+        description: "A molecular function"
+      OBSERVATION:
+        description: "An observation"
+      ASSAY:
+        description: "An assay"
+      EVIDENCE:
+        description: "Evidence"
+      REFERENCE:
+        description: "A reference"
+      CITATION:
+        description: "A citation"
+      STUDY:
+        description: "A study"
+      CLINICAL_STUDY:
+        description: "A clinical study"
+      LABORATORY_STUDY:
+        description: "A laboratory study"
+      OBSERVATIONAL_STUDY:
+        description: "An observational study"
+      COHORT_STUDY:
+        description: "A cohort study"
+      CASE_STUDY:
+        description: "A case study"
+      CASE_CONTROL_STUDY:
+        description: "A case-control study"
+      RANDOMIZED_CONTROLLED_TRIAL:
+        description: "A randomized controlled trial"
+      CLINICAL_TRIAL:
+        description: "A clinical trial"
+      META_ANALYSIS:
+        description: "A meta-analysis"
+      SYSTEMATIC_REVIEW:
+        description: "A systematic review"
+      INTERVENTIONAL_STUDY:
+        description: "An interventional study"
+      DIAGNOSTIC_TRIAL:
+        description: "A diagnostic trial"
+      COMMUNITY_TRIAL:
+        description: "A community trial"
+      RETROSPECTIVE_COHORT_STUDY:
+        description: "A retrospective cohort study"
+      PROSPECTIVE_COHORT_STUDY:
+        description: "A prospective cohort study"
+      PERSON:
+        description: "A person"
+      ORGANISM:
+        description: "An organism"
+      PATHWAY:
+        description: "A pathway"
+      ANATOMY:
+        description: "Anatomy"
+      UNKNOWN:
+        description: "Unknown concept type"
+
+  ConfidenceLevel:
+    description: "Confidence level for concept agreement"
+    permissible_values:
+      high:
+        description: "High confidence"
+      medium:
+        description: "Medium confidence"
+      low:
+        description: "Low confidence"
+      disputed:
+        description: "Disputed"
+
+classes:
+  ConceptIdentifier:
+    description: "Represents an identifier for a concept in a specific knowledge source"
+    attributes:
+      source:
+        description: "The knowledge source"
+        range: KnowledgeSource
+        required: true
+      identifier:
+        description: "The identifier string"
+        range: string
+        required: true
+      label:
+        description: "The label for the concept"
+        range: string
+      url:
+        description: "The URL to the concept in the source"
+        range: uri
+
+  ConceptMapping:
+    description: "Represents a mapping between two concept identifiers"
+    attributes:
+      from_concept:
+        description: "The source concept identifier"
+        range: ConceptIdentifier
+        required: true
+      to_concept:
+        description: "The target concept identifier"
+        range: ConceptIdentifier
+        required: true
+      mapping_type:
+        description: "Type of mapping (exact, narrow, broad, related)"
+        range: string
+      confidence:
+        description: "Confidence score for the mapping"
+        range: float
+      source:
+        description: "Source of the mapping"
+        range: string
+
+  UnifiedConcept:
+    description: "Unified representation of a biological concept across multiple knowledge sources"
+    attributes:
+      primary_id:
+        description: "Primary identifier for the concept"
+        range: string
+        required: true
+      primary_label:
+        description: "Primary label for the concept"
+        range: string
+        required: true
+      concept_type:
+        description: "Type of concept"
+        range: ConceptType
+      identifiers:
+        description: "List of cross-reference identifiers"
+        range: ConceptIdentifier
+        multivalued: true
+      mappings:
+        description: "List of concept mappings"
+        range: ConceptMapping
+        multivalued: true
+      labels:
+        description: "Labels in different languages"
+        range: string
+        multivalued: true
+      synonyms:
+        description: "List of synonyms"
+        range: string
+        multivalued: true
+      definitions:
+        description: "List of definitions"
+        range: string
+        multivalued: true
+      semantic_types:
+        description: "List of semantic types"
+        range: string
+        multivalued: true
+      categories:
+        description: "List of categories"
+        range: string
+        multivalued: true
+      parents:
+        description: "List of parent concept IDs"
+        range: string
+        multivalued: true
+      children:
+        description: "List of child concept IDs"
+        range: string
+        multivalued: true
+      related:
+        description: "List of related concept IDs"
+        range: string
+        multivalued: true
+      sources:
+        description: "Set of knowledge sources"
+        range: KnowledgeSource
+        multivalued: true
+      confidence_score:
+        description: "Confidence score for the concept"
+        range: float
+      last_updated:
+        description: "Timestamp of last update"
+        range: datetime
+
+  LookupResult:
+    description: "Result of a knowledge lookup operation"
+    attributes:
+      query:
+        description: "The original query string"
+        range: string
+        required: true
+      concepts:
+        description: "List of matching concepts"
+        range: UnifiedConcept
+        multivalued: true
+      total_found:
+        description: "Total number of concepts found"
+        range: integer
+      sources_queried:
+        description: "List of sources that were queried"
+        range: KnowledgeSource
+        multivalued: true
+      sources_succeeded:
+        description: "List of sources that succeeded"
+        range: KnowledgeSource
+        multivalued: true
+      sources_failed:
+        description: "List of sources that failed"
+        range: KnowledgeSource
+        multivalued: true
+      execution_time:
+        description: "Execution time in seconds"
+        range: float
+      errors:
+        description: "Dictionary of errors per source"
+        range: string
+        multivalued: true
+
+  LookupConfig:
+    description: "Configuration for knowledge lookup operations"
+    attributes:
+      enabled_sources:
+        description: "List of enabled knowledge sources"
+        range: KnowledgeSource
+        multivalued: true
+      max_results_per_source:
+        description: "Maximum results per source"
+        range: integer
+      timeout_per_source:
+        description: "Timeout per source in seconds"
+        range: float
+      parallel_queries:
+        description: "Whether to run queries in parallel"
+        range: boolean
+      min_confidence_threshold:
+        description: "Minimum confidence threshold"
+        range: float
+      preferred_languages:
+        description: "List of preferred languages"
+        range: string
+        multivalued: true
+      concept_types:
+        description: "List of preferred concept types"
+        range: ConceptType
+        multivalued: true
+      rate_limits:
+        description: "Rate limits per source (requests per second)"
+        range: float
+        multivalued: true
+      enable_deduplication:
+        description: "Whether to enable deduplication"
+        range: boolean
+      similarity_threshold:
+        description: "Similarity threshold for deduplication"
+        range: float
+      merge_similar_concepts:
+        description: "Whether to merge similar concepts"
+        range: boolean
+      enable_ontology_mapping:
+        description: "Whether to enable ontology mapping"
+        range: boolean
+      api_keys:
+        description: "API keys for external services"
+        range: string
+        multivalued: true
+
+  SourceAnnotation:
+    description: "Annotation from a single knowledge source"
+    attributes:
+      source:
+        description: "The knowledge source"
+        range: KnowledgeSource
+        required: true
+      concepts:
+        description: "List of annotated concepts"
+        range: UnifiedConcept
+        multivalued: true
+      surface_forms:
+        description: "List of surface forms found"
+        range: string
+        multivalued: true
+      positions:
+        description: "List of position dictionaries"
+        range: string
+        multivalued: true
+      processing_time:
+        description: "Processing time in seconds"
+        range: float
+      error:
+        description: "Error message if any"
+        range: string
+
+  ConceptAgreement:
+    description: "Agreement analysis for a concept across sources"
+    attributes:
+      primary_concept:
+        description: "The primary concept"
+        range: UnifiedConcept
+        required: true
+      agreeing_sources:
+        description: "Set of sources that agree"
+        range: KnowledgeSource
+        multivalued: true
+      disagreeing_sources:
+        description: "Set of sources that disagree"
+        range: KnowledgeSource
+        multivalued: true
+      alternative_concepts:
+        description: "List of alternative concepts"
+        range: UnifiedConcept
+        multivalued: true
+      confidence_level:
+        description: "Confidence level based on source agreement"
+        range: ConfidenceLevel
+      consensus_score:
+        description: "Consensus score"
+        range: float
+
+  MultiSourceAnnotationResult:
+    description: "Complete annotation result from multiple sources"
+    attributes:
+      sentence:
+        description: "The original sentence"
+        range: string
+        required: true
+      source_annotations:
+        description: "Annotations from each source"
+        range: SourceAnnotation
+        multivalued: true
+      consensus_concepts:
+        description: "Consensus concepts"
+        range: ConceptAgreement
+        multivalued: true
+      discrepancies:
+        description: "List of discrepancies"
+        range: string
+        multivalued: true
+      overall_confidence:
+        description: "Overall confidence score"
+        range: float
+      processing_time:
+        description: "Total processing time in seconds"
+        range: float
+      annotation_stats:
+        description: "Annotation statistics"
+        range: string

@@ -1,0 +1,36 @@
+Checking if HGNC adapter is available...
+  ✓ HGNC adapter is available
+
+Searching for 'TP53' concepts in HGNC...
+
+Found 22 results from HGNC:
+
+  Concept 1:
+    Label: TP53
+    ID: HGNC:11998
+    Type: ConceptType.GENE
+    Confidence: 0.9
+
+  Concept 2:
+    Label: RPRM
+    ID: HGNC:24201
+    Type: ConceptType.GENE
+    Confidence: 0.9
+
+  Concept 3:
+    Label: RRM2B
+    ID: HGNC:17296
+    Type: ConceptType.GENE
+    Confidence: 0.9
+
+  Concept 4:
+    Label: TIGAR
+    ID: HGNC:1185
+    Type: ConceptType.GENE
+    Confidence: 0.9
+
+  Concept 5:
+    Label: TP53RK
+    ID: HGNC:16197
+    Type: ConceptType.GENE
+    Confidence: 0.9

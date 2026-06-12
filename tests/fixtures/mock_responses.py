@@ -75,17 +75,13 @@ UMLS_SEARCH_RESPONSE = {
                 "name": "Diabetes Mellitus",
                 "rootSource": "MTH",
                 "uri": "https://uts-ws.nlm.nih.gov/rest/content/2021AB/CUI/C0011849",
-                "semanticTypes": [
-                    {"name": "Disease or Syndrome", "uri": "T047"}
-                ],
+                "semanticTypes": [{"name": "Disease or Syndrome", "uri": "T047"}],
             },
             {
                 "ui": "C0011854",
                 "name": "Type 1 Diabetes Mellitus",
                 "rootSource": "MTH",
-                "semanticTypes": [
-                    {"name": "Disease or Syndrome", "uri": "T047"}
-                ],
+                "semanticTypes": [{"name": "Disease or Syndrome", "uri": "T047"}],
             },
         ]
     }
@@ -168,9 +164,7 @@ UNIPROT_SEARCH_RESPONSE = {
         {
             "primaryAccession": "P01308",
             "uniProtkbId": "INS_HUMAN",
-            "proteinDescription": {
-                "recommendedName": {"fullName": {"value": "Insulin"}}
-            },
+            "proteinDescription": {"recommendedName": {"fullName": {"value": "Insulin"}}},
             "genes": [{"geneName": {"value": "INS"}}],
             "organism": {"scientificName": "Homo sapiens"},
         }
@@ -243,9 +237,7 @@ WIKIDATA_ENTITY_RESPONSE = {
         "Q12206": {
             "id": "Q12206",
             "labels": {"en": {"language": "en", "value": "diabetes mellitus"}},
-            "descriptions": {
-                "en": {"language": "en", "value": "group of metabolic disorders"}
-            },
+            "descriptions": {"en": {"language": "en", "value": "group of metabolic disorders"}},
             "aliases": {"en": [{"language": "en", "value": "diabetes"}]},
         }
     }
