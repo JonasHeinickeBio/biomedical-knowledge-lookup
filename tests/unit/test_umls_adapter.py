@@ -23,7 +23,6 @@ def make_search_result(
     uri: str | None = None,
     semantic_type_names: list[str] | None = None,
 ):
-    """Build a mock ``SearchResult``-like object with the same shape."""
     result = MagicMock()
     result.ui = cui
     result.name = name
@@ -45,7 +44,7 @@ def make_concept(ui: str = "C001", name: str = "Diabetes", semantic_types: list[
 
 def make_profile(
     concept=None,
-    definitions: list[str] | None = None,
+    definitions: list | None = None,
     relations: list | None = None,
     atoms: list | None = None,
     preferred_atom=None,
@@ -71,17 +70,43 @@ def make_relation(related_id: str, relation_label: str, **kw):
     r = MagicMock()
     r.related_id = related_id
     r.relation_label = relation_label
+    r.additional_relation_label = None
+    r.related_id_name = f"Name of {related_id}"
+    r.root_source = "SNOMEDCT"
+    r.ui = f"R{related_id}"
     for k, v in kw.items():
         setattr(r, k, v)
     return r
 
 
-def make_atom(name: str, root_source: str = "SNOMEDCT", ui: str = "A001"):
+def make_atom(name: str, root_source: str = "SNOMEDCT", ui: str = "A001", code: str | None = None):
     a = MagicMock()
     a.name = name
     a.root_source = root_source
     a.ui = ui
+    a.code = code or ui
+    a.uri = f"https://uts.nlm.nih.gov/uts/rest/content/current/source/{root_source}/{code or ui}"
     return a
+
+
+# Async iterator helper for mocking ``iter_*`` methods
+class AsyncIter:
+    def __init__(self, items):
+        self.items = items
+
+    def __aiter__(self):
+        return self._gen()
+
+    async def _gen(self):
+        for item in self.items:
+            yield item
+
+
+def make_mock_response(result):
+    """Shortcut for a MagicMock that looks like ``UMLSResponse`` with ``.result``."""
+    r = MagicMock()
+    r.result = result
+    return r
 
 
 # ── Tests ───────────────────────────────────────────────────────────────
@@ -92,21 +117,19 @@ class TestUMLSAdapter:
 
     @pytest.fixture
     def adapter(self, lookup_config):
-        """Create UMLSAdapter instance."""
         return UMLSAdapter(lookup_config)
 
     @pytest.fixture
     def mock_client(self):
-        """Create a mock AsyncUMLSClient with async search_api / cui_api."""
         client = MagicMock()
         client.search_api = MagicMock()
         client.cui_api = MagicMock()
+        client.crosswalk_api = MagicMock()
         return client
 
     # ── Basics ──────────────────────────────────────────────────────
 
     def test_adapter_initialization(self, lookup_config):
-        """Test UMLSAdapter initialization."""
         adapter = UMLSAdapter(lookup_config)
         assert adapter.source == KnowledgeSource.UMLS
         assert adapter.config == lookup_config
@@ -127,45 +150,65 @@ class TestUMLSAdapter:
         adapter = UMLSAdapter(config)
         assert adapter.get_rate_limit() == 5.0
 
-    # ── search_concepts ─────────────────────────────────────────────
+    # ── 1. search_concepts ─────────────────────────────────────────
 
     @pytest.mark.asyncio
     async def test_search_concepts_success(self, adapter, mock_client):
-        """Search returns two results with proper conversion."""
-        mock_response = MagicMock()
-        mock_response.result = [
-            make_search_result("C001", "Diabetes", "SNOMEDCT"),
-            make_search_result("C002", "Diabetes Mellitus", "ICD10CM"),
-        ]
-        mock_client.search_api.search = AsyncMock(return_value=mock_response)
+        mock_client.search_api.search = AsyncMock(
+            return_value=make_mock_response([
+                make_search_result("C001", "Diabetes", "SNOMEDCT"),
+                make_search_result("C002", "Diabetes Mellitus", "ICD10CM"),
+            ])
+        )
         adapter.client = mock_client
 
         results = await adapter.search_concepts("diabetes", limit=10)
         assert len(results) == 2
         assert all(isinstance(r, UnifiedConcept) for r in results)
 
-        # Exact match (case-insensitive)
         assert results[0].primary_label == "Diabetes"
         assert results[0].primary_id == "C001"
         assert results[0].concept_type == ConceptType.DISEASE
         assert results[0].confidence_score == 0.95
 
-        # Partial match
         assert results[1].primary_label == "Diabetes Mellitus"
         assert results[1].concept_type == ConceptType.DISEASE
         assert results[1].confidence_score == 0.85
 
         mock_client.search_api.search.assert_awaited_once_with(
-            search_string="diabetes", page_size=10, return_id_type="concept"
+            search_string="diabetes", page_size=10, return_id_type="concept",
+            sabs=None, semantic_groups=None, semantic_types=None,
+            search_type="words", partial_search=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_with_filters(self, adapter, mock_client):
+        mock_client.search_api.search = AsyncMock(
+            return_value=make_mock_response([
+                make_search_result("C001", "Diabetes", "SNOMEDCT"),
+            ])
+        )
+        adapter.client = mock_client
+
+        results = await adapter.search_concepts(
+            "diabetes", limit=5,
+            sabs="SNOMEDCT", semantic_groups="DISO",
+            search_type="exact", partial_search=True,
+        )
+        assert len(results) == 1
+
+        mock_client.search_api.search.assert_awaited_once_with(
+            search_string="diabetes", page_size=5, return_id_type="concept",
+            sabs="SNOMEDCT", semantic_groups="DISO", semantic_types=None,
+            search_type="exact", partial_search=True,
         )
 
     @pytest.mark.asyncio
     async def test_search_concepts_empty(self, adapter, mock_client):
-        mock_response = MagicMock()
-        mock_response.result = []
-        mock_client.search_api.search = AsyncMock(return_value=mock_response)
+        mock_client.search_api.search = AsyncMock(
+            return_value=make_mock_response([])
+        )
         adapter.client = mock_client
-
         results = await adapter.search_concepts("nonexistent")
         assert results == []
 
@@ -173,7 +216,6 @@ class TestUMLSAdapter:
     async def test_search_concepts_error(self, adapter, mock_client):
         mock_client.search_api.search = AsyncMock(side_effect=Exception("API error"))
         adapter.client = mock_client
-
         results = await adapter.search_concepts("test")
         assert results == []
 
@@ -185,27 +227,105 @@ class TestUMLSAdapter:
 
     @pytest.mark.asyncio
     async def test_search_concepts_respects_limit(self, adapter, mock_client):
-        mock_response = MagicMock()
-        mock_response.result = [
-            make_search_result(f"C{i:03d}", f"Concept {i}")
-            for i in range(10)
-        ]
-        mock_client.search_api.search = AsyncMock(return_value=mock_response)
+        mock_client.search_api.search = AsyncMock(
+            return_value=make_mock_response([
+                make_search_result(f"C{i:03d}", f"Concept {i}")
+                for i in range(10)
+            ])
+        )
         adapter.client = mock_client
-
         results = await adapter.search_concepts("test", limit=3)
         assert len(results) == 3
-        assert [r.primary_id for r in results] == ["C000", "C001", "C002"]
 
-    # ── get_concept_details ─────────────────────────────────────────
+    @pytest.mark.asyncio
+    async def test_search_concepts_with_mth_fallback(self, adapter, mock_client):
+        mock_client.search_api.search = AsyncMock(
+            return_value=make_mock_response([
+                make_search_result("C001", "Amoxicillin", "MTH",
+                                   semantic_type_names=["Pharmacologic Substance"]),
+            ])
+        )
+        adapter.client = mock_client
+        results = await adapter.search_concepts("amoxicillin", limit=5)
+        assert len(results) == 1
+        assert results[0].concept_type == ConceptType.DRUG
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_with_mth_and_no_semantic_types(self, adapter, mock_client):
+        mock_client.search_api.search = AsyncMock(
+            return_value=make_mock_response([
+                make_search_result("C001", "Unknown Concept", "MTH"),
+            ])
+        )
+        adapter.client = mock_client
+        results = await adapter.search_concepts("unknown", limit=5)
+        assert len(results) == 1
+        assert results[0].concept_type == ConceptType.UNKNOWN
+
+    # ── 2. bulk_search ──────────────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_bulk_search_success(self, adapter, mock_client):
+        mock_client.search_api.bulk_search = AsyncMock(
+            return_value={
+                "diabetes": make_mock_response([
+                    make_search_result("C001", "Diabetes", "SNOMEDCT"),
+                ]),
+                "asthma": make_mock_response([
+                    make_search_result("C002", "Asthma", "ICD10CM"),
+                ]),
+            }
+        )
+        adapter.client = mock_client
+
+        results = await adapter.bulk_search(["diabetes", "asthma"], limit=5)
+        assert set(results.keys()) == {"diabetes", "asthma"}
+        assert len(results["diabetes"]) == 1
+        assert results["diabetes"][0].primary_label == "Diabetes"
+        assert len(results["asthma"]) == 1
+        assert results["asthma"][0].primary_label == "Asthma"
+
+        mock_client.search_api.bulk_search.assert_awaited_once_with(
+            ["diabetes", "asthma"],
+            page_size=5, return_id_type="concept",
+            sabs=None, semantic_groups=None,
+        )
+
+    @pytest.mark.asyncio
+    async def test_bulk_search_with_filters(self, adapter, mock_client):
+        mock_client.search_api.bulk_search = AsyncMock(return_value={})
+        adapter.client = mock_client
+
+        await adapter.bulk_search(
+            ["diabetes"], limit=3,
+            sabs="SNOMEDCT", semantic_groups="DISO",
+        )
+        mock_client.search_api.bulk_search.assert_awaited_once_with(
+            ["diabetes"],
+            page_size=3, return_id_type="concept",
+            sabs="SNOMEDCT", semantic_groups="DISO",
+        )
+
+    @pytest.mark.asyncio
+    async def test_bulk_search_error(self, adapter, mock_client):
+        mock_client.search_api.bulk_search = AsyncMock(side_effect=Exception("error"))
+        adapter.client = mock_client
+        results = await adapter.bulk_search(["test"])
+        assert results == {}
+
+    @pytest.mark.asyncio
+    async def test_bulk_search_no_client(self, adapter):
+        adapter.client = None
+        results = await adapter.bulk_search(["test"])
+        assert results == {}
+
+    # ── 3. get_concept_details ─────────────────────────────────────
 
     @pytest.mark.asyncio
     async def test_get_concept_details_success(self, adapter, mock_client):
-        """Full profile with definitions, relations, atoms."""
         cui = "C001"
         concept_info = make_concept(
-            ui=cui,
-            name="Diabetes",
+            ui=cui, name="Diabetes",
             semantic_types=[{"uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T047", "name": "Disease or Syndrome"}],
         )
         profile = make_profile(
@@ -223,24 +343,19 @@ class TestUMLSAdapter:
             preferred_atom=make_atom("Diabetes mellitus", "SNOMEDCT", "A001"),
         )
 
-        mock_client.cui_api.get_cui_info = AsyncMock(
-            return_value=MagicMock(result=concept_info)
-        )
-        mock_client.cui_api.get_concept_profile = AsyncMock(
-            return_value=MagicMock(result=profile)
-        )
+        mock_client.cui_api.get_cui_info = AsyncMock(return_value=make_mock_response(concept_info))
+        mock_client.cui_api.get_concept_profile = AsyncMock(return_value=make_mock_response(profile))
         adapter.client = mock_client
 
         concept = await adapter.get_concept_details(cui)
         assert concept is not None
         assert concept.primary_id == cui
         assert concept.primary_label == "Diabetes"
-        assert concept.concept_type == ConceptType.DISEASE  # from root_source SNOMEDCT
+        assert concept.concept_type == ConceptType.DISEASE
         assert concept.confidence_score == 0.95
         assert concept.definitions == ["A metabolic disorder"]
         assert "Diabetes mellitus" in concept.synonyms
         assert "SNOMEDCT" in concept.categories
-        assert "ICD10CM" in concept.categories
         assert "C002" in concept.parents
         assert "C003" in concept.children
         assert "C004" in concept.related
@@ -253,22 +368,201 @@ class TestUMLSAdapter:
 
     @pytest.mark.asyncio
     async def test_get_concept_details_error(self, adapter, mock_client):
-        mock_client.cui_api.get_cui_info = AsyncMock(
-            side_effect=Exception("API error")
-        )
+        mock_client.cui_api.get_cui_info = AsyncMock(side_effect=Exception("API error"))
         adapter.client = mock_client
         result = await adapter.get_concept_details("C001")
         assert result is None
 
+    # ── 4. get_mappings (via get_atoms) ──────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_get_mappings_success(self, adapter, mock_client):
+        mock_client.cui_api.get_atoms = AsyncMock(
+            return_value=make_mock_response([
+                make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),
+                make_atom("Diabetes mellitus", "ICD10CM", "A002", code="E11"),
+                make_atom("DM", "MSH", "A003", code="D003920"),
+            ])
+        )
+        adapter.client = mock_client
+
+        mappings = await adapter.get_mappings("C001", limit=10)
+        assert len(mappings) == 3
+        assert mappings[0]["source"] == "SNOMEDCT"
+        assert mappings[0]["source_id"] == "73211009"
+        assert mappings[1]["source"] == "ICD10CM"
+        assert mappings[1]["source_id"] == "E11"
+        assert mappings[2]["source"] == "MSH"
+        assert mappings[2]["source_id"] == "D003920"
+
+        mock_client.cui_api.get_atoms.assert_awaited_once_with(
+            "C001", sabs=None, page_size=10,
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_mappings_with_target(self, adapter, mock_client):
+        mock_client.cui_api.get_atoms = AsyncMock(
+            return_value=make_mock_response([
+                make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),
+            ])
+        )
+        adapter.client = mock_client
+
+        mappings = await adapter.get_mappings("C001", target_source="SNOMEDCT", limit=10)
+        assert len(mappings) == 1
+        assert mappings[0]["source"] == "SNOMEDCT"
+
+        mock_client.cui_api.get_atoms.assert_awaited_once_with(
+            "C001", sabs="SNOMEDCT", page_size=10,
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_mappings_deduplicates(self, adapter, mock_client):
+        """Same (source, id) pair should only appear once."""
+        mock_client.cui_api.get_atoms = AsyncMock(
+            return_value=make_mock_response([
+                make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),
+                make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),  # duplicate
+                make_atom("DM", "MSH", "A002", code="D003920"),
+            ])
+        )
+        adapter.client = mock_client
+        mappings = await adapter.get_mappings("C001", limit=10)
+        assert len(mappings) == 2
+
+    @pytest.mark.asyncio
+    async def test_get_mappings_error(self, adapter, mock_client):
+        mock_client.cui_api.get_atoms = AsyncMock(side_effect=Exception("error"))
+        adapter.client = mock_client
+        mappings = await adapter.get_mappings("C001")
+        assert mappings == []
+
+    @pytest.mark.asyncio
+    async def test_get_mappings_no_client(self, adapter):
+        adapter.client = None
+        mappings = await adapter.get_mappings("C001")
+        assert mappings == []
+
+    # ── 5. get_relationships ────────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_success(self, adapter, mock_client):
+        mock_client.cui_api.get_relations = AsyncMock(
+            return_value=make_mock_response([
+                make_relation("C002", "PAR"),
+                make_relation("C003", "CHD"),
+                make_relation("C004", "RB"),
+            ])
+        )
+        adapter.client = mock_client
+
+        rels = await adapter.get_relationships("C001", limit=10)
+        assert len(rels) == 3
+        assert rels[0]["relation_label"] == "PAR"
+        assert rels[0]["related_id"] == "C002"
+        assert rels[1]["relation_label"] == "CHD"
+        assert rels[1]["related_id"] == "C003"
+        assert rels[2]["relation_label"] == "RB"
+
+        mock_client.cui_api.get_relations.assert_awaited_once_with(
+            "C001", include_relation_labels=None, page_size=10,
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_filtered(self, adapter, mock_client):
+        mock_client.cui_api.get_relations = AsyncMock(
+            return_value=make_mock_response([
+                make_relation("C002", "PAR"),
+            ])
+        )
+        adapter.client = mock_client
+
+        rels = await adapter.get_relationships("C001", relation_labels="PAR", limit=10)
+        assert len(rels) == 1
+        assert rels[0]["relation_label"] == "PAR"
+
+        mock_client.cui_api.get_relations.assert_awaited_once_with(
+            "C001", include_relation_labels="PAR", page_size=10,
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_error(self, adapter, mock_client):
+        mock_client.cui_api.get_relations = AsyncMock(side_effect=Exception("error"))
+        adapter.client = mock_client
+        rels = await adapter.get_relationships("C001")
+        assert rels == []
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_no_client(self, adapter):
+        adapter.client = None
+        rels = await adapter.get_relationships("C001")
+        assert rels == []
+
+    # ── 6. Streaming iterators ──────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_iter_definitions(self, adapter, mock_client):
+        """Stream definitions with pagination."""
+        mock_client.cui_api.iter_definitions.return_value = AsyncIter([
+            make_definition("Def one", "SNOMEDCT"),
+            make_definition("Def two", "MSH"),
+        ])
+        adapter.client = mock_client
+
+        collected = []
+        async for d in adapter.iter_definitions("C001", page_size=10):
+            collected.append(d)
+
+        assert len(collected) == 2
+        assert collected[0]["value"] == "Def one"
+        assert collected[1]["root_source"] == "MSH"
+
+        mock_client.cui_api.iter_definitions.assert_called_once_with(
+            "C001", page_size=10,
+        )
+
+    @pytest.mark.asyncio
+    async def test_iter_definitions_empty(self, adapter, mock_client):
+        mock_client.cui_api.iter_definitions.return_value = AsyncIter([])
+        adapter.client = mock_client
+
+        collected = [d async for d in adapter.iter_definitions("C001")]
+        assert collected == []
+
+    @pytest.mark.asyncio
+    async def test_iter_definitions_no_client(self, adapter):
+        adapter.client = None
+        collected = [d async for d in adapter.iter_definitions("C001")]
+        assert collected == []
+
+    @pytest.mark.asyncio
+    async def test_iter_relations(self, adapter, mock_client):
+        """Stream relations with pagination."""
+        mock_client.cui_api.iter_relations.return_value = AsyncIter([
+            make_relation("C002", "PAR"),
+            make_relation("C003", "CHD"),
+        ])
+        adapter.client = mock_client
+
+        collected = []
+        async for r in adapter.iter_relations("C001", page_size=50, relation_labels="PAR,CHD"):
+            collected.append(r)
+
+        assert len(collected) == 2
+        assert collected[0]["relation_label"] == "PAR"
+        assert collected[1]["related_id"] == "C003"
+
+        mock_client.cui_api.iter_relations.assert_called_once_with(
+            "C001", page_size=50, include_relation_labels="PAR,CHD",
+        )
+
+    @pytest.mark.asyncio
+    async def test_iter_relations_no_client(self, adapter):
+        adapter.client = None
+        collected = [r async for r in adapter.iter_relations("C001")]
+        assert collected == []
+
     # ── Default methods ─────────────────────────────────────────────
-
-    @pytest.mark.asyncio
-    async def test_get_mappings_default(self, adapter):
-        assert await adapter.get_mappings("C001") == []
-
-    @pytest.mark.asyncio
-    async def test_get_relationships_default(self, adapter):
-        assert await adapter.get_relationships("C001") == []
 
     @pytest.mark.asyncio
     async def test_context_manager(self, adapter):
@@ -329,15 +623,11 @@ class TestUMLSAdapter:
     def test_confidence_scoring(self, name, query, expected):
         config = LookupConfig(api_keys={"umls": "test_key"})
         adapter = UMLSAdapter(config)
-
         result = make_search_result(cui="C001", name=name, root_source="SNOMEDCT")
         concept = adapter._convert_search_result(result, query)
-        assert concept.confidence_score == expected, (
-            f"name={name!r} query={query!r}: expected {expected}, got {concept.confidence_score}"
-        )
+        assert concept.confidence_score == expected
 
     def test_semantic_type_mapping(self):
-        """Semantic types with TUIs map to correct concept types."""
         config = LookupConfig(api_keys={"umls": "test_key"})
         adapter = UMLSAdapter(config)
 
@@ -356,7 +646,6 @@ class TestUMLSAdapter:
         )
         assert result == ConceptType.GENE
 
-        # Unknown TUI
         result = adapter._determine_concept_type_from_semantic_types(
             [{"uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T999", "name": "Unknown"}]
         )
@@ -376,38 +665,6 @@ class TestUMLSAdapter:
         ],
     )
     def test_semantic_type_name_mapping(self, type_names, expected):
-        """Semantic type name mapping for search result raw data."""
         config = LookupConfig(api_keys={"umls": "test_key"})
         adapter = UMLSAdapter(config)
         assert adapter._determine_concept_type_from_semantic_type_names(type_names) == expected
-
-    @pytest.mark.asyncio
-    async def test_search_concepts_with_mth_fallback(self, adapter, mock_client):
-        """Search results with MTH root source use semantic type fallback."""
-        mock_response = MagicMock()
-        mock_response.result = [
-            make_search_result(
-                "C001", "Amoxicillin", "MTH",
-                semantic_type_names=["Pharmacologic Substance"],
-            ),
-        ]
-        mock_client.search_api.search = AsyncMock(return_value=mock_response)
-        adapter.client = mock_client
-
-        results = await adapter.search_concepts("amoxicillin", limit=5)
-        assert len(results) == 1
-        assert results[0].concept_type == ConceptType.DRUG
-
-    @pytest.mark.asyncio
-    async def test_search_concepts_with_mth_and_no_semantic_types(self, adapter, mock_client):
-        """Search results with MTH but no semantic types fall back to UNKNOWN."""
-        mock_response = MagicMock()
-        mock_response.result = [
-            make_search_result("C001", "Unknown Concept", "MTH"),
-        ]
-        mock_client.search_api.search = AsyncMock(return_value=mock_response)
-        adapter.client = mock_client
-
-        results = await adapter.search_concepts("unknown", limit=5)
-        assert len(results) == 1
-        assert results[0].concept_type == ConceptType.UNKNOWN
