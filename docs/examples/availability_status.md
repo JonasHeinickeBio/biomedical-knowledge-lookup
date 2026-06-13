@@ -36,7 +36,7 @@ The following adapters require API keys to function. Set the corresponding envir
 | Cosmic | `COSMIC_API_KEY` |
 | Disgenet | `DISGENET_API_KEY` |
 | Omim | `OMIM_API_KEY` |
-| Umls | `UMLS_API_KEY_TU` |
+| Umls | `UMLS_API_KEY` |
 
 ## Adapter Status
 

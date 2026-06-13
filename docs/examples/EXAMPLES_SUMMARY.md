@@ -63,7 +63,7 @@ These adapters need API keys to function:
 3. cosmic (COSMIC_API_KEY)
 4. disgenet (DISGENET_API_KEY)
 5. omim (OMIM_API_KEY)
-6. umls (UMLS_API_KEY_TU)
+6. umls (UMLS_API_KEY or UMLS_API_KEY_TU)
 
 ### Timeout: 1 adapter
 

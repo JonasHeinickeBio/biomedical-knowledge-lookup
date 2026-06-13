@@ -1,36 +1,63 @@
-Checking if Umls adapter is available...
-  ✓ Umls adapter is available
+✓ UMLS adapter initialised
 
-Searching for 'cancer' concepts in Umls...
+══════════════════════════════════════════════════
+1. BASIC SEARCH  (via CentralKnowledgeLookup)
+══════════════════════════════════════════════════
+   Query: 'diabetes' → 50 results
 
-Found 50 results from Umls:
+   • C0011847: Diabetes  [disease]
+   • C0011849: Diabetes Mellitus  [disease]
+   • C0011860: Diabetes Mellitus, Non-Insulin-Dependent  [disease]
 
-  Concept 1:
-    Label: Malignant Neoplasms
-    ID: C0006826
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.9
+══════════════════════════════════════════════════
+2. SOURCE-RESTRICTED SEARCH  (sabs='SNOMEDCT_US')
+══════════════════════════════════════════════════
+   Query: 'hypertension' (SNOMEDCT_US only) → 5 results
 
-  Concept 2:
-    Label: Neoplasms
-    ID: C0027651
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.9
+   • C0020538: Hypertensive disease
+   • C0020541: Portal Hypertension
+   • C0085580: Essential Hypertension
+   • C0020542: Pulmonary Hypertension
+   • C0020545: Hypertension, Renovascular
 
-  Concept 3:
-    Label: Cancer <Cancridae>
-    ID: C0998265
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.9
+══════════════════════════════════════════════════
+3. SEMANTIC-TYPE FILTER  (semantic_types='T047' = Disease)
+══════════════════════════════════════════════════
+   Filtered to disease type → 3 results
 
-  Concept 4:
-    Label: Specialty Type - cancer
-    ID: C1547140
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.9
+   • C0011849: Diabetes Mellitus  [disease]
+   • C0011860: Diabetes Mellitus, Non-Insulin-Dependent  [disease]
+   • C0011847: Diabetes  [disease]
 
-  Concept 5:
-    Label: Uterine Cancer
-    ID: C0153567
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.9
+══════════════════════════════════════════════════
+4. BULK SEARCH
+══════════════════════════════════════════════════
+   'metformin' → ['metformin', 'metformin hydrochloride']
+   'atorvastatin' → ['atorvastatin', 'atorvastatin calcium']
+   'lisinopril' → ['lisinopril', 'hydrochlorothiazide / lisinopril']
+
+══════════════════════════════════════════════════
+5. MAPPINGS  (CUI → source-specific identifiers)
+══════════════════════════════════════════════════
+   RXNORM mappings for C0025598 (metformin):
+
+   • RXNORM: 6809  —  metformin
+
+══════════════════════════════════════════════════
+6. RELATIONSHIPS  (parent / child relations)
+══════════════════════════════════════════════════
+   Parent relations for metformin:
+
+   • PAR → producto con metformina y repaglinida     (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SCTSPA/438340003)
+   • PAR → Metformin- and repaglinide-containing product  (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SNOMEDCT_US/438340003)
+   • PAR → producto con metformina y sitagliptina    (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SCTSPA/427522005)
+   • PAR → Metformin- and sitagliptin-containing product  (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SNOMEDCT_US/427522005)
+   • PAR → producto con metformina y rosiglitazona   (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SCTSPA/409120009)
+
+══════════════════════════════════════════════════
+7. STREAMING ITERATORS
+══════════════════════════════════════════════════
+   Definitions for metformin: 8
+   Relations for metformin:   1473
+
+✓ Adapter closed — done.
