@@ -21,6 +21,7 @@ def make_search_result(
     name: str = "Diabetes",
     root_source: str = "SNOMEDCT",
     uri: str | None = None,
+    semantic_type_names: list[str] | None = None,
 ):
     """Build a mock ``SearchResult``-like object with the same shape."""
     result = MagicMock()
@@ -28,7 +29,7 @@ def make_search_result(
     result.name = name
     result.root_source = root_source
     result.uri = uri or f"https://uts.nlm.nih.gov/uts/rest/content/current/source/{root_source}/{cui}"
-    result.raw = {}
+    result.raw = {"semanticTypes": semantic_type_names or []}
     return result
 
 
@@ -360,3 +361,53 @@ class TestUMLSAdapter:
             [{"uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T999", "name": "Unknown"}]
         )
         assert result == ConceptType.UNKNOWN
+
+    @pytest.mark.parametrize(
+        "type_names, expected",
+        [
+            (["Disease or Syndrome"], ConceptType.DISEASE),
+            (["Pharmacologic Substance"], ConceptType.DRUG),
+            (["Gene or Genome"], ConceptType.GENE),
+            (["Sign or Symptom"], ConceptType.SYMPTOM),
+            (["Organic Chemical"], ConceptType.CHEMICAL),
+            (["Body Part, Organ, or Organ Component"], ConceptType.ANATOMICAL_ENTITY),
+            (["Unknown Type"], ConceptType.UNKNOWN),
+            ([], ConceptType.UNKNOWN),
+        ],
+    )
+    def test_semantic_type_name_mapping(self, type_names, expected):
+        """Semantic type name mapping for search result raw data."""
+        config = LookupConfig(api_keys={"umls": "test_key"})
+        adapter = UMLSAdapter(config)
+        assert adapter._determine_concept_type_from_semantic_type_names(type_names) == expected
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_with_mth_fallback(self, adapter, mock_client):
+        """Search results with MTH root source use semantic type fallback."""
+        mock_response = MagicMock()
+        mock_response.result = [
+            make_search_result(
+                "C001", "Amoxicillin", "MTH",
+                semantic_type_names=["Pharmacologic Substance"],
+            ),
+        ]
+        mock_client.search_api.search = AsyncMock(return_value=mock_response)
+        adapter.client = mock_client
+
+        results = await adapter.search_concepts("amoxicillin", limit=5)
+        assert len(results) == 1
+        assert results[0].concept_type == ConceptType.DRUG
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_with_mth_and_no_semantic_types(self, adapter, mock_client):
+        """Search results with MTH but no semantic types fall back to UNKNOWN."""
+        mock_response = MagicMock()
+        mock_response.result = [
+            make_search_result("C001", "Unknown Concept", "MTH"),
+        ]
+        mock_client.search_api.search = AsyncMock(return_value=mock_response)
+        adapter.client = mock_client
+
+        results = await adapter.search_concepts("unknown", limit=5)
+        assert len(results) == 1
+        assert results[0].concept_type == ConceptType.UNKNOWN

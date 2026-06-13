@@ -72,16 +72,54 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         "loinc": ConceptType.PROCEDURE,
     }
 
+    # Maps UMLS semantic-type names (returned in search results' ``raw``)
+    # to AID-PAIS concept types.  Search results only include the type name,
+    # while full concept details also include the TUI.
+    SEMANTIC_TYPE_NAME_MAP: dict[str, ConceptType] = {
+        "Disease or Syndrome": ConceptType.DISEASE,
+        "Congenital Abnormality": ConceptType.DISEASE,
+        "Acquired Abnormality": ConceptType.DISEASE,
+        "Anatomical Abnormality": ConceptType.DISEASE,
+        "Mental or Behavioral Dysfunction": ConceptType.DISEASE,
+        "Neoplastic Process": ConceptType.DISEASE,
+        "Sign or Symptom": ConceptType.SYMPTOM,
+        "Therapeutic or Preventive Procedure": ConceptType.PROCEDURE,
+        "Laboratory Procedure": ConceptType.PROCEDURE,
+        "Diagnostic Procedure": ConceptType.PROCEDURE,
+        "Clinical Drug": ConceptType.DRUG,
+        "Pharmacologic Substance": ConceptType.DRUG,
+        "Antibiotic": ConceptType.DRUG,
+        "Organic Chemical": ConceptType.CHEMICAL,
+        "Chemical": ConceptType.CHEMICAL,
+        "Chemical Viewed Structurally": ConceptType.CHEMICAL,
+        "Gene or Genome": ConceptType.GENE,
+        "Amino Acid, Peptide, or Protein": ConceptType.GENE,
+        "Receptor": ConceptType.GENE,
+        "Cell": ConceptType.CELL_TYPE,
+        "Cell Component": ConceptType.CELLULAR_COMPONENT,
+        "Body Part, Organ, or Organ Component": ConceptType.ANATOMICAL_ENTITY,
+        "Body System": ConceptType.ANATOMICAL_ENTITY,
+        "Embryonic Structure": ConceptType.ANATOMICAL_ENTITY,
+        "Tissue": ConceptType.TISSUE,
+        "Finding": ConceptType.PHENOTYPE,
+        "Pathologic Function": ConceptType.BIOLOGICAL_PROCESS,
+        "Genetic Function": ConceptType.BIOLOGICAL_PROCESS,
+        "Biologic Function": ConceptType.BIOLOGICAL_PROCESS,
+        "Molecular Function": ConceptType.BIOLOGICAL_PROCESS,
+        "Cell Function": ConceptType.BIOLOGICAL_PROCESS,
+        "Functional Concept": ConceptType.PATHWAY,
+    }
+
     # Maps UMLS semantic-type TUIs to AID-PAIS concept types.
-    # Used when full concept details are available.
-    SEMANTIC_TYPE_MAP: dict[str, ConceptType] = {
+    # Used when ``Concept.semantic_types`` are available (from ``get_cui_info``).
+    SEMANTIC_TYPE_TUI_MAP: dict[str, ConceptType] = {
         "T047": ConceptType.DISEASE,  # Disease or Syndrome
         "T019": ConceptType.DISEASE,  # Congenital Abnormality
         "T020": ConceptType.DISEASE,  # Acquired Abnormality
         "T190": ConceptType.DISEASE,  # Anatomical Abnormality
         "T048": ConceptType.DISEASE,  # Mental or Behavioral Dysfunction
-        "T184": ConceptType.DISEASE,  # Sign or Symptom
-        "T184": ConceptType.SYMPTOM,
+        "T191": ConceptType.DISEASE,  # Neoplastic Process
+        "T184": ConceptType.SYMPTOM,  # Sign or Symptom
         "T082": ConceptType.PROCEDURE,  # Therapeutic or Preventive Procedure
         "T061": ConceptType.PROCEDURE,  # Therapeutic or Preventive Procedure
         "T059": ConceptType.PROCEDURE,  # Laboratory Procedure
@@ -111,7 +149,6 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         "T038": ConceptType.BIOLOGICAL_PROCESS,  # Biologic Function
         "T170": ConceptType.PHENOTYPE,  # Intellectual Product (often HPO)
         "T033": ConceptType.PHENOTYPE,  # Finding
-        "T184": ConceptType.SYMPTOM,  # Sign or Symptom
     }
 
     def __init__(self, config: LookupConfig) -> None:
@@ -235,7 +272,15 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         name: str = result.name or ""
         root_source: str = result.root_source or ""
 
+        # Determine concept type — prefer source-based mapping, but fall
+        # back to semantic-type names when the root source is MTH
+        # (Metathesaurus, which is always the root for search results).
         concept_type = self._determine_concept_type_from_source(root_source)
+        if concept_type is ConceptType.UNKNOWN or root_source.upper() == "MTH":
+            semantic_type_names: list[str] = (result.raw or {}).get("semanticTypes", [])
+            concept_type = self._determine_concept_type_from_semantic_type_names(
+                semantic_type_names
+            )
 
         concept = UnifiedConcept(
             primary_id=cui,
@@ -343,16 +388,33 @@ class UMLSAdapter(KnowledgeSourceAdapter):
 
     def _determine_concept_type(self, profile) -> ConceptType:
         """Infer concept type from a ``ConceptProfile``, preferring available data."""
-        # If there's a preferred atom with a term type, use that
+        # If there's a preferred atom with a source, use source mapping
         if profile.preferred_atom and profile.preferred_atom.root_source:
-            return self._determine_concept_type_from_source(profile.preferred_atom.root_source)
+            mapped = self._determine_concept_type_from_source(profile.preferred_atom.root_source)
+            if mapped is not ConceptType.UNKNOWN:
+                return mapped
         # Fall back to concept-level root source from raw
         root_source = (profile.concept.raw or {}).get("rootSource", "") if profile.concept else ""
         if root_source:
-            return self._determine_concept_type_from_source(root_source)
-        # Fall back to semantic types
+            mapped = self._determine_concept_type_from_source(root_source)
+            if mapped is not ConceptType.UNKNOWN:
+                return mapped
+        # Fall back to semantic types (TUI-based)
         if profile.concept and profile.concept.semantic_types:
-            return self._determine_concept_type_from_semantic_types(profile.concept.semantic_types)
+            mapped = self._determine_concept_type_from_semantic_types(profile.concept.semantic_types)
+            if mapped is not ConceptType.UNKNOWN:
+                return mapped
+        return ConceptType.UNKNOWN
+
+    def _determine_concept_type_from_semantic_type_names(
+        self, type_names: list[str],
+    ) -> ConceptType:
+        """Map UMLS semantic-type *names* (as returned in search-result ``raw``)
+        to ``ConceptType``."""
+        for name in type_names:
+            mapped = self.SEMANTIC_TYPE_NAME_MAP.get(name)
+            if mapped is not None:
+                return mapped
         return ConceptType.UNKNOWN
 
     def _determine_concept_type_from_semantic_types(
@@ -361,7 +423,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         """Map UMLS semantic types (by TUI) to a ``ConceptType``."""
         for st in semantic_types:
             tui = (st.get("uri") or "").rsplit("/", 1)[-1]  # e.g. …/T047
-            mapped = self.SEMANTIC_TYPE_MAP.get(tui)
+            mapped = self.SEMANTIC_TYPE_TUI_MAP.get(tui)
             if mapped is not None:
                 return mapped
         return ConceptType.UNKNOWN
