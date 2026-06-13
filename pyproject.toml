@@ -53,13 +53,13 @@ python-dotenv = "^1.0.0"
 rich = "^13.0.0"
 typer = ">=0.12.0,<1.0.0"
 chembl-webresource-client = "^0.10.9"
-umls-client = { version = "^0.1.0", optional = true }
+umls-python-client = { version = "^1.2.0", optional = true }
 tyto = "^1.4"
 bioservices = "^1.16.0"
 setuptools = "^82.0.1"
 
 [tool.poetry.extras]
-umls = ["umls-client"]
+umls = ["umls-python-client"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

@@ -224,11 +224,12 @@ version = "4.13.0"
 description = "High-level concurrency and networking framework on top of asyncio or Trio"
 optional = false
 python-versions = ">=3.10"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "anyio-4.13.0-py3-none-any.whl", hash = "sha256:08b310f9e24a9594186fd75b4f73f4a4152069e3853f1ed8bfbf58369f4ad708"},
     {file = "anyio-4.13.0.tar.gz", hash = "sha256:334b70e641fd2221c1505b3890c69882fe4a2df910cba14d97019b90b24439dc"},
 ]
+markers = {main = "extra == \"umls\""}
 
 [package.dependencies]
 exceptiongroup = {version = ">=1.0.2", markers = "python_version < \"3.11\""}
@@ -1995,11 +1996,12 @@ version = "0.16.0"
 description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86"},
     {file = "h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1"},
 ]
+markers = {main = "extra == \"umls\""}
 
 [[package]]
 name = "hbreader"
@@ -2019,11 +2021,12 @@ version = "1.0.9"
 description = "A minimal low-level HTTP client."
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "httpcore-1.0.9-py3-none-any.whl", hash = "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55"},
     {file = "httpcore-1.0.9.tar.gz", hash = "sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8"},
 ]
+markers = {main = "extra == \"umls\""}
 
 [package.dependencies]
 certifi = "*"
@@ -2041,11 +2044,12 @@ version = "0.28.1"
 description = "The next generation HTTP client."
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad"},
     {file = "httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc"},
 ]
+markers = {main = "extra == \"umls\""}
 
 [package.dependencies]
 anyio = "*"
@@ -6577,6 +6581,27 @@ files = [
 ]
 
 [[package]]
+name = "umls-python-client"
+version = "1.2.0"
+description = "Production-ready Python client for the NLM UMLS REST APIs."
+optional = true
+python-versions = ">=3.9"
+groups = ["main"]
+markers = "extra == \"umls\""
+files = [
+    {file = "umls_python_client-1.2.0-py3-none-any.whl", hash = "sha256:c782eff4311d7b96c4df51977eff17fa65da81a3bb331c521d50679cacf7dca7"},
+    {file = "umls_python_client-1.2.0.tar.gz", hash = "sha256:ba86fbb2ba3f70931cfc62295805839a2b2d3771c3c0941c1f38183856587daf"},
+]
+
+[package.dependencies]
+httpx = ">=0.27.0,<1.0"
+rdflib = ">=7.0.0,<8.0"
+
+[package.extras]
+dev = ["build (>=1.2.0)", "mypy (>=1.10.0,<2.0)", "pytest (>=8.0.0)", "pytest-asyncio (>=0.23.0)", "ruff (>=0.6.0)"]
+docs = ["mkdocs (>=1.6.0,<2.0)", "mkdocs-material (>=9.5.0,<10.0)", "mkdocstrings[python] (>=0.25.0,<1.0)"]
+
+[[package]]
 name = "uri-template"
 version = "1.3.0"
 description = "RFC 6570 URI Template Processor"
@@ -7048,7 +7073,10 @@ docs = ["Sphinx", "furo", "repoze.sphinx.autointerface"]
 test = ["coverage[toml]", "zope.event", "zope.testing"]
 testing = ["coverage[toml]", "zope.event", "zope.testing"]
 
+[extras]
+umls = ["umls-python-client"]
+
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "5a30300ccb3f63ad9e28193c16e956dd4ff2d4569fd245094de1b9a6895890a7"
+content-hash = "46a0564aeff53bdfe264aacd5fe6900cf28cf8af699c168c73bb1548e1e14830"
