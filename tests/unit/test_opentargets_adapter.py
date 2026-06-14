@@ -110,3 +110,156 @@ class TestOpenTargetsAdapter:
         """Test async context manager."""
         async with adapter:
             pass  # Should not raise any exceptions
+
+    @pytest.mark.asyncio
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_get_concept_details_disease(self, mock_make_request, adapter):
+        """Test get_concept_details for disease entity type (EFO_ prefix)."""
+        mock_make_request.return_value = {
+            "data": {
+                "disease": {
+                    "id": "EFO_0000616",
+                    "name": "type 2 diabetes mellitus",
+                    "definition": "A chronic metabolic disease.",
+                }
+            }
+        }
+        result = await adapter.get_concept_details("EFO_0000616")
+        assert result is not None
+        assert result.primary_id == "EFO_0000616"
+        assert result.primary_label == "type 2 diabetes mellitus"
+
+    @pytest.mark.asyncio
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_get_concept_details_target(self, mock_make_request, adapter):
+        """Test get_concept_details for target entity type (ENSG prefix)."""
+        mock_make_request.return_value = {
+            "data": {
+                "target": {
+                    "id": "ENSG00000169318",
+                    "approvedSymbol": "TP53",
+                    "biotype": "protein_coding",
+                }
+            }
+        }
+        result = await adapter.get_concept_details("ENSG00000169318")
+        assert result is not None
+        assert result.primary_id == "ENSG00000169318"
+        assert result.primary_label == "TP53"
+
+    @pytest.mark.asyncio
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_get_concept_details_mondo_prefix(self, mock_make_request, adapter):
+        """Test get_concept_details for MONDO_ prefix (disease)."""
+        mock_make_request.return_value = {
+            "data": {
+                "disease": {
+                    "id": "MONDO_0005180",
+                    "name": "Alzheimer disease",
+                    "definition": "A neurodegenerative disease.",
+                }
+            }
+        }
+        result = await adapter.get_concept_details("MONDO_0005180")
+        assert result is not None
+        assert result.primary_label == "Alzheimer disease"
+
+    @pytest.mark.asyncio
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_get_concept_details_orpha_prefix(self, mock_make_request, adapter):
+        """Test get_concept_details for ORPHA prefix (disease)."""
+        mock_make_request.return_value = {
+            "data": {
+                "disease": {
+                    "id": "ORPHA:99835",
+                    "name": "Rare disease",
+                }
+            }
+        }
+        result = await adapter.get_concept_details("ORPHA:99835")
+        assert result is not None
+
+    @pytest.mark.asyncio
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_get_concept_details_no_data(self, mock_make_request, adapter):
+        """Test get_concept_details when data is empty."""
+        mock_make_request.return_value = {"data": {}}
+        result = await adapter.get_concept_details("EFO_9999999")
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_get_concept_details_error(self, mock_make_request, adapter):
+        """Test get_concept_details with error."""
+        mock_make_request.side_effect = Exception("API error")
+        result = await adapter.get_concept_details("EFO_0000616")
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_search_concepts_with_hits(self, mock_make_request, adapter):
+        """Test search with actual hits returned."""
+        mock_make_request.return_value = {
+            "data": {
+                "search": {
+                    "hits": [
+                        {
+                            "id": "ENSG00000169318",
+                            "name": "TP53",
+                            "entity": "target",
+                            "description": "Tumor protein p53",
+                        },
+                        {
+                            "id": "EFO_0000616",
+                            "name": "type 2 diabetes",
+                            "entity": "disease",
+                            "description": "A metabolic disease",
+                        },
+                    ]
+                }
+            }
+        }
+        results = await adapter.search_concepts("cancer", limit=10)
+        assert len(results) == 2
+
+    @pytest.mark.asyncio
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_convert_result_disease_with_definition(self, mock_make_request, adapter):
+        """Test _convert result for disease with definition."""
+        concept = adapter._convert_opentargets_result_to_concept(
+            {
+                "id": "EFO_0000616",
+                "name": "diabetes",
+                "definition": "A metabolic disease",
+            },
+            entity_type="disease",
+        )
+        assert concept is not None
+        assert concept.primary_label == "diabetes"
+        assert "A metabolic disease" in concept.definitions
+
+    @pytest.mark.asyncio
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_convert_result_target_with_biotype(self, mock_make_request, adapter):
+        """Test _convert result for target with biotype."""
+        concept = adapter._convert_opentargets_result_to_concept(
+            {
+                "id": "ENSG00000169318",
+                "approvedSymbol": "TP53",
+                "biotype": "protein_coding",
+            },
+            entity_type="target",
+        )
+        assert concept is not None
+        assert concept.primary_label == "TP53"
+        assert any("protein_coding" in d for d in concept.definitions)
+
+    @pytest.mark.asyncio
+    @patch("knowledge_lookup.adapters.opentargets_adapter.OpenTargetsAdapter._make_request")
+    async def test_convert_result_without_entity_type(self, mock_make_request, adapter):
+        """Test _convert result without entity_type (defaults to target)."""
+        concept = adapter._convert_opentargets_result_to_concept(
+            {"id": "ENSG00000169318", "approvedSymbol": "TP53"}
+        )
+        assert concept is not None
+        assert concept.concept_type.value == "gene"

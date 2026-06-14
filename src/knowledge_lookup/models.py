@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from .utils.retry_utils import CircuitState
+
 
 class KnowledgeSource(Enum):
     """Enumeration of supported knowledge sources."""
@@ -53,6 +55,44 @@ class KnowledgeSource(Enum):
     INTERPRO = "interpro"
     PFAM = "pfam"
     STRING = "string"
+
+
+# ---------------------------------------------------------------------------
+# Source health tracking (fed by circuit breakers)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class SourceHealth:
+    """Runtime health snapshot for a single knowledge source."""
+
+    source: KnowledgeSource
+    circuit_state: CircuitState = CircuitState.CLOSED
+    failure_count: int = 0
+    threshold: int = 5
+    cooldown: float = 30.0
+    total_calls: int = 0
+    total_failures: int = 0
+    total_successes: int = 0
+    health_score: float = 1.0
+    last_error: str | None = None
+
+    @property
+    def is_open(self) -> bool:
+        return self.circuit_state == CircuitState.OPEN
+
+
+@dataclass
+class RetryInfo:
+    """Per-source retry statistics for a single operation."""
+
+    source: KnowledgeSource
+    attempts: int = 1
+    max_attempts: int = 4
+    last_delay: float = 0.0
+    strategy: str = "unknown"
+    success: bool = True
+    error_category: str | None = None
 
 
 class ConceptType(Enum):
@@ -287,6 +327,9 @@ class LookupResult:
     execution_time: float = 0.0
     errors: dict[KnowledgeSource, str] = field(default_factory=dict)
 
+    # Source health snapshot for this query
+    source_health: dict[KnowledgeSource, SourceHealth] = field(default_factory=dict)
+
     def add_concepts(self, concepts: list[UnifiedConcept], source: KnowledgeSource):
         """Add concepts from a specific source."""
         self.concepts.extend(concepts)
@@ -334,6 +377,11 @@ class LookupConfig:
 
     # Rate limiting
     rate_limits: dict[KnowledgeSource, float] = field(default_factory=dict)
+
+    # Circuit breaker settings
+    circuit_breaker_threshold: int = 5  # failures before breaker opens
+    circuit_breaker_cooldown: float = 30.0  # seconds before half-open probe
+    enable_source_health_tracking: bool = True
 
     @classmethod
     def with_all_sources(cls) -> "LookupConfig":

@@ -57,27 +57,22 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
         headers: dict | None = None,
         json_data: dict | None = None,
     ) -> dict[str, Any]:
+        """Make HTTP request with smart retry and DisGeNET rate-limit awareness.
+
+        Delegates to the base class ``_call_with_retry`` which handles
+        circuit-breaker gating, error classification, and per-category
+        exponential backoff (4 retries for rate limits, 2s/4s/8s/16s).
+
+        Uses ``json_data is None`` to always do GET requests (DisGeNET API
+        does not use POST for search operations).
         """
-        Make HTTP request with error handling and rate limit support.
-        """
-        try:
+        async def _do() -> dict[str, Any]:
             session = await self._get_session()
-            while True:
-                async with session.get(url, params=params, headers=headers) as response:
-                    if response.status == 429:
-                        retry_after = int(
-                            response.headers.get("x-rate-limit-retry-after-seconds", "5")
-                        )
-                        logger.warning(f"Rate limit reached. Waiting {retry_after} seconds...")
-                        await asyncio.sleep(retry_after)
-                        continue
-                    if not response.ok:
-                        logger.error(f"DisGeNET API error: {response.status}")
-                        return {}
-                    return await response.json()
-        except Exception as e:
-            logger.error(f"DisGeNET API network error: {e}")
-            return {}
+            async with session.get(url, params=params, headers=headers) as response:
+                response.raise_for_status()
+                return await response.json()
+
+        return await self._call_with_retry("disgenet_api", _do)
 
     async def get_gene_disease_associations(
         self, params: dict[str, Any], raw: bool = False
