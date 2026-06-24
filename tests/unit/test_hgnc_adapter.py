@@ -9,7 +9,6 @@ import pytest
 from knowledge_lookup.adapters.hgnc_adapter import HGNCAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
-
 pytestmark = pytest.mark.unit
 class TestHGNCAdapter:
     """Tests for HGNCAdapter."""

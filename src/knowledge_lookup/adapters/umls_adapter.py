@@ -2,17 +2,40 @@
 UMLS Knowledge Source Adapter
 
 Integrates with the ``umls-python-client`` library to provide unified concept lookup.
+
+New in v2.1
+-----------
+* ``crosswalk_codes`` — direct vocabulary-to-vocabulary code conversion
+* ``download_terminology`` — automated RxNorm / SNOMED CT download
+* ``UMLSCache`` integration — local SQLite cache with auto-fallback
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from pathlib import Path
+from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
 logger = logging.getLogger(__name__)
+
+# Optional local cache — imported lazily to keep startup fast
+_UMLS_CACHE: Any = None
+_UMLS_CACHE_PATH: str | Path | None = None
+
+
+def _get_umls_cache(cache_path: str | Path | None = None) -> Any:
+    """Lazy-import and return a :class:`UMLSCache` singleton."""
+    global _UMLS_CACHE, _UMLS_CACHE_PATH
+    if _UMLS_CACHE is None or (cache_path is not None and cache_path != _UMLS_CACHE_PATH):
+        from ..umls.cache import UMLSCache as _CacheCls  # noqa: F811
+
+        _UMLS_CACHE_PATH = cache_path
+        _UMLS_CACHE = _CacheCls(db_path=cache_path)
+    return _UMLS_CACHE
 
 
 class UMLSAdapter(KnowledgeSourceAdapter):
@@ -153,9 +176,20 @@ class UMLSAdapter(KnowledgeSourceAdapter):
 
     # ── Lifecycle ──────────────────────────────────────────────────
 
-    def __init__(self, config: LookupConfig) -> None:
+    def __init__(
+        self, config: LookupConfig, cache: Any | None = None, cache_path: str | Path | None = None
+    ) -> None:
         super().__init__(config)
         self.client: Any | None = None  # AsyncUMLSClient
+        # If an explicit cache instance is provided, use it.
+        # Otherwise, fall back to the module-level singleton (which can be
+        # configured via *cache_path* or the default path).
+        if cache is not None:
+            self._cache = cache
+        elif cache_path is not None:
+            self._cache = _get_umls_cache(Path(cache_path))
+        else:
+            self._cache = _get_umls_cache()
         self._initialize_client()
 
     async def close(self) -> None:
@@ -191,10 +225,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
             return
 
         try:
-            api_key = (
-                self.config.get_api_key("umls")
-                or self.config.get_api_key("UMLS_API_KEY_TU")
-            )
+            api_key = self.config.get_api_key("umls") or self.config.get_api_key("UMLS_API_KEY_TU")
             if not api_key:
                 logger.warning("No UMLS API key configured; adapter unavailable")
                 return
@@ -226,6 +257,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         semantic_types: str | None = None,
         search_type: str = "words",
         partial_search: bool = False,
+        use_cache: bool = True,
     ) -> list[UnifiedConcept]:
         """Search UMLS for concepts matching *query*.
 
@@ -241,10 +273,6 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         semantic_groups :
             Filter by UMLS semantic group abbreviation
             (e.g. ``\"DISO\"``, ``\"CHEM\"``, ``\"GENE\"``).
-            .. note::
-               As of the 2026AA release this parameter may return zero
-               results; use ``semantic_types`` instead for reliable
-               semantic filtering.
         semantic_types :
             Filter by UMLS semantic-type TUI
             (e.g. ``\"T047\"`` for disease, ``\"T121\"`` for drugs).
@@ -253,12 +281,24 @@ class UMLSAdapter(KnowledgeSourceAdapter):
             ``\"words\"`` (default), ``\"exact\"``, ``\"leftTruncation\"``,
             ``\"normalizedString\"``, etc.
         partial_search :
-            Allow partial matches.
+            Allow partial matches.  When enabled and the REST API returns
+            few results, a local fuzzy fallback (trigram + character overlap)
+            is applied to cached concepts.
+        use_cache :
+            Whether to check the local cache first and cache new results.
         """
+        # ── Local cache first ──────────────────────────────────────
+        if use_cache and self._cache is not None and not partial_search:
+            cached = self._cache.search_concepts(query, limit=limit)
+            if cached:
+                logger.info("UMLS cache hit for '%s' (%d results)", query, len(cached))
+                return [self._cached_to_concept(c, query) for c in cached]
+
         if not self.client:
             logger.warning("UMLS client not available")
             return []
 
+        # ── REST API call ──────────────────────────────────────────
         try:
             response = await self.client.search_api.search(
                 search_string=query,
@@ -273,11 +313,24 @@ class UMLSAdapter(KnowledgeSourceAdapter):
             results: list = response.result
         except Exception as exc:
             logger.error("UMLS search failed for '%s': %s", query, exc)
+            # ── Fuzzy fallback on cache when API fails ─────────────
+            if use_cache and self._cache is not None:
+                fallback = self._cache.search_concepts(query, limit=limit, partial=True)
+                if fallback:
+                    logger.info(
+                        "UMLS fuzzy cache fallback for '%s' (%d results)", query, len(fallback)
+                    )
+                    return [self._cached_to_concept(c, query) for c in fallback]
             return []
 
         concepts: list[UnifiedConcept] = []
         for result in results[:limit]:
-            concepts.append(self._convert_search_result(result, query))
+            concept = self._convert_search_result(result, query)
+            concepts.append(concept)
+
+            # ── Cache each concept for future lookups ──────────────
+            if use_cache and self._cache is not None:
+                self._cache_search_result(concept, result)
 
         logger.info(
             "UMLS search for '%s' returned %d concepts (sabs=%s, group=%s, types=%s)",
@@ -287,7 +340,19 @@ class UMLSAdapter(KnowledgeSourceAdapter):
             semantic_groups,
             semantic_types,
         )
-        return concepts
+
+        # ── Fuzzy fallback if API returned few results ────────────
+        if partial_search and len(concepts) < limit and self._cache is not None:
+            fuzzy = self._cache.search_concepts(query, limit=limit, partial=True)
+            seen = {c.primary_id for c in concepts}
+            for fc in fuzzy:
+                if fc["cui"] not in seen:
+                    concepts.append(self._cached_to_concept(fc, query))
+                    seen.add(fc["cui"])
+                    if len(concepts) >= limit:
+                        break
+
+        return concepts[:limit]
 
     # ── 2. BULK SEARCH ─────────────────────────────────────────────
 
@@ -427,18 +492,128 @@ class UMLSAdapter(KnowledgeSourceAdapter):
                 continue
             seen.add(key)
 
-            source_id = atom.code.rsplit("/", 1)[-1] if atom.code else (atom.ui or "").rsplit("/", 1)[-1]
+            source_id = (
+                atom.code.rsplit("/", 1)[-1] if atom.code else (atom.ui or "").rsplit("/", 1)[-1]
+            )
 
-            mappings.append({
-                "source": atom.root_source,
-                "source_id": source_id,
-                "source_name": atom.name,
-                "term_type": atom.term_type,
-                "language": atom.language,
-                "cui": concept_id,
-            })
+            mappings.append(
+                {
+                    "source": atom.root_source,
+                    "source_id": source_id,
+                    "source_name": atom.name,
+                    "term_type": atom.term_type,
+                    "language": atom.language,
+                    "cui": concept_id,
+                }
+            )
 
         return mappings
+
+    # ── 4b. CROSSWALK CODES (direct vocabulary conversion) ──────────
+
+    async def crosswalk_codes(
+        self,
+        source: str,
+        code: str,
+        target_source: str | None = None,
+        include_obsolete: bool = False,
+        page_size: int = 25,
+        use_cache: bool = True,
+    ) -> list[dict[str, Any]]:
+        """Convert a code directly between vocabularies using the UMLS crosswalk endpoint.
+
+        Unlike :meth:`get_mappings` (which maps a CUI to atoms), this endpoint
+        takes a source + code pair and returns matching concepts across
+        target vocabularies *without* requiring a CUI first.
+
+        Parameters
+        ----------
+        source :
+            Source vocabulary abbreviation (e.g. ``\"ICD10CM\"``, ``\"SNOMEDCT_US\"``).
+        code :
+            Code in the source vocabulary (e.g. ``\"E11.9\"``, ``\"73211009\"``).
+        target_source :
+            Optional target vocabulary to restrict results
+            (e.g. ``\"SNOMEDCT_US\"``).  When ``None``, returns all mappings.
+        include_obsolete :
+            Whether to include obsolete concepts.
+        page_size :
+            Results per page.
+        use_cache :
+            Whether to check and persist results in the local cache.
+
+        Returns
+        -------
+        ``[{source, source_id, name, cui, root_source, ...}, ...]``
+        """
+        if not self.client:
+            logger.warning("UMLS client not available")
+            return []
+
+        # Check cache first (keyed by source+code for simplicity)
+        cache_key = f"xw:{source}:{code}:{target_source or '*'}"
+        if use_cache and self._cache is not None:
+            try:
+                cached = self._cache.get_concept(cache_key)
+                if cached:
+                    return cached.get("crosswalk_results", [])
+            except Exception:
+                pass
+
+        try:
+            resp = await self.client.crosswalk_api.get_crosswalk(
+                source=source,
+                id=code,
+                target_source=target_source,
+                include_obsolete=include_obsolete,
+                page_size=min(page_size, 100),
+            )
+            atoms: list = resp.result or []
+        except Exception as exc:
+            logger.error(
+                "UMLS crosswalk failed for %s:%s → %s: %s",
+                source,
+                code,
+                target_source or "ANY",
+                exc,
+            )
+            return []
+
+        results: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for atom in atoms:
+            cui = atom.cui or ""
+            if cui in seen:
+                continue
+            seen.add(cui)
+            results.append(
+                {
+                    "cui": cui,
+                    "name": atom.name or "",
+                    "source": atom.root_source or "",
+                    "source_id": atom.code or atom.ui or "",
+                    "term_type": atom.term_type,
+                    "language": atom.language,
+                }
+            )
+
+        # Cache results
+        if use_cache and self._cache is not None and results:
+            try:
+                self._cache.cache_search_result(
+                    cui=cache_key,
+                    name=f"crosswalk {source}:{code}",
+                    source=source,
+                    semantic_types=[],
+                    definitions=[],
+                    synonyms=[],
+                    categories=[target_source] if target_source else [],
+                    confidence=1.0,
+                )
+            except Exception:
+                pass
+
+        return results
 
     # ── 5. RELATIONSHIPS ───────────────────────────────────────────
 
@@ -477,9 +652,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
             )
             relations = resp.result or []
         except Exception as exc:
-            logger.error(
-                "UMLS get_relationships failed for '%s': %s", concept_id, exc
-            )
+            logger.error("UMLS get_relationships failed for '%s': %s", concept_id, exc)
             return []
 
         return [
@@ -487,8 +660,8 @@ class UMLSAdapter(KnowledgeSourceAdapter):
                 "relation_label": r.relation_label,
                 "additional_label": r.additional_relation_label,
                 "related_id": r.related_id,
-                    "related_name": r.related_id_name,
-                    "related_id_name": r.related_id_name,
+                "related_name": r.related_id_name,
+                "related_id_name": r.related_id_name,
                 "source": r.root_source,
                 "uri": r.ui,
             }
@@ -519,9 +692,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
                     "source_originated": defn.source_originated,
                 }
         except Exception as exc:
-            logger.error(
-                "UMLS iter_definitions failed for '%s': %s", concept_id, exc
-            )
+            logger.error("UMLS iter_definitions failed for '%s': %s", concept_id, exc)
 
     async def iter_relations(
         self,
@@ -553,9 +724,139 @@ class UMLSAdapter(KnowledgeSourceAdapter):
                     "uri": rel.ui,
                 }
         except Exception as exc:
-            logger.error(
-                "UMLS iter_relations failed for '%s': %s", concept_id, exc
+            logger.error("UMLS iter_relations failed for '%s': %s", concept_id, exc)
+
+    # ── 8. RXNorm / SNOMED CT DOWNLOAD ─────────────────────────────
+
+    async def download_terminology(
+        self,
+        release_name: str | None = None,
+        output_dir: str | Path | None = None,
+        overwrite: bool = False,
+    ) -> Path:
+        """Download UMLS terminology files (RxNorm, SNOMED CT, etc.) to local disk.
+
+        Uses the UMLS ``/download`` endpoint (added in the 2022AB release).
+        When *release_name* is ``None``, lists available releases and downloads
+        the current one.
+
+        Parameters
+        ----------
+        release_name :
+            Release identifier to download (e.g. ``\"2025AA\"``, ``\"RXNORM_2025AA\"``).
+            If ``None``, the current (latest) release is downloaded.
+        output_dir :
+            Directory to save the downloaded files.  Defaults to
+            ``~/.cache/knowledge-lookup/terminology/``.
+        overwrite :
+            Whether to overwrite existing files.
+
+        Returns
+        -------
+        ``Path`` to the downloaded file or directory.
+        """
+        if not self.client:
+            raise RuntimeError("UMLS client not available — cannot download terminology")
+
+        out = Path(output_dir or (Path.home() / ".cache" / "knowledge-lookup" / "terminology"))
+        out.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # Resolve release if not specified
+            if release_name is None:
+                releases_resp = await self.client.release_api.list_releases(current=True)
+                releases = releases_resp.result or []
+                if not releases:
+                    raise ValueError("No current UMLS release found")
+                release_name = releases[0].name
+
+            logger.info("Downloading UMLS release '%s' to %s", release_name, out)
+
+            # The download_file method accepts a URL; we get the download
+            # URL from the release metadata or construct it from the release name.
+            # For simplicity, download the release archive (e.g. umls-2025aa.zip).
+            url = (
+                f"https://download.nlm.nih.gov/umls/kss/"
+                f"{release_name}/umls-{release_name.lower()}-full.zip"
             )
+
+            downloaded = await self.client.release_api.download_file(
+                url=url,
+                path=str(out),
+                overwrite=overwrite,
+            )
+            result_path = Path(downloaded)
+            logger.info("Downloaded UMLS release to %s", result_path)
+            return result_path
+
+        except Exception as exc:
+            logger.error("Failed to download UMLS release '%s': %s", release_name, exc)
+            raise
+
+    # ------------------------------------------------------------------
+    # Cache helpers
+    # ------------------------------------------------------------------
+
+    def _cache_search_result(self, concept: UnifiedConcept, result: Any) -> None:
+        """Persist a search result to the local cache."""
+        if self._cache is None:
+            return
+        try:
+            self._cache.cache_search_result(
+                cui=concept.primary_id,
+                name=concept.primary_label,
+                source=(result.root_source or ""),
+                semantic_types=[],
+                definitions=concept.definitions,
+                synonyms=concept.synonyms,
+                categories=concept.categories,
+                confidence=concept.confidence_score,
+            )
+        except Exception as exc:
+            logger.debug("Failed to cache search result %s: %s", concept.primary_id, exc)
+
+    def _cached_to_concept(self, cached: dict, query: str) -> UnifiedConcept:
+        """Convert a cached concept dict to a ``UnifiedConcept``."""
+        cui = cached.get("cui", "")
+        name = cached.get("name", "")
+        concept = UnifiedConcept(
+            primary_id=cui,
+            primary_label=name,
+            concept_type=ConceptType.UNKNOWN,
+        )
+        concept.confidence_score = cached.get("score", 0.0)
+        concept.definitions = cached.get("definitions", [])
+        concept.synonyms = cached.get("synonyms", [])
+        concept.categories = [cached.get("source", "")] if cached.get("source") else []
+        concept.add_identifier(
+            KnowledgeSource.UMLS,
+            cui,
+            name,
+            f"https://uts.nlm.nih.gov/uts/umls/concept/{cui}",
+        )
+        concept.source_data[KnowledgeSource.UMLS] = {
+            "source": cached.get("source", ""),
+            "cached": True,
+        }
+
+        # Confidence scoring
+        query_lower = query.strip().lower()
+        name_lower = name.strip().lower()
+        if name_lower == query_lower:
+            concept.confidence_score = max(concept.confidence_score, self._EXACT_MATCH_CONFIDENCE)
+        elif query_lower in name_lower or name_lower in query_lower:
+            concept.confidence_score = max(
+                concept.confidence_score, self._PARTIAL_MATCH_CONFIDENCE + 0.1
+            )
+
+        # Determine concept type from saved semantic types
+        sem_types = cached.get("semantic_types", [])
+        if sem_types:
+            mapped = self._determine_concept_type_from_semantic_type_names(sem_types)
+            if mapped is not ConceptType.UNKNOWN:
+                concept.concept_type = mapped
+
+        return concept
 
     # ------------------------------------------------------------------
     # Conversion helpers
@@ -611,10 +912,9 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         name: str = concept_info.name or ""
         semantic_types: list[dict] = concept_info.semantic_types or []
 
-        concept_type = (
-            self._determine_concept_type(profile)
-            or self._determine_concept_type_from_semantic_types(semantic_types)
-        )
+        concept_type = self._determine_concept_type_from_profile(
+            profile
+        ) or self._determine_concept_type_from_semantic_types(semantic_types)
 
         concept = UnifiedConcept(
             primary_id=cui,
@@ -631,9 +931,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         )
 
         concept.semantic_types = [st.get("name", "") for st in semantic_types]
-        concept.definitions = [
-            d.value for d in (profile.definitions or []) if d.value
-        ]
+        concept.definitions = [d.value for d in (profile.definitions or []) if d.value]
 
         synonyms: list[str] = []
         if profile.preferred_atom and profile.preferred_atom.name:
@@ -643,9 +941,9 @@ class UMLSAdapter(KnowledgeSourceAdapter):
                 synonyms.append(atom.name)
         concept.synonyms = synonyms
 
-        concept.categories = list({
-            atom.root_source for atom in (profile.atoms or []) if atom.root_source
-        })
+        concept.categories = list(
+            {atom.root_source for atom in (profile.atoms or []) if atom.root_source}
+        )
 
         for rel in profile.relations or []:
             related_id = rel.related_id or ""
@@ -672,19 +970,13 @@ class UMLSAdapter(KnowledgeSourceAdapter):
     # Type determination
     # ------------------------------------------------------------------
 
-    def _determine_concept_type(self, profile) -> ConceptType:
+    def _determine_concept_type_from_profile(self, profile) -> ConceptType:
         """Infer concept type from a ``ConceptProfile``."""
         if profile.preferred_atom and profile.preferred_atom.root_source:
-            mapped = self._determine_concept_type_from_source(
-                profile.preferred_atom.root_source
-            )
+            mapped = self._determine_concept_type_from_source(profile.preferred_atom.root_source)
             if mapped is not ConceptType.UNKNOWN:
                 return mapped
-        root_source = (
-            (profile.concept.raw or {}).get("rootSource", "")
-            if profile.concept
-            else ""
-        )
+        root_source = (profile.concept.raw or {}).get("rootSource", "") if profile.concept else ""
         if root_source:
             mapped = self._determine_concept_type_from_source(root_source)
             if mapped is not ConceptType.UNKNOWN:
@@ -698,7 +990,8 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         return ConceptType.UNKNOWN
 
     def _determine_concept_type_from_semantic_type_names(
-        self, type_names: list[str],
+        self,
+        type_names: list[str],
     ) -> ConceptType:
         for name in type_names:
             mapped = self.SEMANTIC_TYPE_NAME_MAP.get(name)
@@ -707,7 +1000,8 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         return ConceptType.UNKNOWN
 
     def _determine_concept_type_from_semantic_types(
-        self, semantic_types: list[dict],
+        self,
+        semantic_types: list[dict],
     ) -> ConceptType:
         for st in semantic_types:
             tui = (st.get("uri") or "").rsplit("/", 1)[-1]

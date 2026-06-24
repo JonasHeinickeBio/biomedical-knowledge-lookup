@@ -3,15 +3,13 @@ Unit tests for benchmarking module.
 """
 
 import json
-import time
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 pytestmark = pytest.mark.unit
 from knowledge_lookup.benchmarking import BenchmarkMetric, KnowledgeLookupBenchmarker
-from knowledge_lookup.models import KnowledgeSource, LookupResult
+from knowledge_lookup.models import KnowledgeSource
 
 
 class TestBenchmarkMetric:

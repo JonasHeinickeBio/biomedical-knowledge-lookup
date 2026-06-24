@@ -2,8 +2,6 @@
 Unit tests for models.
 """
 
-import os
-import sys
 from unittest.mock import patch
 
 import pytest
@@ -102,12 +100,12 @@ class TestLookupConfig:
 
 class TestEnums:
     def test_concept_type_values(self):
-        assert ConceptType.DISEASE.value == "disease"
-        assert ConceptType.GENE.value == "gene"
+        assert ConceptType.DISEASE.value == "DISEASE"
+        assert ConceptType.GENE.value == "GENE"
 
     def test_knowledge_source_values(self):
-        assert KnowledgeSource.BIOPORTAL.value == "bioportal"
-        assert KnowledgeSource.OLS.value == "ols"
+        assert KnowledgeSource.BIOPORTAL.value == "BIOPORTAL"
+        assert KnowledgeSource.OLS.value == "OLS"
 
 
 class TestModelsExtended:
@@ -231,8 +229,8 @@ class TestModelsExtended:
         assert result.errors[KnowledgeSource.OLS] == "err2"
 
     def test_concept_mapping_defaults(self):
-        from_c = ConceptIdentifier(KnowledgeSource.UMLS, "C1")
-        to_c = ConceptIdentifier(KnowledgeSource.OLS, "D1")
+        from_c = ConceptIdentifier(source=KnowledgeSource.UMLS, identifier="C1")
+        to_c = ConceptIdentifier(source=KnowledgeSource.OLS, identifier="D1")
         cm = ConceptMapping(from_concept=from_c, to_concept=to_c)
         assert cm.mapping_type == "exact"
         assert cm.confidence == 1.0

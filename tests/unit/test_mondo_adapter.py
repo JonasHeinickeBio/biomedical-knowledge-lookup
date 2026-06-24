@@ -8,7 +8,7 @@ import pytest
 
 pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.mondo_adapter import MondoAdapter
-from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 
 class TestMondoAdapter:

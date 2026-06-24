@@ -9,7 +9,7 @@ import pytest
 
 pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.ols_adapter import OLSAdapter
-from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig
 
 
 class TestOLSAdapter:

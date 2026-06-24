@@ -2,13 +2,13 @@
 Unit tests for GeneOntologyAdapter.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.geneontology_adapter import GeneOntologyAdapter
-from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 
 class TestGeneOntologyAdapter:

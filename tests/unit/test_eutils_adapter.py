@@ -3,7 +3,7 @@ Unit tests for EUtilsAdapter.
 """
 
 import sys
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 mock_bioservices = MagicMock()
 sys.modules["bioservices"] = mock_bioservices
@@ -11,7 +11,13 @@ sys.modules["bioservices"] = mock_bioservices
 import pytest
 
 pytestmark = pytest.mark.unit
-from knowledge_lookup.adapters.eutils_adapter import EUtilsAdapter
+from knowledge_lookup.adapters.eutils_adapter import (
+    EUtilsAdapter,
+    _extract_gene_field,
+    _extract_protein_field,
+    _extract_pubmed_field,
+    _extract_taxonomy_field,
+)
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 
@@ -73,6 +79,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -100,6 +107,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -127,6 +135,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -154,6 +163,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -168,6 +178,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -189,6 +200,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -204,6 +216,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -218,6 +231,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -232,6 +246,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -246,6 +261,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -260,6 +276,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -274,6 +291,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
@@ -288,83 +306,84 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             result = await adapter.get_concept_details("PMID:12345")
             assert result is None
 
-    def test_extract_pubmed_field_success(self, adapter):
+    def test_extract_pubmed_field_success(self):
         """Test _extract_pubmed_field (lines 257-264)."""
         docsum = {"Item": [{"Name": "Title", "ItemContent": "Test Article"}]}
-        result = adapter._extract_pubmed_field(docsum, "Title")
+        result = _extract_pubmed_field(docsum, "Title")
         assert result == "Test Article"
 
-    def test_extract_pubmed_field_not_found(self, adapter):
+    def test_extract_pubmed_field_not_found(self):
         """Test _extract_pubmed_field with missing field."""
         docsum = {"Item": [{"Name": "Title", "ItemContent": "Test Article"}]}
-        result = adapter._extract_pubmed_field(docsum, "Author")
+        result = _extract_pubmed_field(docsum, "Author")
         assert result == ""
 
-    def test_extract_pubmed_field_empty_docsum(self, adapter):
+    def test_extract_pubmed_field_empty_docsum(self):
         """Test _extract_pubmed_field with empty docsum."""
-        result = adapter._extract_pubmed_field({}, "Title")
+        result = _extract_pubmed_field({}, "Title")
         assert result == ""
 
-    def test_extract_pubmed_field_exception(self, adapter):
+    def test_extract_pubmed_field_exception(self):
         """Test _extract_pubmed_field exception handling."""
-        result = adapter._extract_pubmed_field(None, "Title")
+        result = _extract_pubmed_field(None, "Title")
         assert result == ""
 
-    def test_extract_gene_field_success(self, adapter):
+    def test_extract_gene_field_success(self):
         """Test _extract_gene_field (lines 268-275)."""
         docsum = {"Item": [{"Name": "Name", "ItemContent": "BRCA2"}]}
-        result = adapter._extract_gene_field(docsum, "Name")
+        result = _extract_gene_field(docsum, "Name")
         assert result == "BRCA2"
 
-    def test_extract_gene_field_not_found(self, adapter):
+    def test_extract_gene_field_not_found(self):
         """Test _extract_gene_field with missing field."""
         docsum = {"Item": [{"Name": "Name", "ItemContent": "BRCA2"}]}
-        result = adapter._extract_gene_field(docsum, "Description")
+        result = _extract_gene_field(docsum, "Description")
         assert result == ""
 
-    def test_extract_gene_field_exception(self, adapter):
+    def test_extract_gene_field_exception(self):
         """Test _extract_gene_field exception handling."""
-        result = adapter._extract_gene_field(None, "Name")
+        result = _extract_gene_field(None, "Name")
         assert result == ""
 
-    def test_extract_protein_field_success(self, adapter):
+    def test_extract_protein_field_success(self):
         """Test _extract_protein_field (lines 279-286)."""
         docsum = {"Item": [{"Name": "Title", "ItemContent": "Tumor protein p53"}]}
-        result = adapter._extract_protein_field(docsum, "Title")
+        result = _extract_protein_field(docsum, "Title")
         assert result == "Tumor protein p53"
 
-    def test_extract_protein_field_not_found(self, adapter):
+    def test_extract_protein_field_not_found(self):
         """Test _extract_protein_field with missing field."""
         docsum = {"Item": [{"Name": "Title", "ItemContent": "Tumor protein p53"}]}
-        result = adapter._extract_protein_field(docsum, "AccessionVersion")
+        result = _extract_protein_field(docsum, "AccessionVersion")
         assert result == ""
 
-    def test_extract_protein_field_exception(self, adapter):
+    def test_extract_protein_field_exception(self):
         """Test _extract_protein_field exception handling."""
-        result = adapter._extract_protein_field(None, "Title")
+        result = _extract_protein_field(None, "Title")
         assert result == ""
 
-    def test_extract_taxonomy_field_success(self, adapter):
+    def test_extract_taxonomy_field_success(self):
         """Test _extract_taxonomy_field (lines 290-297)."""
         docsum = {"Item": [{"Name": "ScientificName", "ItemContent": "Homo sapiens"}]}
-        result = adapter._extract_taxonomy_field(docsum, "ScientificName")
+        result = _extract_taxonomy_field(docsum, "ScientificName")
         assert result == "Homo sapiens"
 
-    def test_extract_taxonomy_field_not_found(self, adapter):
+    def test_extract_taxonomy_field_not_found(self):
         """Test _extract_taxonomy_field with missing field."""
         docsum = {"Item": [{"Name": "ScientificName", "ItemContent": "Homo sapiens"}]}
-        result = adapter._extract_taxonomy_field(docsum, "CommonName")
+        result = _extract_taxonomy_field(docsum, "CommonName")
         assert result == ""
 
-    def test_extract_taxonomy_field_exception(self, adapter):
+    def test_extract_taxonomy_field_exception(self):
         """Test _extract_taxonomy_field exception handling."""
-        result = adapter._extract_taxonomy_field(None, "ScientificName")
+        result = _extract_taxonomy_field(None, "ScientificName")
         assert result == ""
 
     @pytest.mark.asyncio
@@ -380,6 +399,7 @@ class TestEUtilsAdapter:
 
         with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
             import importlib
+
             import knowledge_lookup.adapters.eutils_adapter as mod
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter

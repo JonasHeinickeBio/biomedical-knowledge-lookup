@@ -181,7 +181,7 @@ class TestKEGGAdapter:
         text = "ENTRY       X00001\nNAME        Unknown"
         concept = adapter._parse_kegg_text("X00001", text)
         assert concept is not None
-        assert concept.concept_type.value == "unknown"
+        assert concept.concept_type == "UNKNOWN"
 
     def test_parse_kegg_text_error(self, adapter):
         """Test _parse_kegg_text error handling."""

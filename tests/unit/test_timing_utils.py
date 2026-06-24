@@ -3,20 +3,20 @@ Unit tests for timing utilities.
 """
 
 import pytest
+
 pytestmark = pytest.mark.unit
 import asyncio
 import time
-from unittest.mock import MagicMock, patch
-import logging
+
 from src.knowledge_lookup.utils.timing_utils import (
     TimingStats,
-    TimingContext,
+    benchmark_decorator,
+    format_timing_comparison,
     time_async_operation,
     time_sync_operation,
-    format_timing_comparison,
     timing_decorator,
-    benchmark_decorator
 )
+
 
 class TestTimingStats:
     """Test suite for TimingStats class."""
@@ -36,7 +36,7 @@ class TestTimingStats:
         stats.add_measurement(0.1)
         stats.add_measurement(0.3)
         stats.add_measurement(0.2)
-        
+
         assert stats.total_calls == 3
         assert stats.total_time == pytest.approx(0.6)
         assert stats.min_time == 0.1
@@ -47,7 +47,7 @@ class TestTimingStats:
         """Test average time calculation."""
         stats = TimingStats()
         assert stats.average_time == 0.0
-        
+
         stats.add_measurement(0.1)
         stats.add_measurement(0.3)
         assert stats.average_time == pytest.approx(0.2)
@@ -56,13 +56,13 @@ class TestTimingStats:
         """Test median time calculation."""
         stats = TimingStats()
         assert stats.median_time == 0.0
-        
+
         stats.add_measurement(0.1)
         stats.add_measurement(0.5)
         stats.add_measurement(0.3)
         # Sorted: 0.1, 0.3, 0.5 -> Median 0.3
         assert stats.median_time == 0.3
-        
+
         stats.add_measurement(0.7)
         # Sorted: 0.1, 0.3, 0.5, 0.7 -> Median (0.3+0.5)/2 = 0.4
         assert stats.median_time == 0.4
@@ -72,7 +72,7 @@ class TestTimingStats:
         stats = TimingStats()
         stats.add_measurement(0.1)
         stats.reset()
-        
+
         assert stats.total_calls == 0
         assert stats.total_time == 0.0
         assert stats.min_time == float("inf")
@@ -88,9 +88,9 @@ class TestTimingFunctions:
         async def mock_op():
             await asyncio.sleep(0.01)
             return "success"
-        
+
         duration, result = await time_async_operation(mock_op, iterations=1, log_results=False)
-        
+
         assert result == "success"
         assert duration >= 0.01
 
@@ -99,9 +99,9 @@ class TestTimingFunctions:
         def mock_op():
             time.sleep(0.01)
             return "sync success"
-        
+
         duration, result = time_sync_operation(mock_op, iterations=1, log_results=False)
-        
+
         assert result == "sync success"
         assert duration >= 0.01
 
@@ -120,7 +120,7 @@ class TestTimingFunctions:
         async def decorated_async_func():
             await asyncio.sleep(0.01)
             return "decorated success"
-        
+
         result = await decorated_async_func()
         assert result == "decorated success"
 
@@ -130,7 +130,7 @@ class TestTimingFunctions:
         def decorated_sync_func():
             time.sleep(0.01)
             return "sync decorated success"
-        
+
         result = decorated_sync_func()
         assert result == "sync decorated success"
 
@@ -141,6 +141,6 @@ class TestTimingFunctions:
         async def benchmarked_func():
             await asyncio.sleep(0.01)
             return "benchmarked success"
-        
+
         result = await benchmarked_func()
         assert result == "benchmarked success"

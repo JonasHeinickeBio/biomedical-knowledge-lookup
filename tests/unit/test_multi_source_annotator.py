@@ -3,14 +3,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 pytestmark = pytest.mark.unit
-from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
-from knowledge_lookup.multi_source_annotator import (
+from knowledge_lookup.core.multi_source_annotator import (
     AnnotationConfidence,
     ConceptAgreement,
     MultiSourceAnnotationResult,
     MultiSourceAnnotator,
     SourceAnnotation,
 )
+from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
 
 class TestMultiSourceAnnotator:
@@ -20,7 +20,7 @@ class TestMultiSourceAnnotator:
     def annotator(self):
         """Create MultiSourceAnnotator instance."""
         with patch(
-            "knowledge_lookup.multi_source_annotator.CentralKnowledgeLookup"
+            "knowledge_lookup.core.multi_source_annotator.CentralKnowledgeLookup"
         ) as mock_lookup_class:
             mock_lookup = MagicMock()
             mock_lookup.adapters = {}
@@ -31,7 +31,7 @@ class TestMultiSourceAnnotator:
     def test_initialization(self):
         """Test MultiSourceAnnotator initialization."""
         with patch(
-            "knowledge_lookup.multi_source_annotator.CentralKnowledgeLookup"
+            "knowledge_lookup.core.multi_source_annotator.CentralKnowledgeLookup"
         ) as mock_lookup_class:
             annotator = MultiSourceAnnotator()
             assert isinstance(annotator.config, LookupConfig)
@@ -42,7 +42,7 @@ class TestMultiSourceAnnotator:
         """Test MultiSourceAnnotator initialization with custom config."""
         config = LookupConfig(max_results_per_source=50)
         with patch(
-            "knowledge_lookup.multi_source_annotator.CentralKnowledgeLookup"
+            "knowledge_lookup.core.multi_source_annotator.CentralKnowledgeLookup"
         ):
             annotator = MultiSourceAnnotator(config=config)
             assert annotator.config.max_results_per_source == 50
@@ -584,7 +584,7 @@ class TestMultiSourceAnnotator:
         stats = annotator._generate_annotation_stats([source_ann], [agreement])
         assert stats["total_sources"] == 1
         assert stats["total_consensus_concepts"] == 1
-        assert stats["concept_type_distribution"]["disease"] == 1
+        assert stats["concept_type_distribution"]["DISEASE"] == 1
 
     def test_generate_annotation_stats_empty(self, annotator):
         """Test stats generation with empty inputs."""

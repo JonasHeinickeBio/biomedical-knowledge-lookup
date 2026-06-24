@@ -2,7 +2,7 @@
 Unit tests for additional_adapters module.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -262,7 +262,7 @@ class TestBioOntologyAdapterFromAdditional:
         """Test search_concepts with API key."""
         config = LookupConfig(api_keys={"bioontology": "test-key"})
         adapter = BioOntologyAdapter(config)
-        
+
         mock_response = AsyncMock()
         mock_response.status = 200
         mock_response.json = AsyncMock(
@@ -273,7 +273,7 @@ class TestBioOntologyAdapterFromAdditional:
             }
         )
         mock_get.return_value.__aenter__.return_value = mock_response
-        
+
         results = await adapter.search_concepts("test", limit=5)
         assert isinstance(results, list)
 

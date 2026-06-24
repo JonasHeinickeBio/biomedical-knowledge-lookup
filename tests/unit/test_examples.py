@@ -1,10 +1,9 @@
 """Unit tests for examples.py"""
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import knowledge_lookup.examples as examples
-
+import pytest
 
 pytestmark = pytest.mark.unit
 class MockConcept:
@@ -54,7 +53,7 @@ class TestExamples:
     async def test_example_basic_search(self):
         """Test example_basic_search runs without error."""
         mock_lookup = MockLookup()
-        
+
         with patch("knowledge_lookup.examples.create_knowledge_lookup", return_value=mock_lookup), \
              patch("builtins.print"):
             await examples.example_basic_search()
@@ -64,7 +63,7 @@ class TestExamples:
     async def test_example_specific_sources(self):
         """Test example_specific_sources runs without error."""
         mock_lookup = MockLookup()
-        
+
         with patch("knowledge_lookup.examples.create_knowledge_lookup", return_value=mock_lookup), \
              patch("builtins.print"):
             await examples.example_specific_sources()
@@ -74,7 +73,7 @@ class TestExamples:
     async def test_example_concept_types(self):
         """Test example_concept_types runs without error."""
         mock_lookup = MockLookup()
-        
+
         with patch("knowledge_lookup.examples.create_knowledge_lookup", return_value=mock_lookup), \
              patch("builtins.print"):
             await examples.example_concept_types()
@@ -84,7 +83,7 @@ class TestExamples:
     async def test_example_concept_details(self):
         """Test example_concept_details runs without error."""
         mock_lookup = MockLookup()
-        
+
         with patch("knowledge_lookup.examples.create_knowledge_lookup", return_value=mock_lookup), \
              patch("builtins.print"):
             await examples.example_concept_details()
@@ -102,7 +101,7 @@ class TestExamples:
     async def test_example_cross_reference_mapping(self):
         """Test example_cross_reference_mapping runs without error."""
         mock_lookup = MockLookup()
-        
+
         with patch("knowledge_lookup.examples.create_knowledge_lookup", return_value=mock_lookup), \
              patch("builtins.print"):
             await examples.example_cross_reference_mapping()
@@ -112,7 +111,7 @@ class TestExamples:
     async def test_example_concept_hierarchy(self):
         """Test example_concept_hierarchy runs without error."""
         mock_lookup = MockLookup()
-        
+
         with patch("knowledge_lookup.examples.create_knowledge_lookup", return_value=mock_lookup), \
              patch("builtins.print"):
             await examples.example_concept_hierarchy()
@@ -122,7 +121,7 @@ class TestExamples:
     async def test_example_similar_concepts(self):
         """Test example_similar_concepts runs without error."""
         mock_lookup = MockLookup()
-        
+
         with patch("knowledge_lookup.examples.create_knowledge_lookup", return_value=mock_lookup), \
              patch("builtins.print"):
             await examples.example_similar_concepts()
@@ -132,7 +131,7 @@ class TestExamples:
     async def test_main(self):
         """Test main runs without error."""
         mock_lookup = MockLookup()
-        
+
         with patch("knowledge_lookup.examples.create_knowledge_lookup", return_value=mock_lookup), \
              patch("builtins.print"):
             await examples.main()

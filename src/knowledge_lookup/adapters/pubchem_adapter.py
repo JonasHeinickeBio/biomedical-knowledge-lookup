@@ -28,16 +28,29 @@ class PubChemAdapter(KnowledgeSourceAdapter):
     async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search PubChem for compounds."""
         try:
+            # Skip obviously non-chemical queries
+            if not any(c.isalpha() for c in query) or len(query) > 200:
+                logger.debug(f"PubChem skipping non-chemical query: '{query}'")
+                return []
+
             # Search by name to get CIDs
             url = f"{self.base_url}/compound/name/{query}/cids/JSON"
-            data = await self._make_request(url)
+            try:
+                data = await self._make_request(url)
+            except Exception as e:
+                err_str = str(e)
+                # Expected 404 for non-chemical entities — log at debug level
+                if "404" in err_str or "PUGREST.NotFound" in err_str:
+                    logger.debug(f"PubChem: no compounds found for '{query}'")
+                else:
+                    logger.warning(f"PubChem search failed for '{query}': {e}")
+                return []
 
             concepts = []
             if "IdentifierList" in data and "CID" in data["IdentifierList"]:
                 cids = data["IdentifierList"]["CID"][:limit]
 
                 # For each CID, get basic details
-                # In a real implementation, we might want to do this in batch or on demand
                 for cid in cids:
                     concept = await self.get_concept_details(str(cid))
                     if concept:

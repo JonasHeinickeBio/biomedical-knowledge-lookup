@@ -60,16 +60,16 @@ class TestDisGeNETAdapter:
                 {"diseaseid": "DOID:162", "diseasename": "Diabetes", "score": 0.5},
             ]
         }
-        with patch.object(adapter_with_api_key, "get_gene_disease_associations", new_callable=AsyncMock) as mock_gda:
-            mock_gda.return_value = data
+        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = data
             results = await adapter_with_api_key.search_concepts("7157", limit=10)
             assert len(results) == 1
 
     @pytest.mark.asyncio
     async def test_search_concepts_empty_response(self, adapter_with_api_key):
         """Test search concepts with empty response."""
-        with patch.object(adapter_with_api_key, "get_gene_disease_associations", new_callable=AsyncMock) as mock_gda:
-            mock_gda.return_value = None
+        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = None
             results = await adapter_with_api_key.search_concepts("nonexistent", limit=10)
             assert isinstance(results, list)
             assert len(results) == 0
@@ -77,8 +77,8 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_network_error(self, adapter):
         """Test search concepts with network error returns empty list."""
-        with patch.object(adapter, "get_gene_disease_associations", new_callable=AsyncMock) as mock_gda:
-            mock_gda.return_value = None
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = Exception("Network error")
             results = await adapter.search_concepts("test")
             assert isinstance(results, list)
             assert len(results) == 0
@@ -86,8 +86,8 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_http_error(self, adapter):
         """Test search concepts with HTTP error returns empty list."""
-        with patch.object(adapter, "get_gene_disease_associations", new_callable=AsyncMock) as mock_gda:
-            mock_gda.return_value = None
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = Exception("HTTP 500")
             results = await adapter.search_concepts("test")
             assert isinstance(results, list)
             assert len(results) == 0
@@ -385,7 +385,7 @@ class TestDisGeNETAdapter:
                 },
             ]
         }
-        with patch.object(adapter_with_api_key, "get_gene_disease_associations", new_callable=AsyncMock) as mock_req:
+        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = data
             concepts = await adapter_with_api_key.search_concepts("7157", limit=2)
             assert len(concepts) == 2
@@ -400,7 +400,7 @@ class TestDisGeNETAdapter:
                 for i in range(5)
             ]
         }
-        with patch.object(adapter_with_api_key, "get_gene_disease_associations", new_callable=AsyncMock) as mock_req:
+        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = data
             concepts = await adapter_with_api_key.search_concepts("7157", limit=2)
             assert len(concepts) == 2
@@ -408,7 +408,7 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_no_data(self, adapter_with_api_key):
         """Test search when no data returned."""
-        with patch.object(adapter_with_api_key, "get_gene_disease_associations", new_callable=AsyncMock) as mock_req:
+        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = None
             concepts = await adapter_with_api_key.search_concepts("7157")
             assert concepts == []

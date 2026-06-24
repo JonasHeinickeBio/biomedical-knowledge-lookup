@@ -5,6 +5,7 @@ Base classes for knowledge source adapters.
 from __future__ import annotations
 
 import asyncio
+import functools
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -275,6 +276,40 @@ class KnowledgeSourceAdapter(ABC):
         if self.session and not self.session.closed:
             await self.session.close()
 
+    # ------------------------------------------------------------------
+    # Thread-safe retry helper (for synchronous third-party libraries)
+    # ------------------------------------------------------------------
+
+    async def _thread_with_retry(
+        self,
+        operation_name: str,
+        func: Callable[..., Any],
+        *args: Any,
+    ) -> Any:
+        """Run *func* in a thread with smart retry and circuit-breaker protection.
+
+        Useful for adapters that wrap synchronous libraries via
+        ``asyncio.to_thread`` (e.g. ``bioservices``, ``chembl_webresource_client``).
+        The sync callable is executed in a thread, errors are classified,
+        retried per-category, and reported to the circuit breaker.
+
+        Parameters
+        ----------
+        operation_name :
+            Human-readable label for logging (e.g. ``\"unichem_search\"``).
+        func :
+            Synchronous callable to invoke.
+        *args :
+            Positional arguments forwarded to *func*.
+
+        Returns
+        -------
+        Any
+            The return value of *func*.
+        """
+        wrapper = functools.partial(asyncio.to_thread, func, *args)
+        return await self._call_with_retry(operation_name, wrapper)
+
     def _create_concept(
         self, concept_id: str, label: str, concept_type: ConceptType = ConceptType.UNKNOWN
     ) -> UnifiedConcept:
@@ -283,6 +318,7 @@ class KnowledgeSourceAdapter(ABC):
             primary_id=concept_id, primary_label=label, concept_type=concept_type
         )
         concept.add_identifier(self.source, concept_id, label)
+        concept.sources = [self.source]
         return concept
 
     def _determine_concept_type(

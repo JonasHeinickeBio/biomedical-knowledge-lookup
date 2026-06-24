@@ -8,7 +8,7 @@ import pytest
 
 pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.zooma_adapter import ZoomaAdapter
-from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 
 class TestZoomaAdapter:

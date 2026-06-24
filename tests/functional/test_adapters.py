@@ -5,21 +5,15 @@ These tests make real API calls to validate that adapters work with actual
 API responses and warn if API response structures change.
 """
 
-import json
-from pathlib import Path
-from typing import Any
 
 import pytest
-
 from knowledge_lookup.adapters import ADAPTER_CLASSES
 from knowledge_lookup.models import KnowledgeSource
 
 from .fixtures import (
-    requires_api,
-    requires_network,
     requires_api_key,
 )
-from .utils import ResponseStructureValidator, APIWarningManager
+from .utils import APIWarningManager, ResponseStructureValidator
 
 # Tests that require API keys (skip if not set)
 # Add more as needed
@@ -62,7 +56,7 @@ async def _test_search_concepts(
 ):
     """
     Test search_concepts with real API call.
-    
+
     Args:
         adapter: The adapter instance
         query: Search query
@@ -78,18 +72,18 @@ async def _test_search_concepts(
         response_data = results.__dict__
     elif isinstance(results, (list, dict)):
         response_data = results
-    
+
     # Store in cache if provided
     if api_responses_cache and adapter.source and cache_key:
         source_name = adapter.source.value if hasattr(adapter.source, 'value') else str(adapter.source)
         if source_name not in api_responses_cache:
             api_responses_cache[source_name] = {}
         api_responses_cache[source_name][cache_key] = response_data
-    
+
     # Validate results
     assert isinstance(results, list), f"Expected list, got {type(results)}"
     assert len(results) >= min_results, f"Expected at least {min_results} results, got {len(results)}"
-    
+
     # Check response structure
     if warning_manager and response_data:
         warnings = warning_manager.check_structure(
@@ -97,7 +91,7 @@ async def _test_search_concepts(
         )
         for warning in warnings:
             warning_manager.add_warning(adapter.source, cache_key, warning)
-    
+
     return results
 
 
@@ -110,7 +104,7 @@ async def _test_get_concept_details(
 ):
     """
     Test get_concept_details with real API call.
-    
+
     Args:
         adapter: The adapter instance
         concept_id: Concept ID to fetch
@@ -119,25 +113,25 @@ async def _test_get_concept_details(
         api_responses_cache: Optional cache for API responses
     """
     result = await adapter.get_concept_details(concept_id)
-    
+
     response_data = {}
     if hasattr(result, '__dict__'):
         response_data = result.__dict__
     elif isinstance(result, (list, dict)):
         response_data = result
-    
+
     # Store in cache if provided
     if api_responses_cache and adapter.source and cache_key:
         source_name = adapter.source.value if hasattr(adapter.source, 'value') else str(adapter.source)
         if source_name not in api_responses_cache:
             api_responses_cache[source_name] = {}
         api_responses_cache[source_name][cache_key] = response_data
-    
+
     # Validate result
     assert result is not None, f"get_concept_details returned None for {concept_id}"
     assert hasattr(result, 'primary_id'), "Result missing primary_id"
     assert hasattr(result, 'primary_label'), "Result missing primary_label"
-    
+
     # Check response structure
     if warning_manager and response_data:
         warnings = warning_manager.check_structure(
@@ -145,7 +139,7 @@ async def _test_get_concept_details(
         )
         for warning in warnings:
             warning_manager.add_warning(adapter.source, cache_key, warning)
-    
+
     return result
 
 
@@ -156,18 +150,18 @@ async def _test_get_concept_details(
 async def test_uniprot_search(response_validator, warning_manager, api_responses_cache):
     """Test UniProt search with real API call."""
     from knowledge_lookup.adapters.uniprot_adapter import UniProtAdapter
-    
+
     adapter = UniProtAdapter(None)
     # Use a default config if needed
     from knowledge_lookup.models import LookupConfig
     adapter.config = LookupConfig()
-    
+
     results = await _test_search_concepts(
         adapter, "insulin", "uniprot_insulin_search",
         warning_manager=warning_manager,
         api_responses_cache=api_responses_cache
     )
-    
+
     # Verify some results have expected fields
     # Note: UniProt search results may not always contain the exact query string in primary_label
     # This is expected behavior as UniProt may return related proteins
@@ -180,18 +174,18 @@ async def test_uniprot_search(response_validator, warning_manager, api_responses
 async def test_ols_search(response_validator, warning_manager, api_responses_cache):
     """Test OLS search with real API call."""
     from knowledge_lookup.adapters.ols_adapter import OLSAdapter
-    
+
     adapter = OLSAdapter(None)
     from knowledge_lookup.models import LookupConfig
     adapter.config = LookupConfig()
-    
+
     # Search for a disease
     results = await _test_search_concepts(
         adapter, "diabetes", "ols_diabetes_search",
         warning_manager=warning_manager,
         api_responses_cache=api_responses_cache
     )
-    
+
     # Verify results contain ontology info
     assert len(results) > 0, "Expected some results from OLS"
 
@@ -202,17 +196,17 @@ async def test_ols_search(response_validator, warning_manager, api_responses_cac
 async def test_wikidata_search(response_validator, warning_manager, api_responses_cache):
     """Test Wikidata search with real API call."""
     from knowledge_lookup.adapters.wikidata_adapter import WikidataAdapter
-    
+
     adapter = WikidataAdapter(None)
     from knowledge_lookup.models import LookupConfig
     adapter.config = LookupConfig()
-    
+
     results = await _test_search_concepts(
         adapter, "diabetes", "wikidata_diabetes_search",
         warning_manager=warning_manager,
         api_responses_cache=api_responses_cache
     )
-    
+
     assert len(results) > 0, "Expected some results from Wikidata"
 
 
@@ -222,17 +216,17 @@ async def test_wikidata_search(response_validator, warning_manager, api_response
 async def test_pubchem_search(response_validator, warning_manager, api_responses_cache):
     """Test PubChem search with real API call."""
     from knowledge_lookup.adapters.pubchem_adapter import PubChemAdapter
-    
+
     adapter = PubChemAdapter(None)
     from knowledge_lookup.models import LookupConfig
     adapter.config = LookupConfig()
-    
+
     results = await _test_search_concepts(
         adapter, "aspirin", "pubchem_aspirin_search",
         warning_manager=warning_manager,
         api_responses_cache=api_responses_cache
     )
-    
+
     assert len(results) > 0, "Expected some results from PubChem"
 
 
@@ -246,16 +240,16 @@ async def test_bioportal_search(response_validator, warning_manager, api_respons
     """Test BioPortal search with real API call."""
     from knowledge_lookup.adapters.bioportal_adapter import BioPortalAdapter
     from knowledge_lookup.models import LookupConfig
-    
+
     config = LookupConfig()
     adapter = BioPortalAdapter(config)
-    
+
     results = await _test_search_concepts(
         adapter, "diabetes", "bioportal_diabetes_search",
         warning_manager=warning_manager,
         api_responses_cache=api_responses_cache
     )
-    
+
     assert len(results) > 0, "Expected some results from BioPortal"
 
 
@@ -268,16 +262,16 @@ async def test_umls_search(response_validator, warning_manager, api_responses_ca
     """Test UMLS search with real API call."""
     from knowledge_lookup.adapters.umls_adapter import UMLSAdapter
     from knowledge_lookup.models import LookupConfig
-    
+
     config = LookupConfig()
     adapter = UMLSAdapter(config)
-    
+
     results = await _test_search_concepts(
         adapter, "diabetes", "umls_diabetes_search",
         warning_manager=warning_manager,
         api_responses_cache=api_responses_cache
     )
-    
+
     assert len(results) > 0, "Expected some results from UMLS"
 
 
@@ -288,17 +282,17 @@ async def test_umls_search(response_validator, warning_manager, api_responses_ca
 async def test_opentargets_search(response_validator, warning_manager, api_responses_cache):
     """Test OpenTargets search with real API call."""
     from knowledge_lookup.adapters.opentargets_adapter import OpenTargetsAdapter
-    
+
     adapter = OpenTargetsAdapter(None)
     from knowledge_lookup.models import LookupConfig
     adapter.config = LookupConfig()
-    
+
     results = await _test_search_concepts(
         adapter, "diabetes", "opentargets_diabetes_search",
         warning_manager=warning_manager,
         api_responses_cache=api_responses_cache
     )
-    
+
     assert len(results) > 0, "Expected some results from OpenTargets"
 
 
@@ -310,28 +304,28 @@ async def test_all_adapters_summary():
     """
     Summary test that runs minimal checks on all adapters
     and prints structure change warnings at the end.
-    
+
     Note: This test may fail if adapters have missing dependencies (expected).
     """
     # Run a simple test on each adapter
     test_results = []
-    
+
     for source, adapter_class in ADAPTER_CLASSES.items():
         # Skip sources that require API keys for this summary
         if source in API_KEY_REQUIRED_SOURCES:
             continue
-        
+
         try:
             adapter = adapter_class(None)
             from knowledge_lookup.models import LookupConfig
             adapter.config = LookupConfig()
-            
+
             # Quick test - just check if adapter initializes correctly
             assert adapter.source == source
             assert adapter.is_available() is True
-            
+
             test_results.append((source.value, "passed"))
-            
+
         except AssertionError as e:
             # is_available() returned False - likely missing dependency
             test_results.append((source.value, f"skipped (dependency): {str(e)}"))
@@ -340,21 +334,21 @@ async def test_all_adapters_summary():
             test_results.append((source.value, f"skipped (dependency): {str(e)}"))
         except Exception as e:
             test_results.append((source.value, f"failed: {str(e)}"))
-    
+
     # Print summary
     print("\n" + "=" * 70)
     print("ADAPTER FUNCTIONAL TEST SUMMARY")
     print("=" * 70)
-    
+
     passed = sum(1 for _, status in test_results if status == "passed")
     skipped = sum(1 for _, status in test_results if "skipped" in status)
     failed = sum(1 for _, status in test_results if status != "passed" and "skipped" not in status)
-    
+
     print(f"\nTotal: {len(test_results)}")
     print(f"Passed: {passed}")
     print(f"Skipped (missing dependencies): {skipped}")
     print(f"Failed (actual errors): {failed}")
-    
+
     for source, status in test_results:
         print(f"  {source}: {status}")
 

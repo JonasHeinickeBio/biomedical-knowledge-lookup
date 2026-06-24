@@ -30,7 +30,12 @@ class TestCLI:
             assert "No results found" in result.output
 
     def test_search_command_with_results(self, runner):
-        from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupResult, UnifiedConcept
+        from knowledge_lookup.models import (
+            ConceptType,
+            KnowledgeSource,
+            LookupResult,
+            UnifiedConcept,
+        )
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_lookup_class:
             mock_lookup = AsyncMock()
             mock_lookup_class.return_value = mock_lookup
@@ -82,11 +87,8 @@ class TestCLI:
             mock_lookup = AsyncMock()
             mock_cls.return_value = mock_lookup
             mock_lookup.search_concepts.return_value = LookupResult(query="q", concepts=[])
-            # Note: CLI uppercases source input, but KnowledgeSource values are lowercase,
-            # so the CLI has a known issue with source validation
             result = runner.invoke(main.app, ["search", "query", "--source", "chembl"])
-            # This will fail validation due to CLI uppercasing the source
-            assert result.exit_code == 1
+            assert result.exit_code == 0
 
     def test_search_sources_printed(self, runner):
         from knowledge_lookup.models import LookupResult
@@ -95,11 +97,15 @@ class TestCLI:
             mock_cls.return_value = mock_lookup
             mock_lookup.search_concepts.return_value = LookupResult(query="q", concepts=[])
             result = runner.invoke(main.app, ["search", "query", "-s", "chembl"])
-            # Sources not printed due to CLI validation error
-            assert result.exit_code == 1
+            assert result.exit_code == 0
 
     def test_search_json_output(self, runner):
-        from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupResult, UnifiedConcept
+        from knowledge_lookup.models import (
+            ConceptType,
+            KnowledgeSource,
+            LookupResult,
+            UnifiedConcept,
+        )
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_cls:
             mock_lookup = AsyncMock()
             mock_cls.return_value = mock_lookup
@@ -114,7 +120,12 @@ class TestCLI:
             assert "Concept1" in result.output
 
     def test_search_csv_output(self, runner):
-        from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupResult, UnifiedConcept
+        from knowledge_lookup.models import (
+            ConceptType,
+            KnowledgeSource,
+            LookupResult,
+            UnifiedConcept,
+        )
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_cls:
             mock_lookup = AsyncMock()
             mock_cls.return_value = mock_lookup

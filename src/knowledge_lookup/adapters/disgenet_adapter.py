@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Any
 
@@ -66,6 +65,7 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
         Uses ``json_data is None`` to always do GET requests (DisGeNET API
         does not use POST for search operations).
         """
+
         async def _do() -> dict[str, Any]:
             session = await self._get_session()
             async with session.get(url, params=params, headers=headers) as response:
@@ -241,29 +241,54 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
     async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """
         Search for gene-disease associations and return UnifiedConcepts.
-        query: NCBI gene ID (as string)
-        limit: max results (maps to page_number, 100 results per page)
+
+        Smart parameter detection:
+        - All-numeric query → ``gene_ncbi_id`` (e.g. ``"1017"`` for CDK2)
+        - Short uppercase-alpha query → ``gene_symbol`` (e.g. ``"CDK2"``)
+        - Everything else → ``disease`` free-text (e.g. ``"diabetes"``)
         """
-        params = {"gene_ncbi_id": query, "page_number": 0}
-        # DisGeNET returns 100 results per page, so limit is only used for page_number=0
-        data = await self.get_gene_disease_associations(params)
-        concepts = []
-        if data and "payload" in data:
-            for i, item in enumerate(data["payload"]):
-                if i >= limit:
-                    break
-                disease_id = item.get("diseaseid", "")
-                disease_name = item.get("diseasename", "")
-                score = item.get("score", 0.0)
-                concept = UnifiedConcept(
-                    primary_id=disease_id,
-                    primary_label=disease_name,
-                    concept_type=ConceptType.UNKNOWN,
-                )
-                concept.confidence_score = score
-                concept.source_data[KnowledgeSource.DISGENET] = item
-                concepts.append(concept)
-        logger.info(
-            f"DisGeNET search for gene {params.get('gene_ncbi_id', query)} returned {len(concepts)} concepts (limit {limit})"  # noqa: E501
-        )
-        return concepts
+        try:
+            query_stripped = query.strip()
+
+            # Detect query type
+            if query_stripped.isdigit():
+                params: dict[str, Any] = {"gene_ncbi_id": query_stripped, "page_number": 0}
+            elif (
+                query_stripped.isalpha() and query_stripped.isupper() and len(query_stripped) <= 15
+            ):
+                params = {"gene_symbol": query_stripped, "page_number": 0}
+            else:
+                params = {"disease": query_stripped, "page_number": 0}
+
+            data = await self._make_request(
+                f"{self.BASE_URL}/gda/summary",
+                params=params,
+                headers={
+                    "Authorization": self.api_key or "",
+                    "accept": "application/json",
+                },
+            )
+
+            concepts: list[UnifiedConcept] = []
+            if data and "payload" in data:
+                for item in data["payload"]:
+                    if len(concepts) >= limit:
+                        break
+                    disease_id = item.get("diseaseid", "")
+                    disease_name = item.get("diseasename", "")
+                    score = item.get("score", 0.0)
+                    concept = UnifiedConcept(
+                        primary_id=disease_id,
+                        primary_label=disease_name,
+                        concept_type=ConceptType.UNKNOWN,
+                    )
+                    concept.confidence_score = score
+                    concept.source_data[KnowledgeSource.DISGENET] = item
+                    concepts.append(concept)
+
+            logger.info(f"DisGeNET search for '{query}' returned {len(concepts)} concepts")
+            return concepts
+
+        except Exception as e:
+            logger.error(f"DisGeNET search failed for '{query}': {e}")
+            return []

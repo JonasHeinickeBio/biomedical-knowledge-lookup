@@ -6,13 +6,6 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
-from knowledge_lookup.models import (
-    ConceptType,
-    KnowledgeSource,
-    LookupConfig,
-    LookupResult,
-    UnifiedConcept,
-)
 from knowledge_lookup.validation_models import (
     convert_generated_concept_identifier,
     convert_generated_concept_mapping,
@@ -89,7 +82,7 @@ class TestConvertConceptIdentifier:
     def test_basic_conversion(self):
         gen_id = _make_gen_identifier(source="CHEMBL", identifier="CHEMBL25", label="Aspirin")
         result = convert_generated_concept_identifier(gen_id)
-        assert result.source.value == "chembl"
+        assert result.source == "CHEMBL"
         assert result.identifier == "CHEMBL25"
         assert result.label == "Aspirin"
 
@@ -104,7 +97,7 @@ class TestConvertConceptIdentifier:
         )
         gen_id = _make_gen_identifier(source=GenKS.CHEMBL, identifier="C1")
         result = convert_generated_concept_identifier(gen_id)
-        assert result.source.value == "chembl"
+        assert result.source == "CHEMBL"
 
     def test_none_label_and_url(self):
         gen_id = _make_gen_identifier(source="CHEMBL", identifier="C1", label=None, url=None)
@@ -147,7 +140,7 @@ class TestConvertUnifiedConcept:
         result = convert_generated_unified_concept(gen_concept)
         assert result.primary_id == "C1"
         assert result.primary_label == "Concept1"
-        assert result.concept_type.value == "disease"
+        assert result.concept_type == "DISEASE"
         assert len(result.identifiers) == 1
         assert len(result.mappings) == 1
         assert result.synonyms == ["syn1"]
@@ -163,12 +156,12 @@ class TestConvertUnifiedConcept:
             identifiers=[_make_gen_identifier()],
         )
         result = convert_generated_unified_concept(gen_concept)
-        assert result.concept_type.value == "unknown"
+        assert result.concept_type == "UNKNOWN"
 
     def test_concept_type_none(self):
         gen_concept = _make_gen_concept(concept_type=None)
         result = convert_generated_unified_concept(gen_concept)
-        assert result.concept_type.value == "unknown"
+        assert result.concept_type == "UNKNOWN"
 
     def test_concept_type_enum_value(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
@@ -176,7 +169,7 @@ class TestConvertUnifiedConcept:
         )
         gen_concept = _make_gen_concept(concept_type=GenCT.GENE)
         result = convert_generated_unified_concept(gen_concept)
-        assert result.concept_type.value == "gene"
+        assert result.concept_type == "GENE"
 
     def test_sources_from_list(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
@@ -184,15 +177,15 @@ class TestConvertUnifiedConcept:
         )
         gen_concept = _make_gen_concept(sources=[GenKS.CHEMBL, GenKS.PUBCHEM])
         result = convert_generated_unified_concept(gen_concept)
-        source_values = {s.value for s in result.sources}
-        assert "chembl" in source_values
-        assert "pubchem" in source_values
+        source_values = {s for s in result.sources}
+        assert "CHEMBL" in source_values
+        assert "PUBCHEM" in source_values
 
     def test_sources_from_identifiers(self):
         gen_concept = _make_gen_concept(sources=None)
         result = convert_generated_unified_concept(gen_concept)
-        source_values = {s.value for s in result.sources}
-        assert "chembl" in source_values
+        source_values = {s for s in result.sources}
+        assert "CHEMBL" in source_values
 
     def test_empty_identifiers(self):
         gen_concept = _make_gen_concept(identifiers=[])
@@ -219,8 +212,8 @@ class TestConvertUnifiedConcept:
         )
         gen_concept = _make_gen_concept(sources=[GenKS.UNIPROT])
         result = convert_generated_unified_concept(gen_concept)
-        source_values = {s.value for s in result.sources}
-        assert "uniprot" in source_values
+        source_values = {s for s in result.sources}
+        assert "UNIPROT" in source_values
 
     def test_identifiers_with_enum_source(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
@@ -229,7 +222,7 @@ class TestConvertUnifiedConcept:
         gen_id = _make_gen_identifier(source=GenKS.PUBCHEM, identifier="P1")
         gen_concept = _make_gen_concept(identifiers=[gen_id])
         result = convert_generated_unified_concept(gen_concept)
-        assert result.identifiers[0].source.value == "pubchem"
+        assert result.identifiers[0].source == "PUBCHEM"
 
     def test_no_identifiers_and_no_sources(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
@@ -323,6 +316,8 @@ class TestConvertLookupResult:
     def test_sources_with_enum_value(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
+        )
+        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
         gen_result = GenLR(
@@ -332,8 +327,8 @@ class TestConvertLookupResult:
             sources_failed=[],
         )
         result = convert_generated_lookup_result(gen_result)
-        queried_values = [s.value for s in result.sources_queried]
-        assert "ols" in queried_values
+        queried_values = [s for s in result.sources_queried]
+        assert "OLS" in queried_values
 
     def test_failed_sources(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
@@ -346,8 +341,8 @@ class TestConvertLookupResult:
             sources_failed=["CHEMBL"],
         )
         result = convert_generated_lookup_result(gen_result)
-        failed_values = [s.value for s in result.sources_failed]
-        assert "chembl" in failed_values
+        failed_values = [s for s in result.sources_failed]
+        assert "CHEMBL" in failed_values
 
     def test_execution_time_none(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
@@ -386,13 +381,15 @@ class TestConvertLookupConfig:
     def test_concept_types_normalization(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             ConceptType as GenCT,
+        )
+        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
         gen_config = GenLC(concept_types=[GenCT.DISEASE])
         result = convert_generated_lookup_config(gen_config)
         assert result.concept_types is not None
-        type_values = [t.value for t in result.concept_types]
-        assert "disease" in type_values
+        type_values = [t for t in result.concept_types]
+        assert "DISEASE" in type_values
 
     def test_no_concept_types(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
@@ -405,12 +402,14 @@ class TestConvertLookupConfig:
     def test_enabled_sources_enum(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
+        )
+        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
         gen_config = GenLC(enabled_sources=[GenKS.UNIPROT])
         result = convert_generated_lookup_config(gen_config)
-        source_values = [s.value for s in result.enabled_sources]
-        assert "uniprot" in source_values
+        source_values = [s for s in result.enabled_sources]
+        assert "UNIPROT" in source_values
 
     def test_concept_types_none_value(self):
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (

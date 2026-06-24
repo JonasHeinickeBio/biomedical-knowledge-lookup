@@ -2,16 +2,16 @@
 Unit tests for RDF converter.
 """
 
+from unittest.mock import patch
+
 import pytest
 from rdflib import RDF, RDFS, Graph, Literal, URIRef
-from unittest.mock import patch, MagicMock
 
 pytestmark = pytest.mark.unit
-from knowledge_lookup.rdf_converter import (
+from knowledge_lookup.services.rdf_converter import (
     AdapterHints,
     ChemicalHandler,
     ConceptType,
-    ConceptTypeHandler,
     DefaultHandler,
     DiseaseHandler,
     DrugHandler,
@@ -549,8 +549,8 @@ class TestUnifiedRDFConverterExtended:
         from knowledge_lookup.models import ConceptIdentifier, ConceptMapping
         concept.mappings = [
             ConceptMapping(
-                from_concept=ConceptIdentifier(KnowledgeSource.UMLS, "C1"),
-                to_concept=ConceptIdentifier(KnowledgeSource.CHEMBL, "CHEMBL1"),
+                from_concept=ConceptIdentifier(source=KnowledgeSource.UMLS, identifier="C1"),
+                to_concept=ConceptIdentifier(source=KnowledgeSource.CHEMBL, identifier="CHEMBL1"),
                 mapping_type="exact",
                 confidence=0.95,
                 source="test_src",
@@ -568,8 +568,8 @@ class TestUnifiedRDFConverterExtended:
         from knowledge_lookup.models import ConceptIdentifier, ConceptMapping
         concept.mappings = [
             ConceptMapping(
-                from_concept=ConceptIdentifier(KnowledgeSource.UMLS, "C1"),
-                to_concept=ConceptIdentifier(KnowledgeSource.CHEMBL, "CHEMBL1"),
+                from_concept=ConceptIdentifier(source=KnowledgeSource.UMLS, identifier="C1"),
+                to_concept=ConceptIdentifier(source=KnowledgeSource.CHEMBL, identifier="CHEMBL1"),
                 mapping_type="exact",
                 confidence=None,
                 source=None,
@@ -584,18 +584,18 @@ class TestUnifiedRDFConverterExtended:
     def test_get_concept_uri_from_identifier_all_sources(self):
         conv = UnifiedRDFConverter()
         from knowledge_lookup.models import ConceptIdentifier
-        id_chembl = ConceptIdentifier(KnowledgeSource.CHEMBL, "C1")
-        id_pubchem = ConceptIdentifier(KnowledgeSource.PUBCHEM, "P1")
-        id_drugbank = ConceptIdentifier(KnowledgeSource.DRUGBANK, "D1")
-        id_uniprot = ConceptIdentifier(KnowledgeSource.UNIPROT, "U1")
-        id_ensembl = ConceptIdentifier(KnowledgeSource.ENSEMBL, "E1")
-        id_other = ConceptIdentifier(KnowledgeSource.OLS, "O1")
+        id_chembl = ConceptIdentifier(source=KnowledgeSource.CHEMBL, identifier="C1")
+        id_pubchem = ConceptIdentifier(source=KnowledgeSource.PUBCHEM, identifier="P1")
+        id_drugbank = ConceptIdentifier(source=KnowledgeSource.DRUGBANK, identifier="D1")
+        id_uniprot = ConceptIdentifier(source=KnowledgeSource.UNIPROT, identifier="U1")
+        id_ensembl = ConceptIdentifier(source=KnowledgeSource.ENSEMBL, identifier="E1")
+        id_other = ConceptIdentifier(source=KnowledgeSource.OLS, identifier="O1")
         assert "C1" in str(conv._get_concept_uri_from_identifier(id_chembl))
         assert "P1" in str(conv._get_concept_uri_from_identifier(id_pubchem))
         assert "D1" in str(conv._get_concept_uri_from_identifier(id_drugbank))
         assert "U1" in str(conv._get_concept_uri_from_identifier(id_uniprot))
         assert "E1" in str(conv._get_concept_uri_from_identifier(id_ensembl))
-        assert "ols/O1" in str(conv._get_concept_uri_from_identifier(id_other))
+        assert "OLS/O1" in str(conv._get_concept_uri_from_identifier(id_other))
 
     def test_add_concept_type_handler(self):
         conv = UnifiedRDFConverter()
@@ -635,13 +635,13 @@ class TestUnifiedRDFConverterExtended:
 
     def test_load_dynamic_handlers_exception_fallback(self):
         conv = UnifiedRDFConverter()
-        with patch("knowledge_lookup.ontology_concept_loader.get_dynamic_concept_handlers", side_effect=RuntimeError("boom")):
+        with patch("knowledge_lookup.services.ontology_concept_loader.get_dynamic_concept_handlers", side_effect=RuntimeError("boom")):
             result = conv._load_dynamic_handlers()
             assert ConceptType.UNKNOWN in result
 
     def test_dynamic_handler_matching(self):
         conv = UnifiedRDFConverter()
-        with patch("knowledge_lookup.ontology_concept_loader.get_dynamic_concept_handlers", return_value={"DISEASE": DefaultHandler, "NONENUMKEY": DefaultHandler}):
+        with patch("knowledge_lookup.services.ontology_concept_loader.get_dynamic_concept_handlers", return_value={"DISEASE": DefaultHandler, "NONENUMKEY": DefaultHandler}):
             result = conv._load_dynamic_handlers()
             assert ConceptType.DISEASE in result
 

@@ -9,7 +9,6 @@ import pytest
 from knowledge_lookup.adapters.europepmc_adapter import EuropePMCAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
-
 pytestmark = pytest.mark.unit
 class TestEuropePMCAdapter:
     """Tests for EuropePMCAdapter."""

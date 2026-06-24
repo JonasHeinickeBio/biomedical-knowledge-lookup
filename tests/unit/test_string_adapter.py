@@ -9,7 +9,6 @@ import pytest
 from knowledge_lookup.adapters.string_adapter import STRINGAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
-
 pytestmark = pytest.mark.unit
 class TestSTRINGAdapter:
     """Tests for STRINGAdapter."""

@@ -2,8 +2,7 @@
 Unified tests for all knowledge source adapters to ensure broad coverage.
 """
 
-import sys
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

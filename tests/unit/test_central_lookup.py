@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 pytestmark = pytest.mark.unit
-from knowledge_lookup.central_lookup import CentralKnowledgeLookup
+from knowledge_lookup.core.central_lookup import CentralKnowledgeLookup
 from knowledge_lookup.models import (
     ConceptType,
     KnowledgeSource,
@@ -178,7 +178,7 @@ class TestCentralKnowledgeLookup:
         """Test add_source method."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
 
-        with patch("knowledge_lookup.central_lookup.ADAPTER_CLASSES") as mock_classes:
+        with patch("knowledge_lookup.core.central_lookup.ADAPTER_CLASSES") as mock_classes:
             mock_adapter_class = MagicMock()
             mock_adapter_instance = MagicMock()
             mock_adapter_instance.is_available.return_value = True
@@ -205,7 +205,7 @@ class TestCentralKnowledgeLookup:
         """Test add_source when adapter is not available."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
 
-        with patch("knowledge_lookup.central_lookup.ADAPTER_CLASSES") as mock_classes:
+        with patch("knowledge_lookup.core.central_lookup.ADAPTER_CLASSES") as mock_classes:
             mock_adapter_class = MagicMock()
             mock_adapter_instance = MagicMock()
             mock_adapter_instance.is_available.return_value = False
@@ -222,7 +222,7 @@ class TestCentralKnowledgeLookup:
         """Test add_source when adapter init raises."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
 
-        with patch("knowledge_lookup.central_lookup.ADAPTER_CLASSES") as mock_classes:
+        with patch("knowledge_lookup.core.central_lookup.ADAPTER_CLASSES") as mock_classes:
             mock_adapter_class = MagicMock()
             mock_adapter_class.side_effect = Exception("Init failed")
 
@@ -301,9 +301,9 @@ class TestCentralKnowledgeLookup:
         lookup.adapters[KnowledgeSource.OLS] = mock_adapter
 
         concept1 = UnifiedConcept(primary_id="ID1", primary_label="Test")
-        concept1.sources.add(KnowledgeSource.BIOPORTAL)
+        concept1.sources.append(KnowledgeSource.BIOPORTAL)
         concept2 = UnifiedConcept(primary_id="ID1", primary_label="Test")
-        concept2.sources.add(KnowledgeSource.OLS)
+        concept2.sources.append(KnowledgeSource.OLS)
 
         mock_adapter.search_concepts.side_effect = [[concept1], [concept2]]
         lookup.config.enable_deduplication = True
@@ -600,6 +600,7 @@ class TestCentralKnowledgeLookup:
         concept = UnifiedConcept(
             primary_id="ID1",
             primary_label="Test",
+            concept_type=ConceptType.DISEASE,
             definitions=["def"],
             synonyms=["syn"],
             semantic_types=["type1"],
@@ -623,6 +624,7 @@ class TestCentralKnowledgeLookup:
         concept = UnifiedConcept(
             primary_id="ID:1",
             primary_label="Test Concept",
+            concept_type=ConceptType.DISEASE,
             definitions=["A definition"],
             synonyms=["syn1", "syn2"],
             semantic_types=["Disease"],
@@ -659,7 +661,7 @@ class TestCentralKnowledgeLookup:
             concept_type=ConceptType.DISEASE,
             confidence_score=0.9,
         )
-        concept.sources.add(KnowledgeSource.OLS)
+        concept.sources.append(KnowledgeSource.OLS)
         result = LookupResult(
             query="test",
             concepts=[concept],
@@ -684,7 +686,7 @@ class TestCentralKnowledgeLookup:
             concept_type=ConceptType.DISEASE,
             confidence_score=0.9,
         )
-        concept.sources.add(KnowledgeSource.OLS)
+        concept.sources.append(KnowledgeSource.OLS)
         result = LookupResult(
             query="test",
             concepts=[concept],
@@ -705,7 +707,7 @@ class TestCentralKnowledgeLookup:
         """Test export_to_excel includes errors sheet."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
         concept = UnifiedConcept(primary_id="ID1", primary_label="Test")
-        concept.sources.add(KnowledgeSource.OLS)
+        concept.sources.append(KnowledgeSource.OLS)
         result = LookupResult(
             query="test",
             concepts=[concept],
@@ -730,7 +732,7 @@ class TestCentralKnowledgeLookup:
             primary_label="Diabetes",
             confidence_score=0.95,
         )
-        concept.sources.add(KnowledgeSource.OLS)
+        concept.sources.append(KnowledgeSource.OLS)
         result = LookupResult(
             query="diabetes",
             concepts=[concept],
@@ -766,7 +768,7 @@ class TestCentralKnowledgeLookup:
         """Test export_summary_report with errors."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
         concept = UnifiedConcept(primary_id="ID1", primary_label="Test", confidence_score=0.5)
-        concept.sources.add(KnowledgeSource.OLS)
+        concept.sources.append(KnowledgeSource.OLS)
         result = LookupResult(
             query="test",
             concepts=[concept],
@@ -823,7 +825,7 @@ class TestCentralKnowledgeLookup:
 
     def test_init_adapters_exception_handling(self):
         """Test _initialize_adapters handles exceptions."""
-        with patch("knowledge_lookup.central_lookup.ADAPTER_CLASSES") as mock_classes:
+        with patch("knowledge_lookup.core.central_lookup.ADAPTER_CLASSES") as mock_classes:
             config = LookupConfig(enabled_sources=[KnowledgeSource.BIOPORTAL])
             mock_adapter_class = MagicMock(side_effect=Exception("init fail"))
 
@@ -835,7 +837,7 @@ class TestCentralKnowledgeLookup:
 
     def test_init_adapters_not_available(self):
         """Test _initialize_adapters when adapter not available."""
-        with patch("knowledge_lookup.central_lookup.ADAPTER_CLASSES") as mock_classes:
+        with patch("knowledge_lookup.core.central_lookup.ADAPTER_CLASSES") as mock_classes:
             config = LookupConfig(enabled_sources=[KnowledgeSource.BIOPORTAL])
             mock_adapter_class = MagicMock()
             mock_instance = MagicMock()

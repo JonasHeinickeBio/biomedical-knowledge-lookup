@@ -60,25 +60,27 @@ class OxOAdapter(KnowledgeSourceAdapter):
             mapping_source = kwargs.get("mapping_source", [])
 
             # Prepare search request
-            search_data = {"ids": [concept_id], "distance": distance}
+            search_data: dict[str, Any] = {"ids": [concept_id], "distance": distance}
 
             if mapping_target:
                 search_data["mappingTarget"] = mapping_target
             if mapping_source:
                 search_data["mappingSource"] = mapping_source
 
-            # Make API request using POST with JSON data
-            session = await self._get_session()
-            async with session.post(
+            # Make API request using POST with JSON data through _make_request
+            # (gets retry + circuit-breaker protection automatically)
+            response_data = await self._make_request(
                 f"{self.api_url}/search",
-                json=search_data,
+                json_data=search_data,
                 headers={"Content-Type": "application/json"},
-            ) as response:
-                response.raise_for_status()
-                response_data = await response.json()
+            )
 
             # Parse response
-            if "_embedded" in response_data and "searchResults" in response_data["_embedded"]:
+            if (
+                response_data
+                and "_embedded" in response_data
+                and "searchResults" in response_data["_embedded"]
+            ):
                 results = response_data["_embedded"]["searchResults"]
                 if results:
                     result = results[0]
@@ -103,24 +105,26 @@ class OxOAdapter(KnowledgeSourceAdapter):
         """
         try:
             # Prepare search request
-            search_data = {
+            search_data: dict[str, Any] = {
                 "ids": [query],
                 "distance": 2,  # Default to distance 2 for broader search
             }
 
-            # Make API request using POST with JSON data
-            session = await self._get_session()
-            async with session.post(
+            # Make API request using POST with JSON data through _make_request
+            # (gets retry + circuit-breaker protection automatically)
+            response_data = await self._make_request(
                 f"{self.api_url}/search",
-                json=search_data,
+                json_data=search_data,
                 headers={"Content-Type": "application/json"},
-            ) as response:
-                response.raise_for_status()
-                response_data = await response.json()
+            )
 
             # Parse results
             concepts = []
-            if "_embedded" in response_data and "searchResults" in response_data["_embedded"]:
+            if (
+                response_data
+                and "_embedded" in response_data
+                and "searchResults" in response_data["_embedded"]
+            ):
                 results = response_data["_embedded"]["searchResults"]
 
                 for result in results[:limit]:
@@ -171,26 +175,28 @@ class OxOAdapter(KnowledgeSourceAdapter):
             mapping_source = kwargs.get("mapping_source", [])
 
             # Prepare batch search request
-            search_data = {"ids": concept_ids, "distance": distance}
+            search_data: dict[str, Any] = {"ids": concept_ids, "distance": distance}
 
             if mapping_target:
                 search_data["mappingTarget"] = mapping_target
             if mapping_source:
                 search_data["mappingSource"] = mapping_source
 
-            # Make API request using POST with JSON data
-            session = await self._get_session()
-            async with session.post(
+            # Make API request using POST with JSON data through _make_request
+            # (gets retry + circuit-breaker protection automatically)
+            response_data = await self._make_request(
                 f"{self.api_url}/search",
-                json=search_data,
+                json_data=search_data,
                 headers={"Content-Type": "application/json"},
-            ) as response:
-                response.raise_for_status()
-                response_data = await response.json()
+            )
 
             # Parse results
-            mappings = {}
-            if "_embedded" in response_data and "searchResults" in response_data["_embedded"]:
+            mappings: dict[str, list[dict[str, Any]]] = {}
+            if (
+                response_data
+                and "_embedded" in response_data
+                and "searchResults" in response_data["_embedded"]
+            ):
                 results = response_data["_embedded"]["searchResults"]
 
                 for result in results:
@@ -271,7 +277,7 @@ class OxOAdapter(KnowledgeSourceAdapter):
 
             # Store raw data
             concept.source_data[KnowledgeSource.OXO] = result
-            concept.confidence_score = max(concept.confidence_score, 0.8)
+            concept.confidence_score = max(concept.confidence_score or 0, 0.8)
 
             return concept
 

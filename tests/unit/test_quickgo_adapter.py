@@ -3,7 +3,7 @@ Unit tests for QuickGOAdapter.
 """
 
 import sys
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 mock_bioservices = MagicMock()
 sys.modules["bioservices"] = mock_bioservices
@@ -12,7 +12,7 @@ import pytest
 
 pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.quickgo_adapter import QuickGOAdapter
-from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig
 
 
 class TestQuickGOAdapter:

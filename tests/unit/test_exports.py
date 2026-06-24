@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 pytestmark = pytest.mark.unit
-from knowledge_lookup.exports import export_to_csv, export_to_json
+from knowledge_lookup.export.exports import export_to_csv, export_to_json
 from knowledge_lookup.models import (
     ConceptType,
     KnowledgeSource,
@@ -30,6 +30,7 @@ class TestExports:
         )
         concept.add_identifier(KnowledgeSource.BIOPORTAL, "TEST:001", "Test Disease")
         concept.add_identifier(KnowledgeSource.OLS, "TEST:001", "Test Disease")
+        concept.sources = [KnowledgeSource.BIOPORTAL, KnowledgeSource.OLS]
         concept.synonyms = ["synonym1", "synonym2"]
         concept.definitions = ["definition1"]
         concept.semantic_types = ["Disease"]
@@ -62,9 +63,9 @@ class TestExports:
         concept_data = result["concepts"][0]
         assert concept_data["primary_label"] == "Test Disease"
         assert concept_data["primary_id"] == "TEST:001"
-        assert concept_data["concept_type"] == "disease"
+        assert concept_data["concept_type"] == "DISEASE"
         assert concept_data["confidence_score"] == 0.95
-        assert set(concept_data["sources"]) == {"bioportal", "ols"}
+        assert set(concept_data["sources"]) == {"BIOPORTAL", "OLS"}
         assert concept_data["synonyms"] == ["synonym1", "synonym2"]
         assert concept_data["definitions"] == ["definition1"]
         assert len(concept_data["identifiers"]) == 2
@@ -95,7 +96,7 @@ class TestExports:
             assert nested_path.exists()
             assert result == str(nested_path)
 
-    @patch("knowledge_lookup.exports.logger")
+    @patch("knowledge_lookup.export.exports.logger")
     def test_export_to_json_logging(self, mock_logger, sample_result):
         """Test export_to_json logs file creation."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -129,7 +130,7 @@ class TestExports:
         csv_result = export_to_csv(result)
         assert csv_result is None
 
-    @patch("knowledge_lookup.exports.logger")
+    @patch("knowledge_lookup.export.exports.logger")
     def test_export_to_csv_empty_concepts_logging(self, mock_logger):
         """Test export_to_csv logs warning for empty concepts."""
         result = LookupResult(query="empty", concepts=[])
@@ -148,7 +149,7 @@ class TestExports:
             assert nested_path.exists()
             assert result == str(nested_path)
 
-    @patch("knowledge_lookup.exports.logger")
+    @patch("knowledge_lookup.export.exports.logger")
     def test_export_to_csv_logging(self, mock_logger, sample_result):
         """Test export_to_csv logs file creation."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -163,12 +164,12 @@ class TestExports:
         result = export_to_json(sample_result)
 
         assert "errors" in result
-        assert "ols" in result["errors"]
-        assert "Test error" in result["errors"]["ols"]
+        assert "OLS" in result["errors"]
+        assert "Test error" in result["errors"]["OLS"]
 
     def test_export_to_json_sources_info(self, sample_result):
         """Test export_to_json includes source information."""
         result = export_to_json(sample_result)
 
-        assert result["sources_queried"] == ["bioportal", "ols"]
-        assert result["sources_succeeded"] == ["bioportal"]
+        assert result["sources_queried"] == ["BIOPORTAL", "OLS"]
+        assert result["sources_succeeded"] == ["BIOPORTAL"]

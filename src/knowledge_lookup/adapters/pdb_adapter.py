@@ -34,8 +34,8 @@ class PDBAdapter(KnowledgeSourceAdapter):
         """Search PDB for protein structures."""
         try:
             url = f"{self.base_url}/query"
-            # RCSB full-text search using POST-style JSON
-            session = await self._get_session()
+            # RCSB full-text search using POST through _make_request
+            # (gets retry + circuit-breaker protection automatically)
             search_payload = {
                 "query": {
                     "type": "terminal",
@@ -46,18 +46,16 @@ class PDBAdapter(KnowledgeSourceAdapter):
                 "request_options": {"paginate": {"start": 0, "rows": min(limit, 25)}},
             }
 
-            concepts = []
-            async with session.post(url, json=search_payload) as response:
-                response.raise_for_status()
-                data = await response.json()
+            data = await self._make_request(url, json_data=search_payload)
 
-                result_set = data.get("result_set", [])
-                for item in result_set[:limit]:
-                    entry_id = item.get("identifier", "")
-                    if entry_id:
-                        concept = await self._fetch_entry_summary(entry_id)
-                        if concept:
-                            concepts.append(concept)
+            concepts = []
+            result_set = data.get("result_set", []) if data else []
+            for item in result_set[:limit]:
+                entry_id = item.get("identifier", "")
+                if entry_id:
+                    concept = await self._fetch_entry_summary(entry_id)
+                    if concept:
+                        concepts.append(concept)
 
             logger.info(f"PDB search for '{query}' returned {len(concepts)} concepts")
             return concepts

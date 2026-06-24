@@ -106,7 +106,7 @@ class TestSearchPerformance:
         @pytest.mark.asyncio
         async def test_search_with_cache_performance(self, lookup):
             """Test search performance with caching."""
-            from unittest.mock import AsyncMock, patch
+            from unittest.mock import patch
 
             mock_concepts = [
                 UnifiedConcept(
@@ -140,7 +140,7 @@ class TestSearchPerformance:
         @pytest.mark.asyncio
         async def test_batch_search_performance(self, lookup):
             """Test performance of batch searches."""
-            from unittest.mock import AsyncMock, patch
+            from unittest.mock import patch
 
             mock_concepts = [
                 UnifiedConcept(

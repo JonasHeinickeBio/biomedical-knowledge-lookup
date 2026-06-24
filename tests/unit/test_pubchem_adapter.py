@@ -2,13 +2,13 @@
 Unit tests for PubChemAdapter.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.pubchem_adapter import PubChemAdapter
-from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig
+from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 
 class TestPubChemAdapter:

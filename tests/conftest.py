@@ -41,13 +41,15 @@ def event_loop():
     loop.close()
 
 
+from knowledge_lookup.models import LookupConfig
+
+
 @pytest.fixture
 def lookup_config():
     """Provide a default LookupConfig for testing."""
     return LookupConfig(
         max_results_per_source=20,
         timeout_per_source=30.0,
-        rate_limits={},
     )
 
 

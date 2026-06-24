@@ -9,7 +9,6 @@ import pytest
 from knowledge_lookup.adapters.clinvar_adapter import ClinVarAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
-
 pytestmark = pytest.mark.unit
 class TestClinVarAdapter:
     """Tests for ClinVarAdapter."""

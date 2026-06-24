@@ -2,14 +2,14 @@
 Unit tests for BioPortalAdapter.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest
 
 pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.bioportal_adapter import BioPortalAdapter
-from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig
 
 
 class TestBioPortalAdapter:

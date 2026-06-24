@@ -72,8 +72,6 @@ def classify_error(exc: Exception) -> ErrorCategory:
     HTTP status codes for common error patterns.
     """
     msg = str(exc).lower()
-    type_name = type(exc).__name__.lower()
-
     # --- Rate limiting ---
     if any(
         marker in msg
@@ -88,9 +86,7 @@ def classify_error(exc: Exception) -> ErrorCategory:
         return ErrorCategory.RATE_LIMITED
 
     # --- Server errors (HTTP 5xx) ---
-    if any(
-        marker in msg for marker in ["500", "502", "503", "504", "internal server"]
-    ):
+    if any(marker in msg for marker in ["500", "502", "503", "504", "internal server"]):
         return ErrorCategory.SERVER_ERROR
     if isinstance(exc, aiohttp.ClientResponseError) and 500 <= exc.status <= 599:
         return ErrorCategory.SERVER_ERROR
@@ -104,14 +100,10 @@ def classify_error(exc: Exception) -> ErrorCategory:
     # --- Network / connection errors ---
     if isinstance(
         exc,
-        (
-            aiohttp.ClientConnectorError,
-            aiohttp.ServerDisconnectedError,
-            aiohttp.ClientTimeout,
-            asyncio.TimeoutError,
-            ConnectionError,
-            TimeoutError,
-        ),
+        aiohttp.ClientConnectorError
+        | aiohttp.ServerDisconnectedError
+        | aiohttp.ClientTimeout
+        | asyncio.TimeoutError,
     ):
         return ErrorCategory.NETWORK_ERROR
 

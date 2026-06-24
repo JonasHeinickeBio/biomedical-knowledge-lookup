@@ -3,14 +3,13 @@ Unit tests for ontology concept loader.
 """
 
 import os
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from rdflib import OWL, RDF, RDFS, Graph, Literal, URIRef
+from rdflib import Graph, Literal, URIRef
 
 pytestmark = pytest.mark.unit
-from knowledge_lookup.ontology_concept_loader import (
+from knowledge_lookup.services.ontology_concept_loader import (
     OntologyConceptLoader,
     create_dynamic_concept_enum,
     get_dynamic_concept_handlers,
@@ -141,7 +140,7 @@ class TestOntologyConceptLoader:
 class TestCreateDynamicConceptEnum:
     def test_create_enum(self):
         with patch(
-            "knowledge_lookup.ontology_concept_loader.OntologyConceptLoader"
+            "knowledge_lookup.services.ontology_concept_loader.OntologyConceptLoader"
         ) as MockLoader:
             instance = MockLoader.return_value
             instance.extract_concept_classes.return_value = {"Disease": "Disease", "Gene": "Gene"}
@@ -156,7 +155,7 @@ class TestCreateDynamicConceptEnum:
 class TestGetDynamicConceptHandlersExtended:
     def test_specialized_and_default_handlers(self):
         with patch(
-            "knowledge_lookup.ontology_concept_loader.OntologyConceptLoader"
+            "knowledge_lookup.services.ontology_concept_loader.OntologyConceptLoader"
         ) as MockLoader:
             instance = MockLoader.return_value
             instance.extract_concept_classes.return_value = {
@@ -168,7 +167,7 @@ class TestGetDynamicConceptHandlersExtended:
                 "SomeNewThing": "SomeNewThing",
             }
             handlers = get_dynamic_concept_handlers()
-            from knowledge_lookup.rdf_converter import (
+            from knowledge_lookup.services.rdf_converter import (
                 ChemicalHandler,
                 DefaultHandler,
                 DiseaseHandler,

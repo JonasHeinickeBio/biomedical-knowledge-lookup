@@ -262,4 +262,4 @@ class TestOpenTargetsAdapter:
             {"id": "ENSG00000169318", "approvedSymbol": "TP53"}
         )
         assert concept is not None
-        assert concept.concept_type.value == "gene"
+        assert concept.concept_type == "GENE"

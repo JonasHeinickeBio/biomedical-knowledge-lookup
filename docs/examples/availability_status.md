@@ -105,5 +105,5 @@ poetry run python test_all_adapters.py
 This will:
 1. Test each adapter's availability
 2. Test `search_concepts(query, sources=[...])`
-3. Generate detailed results in `docs/examples/all_adapters_test_results.json`
+3. Generate detailed results in `docs/examples/scripts/all_adapters_test_results.json`
 4. Create summary in `docs/examples/availability_status.md`

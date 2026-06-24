@@ -9,7 +9,6 @@ import pytest
 from knowledge_lookup.adapters.interpro_adapter import InterProAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
-
 pytestmark = pytest.mark.unit
 class TestInterProAdapter:
     """Tests for InterProAdapter."""
@@ -185,7 +184,7 @@ class TestInterProAdapter:
         concept = adapter._convert_result_to_concept(item)
         assert concept is not None
         assert concept.primary_label == "TestDomain"
-        assert concept.concept_type.value == "molecular_entity"
+        assert concept.concept_type == "MOLECULAR_ENTITY"
 
     def test_convert_result_empty_accession(self, adapter):
         """Test _convert_result_to_concept returns None for empty accession."""
@@ -212,7 +211,7 @@ class TestInterProAdapter:
         }
         concept = adapter._convert_result_to_concept(item)
         assert concept is not None
-        assert concept.concept_type.value == "protein"
+        assert concept.concept_type == "PROTEIN"
 
     def test_convert_result_description_as_string(self, adapter):
         """Test _convert_result_to_concept with description as string."""
@@ -252,7 +251,7 @@ class TestInterProAdapter:
         }
         concept = adapter._convert_result_to_concept(item)
         assert concept is not None
-        assert concept.concept_type.value == "molecular_entity"
+        assert concept.concept_type == "MOLECULAR_ENTITY"
 
     def test_convert_result_error(self, adapter):
         """Test _convert_result_to_concept with malformed data raises no error."""

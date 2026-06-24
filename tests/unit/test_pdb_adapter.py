@@ -4,11 +4,9 @@ Unit tests for PDBAdapter.
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import aiohttp
 import pytest
 from knowledge_lookup.adapters.pdb_adapter import PDBAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
-
 
 pytestmark = pytest.mark.unit
 class TestPDBAdapter:

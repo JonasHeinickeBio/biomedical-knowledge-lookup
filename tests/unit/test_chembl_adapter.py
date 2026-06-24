@@ -640,10 +640,10 @@ class TestChEMBLAdapter:
 
     @pytest.mark.asyncio
     async def test_parse_drug_results_no_id(self, adapter):
-        """Test _parse_drug_results with no chembl id uses None."""
+        """Test _parse_drug_results with no chembl id uses empty string."""
         raw = [{"pref_name": "ASPIRIN"}]
         results = await adapter._parse_drug_results(raw)
-        assert results[0].primary_id is None
+        assert results[0].primary_id == ""
 
     # --- _parse_target_results (lines 623-665) ---
 
