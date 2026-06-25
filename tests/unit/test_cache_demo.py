@@ -38,7 +38,7 @@ class TestCacheDemo:
 
         with patch("knowledge_lookup.cache.cache_demo.init_cache") as mock_init, patch(
             "knowledge_lookup.cache.cache_demo.UniChemAdapter", return_value=mock_adapter
-        ), patch("builtins.print") as mock_print:
+        ), patch("builtins.print"):
             await demonstrate_caching()
 
             mock_init.assert_called_once()

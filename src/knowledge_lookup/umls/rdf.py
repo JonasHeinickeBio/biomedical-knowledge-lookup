@@ -78,45 +78,61 @@ def concept_to_graph(concept: UnifiedConcept, graph: Graph | None = None) -> Gra
     g.bind("umls", UMLS)
 
     # ── Type assertion ──────────────────────────────────────────────
-    type_uri = _concept_type_to_rdf_class(concept.concept_type)
+    type_uri = _concept_type_to_rdf_class(concept.concept_type or ConceptType.UNKNOWN)
     g.add((uri, RDF.type, type_uri))
 
     # ── Labels & descriptions ───────────────────────────────────────
     g.add((uri, RDFS.label, Literal(concept.primary_label, lang="en")))
-    for lang, label in concept.labels.items():
+    labels_dict: dict[str, str] = (
+        json.loads(concept.labels) if isinstance(concept.labels, str) else {}
+    )
+    for lang, label in labels_dict.items():
         g.add((uri, RDFS.label, Literal(label, lang=lang)))
-    for synonym in concept.synonyms:
-        g.add((uri, ns.VOCAB["synonym"], Literal(synonym, lang="en")))
-    for definition in concept.definitions:
-        g.add((uri, ns.VOCAB["definition"], Literal(definition, lang="en")))
+    if concept.synonyms:
+        for synonym in concept.synonyms:
+            g.add((uri, ns.VOCAB["synonym"], Literal(synonym, lang="en")))
+    if concept.definitions:
+        for definition in concept.definitions:
+            g.add((uri, ns.VOCAB["definition"], Literal(definition, lang="en")))
 
     # ── Identifiers (cross-references) ──────────────────────────────
-    for cid in concept.identifiers:
-        _add_identifier(g, uri, cid, ns)
+    if concept.identifiers:
+        for cid in concept.identifiers:
+            _add_identifier(g, uri, cid, ns)
 
     # ── Semantic types & categories ─────────────────────────────────
-    for st in concept.semantic_types:
-        g.add((uri, ns.VOCAB["semanticType"], Literal(st)))
-    for cat in concept.categories:
-        g.add((uri, ns.VOCAB["category"], Literal(cat)))
+    if concept.semantic_types:
+        for st in concept.semantic_types:
+            g.add((uri, ns.VOCAB["semanticType"], Literal(st)))
+    if concept.categories:
+        for cat in concept.categories:
+            g.add((uri, ns.VOCAB["category"], Literal(cat)))
 
     # ── Relationships ───────────────────────────────────────────────
-    for parent_id in concept.parents:
-        parent_uri = URIRef(UMLS[parent_id])
-        g.add((uri, RDFS.subClassOf, parent_uri))
-    for child_id in concept.children:
-        child_uri = URIRef(UMLS[child_id])
-        g.add((child_uri, RDFS.subClassOf, uri))
-    for related_id in concept.related:
-        related_uri = URIRef(UMLS[related_id])
-        g.add((uri, ns.VOCAB["related"], related_uri))
+    if concept.parents:
+        for parent_id in concept.parents:
+            parent_uri = URIRef(UMLS[parent_id])
+            g.add((uri, RDFS.subClassOf, parent_uri))
+    if concept.children:
+        for child_id in concept.children:
+            child_uri = URIRef(UMLS[child_id])
+            g.add((child_uri, RDFS.subClassOf, uri))
+    if concept.related:
+        for related_id in concept.related:
+            related_uri = URIRef(UMLS[related_id])
+            g.add((uri, ns.VOCAB["related"], related_uri))
 
     # ── Confidence / provenance ─────────────────────────────────────
     g.add(
-        (uri, ns.VOCAB["confidenceScore"], Literal(concept.confidence_score, datatype=XSD.float))
+        (
+            uri,
+            ns.VOCAB["confidenceScore"],
+            Literal(concept.confidence_score or 0.0, datatype=XSD.float),
+        )
     )
-    for src in concept.sources:
-        g.add((uri, ns.VOCAB["source"], Literal(str(src))))
+    if concept.sources:
+        for src in concept.sources:
+            g.add((uri, ns.VOCAB["source"], Literal(str(src))))
 
     return g
 
@@ -204,9 +220,9 @@ class SparqlEndpoint:
         self.auth = auth
         self.timeout = timeout
         self.user_agent = user_agent
-        self._session = None
+        self._session: aiohttp.ClientSession | None = None
 
-    async def _get_session(self):
+    async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None:
             import aiohttp
 
@@ -214,6 +230,7 @@ class SparqlEndpoint:
                 timeout=aiohttp.ClientTimeout(total=self.timeout),
                 headers={"User-Agent": self.user_agent},
             )
+        assert self._session is not None
         return self._session
 
     async def query(

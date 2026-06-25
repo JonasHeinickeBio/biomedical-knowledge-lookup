@@ -174,19 +174,23 @@ def _convert_generated_lookup_config(
     import json
 
     # Parse rate_limits and api_keys from JSON strings if they are strings
-    rate_limits = gen_config.rate_limits
-    if isinstance(rate_limits, str):
+    rate_limits_raw = gen_config.rate_limits
+    if isinstance(rate_limits_raw, str):
         try:
-            rate_limits = json.loads(rate_limits)
+            rate_limits: dict[str, float] | None = json.loads(rate_limits_raw)
         except (json.JSONDecodeError, TypeError):
             rate_limits = {}
+    else:
+        rate_limits = rate_limits_raw
 
-    api_keys = gen_config.api_keys
-    if isinstance(api_keys, str):
+    api_keys_raw = gen_config.api_keys
+    if isinstance(api_keys_raw, str):
         try:
-            api_keys = json.loads(api_keys)
+            api_keys = json.loads(api_keys_raw)
         except (json.JSONDecodeError, TypeError):
             api_keys = {}
+    else:
+        api_keys = api_keys_raw
 
     return LookupConfig(
         enabled_sources=[_normalize_source(s) for s in (gen_config.enabled_sources or [])],

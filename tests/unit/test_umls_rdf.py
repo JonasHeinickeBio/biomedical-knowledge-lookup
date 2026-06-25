@@ -65,7 +65,7 @@ class TestConceptToRDF:
         # Check rdf:type assertion
         from rdflib import RDF
 
-        for s, p, o in g:
+        for _s, p, o in g:
             if p == RDF.type:
                 assert "Disease" in str(o) or "Concept" in str(o)
                 return

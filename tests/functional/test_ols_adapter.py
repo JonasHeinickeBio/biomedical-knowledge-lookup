@@ -103,7 +103,7 @@ async def test_ols_ontology_filter(adapter, response_validator):
     # Results should have ontology_name in source_data
     for result in results[:2]:
         if hasattr(result, "source_data"):
-            ols_data = result.source_data.get(KnowledgeSource.OLS, {})
+            result.source_data.get(KnowledgeSource.OLS, {})
             # OLS data should be present
 
 

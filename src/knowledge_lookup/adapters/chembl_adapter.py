@@ -701,7 +701,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                         )
                         return concept.primary_label
                     # Fallback to synonyms
-                    for syn in concept.synonyms:
+                    for syn in concept.synonyms or []:
                         if syn.strip().lower() == norm_category:
                             logger.info(f"Mapped category '{category}' to OLS synonym '{syn}'")
                             return syn
@@ -719,7 +719,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                             f"Mapped category '{category}' to BioOntology label '{concept.primary_label}'"  # noqa: E501
                         )
                         return concept.primary_label
-                    for syn in concept.synonyms:
+                    for syn in concept.synonyms or []:
                         if syn.strip().lower() == norm_category:
                             logger.info(
                                 f"Mapped category '{category}' to BioOntology synonym '{syn}'"  # noqa: E501

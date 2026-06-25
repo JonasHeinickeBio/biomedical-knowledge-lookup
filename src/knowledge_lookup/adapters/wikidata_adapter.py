@@ -126,13 +126,18 @@ class WikidataAdapter(KnowledgeSourceAdapter):
             concept.add_identifier(KnowledgeSource.WIKIDATA, item_id, label, item_uri)
 
             if "itemDescription" in result:
-                concept.definitions.append(result["itemDescription"]["value"])
+                if concept.definitions is not None:
+                    if concept.definitions is not None:
+                        concept.definitions.append(result["itemDescription"]["value"])
 
             if instance_of:
-                concept.categories.append(instance_of)
+                if concept.categories is not None:
+                    if concept.categories is not None:
+                        concept.categories.append(instance_of)
 
             concept.confidence_score = 0.7
-            concept.source_data[KnowledgeSource.WIKIDATA] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.WIKIDATA] = result
 
             return concept
 
@@ -166,7 +171,9 @@ class WikidataAdapter(KnowledgeSourceAdapter):
             )
 
             if "itemDescription" in first:
-                concept.definitions.append(first["itemDescription"]["value"])
+                if concept.definitions is not None:
+                    if concept.definitions is not None:
+                        concept.definitions.append(first["itemDescription"]["value"])
 
             # Extract all identifiers and categories from bindings
             for b in bindings:
@@ -177,16 +184,22 @@ class WikidataAdapter(KnowledgeSourceAdapter):
                         KnowledgeSource.UMLS, b["meshId"]["value"], label
                     )  # MeSH is often in UMLS
                 if "icd10" in b:
-                    concept.categories.append(f"ICD-10: {b['icd10']['value']}")
+                    if concept.categories is not None:
+                        if concept.categories is not None:
+                            concept.categories.append(f"ICD-10: {b['icd10']['value']}")
                 if "ncbiTaxonId" in b:
-                    concept.categories.append(f"NCBI Taxon: {b['ncbiTaxonId']['value']}")
+                    if concept.categories is not None:
+                        if concept.categories is not None:
+                            concept.categories.append(f"NCBI Taxon: {b['ncbiTaxonId']['value']}")
                 if "instanceOfLabel" in b:
                     cat = b["instanceOfLabel"]["value"]
-                    if cat not in concept.categories:
-                        concept.categories.append(cat)
+                    if concept.categories is not None and cat not in concept.categories:
+                        if concept.categories is not None:
+                            concept.categories.append(cat)
 
             concept.confidence_score = 0.8
-            concept.source_data[KnowledgeSource.WIKIDATA] = bindings
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.WIKIDATA] = bindings
 
             return concept
 

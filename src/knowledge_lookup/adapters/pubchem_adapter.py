@@ -89,7 +89,8 @@ class PubChemAdapter(KnowledgeSourceAdapter):
 
                 # Add description if available
                 if "Description" in info:
-                    concept.definitions.append(info["Description"])
+                    if concept.definitions is not None:
+                        concept.definitions.append(info["Description"])
 
                 # Get more properties (like IUPAC name, formula, etc.)  # noqa: E501
                 props_url = f"{self.base_url}/compound/cid/{concept_id}/property/IUPACName,MolecularFormula,InChIKey/JSON"  # noqa: E501
@@ -98,14 +99,17 @@ class PubChemAdapter(KnowledgeSourceAdapter):
                 if "PropertyTable" in props_data and "Properties" in props_data["PropertyTable"]:
                     props = props_data["PropertyTable"]["Properties"][0]
                     if "IUPACName" in props:
-                        concept.synonyms.append(props["IUPACName"])
+                        if concept.synonyms is not None:
+                            concept.synonyms.append(props["IUPACName"])
                     if "MolecularFormula" in props:
-                        concept.categories.append(f"Formula: {props['MolecularFormula']}")
+                        if concept.categories is not None:
+                            concept.categories.append(f"Formula: {props['MolecularFormula']}")
                     if "InChIKey" in props:
                         concept.add_identifier(KnowledgeSource.PUBCHEM, props["InChIKey"], label)
 
                 concept.confidence_score = 0.9
-                concept.source_data[KnowledgeSource.PUBCHEM] = data
+                if isinstance(concept.source_data, dict):
+                    concept.source_data[KnowledgeSource.PUBCHEM] = data
 
                 return concept
 

@@ -20,7 +20,7 @@ class TestAllAdapters:
         adapter = adapter_class(lookup_config)
         assert adapter.get_source() == source
         assert isinstance(adapter.is_available(), bool)
-        assert isinstance(adapter.get_rate_limit(), (int, float))
+        assert isinstance(adapter.get_rate_limit(), int | float)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("source, adapter_class", ADAPTER_CLASSES.items())

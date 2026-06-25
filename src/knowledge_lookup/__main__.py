@@ -509,7 +509,7 @@ async function doCrosswalk() {
                 return
 
             umls_adapter = cast("UMLSAdapter", adapter)
-            results = await umls_adapter.crosswalk_codes(source, code, target_source=target_source)
+            results = await umls_adapter.get_mappings(code, target_source=target_source or "")
             self._json_response(
                 {
                     "source": f"{source}:{code}",

@@ -65,7 +65,6 @@ class TestEnsemblAdapter:
                 "species": "homo_sapiens",
             },
         ]
-        detail_data = {"id": "ENSG00000139618", "display_name": "BRCA2"}
 
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = ensembl_data
@@ -216,7 +215,7 @@ class TestEnsemblAdapter:
     def test_convert_ensembl_result_error(self, adapter):
         """Test _convert_ensembl_result_to_concept with bad data causing error."""
         result = {"id": None}
-        concept = adapter._convert_ensembl_result_to_concept(result)
+        adapter._convert_ensembl_result_to_concept(result)
 
     @pytest.mark.asyncio
     async def test_get_mappings_default(self, adapter):

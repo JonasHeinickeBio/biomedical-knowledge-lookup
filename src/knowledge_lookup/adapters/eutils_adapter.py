@@ -66,14 +66,16 @@ class EUtilsAdapter(KnowledgeSourceAdapter):
                                         primary_label=title,
                                         concept_type=ConceptType.CITATION,
                                     )
-                                    concept.sources.append("EUTILS")
-                                    concept.source_data[KnowledgeSource.EUTILS] = {
-                                        "database": "pubmed",
-                                        "pmid": pmid,
-                                        "title": title,
-                                        "authors": authors,
-                                        "description": f"PubMed Citation: {title}",
-                                    }
+                                    if concept.sources is not None:
+                                        concept.sources.append(KnowledgeSource.EUTILS)
+                                    if isinstance(concept.source_data, dict):
+                                        concept.source_data[KnowledgeSource.EUTILS] = {
+                                            "database": "pubmed",
+                                            "pmid": pmid,
+                                            "title": title,
+                                            "authors": authors,
+                                            "description": f"PubMed Citation: {title}",
+                                        }
                                     results.append(concept)
             except Exception:
                 pass
@@ -96,14 +98,16 @@ class EUtilsAdapter(KnowledgeSourceAdapter):
                                         primary_label=name,
                                         concept_type=ConceptType.GENE,
                                     )
-                                    concept.sources.append("EUTILS")
-                                    concept.source_data[KnowledgeSource.EUTILS] = {
-                                        "database": "gene",
-                                        "gene_id": gene_id,
-                                        "name": name,
-                                        "description": description,
-                                        "summary": f"Gene: {name} - {description}",
-                                    }
+                                    if concept.sources is not None:
+                                        concept.sources.append(KnowledgeSource.EUTILS)
+                                    if isinstance(concept.source_data, dict):
+                                        concept.source_data[KnowledgeSource.EUTILS] = {
+                                            "database": "gene",
+                                            "gene_id": gene_id,
+                                            "name": name,
+                                            "description": description,
+                                            "summary": f"Gene: {name} - {description}",
+                                        }
                                     results.append(concept)
             except Exception:
                 pass
@@ -130,14 +134,16 @@ class EUtilsAdapter(KnowledgeSourceAdapter):
                                         primary_label=name,
                                         concept_type=ConceptType.PROTEIN,
                                     )
-                                    concept.sources.append("EUTILS")
-                                    concept.source_data[KnowledgeSource.EUTILS] = {
-                                        "database": "protein",
-                                        "protein_id": protein_id,
-                                        "name": name,
-                                        "accession": accession,
-                                        "summary": f"Protein: {name}",
-                                    }
+                                    if concept.sources is not None:
+                                        concept.sources.append(KnowledgeSource.EUTILS)
+                                    if isinstance(concept.source_data, dict):
+                                        concept.source_data[KnowledgeSource.EUTILS] = {
+                                            "database": "protein",
+                                            "protein_id": protein_id,
+                                            "name": name,
+                                            "accession": accession,
+                                            "summary": f"Protein: {name}",
+                                        }
                                     results.append(concept)
             except Exception:
                 pass
@@ -164,14 +170,16 @@ class EUtilsAdapter(KnowledgeSourceAdapter):
                                         primary_label=scientific_name,
                                         concept_type=ConceptType.ORGANISM,
                                     )
-                                    concept.sources.append("EUTILS")
-                                    concept.source_data[KnowledgeSource.EUTILS] = {
-                                        "database": "taxonomy",
-                                        "tax_id": tax_id,
-                                        "scientific_name": scientific_name,
-                                        "common_name": common_name,
-                                        "summary": f"Organism: {scientific_name}",
-                                    }
+                                    if concept.sources is not None:
+                                        concept.sources.append(KnowledgeSource.EUTILS)
+                                    if isinstance(concept.source_data, dict):
+                                        concept.source_data[KnowledgeSource.EUTILS] = {
+                                            "database": "taxonomy",
+                                            "tax_id": tax_id,
+                                            "scientific_name": scientific_name,
+                                            "common_name": common_name,
+                                            "summary": f"Organism: {scientific_name}",
+                                        }
                                     results.append(concept)
             except Exception:
                 pass
@@ -242,13 +250,15 @@ class EUtilsAdapter(KnowledgeSourceAdapter):
                     primary_label=label,
                     concept_type=concept_type,
                 )
-                concept.sources.append("EUTILS")
-                concept.source_data[KnowledgeSource.EUTILS] = {
-                    "database": db,
-                    "ncbi_id": ncbi_id,
-                    "full_record": str(record),
-                    "description": f"NCBI {db.upper()} record: {ncbi_id}",
-                }
+                if concept.sources is not None:
+                    concept.sources.append(KnowledgeSource.EUTILS)
+                if isinstance(concept.source_data, dict):
+                    concept.source_data[KnowledgeSource.EUTILS] = {
+                        "database": db,
+                        "ncbi_id": ncbi_id,
+                        "full_record": str(record),
+                        "description": f"NCBI {db.upper()} record: {ncbi_id}",
+                    }
                 return concept
             return None
 

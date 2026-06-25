@@ -92,7 +92,7 @@ class TestLookupConfig:
     def test_lookup_config_creation(self):
         config = LookupConfig()
         assert config.max_results_per_source == 20
-        assert config.enable_deduplication == True
+        assert config.enable_deduplication is True
 
     def test_lookup_config_with_all_sources(self):
         config = LookupConfig.with_all_sources()

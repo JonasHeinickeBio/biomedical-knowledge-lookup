@@ -102,7 +102,8 @@ class STRINGAdapter(KnowledgeSourceAdapter):
                     score = interaction.get("score", 0)
                     for partner in (partner_a, partner_b):
                         if partner and partner != concept.primary_label:
-                            concept.related.append(f"{partner}(score={score})")
+                            if concept.related is not None:
+                                concept.related.append(f"{partner}(score={score})")
         except Exception as e:
             logger.warning(f"STRING interaction fetch failed: {e}")
 
@@ -120,15 +121,18 @@ class STRINGAdapter(KnowledgeSourceAdapter):
             concept = self._create_concept(concept_id, preferred_name, ConceptType.PROTEIN)
 
             if annotation:
-                concept.definitions.append(annotation[:500])
+                if concept.definitions is not None:
+                    concept.definitions.append(annotation[:500])
 
             # Taxon
             taxon_id = item.get("taxonId", "")
             if taxon_id:
-                concept.categories.append(f"taxon:{taxon_id}")
+                if concept.categories is not None:
+                    concept.categories.append(f"taxon:{taxon_id}")
 
             concept.confidence_score = 0.8
-            concept.source_data[KnowledgeSource.STRING] = item
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.STRING] = item
             return concept
 
         except Exception as e:

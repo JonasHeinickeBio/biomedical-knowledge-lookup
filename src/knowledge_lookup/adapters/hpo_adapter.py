@@ -83,10 +83,12 @@ class HPOAdapter(KnowledgeSourceAdapter):
             )
 
             if "synonyms" in result:
-                concept.synonyms.extend(result["synonyms"])
+                if concept.synonyms is not None:
+                    concept.synonyms.extend(result["synonyms"])
 
             concept.confidence_score = 0.95
-            concept.source_data[KnowledgeSource.HPO] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.HPO] = result
 
             return concept
 
@@ -112,13 +114,16 @@ class HPOAdapter(KnowledgeSourceAdapter):
             )
 
             if "synonyms" in details:
-                concept.synonyms.extend(details["synonyms"])
+                if concept.synonyms is not None:
+                    concept.synonyms.extend(details["synonyms"])
 
             if "definition" in details:
-                concept.definitions.append(details["definition"])
+                if concept.definitions is not None:
+                    concept.definitions.append(details["definition"])
 
             concept.confidence_score = 1.0
-            concept.source_data[KnowledgeSource.HPO] = details
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.HPO] = details
 
             return concept
 

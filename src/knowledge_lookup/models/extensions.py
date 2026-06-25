@@ -12,6 +12,7 @@ circular-import issues (adapters import from ``.models`` at module level).
 
 from __future__ import annotations
 
+import json
 from typing import Any, ClassVar
 
 from .biomedical_knowledge_models import (
@@ -53,9 +54,13 @@ class ConceptIdentifier(_ConceptIdentifier):
 
     def __str__(self) -> str:
         src = self.source
-        if isinstance(src, str):
-            src = src.lower()
-        return f"{src}:{self.identifier}"
+        if isinstance(src, _KnowledgeSource):
+            src_str = src.value.lower()
+        elif isinstance(src, str):
+            src_str = src.lower()
+        else:
+            src_str = str(src).lower()
+        return f"{src_str}:{self.identifier}"
 
 
 class ConceptMapping(_ConceptMapping):
@@ -135,15 +140,33 @@ class UnifiedConcept(_UnifiedConcept):
         # Route labels/source_data assignments to their dict backing stores
         if name == "labels":
             target = object.__getattribute__(self, "_labels_dict")
-            target.clear()
             if isinstance(value, dict):
+                target.clear()
                 target.update(value)
+            elif isinstance(value, str):
+                # JSON string - parse and update
+                try:
+                    parsed = json.loads(value)
+                    if isinstance(parsed, dict):
+                        target.clear()
+                        target.update(parsed)
+                except (ValueError, TypeError):
+                    target.clear()
             return
         if name == "source_data":
             target = object.__getattribute__(self, "_source_data_dict")
-            target.clear()
             if isinstance(value, dict):
+                target.clear()
                 target.update(value)
+            elif isinstance(value, str):
+                # JSON string - parse and update
+                try:
+                    parsed = json.loads(value)
+                    if isinstance(parsed, dict):
+                        target.clear()
+                        target.update(parsed)
+                except (ValueError, TypeError):
+                    target.clear()
             return
         if name == "sources" and isinstance(value, set | frozenset):
             # Convert set of enums to list of strings
@@ -259,15 +282,23 @@ class UnifiedConcept(_UnifiedConcept):
                     deduped.append(item)
             setattr(merged, field, deduped)
         # Merge labels
-        merged_labels = dict(self.labels or {})
-        if isinstance(other.labels, dict):
-            merged_labels.update(other.labels)
-        merged.labels = merged_labels
+        self_labels: dict[str, str] = self.labels if isinstance(self.labels, dict) else {}
+        other_labels: dict[str, str] = other.labels if isinstance(other.labels, dict) else {}
+        merged_labels: dict[str, str] = {**self_labels, **other_labels}
+        # Store as JSON string (the underlying field type)
+        object.__setattr__(merged, "_labels_dict", merged_labels)
+        merged.labels = json.dumps(merged_labels)
         # Merge source_data
-        merged_source = dict(self.source_data or {})
-        if isinstance(other.source_data, dict):
-            merged_source.update(other.source_data)
-        merged.source_data = merged_source
+        self_source: dict[str, str] = (
+            self.source_data if isinstance(self.source_data, dict) else {}
+        )
+        other_source: dict[str, str] = (
+            other.source_data if isinstance(other.source_data, dict) else {}
+        )
+        merged_source: dict[str, str] = {**self_source, **other_source}
+        # Store as JSON string (the underlying field type)
+        object.__setattr__(merged, "_source_data_dict", merged_source)
+        merged.source_data = json.dumps(merged_source)
         return merged
 
 
@@ -351,7 +382,7 @@ class LookupResult(_LookupResult):
     so existing callers (``.items()``, ``len()``, ``add_error()``) work.
     """
 
-    _errors_dict: dict[str, list[str]] | None = None
+    _errors_dict: dict[str, str] | None = None
 
     def __init__(self, /, **data: Any) -> None:
         # Backward-compat: default None fields to sensible defaults
@@ -393,6 +424,7 @@ class LookupResult(_LookupResult):
         if self._errors_dict is None:
             object.__setattr__(self, "_errors_dict", {})
         source_str = str(source.value) if isinstance(source, _KnowledgeSource) else str(source)
+        assert self._errors_dict is not None
         self._errors_dict[source_str] = message
         # Track in sources_failed (bypass __getattribute__ wrapper)
         raw_failed = object.__getattribute__(self, "sources_failed")

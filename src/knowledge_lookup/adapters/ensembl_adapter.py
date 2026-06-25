@@ -87,16 +87,20 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
             )
 
             if "description" in result:
-                concept.definitions.append(result["description"])
+                if concept.definitions is not None:
+                    concept.definitions.append(result["description"])
 
             if "biotype" in result:
-                concept.categories.append(f"Biotype: {result['biotype']}")
+                if concept.categories is not None:
+                    concept.categories.append(f"Biotype: {result['biotype']}")
 
             if "species" in result:
-                concept.categories.append(f"Species: {result['species']}")
+                if concept.categories is not None:
+                    concept.categories.append(f"Species: {result['species']}")
 
             concept.confidence_score = 1.0
-            concept.source_data[KnowledgeSource.ENSEMBL] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.ENSEMBL] = result
 
             return concept
 

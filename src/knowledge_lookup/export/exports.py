@@ -31,7 +31,7 @@ def export_to_json(result: LookupResult, filepath: str | Path | None = None) -> 
         ],
         "errors": {
             str(k.value) if isinstance(k, KnowledgeSource) else str(k): str(v)
-            for k, v in result.errors.items()
+            for k, v in result.errors.items()  # type: ignore[attr-defined]
         }
         if result.errors
         else {},

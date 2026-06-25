@@ -70,7 +70,7 @@ async def _test_search_concepts(
     response_data = {}
     if hasattr(results, "__dict__"):
         response_data = results.__dict__
-    elif isinstance(results, (list, dict)):
+    elif isinstance(results, list | dict):
         response_data = results
 
     # Store in cache if provided
@@ -115,7 +115,7 @@ async def _test_get_concept_details(
     response_data = {}
     if hasattr(result, "__dict__"):
         response_data = result.__dict__
-    elif isinstance(result, (list, dict)):
+    elif isinstance(result, list | dict):
         response_data = result
 
     # Store in cache if provided

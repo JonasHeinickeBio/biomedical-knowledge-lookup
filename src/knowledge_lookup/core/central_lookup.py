@@ -9,8 +9,18 @@ import csv
 import json
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, cast
+
+# Keep these imports at top for E402 compliance
+from ..adapters import ADAPTER_CLASSES
+from ..base import KnowledgeSourceAdapter
+from ..models import ConceptType, KnowledgeSource, LookupConfig, LookupResult
+from ..models.biomedical_knowledge_models import SourceHealth
+from ..models.extensions import UnifiedConcept as UC
+from ..models.models import ConceptIdentifier
+from ..utils.retry_utils import CircuitBreaker, CircuitState
 
 # Optional imports for formatting
 try:
@@ -20,7 +30,6 @@ try:
 except ImportError:
     HAS_PANDAS = False
     pd = None
-from concurrent.futures import ThreadPoolExecutor
 
 # RDF support
 try:
@@ -38,15 +47,7 @@ except ImportError:
         pass
 
 
-from ..adapters import ADAPTER_CLASSES
-from ..base import KnowledgeSourceAdapter
-from ..models import ConceptType, KnowledgeSource, LookupConfig, LookupResult, UnifiedConcept
-from ..models.biomedical_knowledge_models import SourceHealth
-from ..models.models import ConceptIdentifier
-from ..utils.retry_utils import (
-    CircuitBreaker,
-    CircuitState,
-)
+UnifiedConcept = UC
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +72,8 @@ class SourceHealthTracker:
         """Return existing breaker for *source* or create a new one."""
         if source not in self._breakers:
             self._breakers[source] = CircuitBreaker(
-                threshold=self._config.circuit_breaker_threshold,
-                cooldown=self._config.circuit_breaker_cooldown,
+                threshold=self._config.circuit_breaker_threshold or 5,
+                cooldown=self._config.circuit_breaker_cooldown or 30.0,
             )
         return self._breakers[source]
 
@@ -179,6 +180,8 @@ class CentralKnowledgeLookup:
             if adapter.is_available():
                 self.health_tracker.wire_adapter(source, adapter)
                 self.adapters[source] = adapter
+                if self.config.enabled_sources is None:
+                    self.config.enabled_sources = []
                 if source not in self.config.enabled_sources:
                     self.config.enabled_sources.append(source)
                 logger.info(f"Added {source.value} adapter")
@@ -207,8 +210,9 @@ class CentralKnowledgeLookup:
                 del self.adapters[source]
 
                 # Remove from enabled sources in config
-                if source in self.config.enabled_sources:
-                    self.config.enabled_sources.remove(source)
+                if self.config.enabled_sources is not None:
+                    if source in self.config.enabled_sources:
+                        self.config.enabled_sources.remove(source)
 
                 logger.info(f"Removed {source.value} adapter")
             except Exception as e:
@@ -273,8 +277,9 @@ class CentralKnowledgeLookup:
 
         # Filter by concept types if specified
         if concept_types:
+            concept_list = result.concepts or []
             filtered_concepts = []
-            for concept in result.concepts:
+            for concept in concept_list:
                 if concept.concept_type in concept_types:
                     filtered_concepts.append(concept)
             result.concepts = filtered_concepts
@@ -282,12 +287,14 @@ class CentralKnowledgeLookup:
 
         # Apply deduplication and merging
         if self.config.enable_deduplication:
-            result.concepts = self._deduplicate_concepts(result.concepts)
-            result.total_found = len(result.concepts)
+            concept_list = result.concepts or []
+            result.concepts = self._deduplicate_concepts(concept_list)  # type: ignore[arg-type, assignment]
+            result.total_found = len(result.concepts)  # type: ignore[arg-type]
 
         # Sort by confidence and limit results
+        concept_list = result.concepts or []
         result.concepts = sorted(
-            result.concepts,
+            concept_list,
             key=lambda c: c.confidence_score if c.confidence_score is not None else 0,
             reverse=True,
         )[:max_results]
@@ -296,11 +303,12 @@ class CentralKnowledgeLookup:
 
         # Attach health snapshot
         if self.config.enable_source_health_tracking:
-            result.source_health = self.health_tracker.all_health()
+            result.source_health = self.health_tracker.all_health()  # type: ignore[assignment]
 
+        sources_succeeded = result.sources_succeeded or []
         logger.info(
             f"Search for '{query}' completed in {result.execution_time:.2f}s. "
-            f"Found {result.total_found} concepts from {len(result.sources_succeeded)} sources."
+            f"Found {result.total_found} concepts from {len(sources_succeeded)} sources."
         )
 
         return result
@@ -372,9 +380,10 @@ class CentralKnowledgeLookup:
             return mappings
 
         # Extract existing mappings from concept
-        for identifier in concept.identifiers:
+        identifiers = concept.identifiers or []
+        for identifier in identifiers:
             if target_sources is None or identifier.source in target_sources:
-                mappings.append(identifier)
+                mappings.append(identifier)  # type: ignore[arg-type]
 
         # Query mapping services (like OxO) if available
         # This would be implemented when OxO adapter is added
@@ -441,7 +450,8 @@ class CentralKnowledgeLookup:
             return []
 
         # Search using the concept's label and synonyms
-        search_terms = [concept.primary_label] + concept.synonyms[:3]  # Limit search terms
+        synonyms = concept.synonyms or []
+        search_terms = [concept.primary_label] + synonyms[:3]  # Limit search terms
 
         similar_concepts = []
         for term in search_terms:
@@ -449,16 +459,16 @@ class CentralKnowledgeLookup:
                 result = await self.search_concepts(
                     term,
                     concept_types=(
-                        [concept.concept_type]
-                        if concept.concept_type != ConceptType.UNKNOWN
-                        else None
+                        [concept.concept_type] if concept.concept_type is not None else None
                     ),
                     max_results=20,
                 )
 
-                for similar_concept in result.concepts:
+                concepts = result.concepts or []
+                for similar_concept in concepts:
                     if (
                         similar_concept.primary_id != concept_id
+                        and similar_concept.confidence_score is not None
                         and similar_concept.confidence_score >= similarity_threshold
                     ):
                         similar_concepts.append(similar_concept)
@@ -471,7 +481,7 @@ class CentralKnowledgeLookup:
                 unique_similar.append(similar_concept)
                 seen_ids.add(similar_concept.primary_id)
 
-        return sorted(unique_similar, key=lambda c: c.confidence_score, reverse=True)[:10]
+        return sorted(unique_similar, key=lambda c: c.confidence_score or 0, reverse=True)[:10]  # type: ignore[return-value]
 
     async def _search_parallel(
         self, query: str, sources: list[KnowledgeSource], max_results: int
@@ -575,7 +585,7 @@ class CentralKnowledgeLookup:
         stats = {
             "available_sources": list(self.adapters.keys()),
             "total_sources": len(self.adapters),
-            "enabled_sources": len(self.config.enabled_sources),
+            "enabled_sources": len(self.config.enabled_sources or []),
             "config": {
                 "max_results_per_source": self.config.max_results_per_source,
                 "timeout_per_source": self.config.timeout_per_source,
@@ -588,7 +598,7 @@ class CentralKnowledgeLookup:
             },
             "source_health": {
                 src.value: {
-                    "state": h.circuit_state.value,
+                    "state": h.circuit_state.value if h.circuit_state is not None else "closed",
                     "health_score": h.health_score,
                     "total_calls": h.total_calls,
                     "total_failures": h.total_failures,
@@ -597,7 +607,9 @@ class CentralKnowledgeLookup:
             },
         }
         open_sources = sum(
-            1 for h in self.health_tracker.all_health().values() if h.circuit_state.value == "open"
+            1
+            for h in self.health_tracker.all_health().values()
+            if (h.circuit_state is not None and h.circuit_state.value == "open")
         )
         logger.info(
             f"Statistics: {len(self.adapters)} sources available, "
@@ -662,22 +674,26 @@ class CentralKnowledgeLookup:
         lines.append("=" * max_width)
 
         # Source health summary
-        if result.source_health:
+        source_health: dict = (
+            result.source_health if isinstance(result.source_health, dict) else {}
+        )
+        if source_health:
             lines.append("SOURCE HEALTH:")
-            opened = [src.value for src, h in result.source_health.items() if h.is_open]
+            opened = [src.value for src, h in source_health.items() if h.is_open]
             if opened:
                 lines.append(f"  CIRCUIT OPEN: {', '.join(opened)}")
             lines.append(
-                f"  Avg health: {sum(h.health_score for h in result.source_health.values()) / max(len(result.source_health), 1):.2f}"
+                f"  Avg health: {sum(h.health_score for h in source_health.values()) / max(len(source_health), 1):.2f}"
             )
 
         if result.source_health or result.errors:
             lines.append("")
 
         # Error summary
-        if result.errors:
-            lines.append(f"ERRORS: {len(result.errors)} source(s) failed")
-            for source, error in result.errors.items():
+        errors: dict = result.errors if isinstance(result.errors, dict) else {}
+        if errors:
+            lines.append(f"ERRORS: {len(errors)} source(s) failed")
+            for source, error in errors.items():
                 lines.append(f"  - {source}: {truncate(str(error), 80)}")
 
         return "\n".join(lines)
@@ -704,8 +720,9 @@ class CentralKnowledgeLookup:
         lines.append(f"Sources queried: {list(result.sources_queried or [])}")
         lines.append(f"Sources succeeded: {list(result.sources_succeeded or [])}")
 
-        if result.errors:
-            lines.append(f"Sources with errors: {list(result.errors.keys())}")
+        errors: dict = result.errors if isinstance(result.errors, dict) else {}
+        if errors:
+            lines.append(f"Sources with errors: {list(errors.keys())}")
 
         lines.append("\n" + "=" * 80)
 
@@ -758,17 +775,19 @@ class CentralKnowledgeLookup:
         Returns:
             JSON string if filepath provided, dict otherwise
         """
+        errors: dict = result.errors if isinstance(result.errors, dict) else {}
         json_data: dict[str, Any] = {
             "query": result.query,
             "execution_time": result.execution_time,
             "total_found": result.total_found,
             "sources_queried": [str(s) for s in (result.sources_queried or [])],
             "sources_succeeded": [str(s) for s in (result.sources_succeeded or [])],
-            "errors": {k: str(v) for k, v in result.errors.items()} if result.errors else {},
+            "errors": {k: str(v) for k, v in errors.items()},
             "concepts": [],
         }
 
-        for concept in result.concepts:
+        concepts = result.concepts or []
+        for concept in concepts:
             concept_data = {
                 "primary_label": concept.primary_label,
                 "primary_id": concept.primary_id,
@@ -854,7 +873,8 @@ class CentralKnowledgeLookup:
             )
 
             # Data rows
-            for concept in result.concepts:
+            concepts = result.concepts or []
+            for concept in concepts:
                 writer.writerow(
                     {
                         "primary_label": concept.primary_label,
@@ -917,7 +937,8 @@ class CentralKnowledgeLookup:
         lines.append("")
 
         # Concepts
-        for _i, concept in enumerate(result.concepts):
+        concepts = result.concepts or []
+        for _i, concept in enumerate(concepts):
             concept_id = concept.primary_id.replace(":", "_").replace("/", "_").replace("#", "_")
             concept_uri = f"ex:concept_{concept_id}"
 
@@ -930,19 +951,22 @@ class CentralKnowledgeLookup:
             lines.append(f'    ex:confidenceScore "{concept.confidence_score:.3f}"^^xsd:decimal ;')
 
             # Sources
-            for source in concept.sources:
+            for source in concept.sources or []:
                 lines.append(f'    dct:source "{str(source)}" ;')
 
             # Definitions
-            for definition in concept.definitions[:3]:  # Limit to avoid too large files
+            definitions = concept.definitions or []
+            for definition in definitions[:3]:  # Limit to avoid too large files
                 lines.append(f'    skos:definition "{self._escape_ttl_string(definition)}" ;')
 
             # Synonyms
-            for synonym in concept.synonyms[:10]:  # Limit synonyms
+            synonyms = concept.synonyms or []
+            for synonym in synonyms[:10]:  # Limit synonyms
                 lines.append(f'    skos:altLabel "{self._escape_ttl_string(synonym)}" ;')
 
             # Semantic types
-            for sem_type in concept.semantic_types[:5]:
+            semantic_types = concept.semantic_types or []
+            for sem_type in semantic_types[:5]:
                 lines.append(f'    ex:semanticType "{self._escape_ttl_string(sem_type)}" ;')
 
             # Remove last semicolon and add period
@@ -985,7 +1009,8 @@ class CentralKnowledgeLookup:
             ) from None
 
         data = []
-        for concept in result.concepts:
+        concepts = result.concepts or []
+        for concept in concepts:
             data.append(
                 {
                     "primary_label": concept.primary_label,
@@ -994,14 +1019,14 @@ class CentralKnowledgeLookup:
                     "confidence_score": concept.confidence_score,
                     "sources": [str(s) for s in (concept.sources or [])],
                     "num_sources": len(concept.sources or []),
-                    "definitions": concept.definitions,
-                    "num_definitions": len(concept.definitions),
-                    "synonyms": concept.synonyms,
-                    "num_synonyms": len(concept.synonyms),
-                    "semantic_types": concept.semantic_types,
-                    "categories": concept.categories,
-                    "parents": concept.parents,
-                    "children": concept.children,
+                    "definitions": concept.definitions or [],
+                    "num_definitions": len(concept.definitions or []),
+                    "synonyms": concept.synonyms or [],
+                    "num_synonyms": len(concept.synonyms or []),
+                    "semantic_types": concept.semantic_types or [],
+                    "categories": concept.categories or [],
+                    "parents": concept.parents or [],
+                    "children": concept.children or [],
                 }
             )
 
@@ -1053,15 +1078,16 @@ class CentralKnowledgeLookup:
                 result.query,
                 result.execution_time,
                 result.total_found,
-                len(result.sources_queried),
-                len(result.sources_succeeded),
+                len(result.sources_queried or []),
+                len(result.sources_succeeded or []),
             ],
         }
         summary_df = pd.DataFrame(summary_data)
 
         # Source statistics
         source_stats: dict[str, int] = {}
-        for concept in result.concepts:
+        concepts = result.concepts or []
+        for concept in concepts:
             for source in concept.sources or []:
                 src_str = str(source)
                 source_stats[src_str] = source_stats.get(src_str, 0) + 1
@@ -1081,10 +1107,11 @@ class CentralKnowledgeLookup:
             source_df.to_excel(writer, sheet_name="Source Stats", index=False)
 
             # Errors sheet (if any)
-            if result.errors:
-                error_data = [{"Source": k, "Error": str(v)} for k, v in result.errors.items()]
-                error_df = pd.DataFrame(error_data)
-                error_df.to_excel(writer, sheet_name="Errors", index=False)
+        errors: dict = result.errors if isinstance(result.errors, dict) else {}
+        if errors:
+            error_data = [{"Source": k, "Error": str(v)} for k, v in errors.items()]
+            error_df = pd.DataFrame(error_data)
+            error_df.to_excel(writer, sheet_name="Errors", index=False)
 
         logger.info(f"Results exported to Excel: {filepath}")
         return str(filepath)
@@ -1118,49 +1145,55 @@ class CentralKnowledgeLookup:
         lines.append("OVERVIEW")
         lines.append("-" * 40)
         lines.append(f"Total concepts found: {result.total_found or 0}")
-        lines.append(f"Sources queried: {len(result.sources_queried or [])}")
-        lines.append(f"Sources succeeded: {len(result.sources_succeeded)}")
-        lines.append(
-            f"Success rate: {len(result.sources_succeeded) / len(result.sources_queried) * 100:.1f}%"  # noqa: E501
+        sources_queried = result.sources_queried or []
+        sources_succeeded = result.sources_succeeded or []
+        lines.append(f"Sources queried: {len(sources_queried)}")
+        lines.append(f"Sources succeeded: {len(sources_succeeded)}")
+        success_rate = (
+            len(sources_succeeded) / len(sources_queried) * 100 if sources_queried else 0
         )
+        lines.append(f"Success rate: {success_rate:.1f}%")
         lines.append("")
 
         # Source breakdown
         source_stats: dict[str, int] = {}
-        for concept in result.concepts:
+        concepts = result.concepts or []
+        for concept in concepts:
             for source in concept.sources or []:
                 src_str = str(source)
                 source_stats[src_str] = source_stats.get(src_str, 0) + 1
 
         lines.append("SOURCE CONTRIBUTION")
         lines.append("-" * 40)
+        total_count = result.total_found or 1
         for source_name, count in sorted(source_stats.items(), key=lambda x: x[1], reverse=True):
-            percentage = count / result.total_found * 100
+            percentage = count / total_count * 100
             lines.append(f"{source_name:15} {count:3d} concepts ({percentage:5.1f}%)")
         lines.append("")
 
         # Quality metrics
         avg_confidence = 0.0
-        if result.concepts:
-            confidence_scores = [c.confidence_score for c in result.concepts]
+        concepts = result.concepts or []
+        if concepts:
+            confidence_scores = [c.confidence_score or 0 for c in concepts]
             avg_confidence = sum(confidence_scores) / len(confidence_scores)
-            high_confidence = len([c for c in result.concepts if c.confidence_score > 0.8])
+            high_confidence = len([c for c in concepts if (c.confidence_score or 0) > 0.8])
 
             lines.append("QUALITY METRICS")
             lines.append("-" * 40)
             lines.append(f"Average confidence score: {avg_confidence:.3f}")
             lines.append(
-                f"High confidence results (>0.8): {high_confidence} ({high_confidence / len(result.concepts) * 100:.1f}%)"  # noqa: E501
+                f"High confidence results (>0.8): {high_confidence} ({high_confidence / len(concepts) * 100:.1f}%)"  # noqa: E501
             )
-            lines.append(
-                f"Multi-source concepts: {len([c for c in result.concepts if len(c.sources) > 1])}"
-            )
+            multi_source_count = len([c for c in concepts if len(c.sources or []) > 1])
+            lines.append(f"Multi-source concepts: {multi_source_count}")
             lines.append("")
 
         # Top results
         lines.append("TOP 10 RESULTS")
         lines.append("-" * 40)
-        for i, concept in enumerate(result.concepts[:10], 1):
+        concepts = result.concepts or []
+        for i, concept in enumerate(concepts[:10], 1):
             lines.append(f"{i:2d}. {concept.primary_label}")
             lines.append(f"    ID: {concept.primary_id}")
             lines.append(f"    Confidence: {concept.confidence_score or 0:.3f}")
@@ -1168,19 +1201,21 @@ class CentralKnowledgeLookup:
             lines.append("")
 
         # Errors (if any)
-        if result.errors:
+        errors: dict = result.errors if isinstance(result.errors, dict) else {}
+        if errors:
             lines.append("ERRORS AND ISSUES")
             lines.append("-" * 40)
-            for source, error in result.errors.items():
+            for source, error in errors.items():
                 lines.append(f"{source}: {str(error)[:100]}")
             lines.append("")
 
         # Recommendations
         lines.append("RECOMMENDATIONS")
         lines.append("-" * 40)
-        if result.total_found == 0:
+        total_found = result.total_found or 0
+        if total_found == 0:
             lines.append("• No results found. Try broader search terms or check spelling.")
-        elif result.total_found < 5:
+        elif total_found < 5:
             lines.append("• Few results found. Consider using synonyms or related terms.")
         elif len(source_stats) == 1:
             lines.append(

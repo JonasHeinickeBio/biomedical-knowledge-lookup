@@ -483,8 +483,8 @@ class MultiSourceAnnotator:
             return True
 
         # Check synonyms
-        all_labels1 = [concept1.primary_label] + concept1.synonyms
-        all_labels2 = [concept2.primary_label] + concept2.synonyms
+        all_labels1 = [concept1.primary_label] + (concept1.synonyms or [])
+        all_labels2 = [concept2.primary_label] + (concept2.synonyms or [])
 
         for label1 in all_labels1:
             for label2 in all_labels2:
@@ -580,11 +580,10 @@ class MultiSourceAnnotator:
         concept_map: dict[tuple[str, ConceptType], tuple[UnifiedConcept, KnowledgeSource]] = {}
 
         for concept, source in concept_group:
-            key = (concept.primary_label.lower(), concept.concept_type)
-            concept_scores[key] += concept.confidence_score
-            if (
-                key not in concept_map
-                or concept.confidence_score > concept_map[key][0].confidence_score
+            key = (concept.primary_label.lower(), concept.concept_type or ConceptType.DISEASE)
+            concept_scores[key] += concept.confidence_score or 0.0
+            if key not in concept_map or (concept.confidence_score or 0.0) > (
+                concept_map[key][0].confidence_score or 0.0
             ):
                 concept_map[key] = (concept, source)
 
@@ -599,7 +598,7 @@ class MultiSourceAnnotator:
 
         # Calculate consensus score
         agreement_ratio = len(agreeing_sources) / total_sources
-        consensus_score = agreement_ratio * primary_concept.confidence_score
+        consensus_score = agreement_ratio * (primary_concept.confidence_score or 0.0)
 
         # Determine confidence level
         if agreement_ratio >= 0.8:
@@ -735,7 +734,7 @@ class MultiSourceAnnotator:
 
         concept_types: Counter[str] = Counter()
         for concept in consensus_concepts:
-            concept_types[concept.primary_concept.concept_type] += 1
+            concept_types[str(concept.primary_concept.concept_type or "UNKNOWN")] += 1
 
         source_concept_counts = {}
         for ann in source_annotations:
@@ -751,7 +750,7 @@ class MultiSourceAnnotator:
             "source_concept_counts": source_concept_counts,
             "source_health": {
                 src.value: {
-                    "state": h.circuit_state.value,
+                    "state": h.circuit_state.value if h.circuit_state is not None else "closed",
                     "health_score": h.health_score,
                     "total_calls": h.total_calls,
                     "total_failures": h.total_failures,

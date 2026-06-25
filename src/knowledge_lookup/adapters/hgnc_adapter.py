@@ -86,34 +86,41 @@ class HGNCAdapter(KnowledgeSourceAdapter):
                 return None
 
             concept = self._create_concept(hgnc_id, name, ConceptType.GENE)
-            concept.synonyms.append(symbol)
+            if concept.synonyms is not None:
+                concept.synonyms.append(symbol)
 
             # Alias symbols
             for alias in item.get("alias_symbol", []):
                 if alias:
-                    concept.synonyms.append(alias)
+                    if concept.synonyms is not None:
+                        concept.synonyms.append(alias)
 
             # Previous symbols
             for prev in item.get("prev_symbol", []):
                 if prev:
-                    concept.synonyms.append(prev)
+                    if concept.synonyms is not None:
+                        concept.synonyms.append(prev)
 
             # Location / locus
             location = item.get("location", "")
             if location:
-                concept.categories.append(f"locus:{location}")
+                if concept.categories is not None:
+                    concept.categories.append(f"locus:{location}")
 
             # Gene group
             gene_group = item.get("gene_group", [])
             if isinstance(gene_group, list):
-                concept.categories.extend(gene_group)
+                if concept.categories is not None:
+                    concept.categories.extend(gene_group)
             elif gene_group:
-                concept.categories.append(str(gene_group))
+                if concept.categories is not None:
+                    concept.categories.append(str(gene_group))
 
             # Locus type
             locus_type = item.get("locus_type", "")
             if locus_type:
-                concept.semantic_types.append(locus_type)
+                if concept.semantic_types is not None:
+                    concept.semantic_types.append(locus_type)
 
             # Cross-references
             entrez_id = item.get("entrez_id", "")
@@ -145,7 +152,8 @@ class HGNCAdapter(KnowledgeSourceAdapter):
                 )
 
             concept.confidence_score = 0.9
-            concept.source_data[KnowledgeSource.HGNC] = item
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.HGNC] = item
             return concept
 
         except Exception as e:

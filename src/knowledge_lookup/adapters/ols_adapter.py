@@ -97,28 +97,34 @@ class OLSAdapter(KnowledgeSourceAdapter):
             if "synonym" in result:
                 synonyms = result["synonym"]
                 if isinstance(synonyms, list):
-                    concept.synonyms.extend(synonyms)
+                    if concept.synonyms is not None:
+                        concept.synonyms.extend(synonyms)
                 else:
-                    concept.synonyms.append(synonyms)
+                    if concept.synonyms is not None:
+                        concept.synonyms.append(synonyms)
 
             # Add description
             if "description" in result:
                 descriptions = result["description"]
                 if isinstance(descriptions, list):
-                    concept.definitions.extend(descriptions)
+                    if concept.definitions is not None:
+                        concept.definitions.extend(descriptions)
                 else:
-                    concept.definitions.append(descriptions)
+                    if concept.definitions is not None:
+                        concept.definitions.append(descriptions)
 
             # Add ontology information
             if "ontology_name" in result:
-                concept.categories.append(result["ontology_name"])
+                if concept.categories is not None:
+                    concept.categories.append(result["ontology_name"])
 
             # Add short form (often more readable ID)
             if "short_form" in result:
                 concept.add_identifier(KnowledgeSource.OLS, result["short_form"], label)
 
             concept.confidence_score = 0.8
-            concept.source_data[KnowledgeSource.OLS] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.OLS] = result
 
             return concept
 
@@ -144,15 +150,18 @@ class OLSAdapter(KnowledgeSourceAdapter):
 
             # Add synonyms
             if "synonyms" in data:
-                concept.synonyms.extend(data["synonyms"])
+                if concept.synonyms is not None:
+                    concept.synonyms.extend(data["synonyms"])
 
             # Add definitions
             if "description" in data:
                 descriptions = data["description"]
                 if isinstance(descriptions, list):
-                    concept.definitions.extend(descriptions)
+                    if concept.definitions is not None:
+                        concept.definitions.extend(descriptions)
                 else:
-                    concept.definitions.append(descriptions)
+                    if concept.definitions is not None:
+                        concept.definitions.append(descriptions)
 
             # Extract cross-references
             if "annotation" in data:
@@ -160,7 +169,8 @@ class OLSAdapter(KnowledgeSourceAdapter):
                 if isinstance(xrefs, str):
                     xrefs = [xrefs]
                 for xref in xrefs:
-                    concept.categories.append(f"Xref: {xref}")
+                    if concept.categories is not None:
+                        concept.categories.append(f"Xref: {xref}")
 
             if "obo_xref" in data:
                 xrefs = data["obo_xref"]
@@ -169,7 +179,8 @@ class OLSAdapter(KnowledgeSourceAdapter):
                         db = xref.get("database", "")
                         id = xref.get("id", "")
                         if db and id:
-                            concept.categories.append(f"Xref: {db}:{id}")
+                            if concept.categories is not None:
+                                concept.categories.append(f"Xref: {db}:{id}")
 
             # Add hierarchical relationships from _links if available
             if "_links" in data:
@@ -182,7 +193,8 @@ class OLSAdapter(KnowledgeSourceAdapter):
                     pass
 
             concept.confidence_score = 0.85
-            concept.source_data[KnowledgeSource.OLS] = data
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.OLS] = data
 
             return concept
 

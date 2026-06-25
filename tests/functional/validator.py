@@ -249,7 +249,7 @@ def print_changes(source: str):
 
 def save_fixtures():
     """Save all fixture data to files."""
-    for source_name, validator in _validators.items():
+    for _source_name, validator in _validators.items():
         if validator.previous_responses:
             validator.fixture_path.parent.mkdir(parents=True, exist_ok=True)
             with open(validator.fixture_path, "w") as f:

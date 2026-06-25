@@ -723,9 +723,11 @@ class UniChemAdapter(KnowledgeSourceAdapter):
         """Add source names as categories."""
         sources = compound.get("sources", [])
         source_names = [s.get("shortName", "") for s in sources if s.get("shortName")]
-        concept.categories.extend(source_names)
+        if concept.categories is not None:
+            concept.categories.extend(source_names)
 
     def _set_concept_metadata(self, concept: UnifiedConcept, compound: dict[str, Any]) -> None:
         """Set confidence score and source data."""
         concept.confidence_score = 0.9
-        concept.source_data[KnowledgeSource.UNICHEM] = compound
+        if isinstance(concept.source_data, dict):
+            concept.source_data[KnowledgeSource.UNICHEM] = compound

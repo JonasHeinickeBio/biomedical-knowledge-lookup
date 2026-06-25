@@ -116,24 +116,30 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
             if "synonym" in result:
                 synonyms = result["synonym"]
                 if isinstance(synonyms, list):
-                    concept.synonyms.extend(synonyms)
+                    if concept.synonyms is not None:
+                        concept.synonyms.extend(synonyms)
                 else:
-                    concept.synonyms.append(synonyms)
+                    if concept.synonyms is not None:
+                        concept.synonyms.append(synonyms)
 
             # Add definitions
             if "definition" in result:
                 definitions = result["definition"]
                 if isinstance(definitions, list):
-                    concept.definitions.extend(definitions)
+                    if concept.definitions is not None:
+                        concept.definitions.extend(definitions)
                 else:
-                    concept.definitions.append(definitions)
+                    if concept.definitions is not None:
+                        concept.definitions.append(definitions)
 
             # Add ontology information
             if "links" in result and "ontology" in result["links"]:
-                concept.categories.append(result["links"]["ontology"])
+                if concept.categories is not None:
+                    concept.categories.append(result["links"]["ontology"])
 
             concept.confidence_score = 0.8
-            concept.source_data[KnowledgeSource.BIOPORTAL] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.BIOPORTAL] = result
 
             return concept
 
@@ -161,17 +167,21 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
             if "synonym" in data:
                 synonyms = data["synonym"]
                 if isinstance(synonyms, list):
-                    concept.synonyms.extend(synonyms)
+                    if concept.synonyms is not None:
+                        concept.synonyms.extend(synonyms)
                 else:
-                    concept.synonyms.append(synonyms)
+                    if concept.synonyms is not None:
+                        concept.synonyms.append(synonyms)
 
             # Add definitions
             if "definition" in data:
                 definitions = data["definition"]
                 if isinstance(definitions, list):
-                    concept.definitions.extend(definitions)
+                    if concept.definitions is not None:
+                        concept.definitions.extend(definitions)
                 else:
-                    concept.definitions.append(definitions)
+                    if concept.definitions is not None:
+                        concept.definitions.append(definitions)
 
             # Add hierarchical relationships
             if "parents" in data:
@@ -181,7 +191,8 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
                 concept.children = [c.get("@id", "") for c in data["children"] if "@id" in c]
 
             concept.confidence_score = 0.85
-            concept.source_data[KnowledgeSource.BIOPORTAL] = data
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.BIOPORTAL] = data
 
             return concept
 

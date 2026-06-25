@@ -5,6 +5,7 @@ Integrates with TIB BioLinker AI API for entity and relation extraction.
 """
 
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -132,7 +133,12 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
 
             # Separate entities and predicates
             for concept in concepts:
-                bl_data = concept.source_data.get(KnowledgeSource.BIOLINKER, {})
+                bl_data: dict[str, Any] = (
+                    json.loads(concept.source_data)
+                    if isinstance(concept.source_data, str)
+                    else (concept.source_data if concept.source_data else {})
+                )
+                bl_data = bl_data.get(KnowledgeSource.BIOLINKER, {})
                 category = bl_data.get("category", "unknown")
                 surface_form = bl_data.get("surface_form", concept.primary_label)
                 position = bl_data.get("text_position", {})
@@ -394,15 +400,20 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
             # Add surface form information as additional synonym
             surface_form = result.get("surface_form", "")
             if surface_form and surface_form != label:
-                concept.synonyms.append(surface_form)
+                if concept.synonyms is not None:
+                    concept.synonyms.append(surface_form)
 
             # Store position and category information in source_data
-            concept.source_data[KnowledgeSource.BIOLINKER] = {
-                "surface_form": surface_form,
-                "text_position": {"start": result.get("start", 0), "end": result.get("end", 0)},
-                "category": result.get("category", ""),
-                "biolinker_source": "TIB BioLinker AI",
-            }
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.BIOLINKER] = {
+                    "surface_form": surface_form,
+                    "text_position": {
+                        "start": result.get("start", 0),
+                        "end": result.get("end", 0),
+                    },
+                    "category": result.get("category", ""),
+                    "biolinker_source": "TIB BioLinker AI",
+                }
 
             return concept
 

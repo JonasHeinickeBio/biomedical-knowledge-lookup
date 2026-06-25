@@ -41,9 +41,6 @@ def event_loop():
     loop.close()
 
 
-from knowledge_lookup.models import LookupConfig
-
-
 @pytest.fixture
 def lookup_config():
     """Provide a default LookupConfig for testing."""

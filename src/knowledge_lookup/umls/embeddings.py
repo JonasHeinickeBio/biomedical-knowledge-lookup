@@ -71,20 +71,22 @@ class SentenceTransformerBackend(EmbeddingBackend):
         self.device = device
         self._model = None
 
-    def _load(self):
+    def _load(self) -> None:
         if self._model is not None:
             return
         try:
             from sentence_transformers import SentenceTransformer  # noqa: F811
-        except ImportError:
+        except ImportError as err:
             raise ImportError(
                 "SentenceTransformer backend requires `pip install sentence-transformers`"
-            )
+            ) from err
         self._model = SentenceTransformer(self.model_name, device=self.device)
+        assert self._model is not None
         self.dimension = self._model.get_sentence_embedding_dimension()
 
     async def embed(self, text: str) -> list[float]:
         self._load()
+        assert self._model is not None
         import asyncio
 
         def _run():
@@ -95,6 +97,7 @@ class SentenceTransformerBackend(EmbeddingBackend):
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         self._load()
+        assert self._model is not None
         import asyncio
 
         def _run():
@@ -119,8 +122,8 @@ class FastTextBackend(EmbeddingBackend):
             return
         try:
             import fasttext  # noqa: F811
-        except ImportError:
-            raise ImportError("FastText backend requires `pip install fasttext`")
+        except ImportError as err:
+            raise ImportError("FastText backend requires `pip install fasttext`") from err
         if self.model_path and Path(self.model_path).exists():
             self._model = fasttext.load_model(self.model_path)
         else:
@@ -129,10 +132,12 @@ class FastTextBackend(EmbeddingBackend):
 
             fasttext.util.download_model("en", if_exists="ignore")
             self._model = fasttext.load_model("cc.en.300.bin")
+        assert self._model is not None
         self.dimension = self._model.get_dimension()
 
     async def embed(self, text: str) -> list[float]:
         self._load()
+        assert self._model is not None
         import asyncio
 
         def _run():

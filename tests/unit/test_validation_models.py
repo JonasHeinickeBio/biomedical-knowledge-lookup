@@ -63,21 +63,21 @@ def _make_gen_concept(
         identifiers = [_make_gen_identifier()]
     if mappings is None:
         mappings = [_make_gen_mapping()]
-    kwargs = dict(
-        primary_id=primary_id,
-        primary_label=primary_label,
-        sources=sources,
-        identifiers=identifiers,
-        mappings=mappings,
-        synonyms=synonyms,
-        definitions=definitions,
-        semantic_types=semantic_types,
-        categories=categories,
-        parents=parents,
-        children=children,
-        related=related,
-        confidence_score=confidence_score,
-    )
+    kwargs = {
+        "primary_id": primary_id,
+        "primary_label": primary_label,
+        "sources": sources,
+        "identifiers": identifiers,
+        "mappings": mappings,
+        "synonyms": synonyms,
+        "definitions": definitions,
+        "semantic_types": semantic_types,
+        "categories": categories,
+        "parents": parents,
+        "children": children,
+        "related": related,
+        "confidence_score": confidence_score,
+    }
     if concept_type is not None:
         kwargs["concept_type"] = concept_type
     return GenUC(**kwargs)
@@ -191,14 +191,14 @@ class TestConvertUnifiedConcept:
 
         gen_concept = _make_gen_concept(sources=[GenKS.CHEMBL, GenKS.PUBCHEM])
         result = convert_generated_unified_concept(gen_concept)
-        source_values = {s for s in result.sources}
+        source_values = set(result.sources)
         assert "CHEMBL" in source_values
         assert "PUBCHEM" in source_values
 
     def test_sources_from_identifiers(self):
         gen_concept = _make_gen_concept(sources=None)
         result = convert_generated_unified_concept(gen_concept)
-        source_values = {s for s in result.sources}
+        source_values = set(result.sources)
         assert "CHEMBL" in source_values
 
     def test_empty_identifiers(self):
@@ -232,7 +232,7 @@ class TestConvertUnifiedConcept:
 
         gen_concept = _make_gen_concept(sources=[GenKS.UNIPROT])
         result = convert_generated_unified_concept(gen_concept)
-        source_values = {s for s in result.sources}
+        source_values = set(result.sources)
         assert "UNIPROT" in source_values
 
     def test_identifiers_with_enum_source(self):
@@ -355,7 +355,7 @@ class TestConvertLookupResult:
             sources_failed=[],
         )
         result = convert_generated_lookup_result(gen_result)
-        queried_values = [s for s in result.sources_queried]
+        queried_values = list(result.sources_queried)
         assert "OLS" in queried_values
 
     def test_failed_sources(self):
@@ -370,7 +370,7 @@ class TestConvertLookupResult:
             sources_failed=["CHEMBL"],
         )
         result = convert_generated_lookup_result(gen_result)
-        failed_values = [s for s in result.sources_failed]
+        failed_values = list(result.sources_failed)
         assert "CHEMBL" in failed_values
 
     def test_execution_time_none(self):
@@ -421,7 +421,7 @@ class TestConvertLookupConfig:
         gen_config = GenLC(concept_types=[GenCT.DISEASE])
         result = convert_generated_lookup_config(gen_config)
         assert result.concept_types is not None
-        type_values = [t for t in result.concept_types]
+        type_values = list(result.concept_types)
         assert "DISEASE" in type_values
 
     def test_no_concept_types(self):
@@ -443,7 +443,7 @@ class TestConvertLookupConfig:
 
         gen_config = GenLC(enabled_sources=[GenKS.UNIPROT])
         result = convert_generated_lookup_config(gen_config)
-        source_values = [s for s in result.enabled_sources]
+        source_values = list(result.enabled_sources)
         assert "UNIPROT" in source_values
 
     def test_concept_types_none_value(self):

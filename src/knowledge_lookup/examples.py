@@ -52,16 +52,19 @@ async def example_basic_search():
         print(f"Sources queried: {[str(s) for s in (result.sources_queried or [])]}")
         print(f"Sources succeeded: {[str(s) for s in (result.sources_succeeded or [])]}")
 
-        if result.errors:
-            print(f"Sources with errors: {list(result.errors.keys())}")
+        errors: dict[str, str] = result.errors if isinstance(result.errors, dict) else {}
+        if errors:
+            print(f"Sources with errors: {list(errors.keys())}")
 
         print("\nTop 5 results:")
-        for i, concept in enumerate(result.concepts[:5], 1):
+        concepts = result.concepts or []
+        for i, concept in enumerate(concepts[:5], 1):
             print(f"\n{i}. {concept.primary_label}")
             print(f"   ID: {concept.primary_id}")
             print(f"   Type: {concept.concept_type}")
-            print(f"   Sources: {[str(s) for s in concept.sources]}")
-            print(f"   Confidence: {concept.confidence_score:.2f}")
+            sources = concept.sources or []
+            print(f"   Sources: {[str(s) for s in sources]}")
+            print(f"   Confidence: {concept.confidence_score or 0:.2f}")
 
             if concept.definitions:
                 definition = concept.definitions[0]
@@ -131,7 +134,8 @@ async def example_concept_types():
         )
 
         print(f"Found {drug_result.total_found} drug/chemical concepts:")
-        for concept in drug_result.concepts:
+        drug_concepts = drug_result.concepts or []
+        for concept in drug_concepts:
             print(f"  - {concept.primary_label} ({concept.concept_type or 'UNKNOWN'})")
 
         # Search for diseases
@@ -141,7 +145,8 @@ async def example_concept_types():
         )
 
         print(f"Found {disease_result.total_found} disease concepts:")
-        for concept in disease_result.concepts:
+        disease_concepts = disease_result.concepts or []
+        for concept in disease_concepts:
             print(f"  - {concept.primary_label} ({concept.concept_type or 'UNKNOWN'})")
 
     finally:
@@ -172,7 +177,7 @@ async def example_concept_details():
                 print("\nDetailed Information:")
                 print(f"Label: {detailed.primary_label}")
                 print(f"Type: {detailed.concept_type or 'UNKNOWN'}")
-                print(f"Sources: {[str(s) for s in detailed.sources]}")
+                print(f"Sources: {[str(s) for s in detailed.sources or []]}")
 
                 if detailed.definitions:
                     print(f"\nDefinitions ({len(detailed.definitions)}):")
@@ -223,10 +228,13 @@ async def example_umls_integration():
 
         print(f"Found {result.total_found} UMLS concepts:")
 
-        for concept in result.concepts:
+        concepts = result.concepts or []
+        for concept in concepts:
             print(f"\n- {concept.primary_label} ({concept.primary_id})")
-            print(f"  Semantic Types: {', '.join(concept.semantic_types[:3])}")
-            print(f"  Sources: {', '.join(concept.categories[:3])}")
+            semantic_types = concept.semantic_types or []
+            print(f"  Semantic Types: {', '.join(semantic_types[:3])}")
+            categories = concept.categories or []
+            print(f"  Sources: {', '.join(categories[:3])}")
 
             if concept.definitions:
                 definition = concept.definitions[0]
@@ -250,10 +258,12 @@ async def example_cross_reference_mapping():
         # Find a concept first
         result = await lookup.search_concepts("insulin", max_results=3)
 
-        if result.concepts:
-            concept = result.concepts[0]
+        concepts = result.concepts or []
+        if concepts:
+            concept = concepts[0]
             print(f"Finding mappings for: {concept.primary_label}")
-            print(f"Primary source: {list(concept.sources)[0]}")
+            sources = concept.sources or []
+            print(f"Primary source: {list(sources)[0] if sources else 'N/A'}")
 
             # Get mappings to other sources
             mappings = await lookup.find_mappings(concept.primary_id)
@@ -320,8 +330,9 @@ async def example_similar_concepts():
         # Find a concept first
         result = await lookup.search_concepts("heart failure", max_results=1)
 
-        if result.concepts:
-            concept = result.concepts[0]
+        concepts = result.concepts or []
+        if concepts:
+            concept = concepts[0]
             print(f"Finding concepts similar to: {concept.primary_label}")
 
             # Find similar concepts
@@ -334,7 +345,7 @@ async def example_similar_concepts():
                 print(f"  - {similar_concept.primary_label}")
                 print(f"    ID: {similar_concept.primary_id}")
                 print(f"    Confidence: {similar_concept.confidence_score:.2f}")
-                print(f"    Sources: {[str(s) for s in similar_concept.sources]}")
+                print(f"    Sources: {[str(s) for s in similar_concept.sources or []]}")
                 print()
         else:
             print("No concepts found for similarity example")

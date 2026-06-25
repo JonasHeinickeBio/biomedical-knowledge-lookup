@@ -55,9 +55,9 @@ class KnowledgeLookupBenchmarker:
                     query=query,
                     sources=[source.value],
                     execution_time=duration,
-                    total_found=res.total_found,
-                    success_count=len(res.sources_succeeded),
-                    error_count=len(res.errors),
+                    total_found=res.total_found or 0,
+                    success_count=len(res.sources_succeeded or []),
+                    error_count=len(res.errors or {}),
                     parallel=False,
                 )
                 results.append(metric)
@@ -86,9 +86,9 @@ class KnowledgeLookupBenchmarker:
                         query=query,
                         sources=combo_names,
                         execution_time=duration,
-                        total_found=res.total_found,
-                        success_count=len(res.sources_succeeded),
-                        error_count=len(res.errors),
+                        total_found=res.total_found or 0,
+                        success_count=len(res.sources_succeeded or []),
+                        error_count=len(res.errors or {}),
                         parallel=parallel,
                     )
                     results.append(metric)

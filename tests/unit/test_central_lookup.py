@@ -605,7 +605,7 @@ class TestCentralKnowledgeLookup:
         )
         with tempfile.TemporaryDirectory() as tmp:
             filepath = Path(tmp) / "out.csv"
-            returned = lookup.export_to_csv(result, filepath)
+            lookup.export_to_csv(result, filepath)
             assert filepath.exists()
             content = filepath.read_text()
             assert "Test" in content
@@ -630,7 +630,7 @@ class TestCentralKnowledgeLookup:
         )
         with tempfile.TemporaryDirectory() as tmp:
             filepath = Path(tmp) / "out.ttl"
-            returned = lookup.export_to_ttl(result, filepath)
+            lookup.export_to_ttl(result, filepath)
             assert filepath.exists()
             content = filepath.read_text()
             assert "@prefix" in content
@@ -690,7 +690,7 @@ class TestCentralKnowledgeLookup:
         with tempfile.TemporaryDirectory() as tmp:
             filepath = Path(tmp) / "out.xlsx"
             try:
-                returned = lookup.export_to_excel(result, filepath)
+                lookup.export_to_excel(result, filepath)
                 assert filepath.exists()
             except ImportError:
                 pytest.skip("pandas/openpyxl not installed")
@@ -711,7 +711,7 @@ class TestCentralKnowledgeLookup:
         with tempfile.TemporaryDirectory() as tmp:
             filepath = Path(tmp) / "out.xlsx"
             try:
-                returned = lookup.export_to_excel(result, filepath)
+                lookup.export_to_excel(result, filepath)
                 assert filepath.exists()
             except ImportError:
                 pytest.skip("pandas/openpyxl not installed")
@@ -735,7 +735,7 @@ class TestCentralKnowledgeLookup:
         )
         with tempfile.TemporaryDirectory() as tmp:
             filepath = Path(tmp) / "report.txt"
-            returned = lookup.export_summary_report(result, filepath)
+            lookup.export_summary_report(result, filepath)
             assert filepath.exists()
             content = filepath.read_text()
             assert "KNOWLEDGE LOOKUP ANALYSIS REPORT" in content
@@ -752,7 +752,7 @@ class TestCentralKnowledgeLookup:
         )
         with tempfile.TemporaryDirectory() as tmp:
             filepath = Path(tmp) / "report.txt"
-            returned = lookup.export_summary_report(result, filepath)
+            lookup.export_summary_report(result, filepath)
             content = filepath.read_text()
             assert "RECOMMENDATIONS" in content
 
@@ -772,7 +772,7 @@ class TestCentralKnowledgeLookup:
         )
         with tempfile.TemporaryDirectory() as tmp:
             filepath = Path(tmp) / "report.txt"
-            returned = lookup.export_summary_report(result, filepath)
+            lookup.export_summary_report(result, filepath)
             content = filepath.read_text()
             assert "ERRORS" in content
 

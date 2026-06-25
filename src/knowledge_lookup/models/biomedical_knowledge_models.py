@@ -1011,7 +1011,7 @@ class LookupConfig(ConfiguredBaseModel):
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
     rate_limits: Optional[dict] = Field(
-        default_factory=dict,
+        default_factory=lambda: {},
         description="""Rate limits per source (requests per second, JSON-serialized dict)""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )

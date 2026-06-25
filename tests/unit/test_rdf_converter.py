@@ -67,7 +67,7 @@ class TestRDFConverter:
         assert isinstance(graph, Graph)
 
         found_label = False
-        for _, p, o in graph.triples((None, RDFS.label, None)):
+        for _, _p, o in graph.triples((None, RDFS.label, None)):
             if str(o) == "Aspirin":
                 found_label = True
         assert found_label

@@ -392,7 +392,7 @@ class TestOxOAdapter:
         """Test get_concept_details delegates to get_concept_by_id with distance=3."""
         with patch.object(adapter, "get_concept_by_id", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = MagicMock()
-            result = await adapter.get_concept_details("DOID:162")
+            await adapter.get_concept_details("DOID:162")
             mock_get.assert_called_once_with("DOID:162", distance=3)
 
     @pytest.mark.asyncio

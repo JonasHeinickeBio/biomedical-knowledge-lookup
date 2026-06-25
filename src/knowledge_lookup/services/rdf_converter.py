@@ -113,37 +113,45 @@ class ConceptTypeHandler(ABC):
             )
 
         # Categories
-        for category in concept.categories:
-            graph.add((concept_uri, self.namespaces.VOCAB.hasCategory, Literal(category)))
+        if concept.categories:
+            for category in concept.categories:
+                graph.add((concept_uri, self.namespaces.VOCAB.hasCategory, Literal(category)))
 
         # Synonyms
-        for synonym in concept.synonyms:
-            graph.add((concept_uri, self.namespaces.VOCAB.hasSynonym, Literal(synonym)))
+        if concept.synonyms:
+            for synonym in concept.synonyms:
+                graph.add((concept_uri, self.namespaces.VOCAB.hasSynonym, Literal(synonym)))
 
         # Definitions
-        for definition in concept.definitions:
-            graph.add((concept_uri, self.namespaces.VOCAB.hasDefinition, Literal(definition)))
+        if concept.definitions:
+            for definition in concept.definitions:
+                graph.add((concept_uri, self.namespaces.VOCAB.hasDefinition, Literal(definition)))
 
         # Semantic types
-        for sem_type in concept.semantic_types:
-            graph.add((concept_uri, self.namespaces.VOCAB.hasSemanticType, Literal(sem_type)))
+        if concept.semantic_types:
+            for sem_type in concept.semantic_types:
+                graph.add((concept_uri, self.namespaces.VOCAB.hasSemanticType, Literal(sem_type)))
 
         # Labels in different languages
-        for lang, label in concept.labels.items():
+        labels_dict: dict[str, str] = concept.labels if isinstance(concept.labels, dict) else {}
+        for lang, label in labels_dict.items():
             graph.add((concept_uri, self.namespaces.RDFS.label, Literal(label, lang=lang)))
 
         # Relationships
-        for parent in concept.parents:
-            parent_uri = URIRef(parent)  # Could be enhanced to resolve to proper URIs
-            graph.add((concept_uri, self.namespaces.VOCAB.hasParent, parent_uri))
+        if concept.parents:
+            for parent in concept.parents:
+                parent_uri = URIRef(parent)  # Could be enhanced to resolve to proper URIs
+                graph.add((concept_uri, self.namespaces.VOCAB.hasParent, parent_uri))
 
-        for child in concept.children:
-            child_uri = URIRef(child)
-            graph.add((concept_uri, self.namespaces.VOCAB.hasChild, child_uri))
+        if concept.children:
+            for child in concept.children:
+                child_uri = URIRef(child)
+                graph.add((concept_uri, self.namespaces.VOCAB.hasChild, child_uri))
 
-        for related in concept.related:
-            related_uri = URIRef(related)
-            graph.add((concept_uri, self.namespaces.VOCAB.relatedTo, related_uri))
+        if concept.related:
+            for related in concept.related:
+                related_uri = URIRef(related)
+                graph.add((concept_uri, self.namespaces.VOCAB.relatedTo, related_uri))
 
 
 class ChemicalHandler(ConceptTypeHandler):
@@ -155,10 +163,11 @@ class ChemicalHandler(ConceptTypeHandler):
     def get_primary_uri(self, concept: UnifiedConcept) -> URIRef:
         # Use UniChem ID as primary URI if available, otherwise use primary_id
         unichem_id = None
-        for identifier in concept.identifiers:
-            if identifier.source == KnowledgeSource.UNICHEM:
-                unichem_id = identifier.identifier
-                break
+        if concept.identifiers:
+            for identifier in concept.identifiers or []:
+                if identifier.source == KnowledgeSource.UNICHEM:
+                    unichem_id = identifier.identifier
+                    break
 
         if unichem_id:
             return self.namespaces.UNICHEM[unichem_id]
@@ -170,30 +179,31 @@ class ChemicalHandler(ConceptTypeHandler):
     ):
         """Add chemical-specific properties and cross-references."""
         # Add cross-references with proper namespaces
-        for identifier in concept.identifiers:
-            if identifier.source == KnowledgeSource.CHEMBL:
-                chembl_uri = self.namespaces.CHEMBL[identifier.identifier]
-                graph.add((concept_uri, self.namespaces.VOCAB.hasChEMBLId, chembl_uri))
-                graph.add(
-                    (chembl_uri, self.namespaces.RDFS.label, Literal(identifier.label or ""))
-                )
-                graph.add((chembl_uri, self.namespaces.OWL.sameAs, concept_uri))
+        if concept.identifiers:
+            for identifier in concept.identifiers or []:
+                if identifier.source == KnowledgeSource.CHEMBL:
+                    chembl_uri = self.namespaces.CHEMBL[identifier.identifier]
+                    graph.add((concept_uri, self.namespaces.VOCAB.hasChEMBLId, chembl_uri))
+                    graph.add(
+                        (chembl_uri, self.namespaces.RDFS.label, Literal(identifier.label or ""))
+                    )
+                    graph.add((chembl_uri, self.namespaces.OWL.sameAs, concept_uri))
 
-            elif identifier.source == KnowledgeSource.PUBCHEM:
-                pubchem_uri = self.namespaces.PUBCHEM[identifier.identifier]
-                graph.add((concept_uri, self.namespaces.VOCAB.hasPubChemId, pubchem_uri))
-                graph.add(
-                    (pubchem_uri, self.namespaces.RDFS.label, Literal(identifier.label or ""))
-                )
-                graph.add((pubchem_uri, self.namespaces.OWL.sameAs, concept_uri))
+                elif identifier.source == KnowledgeSource.PUBCHEM:
+                    pubchem_uri = self.namespaces.PUBCHEM[identifier.identifier]
+                    graph.add((concept_uri, self.namespaces.VOCAB.hasPubChemId, pubchem_uri))
+                    graph.add(
+                        (pubchem_uri, self.namespaces.RDFS.label, Literal(identifier.label or ""))
+                    )
+                    graph.add((pubchem_uri, self.namespaces.OWL.sameAs, concept_uri))
 
-            elif identifier.source == KnowledgeSource.DRUGBANK:
-                drugbank_uri = self.namespaces.DRUGBANK[identifier.identifier]
-                graph.add((concept_uri, self.namespaces.VOCAB.hasDrugBankId, drugbank_uri))
-                graph.add(
-                    (drugbank_uri, self.namespaces.RDFS.label, Literal(identifier.label or ""))
-                )
-                graph.add((drugbank_uri, self.namespaces.OWL.sameAs, concept_uri))
+                elif identifier.source == KnowledgeSource.DRUGBANK:
+                    drugbank_uri = self.namespaces.DRUGBANK[identifier.identifier]
+                    graph.add((concept_uri, self.namespaces.VOCAB.hasDrugBankId, drugbank_uri))
+                    graph.add(
+                        (drugbank_uri, self.namespaces.RDFS.label, Literal(identifier.label or ""))
+                    )
+                    graph.add((drugbank_uri, self.namespaces.OWL.sameAs, concept_uri))
 
             # Add generic cross-reference
             graph.add(
@@ -214,7 +224,7 @@ class DiseaseHandler(ConceptTypeHandler):
     def get_primary_uri(self, concept: UnifiedConcept) -> URIRef:
         # Use MONDO ID if available, otherwise use primary_id
         mondo_id = None
-        for identifier in concept.identifiers:
+        for identifier in concept.identifiers or []:
             if identifier.source == KnowledgeSource.MONDO:
                 mondo_id = identifier.identifier
                 break
@@ -229,25 +239,26 @@ class DiseaseHandler(ConceptTypeHandler):
     ):
         """Add disease-specific properties."""
         # Disease-specific cross-references
-        for identifier in concept.identifiers:
-            if identifier.source == KnowledgeSource.MONDO:
-                mondo_uri = self.namespaces.OLS[f"mondo/{identifier.identifier}"]
-                graph.add((concept_uri, self.namespaces.VOCAB.hasMondoId, mondo_uri))
-                graph.add((mondo_uri, self.namespaces.OWL.sameAs, concept_uri))
+        if concept.identifiers:
+            for identifier in concept.identifiers or []:
+                if identifier.source == KnowledgeSource.MONDO:
+                    mondo_uri = self.namespaces.OLS[f"mondo/{identifier.identifier}"]
+                    graph.add((concept_uri, self.namespaces.VOCAB.hasMondoId, mondo_uri))
+                    graph.add((mondo_uri, self.namespaces.OWL.sameAs, concept_uri))
 
-            elif identifier.source == KnowledgeSource.OXO:
-                oxo_uri = self.namespaces.OLS[f"oxo/{identifier.identifier}"]
-                graph.add((concept_uri, self.namespaces.VOCAB.hasOxoId, oxo_uri))
-                graph.add((oxo_uri, self.namespaces.OWL.sameAs, concept_uri))
+                elif identifier.source == KnowledgeSource.OXO:
+                    oxo_uri = self.namespaces.OLS[f"oxo/{identifier.identifier}"]
+                    graph.add((concept_uri, self.namespaces.VOCAB.hasOxoId, oxo_uri))
+                    graph.add((oxo_uri, self.namespaces.OWL.sameAs, concept_uri))
 
-            # Add generic cross-reference
-            graph.add(
-                (
-                    concept_uri,
-                    self.namespaces.VOCAB.hasIdentifier,
-                    Literal(f"{str(identifier.source)}:{identifier.identifier}"),
+                # Add generic cross-reference
+                graph.add(
+                    (
+                        concept_uri,
+                        self.namespaces.VOCAB.hasIdentifier,
+                        Literal(f"{str(identifier.source)}:{identifier.identifier}"),
+                    )
                 )
-            )
 
 
 class GeneHandler(ConceptTypeHandler):
@@ -259,7 +270,7 @@ class GeneHandler(ConceptTypeHandler):
     def get_primary_uri(self, concept: UnifiedConcept) -> URIRef:
         # Use Ensembl ID if available, otherwise use primary_id
         ensembl_id = None
-        for identifier in concept.identifiers:
+        for identifier in concept.identifiers or []:
             if identifier.source == KnowledgeSource.ENSEMBL:
                 ensembl_id = identifier.identifier
                 break
@@ -273,7 +284,7 @@ class GeneHandler(ConceptTypeHandler):
         self, graph: Graph, concept: UnifiedConcept, concept_uri: URIRef
     ):
         """Add gene-specific properties."""
-        for identifier in concept.identifiers:
+        for identifier in concept.identifiers or []:
             if identifier.source == KnowledgeSource.ENSEMBL:
                 ensembl_uri = self.namespaces.ENSEMBL[identifier.identifier]
                 graph.add((concept_uri, self.namespaces.VOCAB.hasEnsemblId, ensembl_uri))
@@ -303,7 +314,7 @@ class ProteinHandler(ConceptTypeHandler):
     def get_primary_uri(self, concept: UnifiedConcept) -> URIRef:
         # Use UniProt ID if available, otherwise use primary_id
         uniprot_id = None
-        for identifier in concept.identifiers:
+        for identifier in concept.identifiers or []:
             if identifier.source == KnowledgeSource.UNIPROT:
                 uniprot_id = identifier.identifier
                 break
@@ -317,7 +328,7 @@ class ProteinHandler(ConceptTypeHandler):
         self, graph: Graph, concept: UnifiedConcept, concept_uri: URIRef
     ):
         """Add protein-specific properties."""
-        for identifier in concept.identifiers:
+        for identifier in concept.identifiers or []:
             if identifier.source == KnowledgeSource.UNIPROT:
                 uniprot_uri = self.namespaces.UNIPROT[identifier.identifier]
                 graph.add((concept_uri, self.namespaces.VOCAB.hasUniProtId, uniprot_uri))
@@ -349,7 +360,7 @@ class DrugHandler(ConceptTypeHandler):
         drugbank_id = None
         chembl_id = None
 
-        for identifier in concept.identifiers:
+        for identifier in concept.identifiers or []:
             if identifier.source == KnowledgeSource.DRUGBANK:
                 drugbank_id = identifier.identifier
             elif identifier.source == KnowledgeSource.CHEMBL:
@@ -366,7 +377,7 @@ class DrugHandler(ConceptTypeHandler):
         self, graph: Graph, concept: UnifiedConcept, concept_uri: URIRef
     ):
         """Add drug-specific properties."""
-        for identifier in concept.identifiers:
+        for identifier in concept.identifiers or []:
             if identifier.source == KnowledgeSource.DRUGBANK:
                 drugbank_uri = self.namespaces.DRUGBANK[identifier.identifier]
                 graph.add((concept_uri, self.namespaces.VOCAB.hasDrugBankId, drugbank_uri))
@@ -405,7 +416,7 @@ class DefaultHandler(ConceptTypeHandler):
         self, graph: Graph, concept: UnifiedConcept, concept_uri: URIRef
     ):
         """Add generic cross-references for unknown concept types."""
-        for identifier in concept.identifiers:
+        for identifier in concept.identifiers or []:
             graph.add(
                 (
                     concept_uri,
@@ -649,7 +660,8 @@ class UnifiedRDFConverter:
         """
         try:
             # Get the appropriate handler
-            handler = self.handlers.get(concept.concept_type, self.handlers[ConceptType.UNKNOWN])
+            concept_type = concept.concept_type or ConceptType.UNKNOWN
+            handler = self.handlers.get(concept_type, self.handlers[ConceptType.UNKNOWN])
 
             # Apply adapter hints for type mapping if available
             if concept.concept_type in self.adapter_hints.type_mappings:
@@ -674,9 +686,10 @@ class UnifiedRDFConverter:
 
     def _add_concept_mappings(self, graph: Graph, concept: UnifiedConcept, concept_uri: URIRef):
         """Add RDF triples for concept mappings."""
-        for mapping in concept.mappings:
+        mappings = concept.mappings or []
+        for mapping in mappings:
             # Create URIs for source and target concepts
-            to_uri = self._get_concept_uri_from_identifier(mapping.to_concept)
+            to_uri = self._get_concept_uri_from_identifier(mapping.to_concept)  # type: ignore[arg-type]
 
             # Add mapping relationship
             mapping_predicate = self.namespaces.VOCAB.hasMapping

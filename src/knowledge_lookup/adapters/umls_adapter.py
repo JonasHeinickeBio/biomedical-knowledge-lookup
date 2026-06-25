@@ -334,7 +334,8 @@ class UMLSAdapter(KnowledgeSourceAdapter):
             if response and response.result:
                 for r in response.result[:limit]:
                     concepts.append(self._convert_search_result(r, query_str))
-            result[query_str] = concepts
+            if result is not None:
+                result[query_str] = concepts
 
         return result
 
@@ -584,7 +585,8 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         )
 
         if root_source:
-            concept.categories.append(root_source)
+            if concept.categories is not None:
+                concept.categories.append(root_source)
 
         query_lower = query.strip().lower()
         name_lower = name.strip().lower()
@@ -595,10 +597,11 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         else:
             concept.confidence_score = self._PARTIAL_MATCH_CONFIDENCE
 
-        concept.source_data[KnowledgeSource.UMLS] = {
-            "root_source": root_source,
-            "uri": result.uri,
-        }
+        if isinstance(concept.source_data, dict):
+            concept.source_data[KnowledgeSource.UMLS] = {
+                "root_source": root_source,
+                "uri": result.uri,
+            }
 
         return concept
 
@@ -607,8 +610,10 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         name: str = concept_info.name or ""
         semantic_types: list[dict] = concept_info.semantic_types or []
 
+        # Extract semantic type names for type determination
+        semantic_type_names = [st.get("name", "") for st in semantic_types]
         concept_type = self._determine_concept_type(
-            profile
+            semantic_type_names
         ) or self._determine_concept_type_from_semantic_types(semantic_types)
 
         concept = UnifiedConcept(
@@ -644,20 +649,24 @@ class UMLSAdapter(KnowledgeSourceAdapter):
             related_id = rel.related_id or ""
             rel_label = (rel.relation_label or "").lower()
             if rel_label in {"par", "parent", "isa"}:
-                concept.parents.append(related_id)
+                if concept.parents is not None:
+                    concept.parents.append(related_id)
             elif rel_label in {"chd", "child"}:
-                concept.children.append(related_id)
+                if concept.children is not None:
+                    concept.children.append(related_id)
             else:
-                concept.related.append(related_id)
+                if concept.related is not None:
+                    concept.related.append(related_id)
 
-        concept.source_data[KnowledgeSource.UMLS] = {
-            "semantic_types": semantic_types,
-            "definitions": concept.definitions,
-            "synonyms": concept.synonyms,
-            "sources": concept.categories,
-            "atoms": [a.to_dict() for a in (profile.atoms or [])],
-            "relations": [r.to_dict() for r in (profile.relations or [])],
-        }
+        if isinstance(concept.source_data, dict):
+            concept.source_data[KnowledgeSource.UMLS] = {
+                "semantic_types": semantic_types,
+                "definitions": concept.definitions,
+                "synonyms": concept.synonyms,
+                "sources": concept.categories,
+                "atoms": [a.to_dict() for a in (profile.atoms or [])],
+                "relations": [r.to_dict() for r in (profile.relations or [])],
+            }
 
         return concept
 
@@ -665,23 +674,37 @@ class UMLSAdapter(KnowledgeSourceAdapter):
     # Type determination
     # ------------------------------------------------------------------
 
-    def _determine_concept_type(self, profile) -> ConceptType:
-        """Infer concept type from a ``ConceptProfile``."""
-        if profile.preferred_atom and profile.preferred_atom.root_source:
-            mapped = self._determine_concept_type_from_source(profile.preferred_atom.root_source)
+    def _determine_concept_type(
+        self, semantic_types: list[str], categories: list[str] | None = None
+    ) -> ConceptType:
+        """Infer concept type from semantic types and categories."""
+        # Try to determine from semantic types (case-sensitive for name map)
+        if semantic_types:
+            mapped = self._determine_concept_type_from_semantic_type_names(semantic_types)
             if mapped is not ConceptType.UNKNOWN:
                 return mapped
-        root_source = (profile.concept.raw or {}).get("rootSource", "") if profile.concept else ""
-        if root_source:
-            mapped = self._determine_concept_type_from_source(root_source)
+
+        # Try to determine from categories (lowercase)
+        if categories:
+            categories_lower = [cat.lower() for cat in categories]
+            mapped = self._determine_concept_type_from_categories(categories_lower)
             if mapped is not ConceptType.UNKNOWN:
                 return mapped
-        if profile.concept and profile.concept.semantic_types:
-            mapped = self._determine_concept_type_from_semantic_types(
-                profile.concept.semantic_types
-            )
-            if mapped is not ConceptType.UNKNOWN:
-                return mapped
+
+        return ConceptType.UNKNOWN
+
+    def _determine_concept_type_from_categories(
+        self,
+        categories: list[str],
+    ) -> ConceptType:
+        """Determine concept type from categories (UMLS-specific)."""
+        categories_lower = [cat.lower() for cat in categories]
+        if any("neop" in cat for cat in categories_lower):
+            return ConceptType.DISEASE
+        if any("phar" in cat for cat in categories_lower):
+            return ConceptType.DRUG
+        if any("anat" in cat for cat in categories_lower):
+            return ConceptType.ANATOMY
         return ConceptType.UNKNOWN
 
     def _determine_concept_type_from_semantic_type_names(

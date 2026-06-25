@@ -355,7 +355,7 @@ class TestBioOntologyCallEndpoint:
         )
         adapter_with_api_key._make_request = AsyncMock(return_value={"results": []})
 
-        result = await adapter_with_api_key.call_endpoint("search")
+        await adapter_with_api_key.call_endpoint("search")
         adapter_with_api_key.fetch_api_endpoints.assert_called_once()
 
     @pytest.mark.asyncio

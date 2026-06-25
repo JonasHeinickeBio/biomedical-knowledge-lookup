@@ -38,14 +38,14 @@ def format_results_table(result: LookupResult) -> str:
     ]
     lines = ["\t".join(headers)]
     for concept in result.concepts:
-        line = [
+        line: list[str] = [
             concept.primary_label,
             concept.primary_id,
-            concept.concept_type,
+            str(concept.concept_type),
             f"{concept.confidence_score or 0:.2f}",
             ";".join(concept.sources or []),
-            ";".join(concept.synonyms),
-            ";".join(concept.definitions),
+            ";".join(concept.synonyms or []),
+            ";".join(d for d in (concept.definitions or []) if d is not None),
         ]
         lines.append("\t".join(line))
     return "\n".join(lines)

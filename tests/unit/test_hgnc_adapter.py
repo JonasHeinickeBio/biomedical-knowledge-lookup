@@ -37,7 +37,7 @@ class TestHGNCAdapter:
     def test_get_rate_limit_default(self, adapter):
         """Test get_rate_limit returns default value."""
         rate_limit = adapter.get_rate_limit()
-        assert isinstance(rate_limit, (int, float))
+        assert isinstance(rate_limit, int | float)
         assert rate_limit > 0
 
     def test_get_rate_limit_custom(self):

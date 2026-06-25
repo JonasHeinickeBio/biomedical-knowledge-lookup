@@ -399,6 +399,7 @@ class UMLSCache:
         own_conn = conn is None
         if own_conn:
             conn = self._connect()
+        assert conn is not None
         try:
             # Clear and repopulate standalone FTS5
             conn.execute("DELETE FROM concepts_fts")

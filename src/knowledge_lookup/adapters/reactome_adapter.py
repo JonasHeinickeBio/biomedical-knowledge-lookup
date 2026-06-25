@@ -90,13 +90,16 @@ class ReactomeAdapter(KnowledgeSourceAdapter):
             )
 
             if "summation" in result:
-                concept.definitions.append(result["summation"])
+                if concept.definitions is not None:
+                    concept.definitions.append(result["summation"])
 
             if "species" in result:
-                concept.categories.extend(result["species"])
+                if concept.categories is not None:
+                    concept.categories.extend(result["species"])
 
             concept.confidence_score = 0.9
-            concept.source_data[KnowledgeSource.REACTOME] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.REACTOME] = result
 
             return concept
 
@@ -125,10 +128,12 @@ class ReactomeAdapter(KnowledgeSourceAdapter):
             )
 
             if "summation" in data and data["summation"]:
-                concept.definitions.append(data["summation"][0].get("text", ""))
+                if concept.definitions is not None:
+                    concept.definitions.append(data["summation"][0].get("text", ""))
 
             concept.confidence_score = 1.0
-            concept.source_data[KnowledgeSource.REACTOME] = data
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.REACTOME] = data
 
             return concept
 

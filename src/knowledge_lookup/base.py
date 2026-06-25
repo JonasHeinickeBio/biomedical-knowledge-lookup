@@ -222,7 +222,8 @@ class KnowledgeSourceAdapter(ABC):
 
     def get_rate_limit(self) -> float:
         """Get rate limit for this source (requests per second)."""
-        return self.config.rate_limits.get(self.source, 1.0)
+        rate_limits = self.config.rate_limits
+        return rate_limits.get(self.source, 1.0) if rate_limits is not None else 1.0
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""

@@ -24,6 +24,13 @@ Usage::
 
 from __future__ import annotations
 
+try:
+    import aiohttp  # noqa: F401
+
+    AIOHTTP_AVAILABLE = True
+except ImportError:
+    AIOHTTP_AVAILABLE = False
+
 import asyncio
 import logging
 from dataclasses import dataclass
@@ -95,13 +102,16 @@ class AnthropicBackend(LLMBackend):
     def __init__(self, api_key: str, model: str = "claude-sonnet-4-20250514"):
         self.api_key = api_key
         self.model = model
-        self._session = None
+        self._session: Any | None = None
 
-    async def _get_session(self):
+    async def _get_session(self) -> Any:
+        if not AIOHTTP_AVAILABLE:
+            raise RuntimeError("aiohttp is required but not installed")
         import aiohttp
 
         if self._session is None:
             self._session = aiohttp.ClientSession()
+        assert self._session is not None
         return self._session
 
     async def complete(
@@ -141,15 +151,17 @@ class HuggingFaceBackend(LLMBackend):
     def __init__(self, model_name: str = "michiyasunaga/BioLinkBERT-base", device: str = "cpu"):
         self.model_name = model_name
         self.device = device
-        self._pipe = None
+        self._pipe: Any | None = None
 
-    def _load(self):
+    def _load(self) -> None:
         if self._pipe is not None:
             return
         try:
             from transformers import pipeline  # noqa: F811
-        except ImportError:
-            raise ImportError("HuggingFace backend requires `pip install transformers torch`")
+        except ImportError as err:
+            raise ImportError(
+                "HuggingFace backend requires `pip install transformers torch`"
+            ) from err
         self._pipe = pipeline(
             "text-generation",
             model=self.model_name,
@@ -162,8 +174,11 @@ class HuggingFaceBackend(LLMBackend):
         self._load()
         import asyncio
 
+        assert self._pipe is not None
+
         # Run inference in a thread to avoid blocking the event loop
         def _run():
+            assert self._pipe is not None
             result = self._pipe(
                 prompt,
                 max_new_tokens=max_tokens,
@@ -327,7 +342,7 @@ class LLMNormalizer:
             normalized_form=query_text,
             cui=selected.primary_id,
             concept_name=selected.primary_label,
-            confidence=selected.confidence_score,
+            confidence=selected.confidence_score or 0.0,
             method=f"{method}+llm_pruned"
             if self.prune_candidates and len(concepts) > 1
             else method,
@@ -398,7 +413,7 @@ class LLMNormalizer:
             logger.warning("LLM candidate pruning failed: %s", exc)
 
         # Fallback: best confidence score
-        return max(concepts, key=lambda c: c.confidence_score)
+        return max(concepts, key=lambda c: c.confidence_score or 0.0)
 
     async def close(self):
         """Close the LLM backend."""

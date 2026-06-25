@@ -72,10 +72,12 @@ class OBOFoundryAdapter(KnowledgeSourceAdapter):
             )
 
             if "ontology_name" in result:
-                concept.categories.append(f"Ontology: {result['ontology_name']}")
+                if concept.categories is not None:
+                    concept.categories.append(f"Ontology: {result['ontology_name']}")
 
             concept.confidence_score = 0.8
-            concept.source_data[KnowledgeSource.OBOFOUNDRY] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.OBOFOUNDRY] = result
 
             return concept
 

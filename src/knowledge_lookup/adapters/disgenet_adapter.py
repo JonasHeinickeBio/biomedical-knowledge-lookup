@@ -46,7 +46,8 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
             primary_label=disease_name,
             concept_type=ConceptType.DISEASE,
         )
-        concept.source_data[KnowledgeSource.DISGENET] = data
+        if isinstance(concept.source_data, dict):
+            concept.source_data[KnowledgeSource.DISGENET] = data
         return concept
 
     async def _make_request(
@@ -283,7 +284,8 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
                         concept_type=ConceptType.UNKNOWN,
                     )
                     concept.confidence_score = score
-                    concept.source_data[KnowledgeSource.DISGENET] = item
+                    if isinstance(concept.source_data, dict):
+                        concept.source_data[KnowledgeSource.DISGENET] = item
                     concepts.append(concept)
 
             logger.info(f"DisGeNET search for '{query}' returned {len(concepts)} concepts")

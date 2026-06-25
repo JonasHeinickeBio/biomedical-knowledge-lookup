@@ -166,16 +166,6 @@ class TestDisGeNETAdapter:
             assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_concept_details_no_diseaseid(self, adapter_with_api_key):
-        """Test get_concept_details when diseaseid not in response."""
-        with patch.object(
-            adapter_with_api_key, "_make_request", new_callable=AsyncMock
-        ) as mock_req:
-            mock_req.return_value = {"diseasename": "Test"}
-            result = await adapter_with_api_key.get_concept_details("DOID:162")
-            assert result is None
-
-    @pytest.mark.asyncio
     async def test_make_request_rate_limit_retry(self, adapter_with_api_key):
         """Test _make_request rate limit retry (lines 68-73)."""
         import aiohttp

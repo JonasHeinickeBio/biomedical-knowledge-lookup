@@ -108,7 +108,6 @@ async def recorded_api_response(api_responses_cache):
         # Response data is cached for comparison across runs
         # Will warn if response structure changes
     """
-    recorded_responses = {}
 
     async def record(
         api_call: Callable, *args, cache_key: str = None, source: KnowledgeSource = None, **kwargs
@@ -136,7 +135,7 @@ async def recorded_api_response(api_responses_cache):
         response_data = {}
         if hasattr(result, "__dict__"):
             response_data = result.__dict__
-        elif isinstance(result, (list, dict)):
+        elif isinstance(result, list | dict):
             response_data = result
 
         # Store in cache

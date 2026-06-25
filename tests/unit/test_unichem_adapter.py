@@ -68,13 +68,13 @@ class TestUniChemAdapter:
     def test_determine_search_strategy_inchikey(self, adapter):
         """Test _determine_search_strategy identifies InChIKey."""
         with patch.object(adapter, "_search_by_inchikey", return_value=["concept"]) as mock:
-            results = adapter._determine_search_strategy("BSYNRYMUTXBXSQ-UHFFFAOYSA-N", 10)
+            adapter._determine_search_strategy("BSYNRYMUTXBXSQ-UHFFFAOYSA-N", 10)
             mock.assert_called_once()
 
     def test_determine_search_strategy_inchi(self, adapter):
         """Test _determine_search_strategy identifies InChI."""
         with patch.object(adapter, "_search_by_inchi", return_value=["concept"]) as mock:
-            results = adapter._determine_search_strategy(
+            adapter._determine_search_strategy(
                 "InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)/t/h11H",
                 10,
             )
@@ -88,20 +88,20 @@ class TestUniChemAdapter:
                     with patch.object(
                         adapter, "_search_by_source_id", return_value=["concept"]
                     ) as mock:
-                        results = adapter._determine_search_strategy("CHEMBL25", 10)
+                        adapter._determine_search_strategy("CHEMBL25", 10)
                         mock.assert_called_once()
 
     def test_determine_search_strategy_uci(self, adapter):
         """Test _determine_search_strategy tries UCI first."""
         with patch.object(adapter, "_search_by_uci", return_value=["concept"]) as mock:
-            results = adapter._determine_search_strategy("12345", 10)
+            adapter._determine_search_strategy("12345", 10)
             mock.assert_called_once()
 
     def test_determine_search_strategy_strategy_exception(self, adapter):
         """Test _determine_search_strategy continues after strategy exception."""
         with patch.object(adapter, "_search_by_uci", side_effect=Exception("fail")):
             with patch.object(adapter, "_search_by_inchikey", return_value=["concept"]) as mock:
-                results = adapter._determine_search_strategy("test", 10)
+                adapter._determine_search_strategy("test", 10)
                 mock.assert_called_once()
 
     # --- _search_by_uci (lines 93-100) ---
@@ -122,7 +122,7 @@ class TestUniChemAdapter:
         adapter.unichem = MagicMock()
         adapter.unichem.get_compounds.return_value = None
         with patch.object(adapter, "_extract_concepts_from_compound_data", return_value=["c1"]):
-            results = adapter._search_by_uci("12345", 10)
+            adapter._search_by_uci("12345", 10)
             adapter.unichem.get_compounds.assert_called_once_with("12345", "uci")
 
     # --- _search_by_inchikey (lines 102-108) ---
@@ -182,7 +182,7 @@ class TestUniChemAdapter:
         adapter.unichem = MagicMock()
         adapter.unichem.get_compounds.return_value = None
         with patch.object(adapter, "_extract_concepts_from_compound_data", return_value=["c1"]):
-            results = adapter._search_by_source_id("CHEMBL25", 10)
+            adapter._search_by_source_id("CHEMBL25", 10)
             assert adapter.unichem.get_compounds.call_count == 4
 
     def test_search_by_source_id_exception_per_source(self, adapter):
@@ -190,7 +190,7 @@ class TestUniChemAdapter:
         adapter.unichem = MagicMock()
         adapter.unichem.get_compounds.side_effect = [Exception("fail"), None, None, None]
         with patch.object(adapter, "_extract_concepts_from_compound_data", return_value=[]):
-            results = adapter._search_by_source_id("CHEMBL25", 10)
+            adapter._search_by_source_id("CHEMBL25", 10)
 
     # --- _extract_concepts_from_compound_data (lines 139-153) ---
 

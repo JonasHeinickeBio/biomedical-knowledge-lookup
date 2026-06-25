@@ -104,21 +104,24 @@ class PDBAdapter(KnowledgeSourceAdapter):
                 for kw in keywords.split(","):
                     kw = kw.strip()
                     if kw:
-                        concept.semantic_types.append(kw)
+                        if concept.semantic_types is not None:
+                            concept.semantic_types.append(kw)
 
             # Experimental method
             exptl = item.get("exptl", [{}])
             if isinstance(exptl, list) and exptl:
                 method = exptl[0].get("method", "")
                 if method:
-                    concept.categories.append(f"method:{method}")
+                    if concept.categories is not None:
+                        concept.categories.append(f"method:{method}")
 
             # Resolution
             refine = item.get("refine", [{}])
             if isinstance(refine, list) and refine:
                 resolution = refine[0].get("ls_d_res_high", "")
                 if resolution:
-                    concept.categories.append(f"resolution:{resolution}Å")
+                    if concept.categories is not None:
+                        concept.categories.append(f"resolution:{resolution}Å")
 
             # Release date
             revision = item.get("pdbx_audit_revision_history", [{}])
@@ -128,7 +131,8 @@ class PDBAdapter(KnowledgeSourceAdapter):
                     concept.last_updated = release_date
 
             concept.confidence_score = 0.85
-            concept.source_data[KnowledgeSource.PDB] = item
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.PDB] = item
             return concept
 
         except Exception as e:

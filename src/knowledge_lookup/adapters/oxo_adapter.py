@@ -276,7 +276,8 @@ class OxOAdapter(KnowledgeSourceAdapter):
                     )
 
             # Store raw data
-            concept.source_data[KnowledgeSource.OXO] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.OXO] = result
             concept.confidence_score = max(concept.confidence_score or 0, 0.8)
 
             return concept

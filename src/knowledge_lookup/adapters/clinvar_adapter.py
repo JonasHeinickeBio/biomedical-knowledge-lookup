@@ -128,17 +128,20 @@ class ClinVarAdapter(KnowledgeSourceAdapter):
             if isinstance(clin_sig, dict):
                 sig_desc = clin_sig.get("description", "")
                 if sig_desc:
-                    concept.categories.append(f"clinical_significance:{sig_desc}")
+                    if concept.categories is not None:
+                        concept.categories.append(f"clinical_significance:{sig_desc}")
 
             # Gene info
             gene_sort = item.get("gene_sort", "")
             if gene_sort:
-                concept.categories.append(f"gene:{gene_sort}")
+                if concept.categories is not None:
+                    concept.categories.append(f"gene:{gene_sort}")
 
             # Variant type
             variation_type = item.get("obj_type", "")
             if variation_type:
-                concept.semantic_types.append(variation_type)
+                if concept.semantic_types is not None:
+                    concept.semantic_types.append(variation_type)
 
             # Supporting traits / conditions
             trait_set = item.get("trait_set", [])
@@ -148,10 +151,12 @@ class ClinVarAdapter(KnowledgeSourceAdapter):
                         trait.get("trait_name", "") if isinstance(trait, dict) else str(trait)
                     )
                     if trait_name:
-                        concept.categories.append(f"condition:{trait_name}")
+                        if concept.categories is not None:
+                            concept.categories.append(f"condition:{trait_name}")
 
             concept.confidence_score = 0.85
-            concept.source_data[KnowledgeSource.CLINVAR] = item
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.CLINVAR] = item
             return concept
 
         except Exception as e:
