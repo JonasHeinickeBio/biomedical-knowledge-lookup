@@ -234,7 +234,7 @@ class BatchProcessor:
         tasks = [process_one(t) for t in unique_terms]
         await asyncio.gather(*tasks)
 
-        result.elapsed = time.monotonic() - start
+        result.elapsed = (time.monotonic_ns() - start) / 1e9
 
         # Write output if requested
         if output_path:
