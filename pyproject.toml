@@ -85,6 +85,8 @@ select = [
 ignore = [
     "B008", # do not perform function calls in argument defaults
     "C901", # too complex
+    "E501", # line too long (enforced by ruff format, not check)
+    "UP007", # use X | Y for type annotations (generated model compatibility)
 ]
 
 [tool.pytest.ini_options]
