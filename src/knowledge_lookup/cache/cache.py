@@ -27,7 +27,7 @@ class CacheEntry:
     created_at: float
     ttl: float | None = None
     access_count: int = 0
-    last_accessed: float = field(default_factory=time.time)
+    last_accessed: int = field(default_factory=time.monotonic_ns)
 
     def is_expired(self) -> bool:
         """Check if the cache entry has expired."""
@@ -144,7 +144,7 @@ class MemoryCacheBackend(CacheBackend):
                 return None
 
             entry.access_count += 1
-            entry.last_accessed = time.time()
+            entry.last_accessed = time.monotonic_ns()
             self._stats.hits += 1
             return entry.value
 
@@ -243,7 +243,7 @@ class DiskCacheBackend(CacheBackend):
                     return None
 
                 entry.access_count += 1
-                entry.last_accessed = time.time()
+                entry.last_accessed = time.monotonic_ns()
                 self._save_entry(entry)
                 self._stats.hits += 1
                 return entry.value

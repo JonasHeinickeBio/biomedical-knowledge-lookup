@@ -5,6 +5,7 @@ Unit tests for UMLS Batch Concept Extraction Pipeline.
 from __future__ import annotations
 
 import json
+import sys
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -41,6 +42,7 @@ def batch_processor(mock_adapter):
 
 class TestBatchProcessor:
     @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Windows timer resolution makes elapsed=0.0 with mocked calls")
     async def test_process_terms_all_succeed(self, batch_processor):
         terms = ["diabetes", "asthma", "hypertension"]
         result = await batch_processor.process_terms(terms, limit=3)

@@ -182,7 +182,7 @@ class BatchProcessor:
         """
         result = BatchResult(total_inputs=len(terms))
         skip = skip_cuis or set()
-        start = time.monotonic()
+        start = time.monotonic_ns()
 
         # Deduplicate terms while preserving order
         seen_terms: set[str] = set()

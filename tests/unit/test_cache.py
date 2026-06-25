@@ -2,6 +2,7 @@
 Unit tests for knowledge lookup cache system.
 """
 
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -139,6 +140,7 @@ class TestMemoryCacheBackend:
         backend.set("k1", "v1")
         assert backend.size() == 1
 
+    @pytest.mark.skipif(sys.platform == "win32", reason="Windows timer resolution breaks LRU ordering")
     def test_evict_lru(self):
         backend = MemoryCacheBackend(max_size=2)
         backend.set("k1", "v1")
