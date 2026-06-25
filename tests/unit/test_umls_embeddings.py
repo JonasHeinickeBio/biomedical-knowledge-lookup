@@ -146,7 +146,7 @@ class TestConceptEmbedder:
     async def test_similarity(self, mock_adapter):
         embedder = ConceptEmbedder(mock_adapter, backend=StubBackend())
         score = await embedder.similarity("diabetes", "diabetes")
-        assert 0.99 <= score <= 1.0  # Should be near 1.0 for same input
+        assert 0.99 <= score <= 1.0 + 1e-10  # Allow floating-point tolerance
 
     @pytest.mark.asyncio
     async def test_similarity_with_resolve(self, mock_adapter):
