@@ -7084,4 +7084,4 @@ umls = ["umls-python-client"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "46a0564aeff53bdfe264aacd5fe6900cf28cf8af699c168c73bb1548e1e14830"
+content-hash = "339ec8fd7b3f163c481463c29bcc5584dc59b65978c1700d96b39ceea8471ccd"

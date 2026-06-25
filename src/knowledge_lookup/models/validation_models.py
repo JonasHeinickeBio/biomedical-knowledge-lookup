@@ -48,9 +48,9 @@ def _convert_generated_concept_identifier(
     """Convert a generated ConceptIdentifier to the existing model."""
     # Handle both enum and string formats
     source_value = gen_id.source.value if hasattr(gen_id.source, "value") else gen_id.source
-    # Convert to lowercase to match existing KnowledgeSource enum values
+    # Convert to uppercase to match existing KnowledgeSource enum values
     if isinstance(source_value, str):
-        source_value = source_value.lower()
+        source_value = source_value.upper()
     return ConceptIdentifier(
         source=KnowledgeSource(source_value),
         identifier=gen_id.identifier,
@@ -84,9 +84,9 @@ def _convert_generated_unified_concept(
             concept_type_str = concept_type_value.value
         else:
             concept_type_str = concept_type_value
-        # Convert to lowercase to match existing ConceptType enum values
+        # Convert to uppercase to match existing ConceptType enum values
         if isinstance(concept_type_str, str):
-            concept_type_str = concept_type_str.lower()
+            concept_type_str = concept_type_str.upper()
         try:
             concept_type = ConceptType(concept_type_str)
         except ValueError:

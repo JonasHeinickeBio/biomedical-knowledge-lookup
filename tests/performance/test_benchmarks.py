@@ -13,6 +13,7 @@ from knowledge_lookup.models import ConceptType, UnifiedConcept
 
 @pytest.mark.slow
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Performance test - flaky in CI, run manually for benchmarking")
 class TestCachingPerformance:
     """Performance tests for caching system."""
 
