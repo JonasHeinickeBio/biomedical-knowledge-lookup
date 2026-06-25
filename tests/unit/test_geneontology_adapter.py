@@ -227,7 +227,5 @@ class TestGeneOntologyConvertResult:
             "knowledge_lookup.adapters.geneontology_adapter.UnifiedConcept",
             side_effect=Exception("Error"),
         ):
-            result = adapter._convert_go_result_to_concept(
-                {"id": "test", "name": "test"}
-            )
+            result = adapter._convert_go_result_to_concept({"id": "test", "name": "test"})
             assert result is None

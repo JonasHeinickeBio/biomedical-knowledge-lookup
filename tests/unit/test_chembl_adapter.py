@@ -242,7 +242,9 @@ class TestChEMBLAdapter:
 
     def test_lookup_drug_success(self, adapter):
         """Test lookup_drug returns parsed concepts."""
-        raw = [{"drug_chembl_id": "CHEMBL25", "pref_name": "ASPIRIN", "drug_type": "Small molecule"}]
+        raw = [
+            {"drug_chembl_id": "CHEMBL25", "pref_name": "ASPIRIN", "drug_type": "Small molecule"}
+        ]
         parsed = ["parsed_drug"]
         with patch.object(adapter, "query", return_value=raw):
             with patch.object(
@@ -297,9 +299,7 @@ class TestChEMBLAdapter:
         """Test get_activities_for_molecule delegates to lookup_activity."""
         with patch.object(adapter, "lookup_activity", return_value=[{"act": 1}]) as mock_la:
             results = adapter.get_activities_for_molecule("CHEMBL25", limit=10)
-            mock_la.assert_called_once_with(
-                filters={"molecule_chembl_id": "CHEMBL25"}, limit=10
-            )
+            mock_la.assert_called_once_with(filters={"molecule_chembl_id": "CHEMBL25"}, limit=10)
         assert results == [{"act": 1}]
 
     def test_get_activities_for_molecule_exception(self, adapter):
@@ -314,9 +314,7 @@ class TestChEMBLAdapter:
         """Test get_activities_for_target delegates to lookup_activity."""
         with patch.object(adapter, "lookup_activity", return_value=[{"act": 1}]) as mock_la:
             results = adapter.get_activities_for_target("CHEMBL1806", limit=10)
-            mock_la.assert_called_once_with(
-                filters={"target_chembl_id": "CHEMBL1806"}, limit=10
-            )
+            mock_la.assert_called_once_with(filters={"target_chembl_id": "CHEMBL1806"}, limit=10)
         assert results == [{"act": 1}]
 
     def test_get_activities_for_target_exception(self, adapter):
@@ -474,7 +472,10 @@ class TestChEMBLAdapter:
         """Test _parse_molecule_results with ontology mapping enabled."""
         adapter.config.enable_ontology_mapping = True
         with patch.object(
-            adapter, "map_category_to_ontology", new_callable=AsyncMock, return_value="SMALL_MOLECULE"
+            adapter,
+            "map_category_to_ontology",
+            new_callable=AsyncMock,
+            return_value="SMALL_MOLECULE",
         ):
             raw = [{"molecule_chembl_id": "CHEMBL25", "molecule_type": "Small molecule"}]
             results = await adapter._parse_molecule_results(raw)
@@ -485,7 +486,10 @@ class TestChEMBLAdapter:
         """Test _parse_molecule_results handles ontology mapping errors."""
         adapter.config.enable_ontology_mapping = True
         with patch.object(
-            adapter, "map_category_to_ontology", new_callable=AsyncMock, side_effect=Exception("fail")
+            adapter,
+            "map_category_to_ontology",
+            new_callable=AsyncMock,
+            side_effect=Exception("fail"),
         ):
             raw = [{"molecule_chembl_id": "CHEMBL25", "molecule_type": "Small molecule"}]
             results = await adapter._parse_molecule_results(raw)
@@ -587,7 +591,10 @@ class TestChEMBLAdapter:
         """Test _parse_drug_results with ontology mapping."""
         adapter.config.enable_ontology_mapping = True
         with patch.object(
-            adapter, "map_category_to_ontology", new_callable=AsyncMock, return_value="SMALL_MOLECULE"
+            adapter,
+            "map_category_to_ontology",
+            new_callable=AsyncMock,
+            return_value="SMALL_MOLECULE",
         ):
             raw = [{"drug_chembl_id": "CHEMBL25", "drug_type": "Small molecule"}]
             results = await adapter._parse_drug_results(raw)
@@ -598,7 +605,10 @@ class TestChEMBLAdapter:
         """Test _parse_drug_results handles ontology mapping error."""
         adapter.config.enable_ontology_mapping = True
         with patch.object(
-            adapter, "map_category_to_ontology", new_callable=AsyncMock, side_effect=Exception("fail")
+            adapter,
+            "map_category_to_ontology",
+            new_callable=AsyncMock,
+            side_effect=Exception("fail"),
         ):
             raw = [{"drug_chembl_id": "CHEMBL25", "drug_type": "Small molecule"}]
             results = await adapter._parse_drug_results(raw)
@@ -660,6 +670,7 @@ class TestChEMBLAdapter:
         results = await adapter._parse_target_results(raw)
         assert len(results) == 1
         from knowledge_lookup.models import ConceptType
+
         assert results[0].concept_type == ConceptType.PROTEIN
 
     @pytest.mark.asyncio
@@ -673,6 +684,7 @@ class TestChEMBLAdapter:
         ]
         results = await adapter._parse_target_results(raw)
         from knowledge_lookup.models import ConceptType
+
         assert results[0].concept_type == ConceptType.UNKNOWN
 
     @pytest.mark.asyncio
@@ -691,7 +703,10 @@ class TestChEMBLAdapter:
         """Test _parse_target_results handles ontology mapping error."""
         adapter.config.enable_ontology_mapping = True
         with patch.object(
-            adapter, "map_category_to_ontology", new_callable=AsyncMock, side_effect=Exception("fail")
+            adapter,
+            "map_category_to_ontology",
+            new_callable=AsyncMock,
+            side_effect=Exception("fail"),
         ):
             raw = [{"target_chembl_id": "CHEMBL1806", "target_type": "PROTEIN"}]
             results = await adapter._parse_target_results(raw)
@@ -780,7 +795,10 @@ class TestChEMBLAdapter:
         mock_concept.primary_label = "Small molecule"
         mock_concept.synonyms = []
         with patch.object(
-            adapter.ols_adapter, "search_concepts", new_callable=AsyncMock, return_value=[mock_concept]
+            adapter.ols_adapter,
+            "search_concepts",
+            new_callable=AsyncMock,
+            return_value=[mock_concept],
         ):
             result = await adapter.map_category_to_ontology("Small molecule")
         assert result == "Small molecule"
@@ -792,7 +810,10 @@ class TestChEMBLAdapter:
         mock_concept.primary_label = "Other Label"
         mock_concept.synonyms = ["small molecule"]
         with patch.object(
-            adapter.ols_adapter, "search_concepts", new_callable=AsyncMock, return_value=[mock_concept]
+            adapter.ols_adapter,
+            "search_concepts",
+            new_callable=AsyncMock,
+            return_value=[mock_concept],
         ):
             result = await adapter.map_category_to_ontology("Small molecule")
         assert result == "small molecule"
@@ -852,7 +873,10 @@ class TestChEMBLAdapter:
     async def test_map_category_to_ontology_ols_exception(self, adapter):
         """Test map_category_to_ontology handles OLS exception."""
         with patch.object(
-            adapter.ols_adapter, "search_concepts", new_callable=AsyncMock, side_effect=Exception("OLS down")
+            adapter.ols_adapter,
+            "search_concepts",
+            new_callable=AsyncMock,
+            side_effect=Exception("OLS down"),
         ):
             mock_concept = MagicMock()
             mock_concept.primary_label = "Protein"
@@ -870,7 +894,10 @@ class TestChEMBLAdapter:
     async def test_map_category_to_ontology_both_fail(self, adapter):
         """Test map_category_to_ontology returns original when both fail."""
         with patch.object(
-            adapter.ols_adapter, "search_concepts", new_callable=AsyncMock, side_effect=Exception("fail")
+            adapter.ols_adapter,
+            "search_concepts",
+            new_callable=AsyncMock,
+            side_effect=Exception("fail"),
         ):
             with patch.object(
                 adapter.bioontology_adapter,
@@ -898,7 +925,9 @@ class TestChEMBLAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_stops_at_limit(self, adapter):
         """Test search_concepts stops when limit reached."""
-        mol_results = [{"molecule_chembl_id": f"CHEMBL{i}", "pref_name": f"Drug{i}"} for i in range(30)]
+        mol_results = [
+            {"molecule_chembl_id": f"CHEMBL{i}", "pref_name": f"Drug{i}"} for i in range(30)
+        ]
 
         with patch.object(adapter, "query", return_value=mol_results):
             results = await adapter.search_concepts("drug", limit=5)
@@ -942,7 +971,9 @@ class TestChEMBLAdapter:
     @pytest.mark.asyncio
     async def test_get_concept_details_target_found(self, adapter):
         """Test get_concept_details returns target when molecule and drug not found."""
-        target_data = [{"target_chembl_id": "CHEMBL1806", "pref_name": "ACE2", "target_type": "PROTEIN"}]
+        target_data = [
+            {"target_chembl_id": "CHEMBL1806", "pref_name": "ACE2", "target_type": "PROTEIN"}
+        ]
         with patch.object(adapter, "query") as mock_query:
             mock_query.side_effect = [[], [], target_data]
             result = await adapter.get_concept_details("CHEMBL1806")

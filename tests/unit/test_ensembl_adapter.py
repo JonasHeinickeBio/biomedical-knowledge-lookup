@@ -50,14 +50,28 @@ class TestEnsemblAdapter:
     async def test_search_concepts_with_results(self, adapter):
         """Test search_concepts when API returns a list with items (lines 41-44)."""
         ensembl_data = [
-            {"id": "ENSG00000139618", "display_name": "BRCA2", "description": "BRCA2 DNA repair associated", "biotype": "protein_coding", "species": "homo_sapiens"},
-            {"id": "ENSG00000139617", "display_name": "BRCA1", "description": "BRCA1 DNA repair associated", "biotype": "protein_coding", "species": "homo_sapiens"},
+            {
+                "id": "ENSG00000139618",
+                "display_name": "BRCA2",
+                "description": "BRCA2 DNA repair associated",
+                "biotype": "protein_coding",
+                "species": "homo_sapiens",
+            },
+            {
+                "id": "ENSG00000139617",
+                "display_name": "BRCA1",
+                "description": "BRCA1 DNA repair associated",
+                "biotype": "protein_coding",
+                "species": "homo_sapiens",
+            },
         ]
         detail_data = {"id": "ENSG00000139618", "display_name": "BRCA2"}
 
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = ensembl_data
-            with patch.object(adapter, "get_concept_details", new_callable=AsyncMock) as mock_detail:
+            with patch.object(
+                adapter, "get_concept_details", new_callable=AsyncMock
+            ) as mock_detail:
                 mock_detail.return_value = MagicMock()
                 results = await adapter.search_concepts("BRCA2", limit=2)
                 assert len(results) == 2
@@ -72,7 +86,9 @@ class TestEnsemblAdapter:
         ]
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = ensembl_data
-            with patch.object(adapter, "get_concept_details", new_callable=AsyncMock) as mock_detail:
+            with patch.object(
+                adapter, "get_concept_details", new_callable=AsyncMock
+            ) as mock_detail:
                 mock_detail.side_effect = [MagicMock(), None]
                 results = await adapter.search_concepts("test", limit=10)
                 assert len(results) == 1

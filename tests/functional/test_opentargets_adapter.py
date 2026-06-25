@@ -13,9 +13,7 @@ pytestmark = [pytest.mark.functional, pytest.mark.network, pytest.mark.api]
 
 
 @pytest.mark.asyncio
-async def test_opentargets_search_diabetes(
-    adapter, response_validator, warning_manager
-):
+async def test_opentargets_search_diabetes(adapter, response_validator, warning_manager):
     """
     Test OpenTargets search for diabetes with real API call.
 
@@ -36,9 +34,9 @@ async def test_opentargets_search_diabetes(
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
-        assert hasattr(result, 'concept_type'), "Result missing concept_type"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
+        assert hasattr(result, "concept_type"), "Result missing concept_type"
 
     # Extract sample response data
     response_data = {
@@ -65,9 +63,7 @@ async def test_opentargets_search_diabetes(
 
 
 @pytest.mark.asyncio
-async def test_opentargets_search_gene(
-    adapter, response_validator, warning_manager
-):
+async def test_opentargets_search_gene(adapter, response_validator, warning_manager):
     """
     Test OpenTargets search for a gene with real API call.
 
@@ -86,8 +82,8 @@ async def test_opentargets_search_gene(
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
 
     # Extract sample response data
     response_data = {
@@ -113,9 +109,7 @@ async def test_opentargets_search_gene(
 
 
 @pytest.mark.asyncio
-async def test_opentargets_search_cancer(
-    adapter, response_validator, warning_manager
-):
+async def test_opentargets_search_cancer(adapter, response_validator, warning_manager):
     """
     Test OpenTargets search for cancer with real API call.
 
@@ -134,9 +128,9 @@ async def test_opentargets_search_cancer(
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
-        assert hasattr(result, 'concept_type'), "Result missing concept_type"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
+        assert hasattr(result, "concept_type"), "Result missing concept_type"
 
     # Extract sample response data
     response_data = {
@@ -163,9 +157,7 @@ async def test_opentargets_search_cancer(
 
 
 @pytest.mark.asyncio
-async def test_opentargets_get_concept_details(
-    adapter, response_validator, warning_manager
-):
+async def test_opentargets_get_concept_details(adapter, response_validator, warning_manager):
     """
     Test OpenTargets get concept details with real API call.
 
@@ -192,7 +184,7 @@ async def test_opentargets_get_concept_details(
         pytest.skip("get_concept_details returned None")
 
     # Validate details
-    assert hasattr(details, 'primary_id'), "Details missing primary_id"
+    assert hasattr(details, "primary_id"), "Details missing primary_id"
 
     # Extract sample response data
     response_data = {
@@ -213,9 +205,7 @@ async def test_opentargets_get_concept_details(
 
 
 @pytest.mark.asyncio
-async def test_opentargets_with_limit(
-    adapter, response_validator, warning_manager
-):
+async def test_opentargets_with_limit(adapter, response_validator, warning_manager):
     """
     Test OpenTargets search with limit parameter.
 

@@ -100,7 +100,9 @@ class TestBioPortalSearchConcepts:
     @pytest.mark.asyncio
     async def test_search_filters_by_limit(self, adapter_with_api_key):
         """Test search_concepts respects limit."""
-        collection = [{"@id": f"http://example.com/{i}", "prefLabel": f"Term{i}"} for i in range(5)]
+        collection = [
+            {"@id": f"http://example.com/{i}", "prefLabel": f"Term{i}"} for i in range(5)
+        ]
         adapter_with_api_key._make_request = AsyncMock(return_value={"collection": collection})
         result = await adapter_with_api_key.search_concepts("test", limit=2)
         assert len(result) == 2
@@ -200,20 +202,33 @@ class TestBioPortalConvertResult:
 
     def test_convert_result_definitions_as_string(self, adapter_with_api_key):
         """Test conversion handles definition as string."""
-        result = {"@id": "http://example.com/1", "prefLabel": "Test", "definition": "single definition"}
+        result = {
+            "@id": "http://example.com/1",
+            "prefLabel": "Test",
+            "definition": "single definition",
+        }
         concept = adapter_with_api_key._convert_bioportal_result_to_concept(result)
         assert "single definition" in concept.definitions
 
     def test_convert_result_disease_type(self, adapter_with_api_key):
         """Test detects disease type."""
-        result = {"@id": "http://example.com/1", "prefLabel": "Test", "links": {"ontology": "http://data.bioontology.org/ontologies/DOID"}}
+        result = {
+            "@id": "http://example.com/1",
+            "prefLabel": "Test",
+            "links": {"ontology": "http://data.bioontology.org/ontologies/DOID"},
+        }
         concept = adapter_with_api_key._convert_bioportal_result_to_concept(result)
         assert concept.concept_type == ConceptType.DISEASE
 
     def test_convert_result_exception(self, adapter_with_api_key):
         """Test handles exceptions."""
-        with patch("knowledge_lookup.adapters.bioportal_adapter.UnifiedConcept", side_effect=Exception("Error")):
-            result = adapter_with_api_key._convert_bioportal_result_to_concept({"@id": "test", "prefLabel": "test"})
+        with patch(
+            "knowledge_lookup.adapters.bioportal_adapter.UnifiedConcept",
+            side_effect=Exception("Error"),
+        ):
+            result = adapter_with_api_key._convert_bioportal_result_to_concept(
+                {"@id": "test", "prefLabel": "test"}
+            )
             assert result is None
 
 
@@ -273,14 +288,23 @@ class TestBioPortalConvertConcept:
 
     def test_convert_concept_children_no_atid(self, adapter_with_api_key):
         """Test children without @id are filtered out."""
-        data = {"@id": "http://example.com/1", "prefLabel": "Test", "children": [{"name": "no_id"}]}
+        data = {
+            "@id": "http://example.com/1",
+            "prefLabel": "Test",
+            "children": [{"name": "no_id"}],
+        }
         concept = adapter_with_api_key._convert_bioportal_concept_to_unified(data)
         assert concept.children == []
 
     def test_convert_concept_exception(self, adapter_with_api_key):
         """Test handles exceptions."""
-        with patch("knowledge_lookup.adapters.bioportal_adapter.UnifiedConcept", side_effect=Exception("Error")):
-            result = adapter_with_api_key._convert_bioportal_concept_to_unified({"@id": "test", "prefLabel": "test"})
+        with patch(
+            "knowledge_lookup.adapters.bioportal_adapter.UnifiedConcept",
+            side_effect=Exception("Error"),
+        ):
+            result = adapter_with_api_key._convert_bioportal_concept_to_unified(
+                {"@id": "test", "prefLabel": "test"}
+            )
             assert result is None
 
 
@@ -293,19 +317,33 @@ class TestBioPortalDetermineConceptType:
         return BioPortalAdapter(config)
 
     def test_disease_type_doid(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("DOID") == ConceptType.DISEASE
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("DOID")
+            == ConceptType.DISEASE
+        )
 
     def test_disease_type_mondo(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("MONDO") == ConceptType.DISEASE
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("MONDO")
+            == ConceptType.DISEASE
+        )
 
     def test_disease_type_ordo(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("ORDO") == ConceptType.DISEASE
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("ORDO")
+            == ConceptType.DISEASE
+        )
 
     def test_drug_type_chebi(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("CHEBI") == ConceptType.DRUG
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("CHEBI") == ConceptType.DRUG
+        )
 
     def test_drug_type_drugbank(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("DrugBank") == ConceptType.DRUG
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("DrugBank")
+            == ConceptType.DRUG
+        )
 
     def test_gene_type_go(self, adapter_with_api_key):
         assert adapter_with_api_key._determine_concept_type_from_ontology("GO") == ConceptType.GENE
@@ -314,19 +352,37 @@ class TestBioPortalDetermineConceptType:
         assert adapter_with_api_key._determine_concept_type_from_ontology("SO") == ConceptType.GENE
 
     def test_anatomy_type_uberon(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("UBERON") == ConceptType.ANATOMY
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("UBERON")
+            == ConceptType.ANATOMY
+        )
 
     def test_anatomy_type_fma(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("FMA") == ConceptType.ANATOMY
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("FMA")
+            == ConceptType.ANATOMY
+        )
 
     def test_phenotype_type_hp(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("HP") == ConceptType.PHENOTYPE
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("HP")
+            == ConceptType.PHENOTYPE
+        )
 
     def test_phenotype_type_mp(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("MP") == ConceptType.PHENOTYPE
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("MP")
+            == ConceptType.PHENOTYPE
+        )
 
     def test_unknown_type(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("UNKNOWN") == ConceptType.UNKNOWN
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("UNKNOWN")
+            == ConceptType.UNKNOWN
+        )
 
     def test_case_insensitive(self, adapter_with_api_key):
-        assert adapter_with_api_key._determine_concept_type_from_ontology("doid") == ConceptType.DISEASE
+        assert (
+            adapter_with_api_key._determine_concept_type_from_ontology("doid")
+            == ConceptType.DISEASE
+        )

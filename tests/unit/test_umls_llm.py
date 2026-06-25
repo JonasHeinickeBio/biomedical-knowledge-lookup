@@ -22,20 +22,22 @@ from knowledge_lookup.umls.llm import (
 @pytest.fixture
 def mock_adapter():
     adapter = MagicMock()
-    adapter.search_concepts = AsyncMock(return_value=[
-        UnifiedConcept(
-            primary_id="C0027051",
-            primary_label="Myocardial Infarction",
-            concept_type=ConceptType.DISEASE,
-            confidence_score=0.95,
-        ),
-        UnifiedConcept(
-            primary_id="C0011849",
-            primary_label="Diabetes Mellitus",
-            concept_type=ConceptType.DISEASE,
-            confidence_score=0.85,
-        ),
-    ])
+    adapter.search_concepts = AsyncMock(
+        return_value=[
+            UnifiedConcept(
+                primary_id="C0027051",
+                primary_label="Myocardial Infarction",
+                concept_type=ConceptType.DISEASE,
+                confidence_score=0.95,
+            ),
+            UnifiedConcept(
+                primary_id="C0011849",
+                primary_label="Diabetes Mellitus",
+                concept_type=ConceptType.DISEASE,
+                confidence_score=0.85,
+            ),
+        ]
+    )
     return adapter
 
 
@@ -128,9 +130,16 @@ class TestLLMNormalizer:
 
     @pytest.mark.asyncio
     async def test_batch_normalize(self, mock_adapter, mock_llm_backend):
-        mock_adapter.search_concepts = AsyncMock(return_value=[
-            UnifiedConcept(primary_id="C001", primary_label="Test", concept_type=ConceptType.DISEASE, confidence_score=0.9),
-        ])
+        mock_adapter.search_concepts = AsyncMock(
+            return_value=[
+                UnifiedConcept(
+                    primary_id="C001",
+                    primary_label="Test",
+                    concept_type=ConceptType.DISEASE,
+                    confidence_score=0.9,
+                ),
+            ]
+        )
         normalizer = LLMNormalizer(
             mock_adapter,
             backend=mock_llm_backend,

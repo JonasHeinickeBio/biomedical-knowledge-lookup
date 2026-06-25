@@ -51,7 +51,11 @@ class TestHPOAdapter:
         """Test search_concepts when API returns terms (lines 39-42)."""
         hpo_data = {
             "terms": [
-                {"id": "HP:0000118", "name": "Phenotypic abnormality", "synonyms": ["abnormal phenotype"]},
+                {
+                    "id": "HP:0000118",
+                    "name": "Phenotypic abnormality",
+                    "synonyms": ["abnormal phenotype"],
+                },
                 {"id": "HP:0000819", "name": "Diabetes mellitus", "synonyms": ["diabetes"]},
             ]
         }

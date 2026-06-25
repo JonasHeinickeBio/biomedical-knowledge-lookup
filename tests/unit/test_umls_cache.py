@@ -167,10 +167,17 @@ class TestUMLSCache:
 
     def test_cache_and_get_mappings(self, cache: UMLSCache):
         cache.cache_search_result("C001", "Diabetes")
-        cache.cache_mappings("C001", [
-            {"source": "SNOMEDCT", "source_id": "73211009", "source_name": "Diabetes mellitus"},
-            {"source": "ICD10CM", "source_id": "E11", "source_name": "Type 2 diabetes"},
-        ])
+        cache.cache_mappings(
+            "C001",
+            [
+                {
+                    "source": "SNOMEDCT",
+                    "source_id": "73211009",
+                    "source_name": "Diabetes mellitus",
+                },
+                {"source": "ICD10CM", "source_id": "E11", "source_name": "Type 2 diabetes"},
+            ],
+        )
 
         mappings = cache.get_mappings("C001")
         assert len(mappings) == 2
@@ -178,10 +185,13 @@ class TestUMLSCache:
 
     def test_get_mappings_filtered_by_source(self, cache: UMLSCache):
         cache.cache_search_result("C001", "Diabetes")
-        cache.cache_mappings("C001", [
-            {"source": "SNOMEDCT", "source_id": "73211009", "source_name": "Diabetes"},
-            {"source": "ICD10CM", "source_id": "E11", "source_name": "Diabetes"},
-        ])
+        cache.cache_mappings(
+            "C001",
+            [
+                {"source": "SNOMEDCT", "source_id": "73211009", "source_name": "Diabetes"},
+                {"source": "ICD10CM", "source_id": "E11", "source_name": "Diabetes"},
+            ],
+        )
 
         mappings = cache.get_mappings("C001", target_source="SNOMEDCT")
         assert len(mappings) == 1
@@ -191,10 +201,23 @@ class TestUMLSCache:
 
     def test_cache_and_get_relationships(self, cache: UMLSCache):
         cache.cache_search_result("C001", "Diabetes")
-        cache.cache_relationships("C001", [
-            {"relation_label": "PAR", "related_id": "C000", "related_name": "Parent", "source": "SNOMEDCT"},
-            {"relation_label": "CHD", "related_id": "C002", "related_name": "Child", "source": "SNOMEDCT"},
-        ])
+        cache.cache_relationships(
+            "C001",
+            [
+                {
+                    "relation_label": "PAR",
+                    "related_id": "C000",
+                    "related_name": "Parent",
+                    "source": "SNOMEDCT",
+                },
+                {
+                    "relation_label": "CHD",
+                    "related_id": "C002",
+                    "related_name": "Child",
+                    "source": "SNOMEDCT",
+                },
+            ],
+        )
 
         rels = cache.get_relationships("C001")
         assert len(rels) == 2

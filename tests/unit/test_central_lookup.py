@@ -356,8 +356,7 @@ class TestCentralKnowledgeLookup:
         """Test format_results_table with >20 concepts shows 'more' line."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
         concepts = [
-            UnifiedConcept(primary_id=f"ID{i}", primary_label=f"Concept {i}")
-            for i in range(25)
+            UnifiedConcept(primary_id=f"ID{i}", primary_label=f"Concept {i}") for i in range(25)
         ]
         result = LookupResult(query="test", concepts=concepts)
         table = lookup.format_results_table(result)
@@ -440,9 +439,7 @@ class TestCentralKnowledgeLookup:
         )
         mock_adapter.search_concepts.return_value = [c1, c2]
 
-        result = await lookup.search_concepts(
-            "test", concept_types=[ConceptType.DISEASE]
-        )
+        result = await lookup.search_concepts("test", concept_types=[ConceptType.DISEASE])
         assert len(result.concepts) == 1
         assert result.concepts[0].concept_type == ConceptType.DISEASE
 
@@ -457,9 +454,7 @@ class TestCentralKnowledgeLookup:
             UnifiedConcept(primary_id="ID1", primary_label="C1")
         ]
 
-        result = await lookup.search_concepts(
-            "test", sources=[KnowledgeSource.BIOPORTAL]
-        )
+        result = await lookup.search_concepts("test", sources=[KnowledgeSource.BIOPORTAL])
         assert result.total_found == 1
 
     @pytest.mark.asyncio
@@ -562,10 +557,7 @@ class TestCentralKnowledgeLookup:
     def test_format_results_detailed_many_concepts(self):
         """Test format_results_detailed with >10 concepts."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
-        concepts = [
-            UnifiedConcept(primary_id=f"ID{i}", primary_label=f"C{i}")
-            for i in range(15)
-        ]
+        concepts = [UnifiedConcept(primary_id=f"ID{i}", primary_label=f"C{i}") for i in range(15)]
         result = LookupResult(query="test", concepts=concepts)
         output = lookup.format_results_detailed(result)
         assert "more results" in output
@@ -797,9 +789,7 @@ class TestCentralKnowledgeLookup:
         lookup.adapters[KnowledgeSource.BIOPORTAL] = mock_adapter
         mock_adapter.search_concepts.side_effect = Exception("boom")
 
-        result = await lookup._search_parallel(
-            "q", [KnowledgeSource.BIOPORTAL], 10
-        )
+        result = await lookup._search_parallel("q", [KnowledgeSource.BIOPORTAL], 10)
         assert isinstance(result[KnowledgeSource.BIOPORTAL], Exception)
 
     @pytest.mark.asyncio
@@ -809,9 +799,7 @@ class TestCentralKnowledgeLookup:
         lookup.adapters[KnowledgeSource.BIOPORTAL] = mock_adapter
         mock_adapter.search_concepts.side_effect = Exception("boom")
 
-        result = await lookup._search_sequential(
-            "q", [KnowledgeSource.BIOPORTAL], 10
-        )
+        result = await lookup._search_sequential("q", [KnowledgeSource.BIOPORTAL], 10)
         assert isinstance(result[KnowledgeSource.BIOPORTAL], Exception)
 
     @pytest.mark.asyncio
@@ -819,9 +807,7 @@ class TestCentralKnowledgeLookup:
         """Test _search_single_source when adapter not available."""
         lookup = CentralKnowledgeLookup(auto_initialize=False)
         with pytest.raises(ValueError, match="not available"):
-            await lookup._search_single_source(
-                KnowledgeSource.BIOPORTAL, "q", 10
-            )
+            await lookup._search_single_source(KnowledgeSource.BIOPORTAL, "q", 10)
 
     def test_init_adapters_exception_handling(self):
         """Test _initialize_adapters handles exceptions."""

@@ -18,17 +18,19 @@ from knowledge_lookup.umls.batch import BatchProcessor, BatchResult
 @pytest.fixture
 def mock_adapter():
     adapter = MagicMock()
-    adapter.search_concepts = AsyncMock(return_value=[
-        UnifiedConcept(
-            primary_id=f"C{i:07d}",
-            primary_label=f"Concept {i}",
-            concept_type=ConceptType.DISEASE,
-            confidence_score=0.95,
-            definitions=[f"Definition {i}"],
-            synonyms=[f"Synonym {i}"],
-        )
-        for i in range(1, 4)
-    ])
+    adapter.search_concepts = AsyncMock(
+        return_value=[
+            UnifiedConcept(
+                primary_id=f"C{i:07d}",
+                primary_label=f"Concept {i}",
+                concept_type=ConceptType.DISEASE,
+                confidence_score=0.95,
+                definitions=[f"Definition {i}"],
+                synonyms=[f"Synonym {i}"],
+            )
+            for i in range(1, 4)
+        ]
+    )
     return adapter
 
 
@@ -65,11 +67,21 @@ class TestBatchProcessor:
     @pytest.mark.asyncio
     async def test_process_terms_some_fail(self, batch_processor):
         # Make the second call fail
-        batch_processor.adapter.search_concepts = AsyncMock(side_effect=[
-            [UnifiedConcept(primary_id="C001", primary_label="OK", concept_type=ConceptType.DISEASE)],
-            Exception("API error"),
-            [UnifiedConcept(primary_id="C002", primary_label="OK2", concept_type=ConceptType.DISEASE)],
-        ])
+        batch_processor.adapter.search_concepts = AsyncMock(
+            side_effect=[
+                [
+                    UnifiedConcept(
+                        primary_id="C001", primary_label="OK", concept_type=ConceptType.DISEASE
+                    )
+                ],
+                Exception("API error"),
+                [
+                    UnifiedConcept(
+                        primary_id="C002", primary_label="OK2", concept_type=ConceptType.DISEASE
+                    )
+                ],
+            ]
+        )
         terms = ["good", "bad", "good2"]
         result = await batch_processor.process_terms(terms, limit=3)
         assert result.succeeded == 2
@@ -80,7 +92,9 @@ class TestBatchProcessor:
     @pytest.mark.asyncio
     async def test_process_terms_respects_skip_cuis(self, batch_processor):
         terms = ["diabetes", "asthma"]
-        result = await batch_processor.process_terms(terms, limit=3, skip_cuis={"C0000001", "C0000002"})
+        result = await batch_processor.process_terms(
+            terms, limit=3, skip_cuis={"C0000001", "C0000002"}
+        )
         assert result.succeeded == 2
         # CUIs from mock are C0000001, C0000002, C0000003 — but the mock generates C0000001 etc
         # Actually mock generates C0000001.. with 7-digit CUIs, so let me check
@@ -157,6 +171,7 @@ class TestBatchProcessor:
     @pytest.mark.asyncio
     async def test_process_file_csv(self, batch_processor, tmp_path):
         import csv
+
         csv_path = tmp_path / "terms.csv"
         with open(csv_path, "w", newline="") as f:
             w = csv.writer(f)
@@ -181,6 +196,7 @@ class TestBatchProcessor:
         out = tmp_path / "output.ttl"
         batch_processor._write_output(result, out, "rdf")
         assert out.exists()
+
     @pytest.mark.asyncio
     async def test_write_output_json_default(self, batch_processor, tmp_path):
         result = await batch_processor.process_terms(["diabetes"], limit=3)
@@ -194,6 +210,7 @@ class TestBatchProcessor:
         import csv
 
         from knowledge_lookup.umls.batch import BatchProcessor
+
         csv_path = tmp_path / "test.csv"
         with open(csv_path, "w", newline="") as f:
             w = csv.writer(f)
@@ -206,6 +223,7 @@ class TestBatchProcessor:
 
     def test_load_terms_txt(self, tmp_path):
         from knowledge_lookup.umls.batch import BatchProcessor
+
         txt = tmp_path / "test.txt"
         txt.write_text("diabetes\nasthma\n")
         terms = BatchProcessor._load_terms(txt)
@@ -213,6 +231,7 @@ class TestBatchProcessor:
 
     def test_load_terms_json_list(self, tmp_path):
         from knowledge_lookup.umls.batch import BatchProcessor
+
         js = tmp_path / "test.json"
         js.write_text(json.dumps(["diabetes", "asthma"]))
         terms = BatchProcessor._load_terms(js)
@@ -220,17 +239,15 @@ class TestBatchProcessor:
 
     def test_load_existing_cuis(self, tmp_path):
         from knowledge_lookup.umls.batch import BatchProcessor
+
         out = tmp_path / "existing.json"
-        data = {
-            "results": [
-                {"query": "test", "concepts": [{"cui": "C001"}, {"cui": "C002"}]}
-            ]
-        }
+        data = {"results": [{"query": "test", "concepts": [{"cui": "C001"}, {"cui": "C002"}]}]}
         out.write_text(json.dumps(data))
         cuis = BatchProcessor._load_existing_cuis(out)
         assert cuis == {"C001", "C002"}
 
     def test_load_existing_cuis_nonexistent_file(self, tmp_path):
         from knowledge_lookup.umls.batch import BatchProcessor
+
         cuis = BatchProcessor._load_existing_cuis(tmp_path / "nonexistent.json")
         assert cuis == set()

@@ -101,9 +101,7 @@ class TestDBpediaAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_no_results(self, adapter):
         """Test search_concepts returns empty with no results."""
-        with patch.object(
-            adapter, "run_sparql_query", new_callable=AsyncMock, return_value={}
-        ):
+        with patch.object(adapter, "run_sparql_query", new_callable=AsyncMock, return_value={}):
             results = await adapter.search_concepts("nonexistent")
         assert results == []
 
@@ -191,9 +189,7 @@ class TestDBpediaAdapter:
     @pytest.mark.asyncio
     async def test_get_concept_details_no_results(self, adapter):
         """Test get_concept_details returns None with no results."""
-        with patch.object(
-            adapter, "run_sparql_query", new_callable=AsyncMock, return_value={}
-        ):
+        with patch.object(adapter, "run_sparql_query", new_callable=AsyncMock, return_value={}):
             result = await adapter.get_concept_details("Aspirin")
         assert result is None
 
@@ -449,7 +445,9 @@ class TestDBpediaAdapter:
             call_args = mock.call_args
             # _make_request(self, url, params, headers, json_data) -> call_args[1] has kwargs
             # but run_sparql_query passes params as keyword arg
-            params = call_args.kwargs.get("params") or (call_args.args[1] if len(call_args.args) > 1 else None)
+            params = call_args.kwargs.get("params") or (
+                call_args.args[1] if len(call_args.args) > 1 else None
+            )
             assert params is not None
             assert "LIMIT 10" in params["query"]
 
@@ -461,7 +459,9 @@ class TestDBpediaAdapter:
         ) as mock:
             await adapter.run_sparql_query("SELECT ?s WHERE { ?s ?p ?o } LIMIT 5")
             call_args = mock.call_args
-            params = call_args.kwargs.get("params") or (call_args.args[1] if len(call_args.args) > 1 else None)
+            params = call_args.kwargs.get("params") or (
+                call_args.args[1] if len(call_args.args) > 1 else None
+            )
             assert params is not None
             assert params["query"].count("LIMIT") == 1
 
@@ -473,6 +473,8 @@ class TestDBpediaAdapter:
         ) as mock:
             await adapter.run_sparql_query("SELECT ?s WHERE { ?s ?p ?o }")
             call_args = mock.call_args
-            params = call_args.kwargs.get("params") or (call_args.args[1] if len(call_args.args) > 1 else None)
+            params = call_args.kwargs.get("params") or (
+                call_args.args[1] if len(call_args.args) > 1 else None
+            )
             assert params is not None
             assert "LIMIT" not in params["query"]

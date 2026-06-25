@@ -34,6 +34,7 @@ class StubBackend(EmbeddingBackend):
         # Deterministic hash-based embedding
         h = hash(text)
         import random
+
         rng = random.Random(h)
         vec = [rng.random() for _ in range(self.dimension)]
         norm = math.sqrt(sum(v * v for v in vec))
@@ -46,20 +47,27 @@ class StubBackend(EmbeddingBackend):
 @pytest.fixture
 def mock_adapter():
     adapter = MagicMock()
-    adapter.search_concepts = AsyncMock(return_value=[
-        UnifiedConcept(
-            primary_id=c,
-            primary_label=label,
+    adapter.search_concepts = AsyncMock(
+        return_value=[
+            UnifiedConcept(
+                primary_id=c,
+                primary_label=label,
+                concept_type=ConceptType.DISEASE,
+                confidence_score=0.9,
+            )
+            for c, label in [
+                ("C0011849", "Diabetes Mellitus"),
+                ("C0027051", "Myocardial Infarction"),
+            ]
+        ]
+    )
+    adapter.get_concept_details = AsyncMock(
+        return_value=UnifiedConcept(
+            primary_id="C0011849",
+            primary_label="Diabetes Mellitus",
             concept_type=ConceptType.DISEASE,
-            confidence_score=0.9,
         )
-        for c, label in [("C0011849", "Diabetes Mellitus"), ("C0027051", "Myocardial Infarction")]
-    ])
-    adapter.get_concept_details = AsyncMock(return_value=UnifiedConcept(
-        primary_id="C0011849",
-        primary_label="Diabetes Mellitus",
-        concept_type=ConceptType.DISEASE,
-    ))
+    )
     return adapter
 
 

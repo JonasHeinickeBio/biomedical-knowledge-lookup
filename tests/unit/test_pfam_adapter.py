@@ -10,6 +10,8 @@ from knowledge_lookup.adapters.pfam_adapter import PfamAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 pytestmark = pytest.mark.unit
+
+
 class TestPfamAdapter:
     """Tests for PfamAdapter."""
 

@@ -63,6 +63,7 @@ class Timer:
 # Safe wrappers — prevent any individual call from hanging the suite
 # ---------------------------------------------------------------------------
 
+
 async def _search_safe(
     lookup: CentralKnowledgeLookup,
     query: str,
@@ -102,12 +103,22 @@ async def _details_safe(
 # 1. Single-source latency
 # ---------------------------------------------------------------------------
 
+
 async def bench_single_source(lookup: CentralKnowledgeLookup) -> list[BenchResult]:
     """Measure search latency per adapter."""
     results: list[BenchResult] = []
 
     # Skip adapters known to hang during bulk benchmarks
-    SKIP = {"chembl", "eutils", "europepmc", "opentargets", "biolinker", "quickgo", "unichem", "string"}
+    SKIP = {
+        "chembl",
+        "eutils",
+        "europepmc",
+        "opentargets",
+        "biolinker",
+        "quickgo",
+        "unichem",
+        "string",
+    }
     sources = sorted(
         (s for s in lookup.adapters if s.value not in SKIP),
         key=lambda s: s.value,
@@ -140,6 +151,7 @@ async def bench_single_source(lookup: CentralKnowledgeLookup) -> list[BenchResul
 # 2. Parallel vs sequential speedup
 # ---------------------------------------------------------------------------
 
+
 async def bench_parallel_vs_sequential(
     lookup: CentralKnowledgeLookup,
     source_sets: list[list[KnowledgeSource]],
@@ -164,8 +176,7 @@ async def bench_parallel_vs_sequential(
                 label=f"speedup_{len(sources)}src",
                 duration_s=par_t,
                 detail=(
-                    f"sequential={seq_t:.3f}s  parallel={par_t:.3f}s  "
-                    f"speedup={speedup:.2f}x"
+                    f"sequential={seq_t:.3f}s  parallel={par_t:.3f}s  " f"speedup={speedup:.2f}x"
                 ),
                 extra={
                     "n_sources": len(sources),
@@ -183,6 +194,7 @@ async def bench_parallel_vs_sequential(
 # ---------------------------------------------------------------------------
 # 3. Circuit-breaker graceful degradation
 # ---------------------------------------------------------------------------
+
 
 async def bench_circuit_breaker(lookup: CentralKnowledgeLookup) -> list[BenchResult]:
     """Demonstrate circuit breaker isolation.
@@ -206,7 +218,9 @@ async def bench_circuit_breaker(lookup: CentralKnowledgeLookup) -> list[BenchRes
     for _ in range(15):
         t = Timer()
         with t:
-            await _search_safe(lookup, "diabetes", [KnowledgeSource.OLS, KnowledgeSource.MONDO], timeout=8.0)
+            await _search_safe(
+                lookup, "diabetes", [KnowledgeSource.OLS, KnowledgeSource.MONDO], timeout=8.0
+            )
         timings.append(t.elapsed)
 
     await ols.session.close()
@@ -246,6 +260,7 @@ async def bench_circuit_breaker(lookup: CentralKnowledgeLookup) -> list[BenchRes
 # 4. Concurrent search throughput
 # ---------------------------------------------------------------------------
 
+
 async def bench_concurrent_throughput(
     lookup: CentralKnowledgeLookup,
 ) -> list[BenchResult]:
@@ -269,7 +284,9 @@ async def bench_concurrent_throughput(
     # Concurrent
     t = Timer()
     with t:
-        await asyncio.gather(*[_search_safe(lookup, q, sources, timeout=10.0) for q in TEST_QUERIES[:5]])
+        await asyncio.gather(
+            *[_search_safe(lookup, q, sources, timeout=10.0) for q in TEST_QUERIES[:5]]
+        )
     con_t = t.elapsed
 
     speedup = seq_t / con_t if con_t > 0 else 0.0
@@ -296,6 +313,7 @@ async def bench_concurrent_throughput(
 # ---------------------------------------------------------------------------
 # 5. Multi-source annotator
 # ---------------------------------------------------------------------------
+
 
 async def bench_annotator() -> list[BenchResult]:
     """Measure annotator throughput."""
@@ -371,10 +389,22 @@ async def run_all(quick: bool = False) -> dict[str, list[BenchResult]]:
     # Source sets for parallel speedup (from fastest adapters)
     available = list(lookup.adapters.keys())
     FAST_ORDER = {
-        "tyto": 0, "hpo": 0, "hgnc": 0, "geneontology": 0,
-        "mondo": 1, "ebiols": 1, "obofoundry": 1, "ols": 1,
-        "clinvar": 1, "uniprot": 1, "umls": 1, "wikidata": 2,
-        "bioportal": 2, "bioontology": 2, "kegg": 2, "pdb": 2,
+        "tyto": 0,
+        "hpo": 0,
+        "hgnc": 0,
+        "geneontology": 0,
+        "mondo": 1,
+        "ebiols": 1,
+        "obofoundry": 1,
+        "ols": 1,
+        "clinvar": 1,
+        "uniprot": 1,
+        "umls": 1,
+        "wikidata": 2,
+        "bioportal": 2,
+        "bioontology": 2,
+        "kegg": 2,
+        "pdb": 2,
     }
     sorted_srcs = sorted(available, key=lambda s: FAST_ORDER.get(s.value, 9))
     source_sets = [sorted_srcs[:2], sorted_srcs[:4], sorted_srcs[:6]]
@@ -407,6 +437,7 @@ async def run_all(quick: bool = False) -> dict[str, list[BenchResult]]:
 # ---------------------------------------------------------------------------
 # Report formatting
 # ---------------------------------------------------------------------------
+
 
 def print_report(results: dict[str, list[BenchResult]]) -> None:
     """Pretty-print benchmark results."""
@@ -463,8 +494,10 @@ def print_report(results: dict[str, list[BenchResult]]) -> None:
         if ok:
             fastest = min(ok, key=lambda b: b.duration_s)
             slowest = max(ok, key=lambda b: b.duration_s)
-            print(f"\n▶ SINGLE-SOURCE: fastest={fastest.label} ({fastest.duration_s:.3f}s), "
-                  f"slowest={slowest.label} ({slowest.duration_s:.3f}s)")
+            print(
+                f"\n▶ SINGLE-SOURCE: fastest={fastest.label} ({fastest.duration_s:.3f}s), "
+                f"slowest={slowest.label} ({slowest.duration_s:.3f}s)"
+            )
             responded = len(ok)
             total = len(ss)
             print(f"   adapter response rate: {responded}/{total} ({100 * responded // total}%)")

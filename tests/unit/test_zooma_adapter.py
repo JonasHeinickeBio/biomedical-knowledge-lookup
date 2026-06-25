@@ -88,9 +88,7 @@ class TestZoomaSearchConcepts:
                 "semanticTags": ["http://purl.obolibrary.org/obo/DOID_9351"],
                 "annotatedProperty": {"propertyValue": "diabetes"},
                 "confidence": "HIGH",
-                "derivedFrom": {
-                    "provenance": {"source": {"name": "test_source"}}
-                },
+                "derivedFrom": {"provenance": {"source": {"name": "test_source"}}},
             }
         ]
         adapter._make_request = AsyncMock(return_value=data)
@@ -150,9 +148,7 @@ class TestZoomaConvertResult:
             "semanticTags": ["http://purl.obolibrary.org/obo/DOID_9351"],
             "annotatedProperty": {"propertyValue": "diabetes"},
             "confidence": "HIGH",
-            "derivedFrom": {
-                "provenance": {"source": {"name": "test_source"}}
-            },
+            "derivedFrom": {"provenance": {"source": {"name": "test_source"}}},
         }
         concept = adapter._convert_zooma_result_to_concept(result)
         assert concept is not None
@@ -235,9 +231,7 @@ class TestZoomaConvertResult:
             "semanticTags": ["http://example.com/1"],
             "annotatedProperty": {"propertyValue": "test"},
             "confidence": "HIGH",
-            "derivedFrom": {
-                "provenance": {"source": {"name": ""}}
-            },
+            "derivedFrom": {"provenance": {"source": {"name": ""}}},
         }
         concept = adapter._convert_zooma_result_to_concept(result)
         assert concept is not None

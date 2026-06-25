@@ -126,7 +126,9 @@ class TestOntologyConceptLoader:
         assert name == "Disease"
 
     def test_create_dynamic_concept_types(self, loader):
-        with patch.object(loader, "extract_concept_classes", return_value={"Disease": "Disease", "Gene": "Gene"}):
+        with patch.object(
+            loader, "extract_concept_classes", return_value={"Disease": "Disease", "Gene": "Gene"}
+        ):
             mapping = loader.create_dynamic_concept_types()
             assert mapping["Disease"] == "DISEASE"
             assert mapping["Gene"] == "GENE"
@@ -175,6 +177,7 @@ class TestGetDynamicConceptHandlersExtended:
                 GeneHandler,
                 ProteinHandler,
             )
+
             assert handlers["DISEASE"] is DiseaseHandler
             assert handlers["GENE"] is GeneHandler
             assert handlers["PROTEIN"] is ProteinHandler

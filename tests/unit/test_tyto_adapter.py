@@ -37,6 +37,7 @@ class TestTytoAdapter:
     def test_is_available_without_tyto(self):
         """Test is_available when tyto is not available."""
         import knowledge_lookup.adapters.tyto_adapter as mod
+
         original_tyto = mod.tyto
         try:
             mod.tyto = None
@@ -49,6 +50,7 @@ class TestTytoAdapter:
     async def test_get_concept_details_no_tyto(self):
         """Test get_concept_details when tyto is None."""
         import knowledge_lookup.adapters.tyto_adapter as mod
+
         original_tyto = mod.tyto
         try:
             mod.tyto = None
@@ -68,6 +70,7 @@ class TestTytoAdapter:
     async def test_get_concept_details_with_tyto_success(self):
         """Test get_concept_details with successful tyto lookup."""
         import knowledge_lookup.adapters.tyto_adapter as mod
+
         mock_tyto = MagicMock()
         mock_tyto.get_label.return_value = "Diabetes mellitus"
 
@@ -86,6 +89,7 @@ class TestTytoAdapter:
     async def test_get_concept_details_with_tyto_no_label(self):
         """Test get_concept_details when tyto returns None label."""
         import knowledge_lookup.adapters.tyto_adapter as mod
+
         mock_tyto = MagicMock()
         mock_tyto.get_label.return_value = None
 
@@ -102,6 +106,7 @@ class TestTytoAdapter:
     async def test_get_concept_details_with_tyto_empty_label(self):
         """Test get_concept_details when tyto returns empty string label."""
         import knowledge_lookup.adapters.tyto_adapter as mod
+
         mock_tyto = MagicMock()
         mock_tyto.get_label.return_value = ""
 
@@ -118,6 +123,7 @@ class TestTytoAdapter:
     async def test_get_concept_details_with_tyto_exception(self):
         """Test get_concept_details when tyto raises exception."""
         import knowledge_lookup.adapters.tyto_adapter as mod
+
         mock_tyto = MagicMock()
         mock_tyto.get_label.side_effect = Exception("Ontology error")
 

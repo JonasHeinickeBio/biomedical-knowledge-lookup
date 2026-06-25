@@ -45,13 +45,14 @@ class APIResponseValidator:
 
     def generate_hash(self, data: Any) -> str:
         """Generate a hash for response data to detect changes."""
+
         def convert_for_json(obj: Any) -> Any:
             """Recursively convert objects to JSON-serializable format."""
             if isinstance(obj, dict):
                 return {str(k): convert_for_json(v) for k, v in obj.items()}
             elif isinstance(obj, list):
                 return [convert_for_json(item) for item in obj]
-            elif hasattr(obj, '__dict__'):
+            elif hasattr(obj, "__dict__"):
                 return convert_for_json(obj.__dict__)
             else:
                 return obj
@@ -69,10 +70,16 @@ class APIResponseValidator:
         for key, value in data.items():
             keys.add(f"{path}.{key}" if path else key)
             if isinstance(value, dict):
-                keys.update(self.extract_keys(value, f"{path}.{key}" if path else key, max_depth - 1))
+                keys.update(
+                    self.extract_keys(value, f"{path}.{key}" if path else key, max_depth - 1)
+                )
             elif isinstance(value, list) and len(value) > 0:
                 if isinstance(value[0], dict):
-                    keys.update(self.extract_keys(value[0], f"{path}.{key}[0]" if path else key, max_depth - 1))
+                    keys.update(
+                        self.extract_keys(
+                            value[0], f"{path}.{key}[0]" if path else key, max_depth - 1
+                        )
+                    )
 
         return keys
 
@@ -91,7 +98,9 @@ class APIResponseValidator:
                     types.update(self.extract_types(value, current_path, max_depth - 1))
                 elif isinstance(value, list) and len(value) > 0:
                     if isinstance(value[0], dict):
-                        types.update(self.extract_types(value[0], f"{current_path}[0]", max_depth - 1))
+                        types.update(
+                            self.extract_types(value[0], f"{current_path}[0]", max_depth - 1)
+                        )
                     else:
                         types[current_path] = f"list[{type(value[0]).__name__}]"
         elif isinstance(data, list) and len(data) > 0:
@@ -102,10 +111,7 @@ class APIResponseValidator:
         return types
 
     def validate_response(
-        self,
-        cache_key: str,
-        response_data: dict[str, Any],
-        compare_with_previous: bool = True
+        self, cache_key: str, response_data: dict[str, Any], compare_with_previous: bool = True
     ) -> list[dict]:
         """
         Validate an API response against previous recordings.
@@ -131,18 +137,12 @@ class APIResponseValidator:
             added_keys = current_keys - previous_keys
 
             if removed_keys:
-                changes.append({
-                    "type": "keys_removed",
-                    "path": cache_key,
-                    "keys": list(removed_keys)
-                })
+                changes.append(
+                    {"type": "keys_removed", "path": cache_key, "keys": list(removed_keys)}
+                )
 
             if added_keys:
-                changes.append({
-                    "type": "keys_added",
-                    "path": cache_key,
-                    "keys": list(added_keys)
-                })
+                changes.append({"type": "keys_added", "path": cache_key, "keys": list(added_keys)})
 
             # Compare types
             previous_types = self.extract_types(previous)
@@ -150,22 +150,26 @@ class APIResponseValidator:
 
             for key in previous_types:
                 if key in current_types and previous_types[key] != current_types[key]:
-                    changes.append({
-                        "type": "type_changed",
-                        "path": cache_key,
-                        "field": key,
-                        "old_type": previous_types[key],
-                        "new_type": current_types[key]
-                    })
+                    changes.append(
+                        {
+                            "type": "type_changed",
+                            "path": cache_key,
+                            "field": key,
+                            "old_type": previous_types[key],
+                            "new_type": current_types[key],
+                        }
+                    )
 
         # Update current response
         if cache_key not in self.previous_responses:
             self.previous_responses[cache_key] = response_data
-            changes.append({
-                "type": "new_response",
-                "path": cache_key,
-                "hash": self.generate_hash(response_data)
-            })
+            changes.append(
+                {
+                    "type": "new_response",
+                    "path": cache_key,
+                    "hash": self.generate_hash(response_data),
+                }
+            )
 
         self.current_changes.extend(changes)
         return changes
@@ -188,19 +192,19 @@ class APIResponseValidator:
             print(f"Type: {change['type']}")
             print(f"  Path: {change['path']}")
 
-            if change['type'] == 'keys_removed':
+            if change["type"] == "keys_removed":
                 print(f"  Removed keys: {', '.join(change['keys'][:5])}")
-                if len(change['keys']) > 5:
+                if len(change["keys"]) > 5:
                     print(f"  ... and {len(change['keys']) - 5} more")
-            elif change['type'] == 'keys_added':
+            elif change["type"] == "keys_added":
                 print(f"  Added keys: {', '.join(change['keys'][:5])}")
-                if len(change['keys']) > 5:
+                if len(change["keys"]) > 5:
                     print(f"  ... and {len(change['keys']) - 5} more")
-            elif change['type'] == 'type_changed':
+            elif change["type"] == "type_changed":
                 print(f"  Field: {change['field']}")
                 print(f"  Old type: {change['old_type']}")
                 print(f"  New type: {change['new_type']}")
-            elif change['type'] == 'new_response':
+            elif change["type"] == "new_response":
                 print(f"  Hash: {change['hash']}")
 
             print()
@@ -220,9 +224,7 @@ def get_validator(source_name: str) -> APIResponseValidator:
 
 
 def validate_adapter_response(
-    source: str,
-    cache_key: str,
-    response_data: dict[str, Any]
+    source: str, cache_key: str, response_data: dict[str, Any]
 ) -> list[dict]:
     """
     Convenience function to validate an adapter response.

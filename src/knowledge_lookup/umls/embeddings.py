@@ -126,6 +126,7 @@ class FastTextBackend(EmbeddingBackend):
         else:
             # Use the small pretrained model
             import fasttext.util
+
             fasttext.util.download_model("en", if_exists="ignore")
             self._model = fasttext.load_model("cc.en.300.bin")
         self.dimension = self._model.get_dimension()
@@ -138,6 +139,7 @@ class FastTextBackend(EmbeddingBackend):
             vec = self._model.get_sentence_vector(text)
             # L2-normalize
             import math
+
             norm = math.sqrt(sum(v * v for v in vec))
             return [v / norm for v in vec] if norm > 0 else vec.tolist()
 
@@ -203,7 +205,9 @@ class EmbeddingCache:
     """
 
     def __init__(self, db_path: str | Path | None = None):
-        self._db_path = Path(db_path or (Path.home() / ".cache" / "knowledge-lookup" / "embeddings.db"))
+        self._db_path = Path(
+            db_path or (Path.home() / ".cache" / "knowledge-lookup" / "embeddings.db")
+        )
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
         self._init_db()
@@ -224,6 +228,7 @@ class EmbeddingCache:
     def get(self, text: str) -> list[float] | None:
         """Retrieve cached embedding for *text*."""
         import hashlib
+
         text_hash = hashlib.md5(text.encode()).hexdigest()
         with self._lock, sqlite3.connect(str(self._db_path)) as conn:
             row = conn.execute(
@@ -236,6 +241,7 @@ class EmbeddingCache:
     def set(self, text: str, vector: list[float]) -> None:
         """Store an embedding for *text*."""
         import hashlib
+
         text_hash = hashlib.md5(text.encode()).hexdigest()
         with self._lock, sqlite3.connect(str(self._db_path)) as conn:
             conn.execute(
@@ -310,7 +316,9 @@ class ConceptEmbedder:
         if isinstance(backend, str):
             backend_cls = self._BACKENDS.get(backend)
             if backend_cls is None:
-                raise ValueError(f"Unknown embedding backend '{backend}'. Options: {list(self._BACKENDS)}")
+                raise ValueError(
+                    f"Unknown embedding backend '{backend}'. Options: {list(self._BACKENDS)}"
+                )
             kwargs: dict[str, Any] = {}
             if api_key is not None:
                 kwargs["api_key"] = api_key
@@ -320,9 +328,7 @@ class ConceptEmbedder:
         else:
             self._backend = backend
 
-        self._cache = EmbeddingCache(
-            Path(cache_dir) / "embeddings.db" if cache_dir else None
-        )
+        self._cache = EmbeddingCache(Path(cache_dir) / "embeddings.db" if cache_dir else None)
 
     async def embed(self, text: str) -> list[float]:
         """Compute (or retrieve cached) embedding for *text*."""

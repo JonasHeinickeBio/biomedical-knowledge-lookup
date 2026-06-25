@@ -19,13 +19,17 @@ def _make_gen_identifier(source="CHEMBL", identifier="CHEMBL1", label="Test", ur
     from knowledge_lookup.generated_models.biomedical_knowledge_models import (
         ConceptIdentifier as GenCI,
     )
+
     return GenCI(source=source, identifier=identifier, label=label, url=url)
 
 
-def _make_gen_mapping(from_id="CHEMBL1", to_id="PUBCHEM2", mapping_type="exact", confidence=1.0, source="test"):
+def _make_gen_mapping(
+    from_id="CHEMBL1", to_id="PUBCHEM2", mapping_type="exact", confidence=1.0, source="test"
+):
     from knowledge_lookup.generated_models.biomedical_knowledge_models import (
         ConceptMapping as GenCM,
     )
+
     return GenCM(
         from_concept=_make_gen_identifier("CHEMBL", from_id),
         to_concept=_make_gen_identifier("PUBCHEM", to_id),
@@ -54,6 +58,7 @@ def _make_gen_concept(
     from knowledge_lookup.generated_models.biomedical_knowledge_models import (
         UnifiedConcept as GenUC,
     )
+
     if identifiers is None:
         identifiers = [_make_gen_identifier()]
     if mappings is None:
@@ -87,7 +92,9 @@ class TestConvertConceptIdentifier:
         assert result.label == "Aspirin"
 
     def test_with_url(self):
-        gen_id = _make_gen_identifier(source="CHEMBL", identifier="C1", label="X", url="http://x.com")
+        gen_id = _make_gen_identifier(
+            source="CHEMBL", identifier="C1", label="X", url="http://x.com"
+        )
         result = convert_generated_concept_identifier(gen_id)
         assert result.url == "http://x.com"
 
@@ -95,6 +102,7 @@ class TestConvertConceptIdentifier:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
         )
+
         gen_id = _make_gen_identifier(source=GenKS.CHEMBL, identifier="C1")
         result = convert_generated_concept_identifier(gen_id)
         assert result.source == "CHEMBL"
@@ -117,6 +125,7 @@ class TestConvertConceptMapping:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             ConceptMapping as GenCM,
         )
+
         gen_map = GenCM(
             from_concept=_make_gen_identifier(),
             to_concept=_make_gen_identifier("PUBCHEM", "P2"),
@@ -136,7 +145,9 @@ class TestConvertConceptMapping:
 
 class TestConvertUnifiedConcept:
     def test_basic_conversion(self):
-        gen_concept = _make_gen_concept(synonyms=["syn1"], definitions=["def1"], semantic_types=["type1"], categories=["cat1"])
+        gen_concept = _make_gen_concept(
+            synonyms=["syn1"], definitions=["def1"], semantic_types=["type1"], categories=["cat1"]
+        )
         result = convert_generated_unified_concept(gen_concept)
         assert result.primary_id == "C1"
         assert result.primary_label == "Concept1"
@@ -149,6 +160,7 @@ class TestConvertUnifiedConcept:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             UnifiedConcept as GenUC,
         )
+
         gen_concept = GenUC.model_construct(
             primary_id="C1",
             primary_label="X",
@@ -167,6 +179,7 @@ class TestConvertUnifiedConcept:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             ConceptType as GenCT,
         )
+
         gen_concept = _make_gen_concept(concept_type=GenCT.GENE)
         result = convert_generated_unified_concept(gen_concept)
         assert result.concept_type == "GENE"
@@ -175,6 +188,7 @@ class TestConvertUnifiedConcept:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
         )
+
         gen_concept = _make_gen_concept(sources=[GenKS.CHEMBL, GenKS.PUBCHEM])
         result = convert_generated_unified_concept(gen_concept)
         source_values = {s for s in result.sources}
@@ -194,8 +208,13 @@ class TestConvertUnifiedConcept:
 
     def test_empty_optional_fields(self):
         gen_concept = _make_gen_concept(
-            synonyms=[], definitions=[], semantic_types=[],
-            categories=[], parents=[], children=[], related=[],
+            synonyms=[],
+            definitions=[],
+            semantic_types=[],
+            categories=[],
+            parents=[],
+            children=[],
+            related=[],
         )
         result = convert_generated_unified_concept(gen_concept)
         assert result.synonyms == []
@@ -210,6 +229,7 @@ class TestConvertUnifiedConcept:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
         )
+
         gen_concept = _make_gen_concept(sources=[GenKS.UNIPROT])
         result = convert_generated_unified_concept(gen_concept)
         source_values = {s for s in result.sources}
@@ -219,6 +239,7 @@ class TestConvertUnifiedConcept:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
         )
+
         gen_id = _make_gen_identifier(source=GenKS.PUBCHEM, identifier="P1")
         gen_concept = _make_gen_concept(identifiers=[gen_id])
         result = convert_generated_unified_concept(gen_concept)
@@ -228,6 +249,7 @@ class TestConvertUnifiedConcept:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             UnifiedConcept as GenUC,
         )
+
         gen_concept = GenUC.model_construct(
             primary_id="X1",
             primary_label="X",
@@ -242,6 +264,7 @@ class TestConvertUnifiedConcept:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             UnifiedConcept as GenUC,
         )
+
         gen_concept = GenUC.model_construct(
             primary_id="X1",
             primary_label="X",
@@ -268,6 +291,7 @@ class TestConvertUnifiedConcept:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             UnifiedConcept as GenUC,
         )
+
         gen_concept = GenUC.model_construct(
             primary_id="X1",
             primary_label="X",
@@ -278,6 +302,7 @@ class TestConvertUnifiedConcept:
 
     def test_last_updated_preserved(self):
         from datetime import datetime
+
         gen_concept = _make_gen_concept()
         gen_concept.last_updated = datetime(2024, 1, 1)
         result = convert_generated_unified_concept(gen_concept)
@@ -289,6 +314,7 @@ class TestConvertLookupResult:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
+
         gen_result = GenLR(
             query="test",
             concepts=[_make_gen_concept()],
@@ -308,6 +334,7 @@ class TestConvertLookupResult:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
+
         gen_result = GenLR(query="test", concepts=None, sources_queried=None)
         result = convert_generated_lookup_result(gen_result)
         assert len(result.concepts) == 0
@@ -320,6 +347,7 @@ class TestConvertLookupResult:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
+
         gen_result = GenLR(
             query="test",
             sources_queried=[GenKS.OLS],
@@ -334,6 +362,7 @@ class TestConvertLookupResult:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
+
         gen_result = GenLR(
             query="test",
             sources_queried=["CHEMBL"],
@@ -348,6 +377,7 @@ class TestConvertLookupResult:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
+
         gen_result = GenLR(query="test", execution_time=None)
         result = convert_generated_lookup_result(gen_result)
         assert result.execution_time == 0.0
@@ -358,6 +388,7 @@ class TestConvertLookupConfig:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
+
         gen_config = GenLC(
             enabled_sources=["CHEMBL"],
             max_results_per_source=50,
@@ -371,6 +402,7 @@ class TestConvertLookupConfig:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
+
         gen_config = GenLC()
         result = convert_generated_lookup_config(gen_config)
         assert result.max_results_per_source == 20
@@ -385,6 +417,7 @@ class TestConvertLookupConfig:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
+
         gen_config = GenLC(concept_types=[GenCT.DISEASE])
         result = convert_generated_lookup_config(gen_config)
         assert result.concept_types is not None
@@ -395,6 +428,7 @@ class TestConvertLookupConfig:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
+
         gen_config = GenLC(concept_types=None)
         result = convert_generated_lookup_config(gen_config)
         assert result.concept_types is None
@@ -406,6 +440,7 @@ class TestConvertLookupConfig:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
+
         gen_config = GenLC(enabled_sources=[GenKS.UNIPROT])
         result = convert_generated_lookup_config(gen_config)
         source_values = [s for s in result.enabled_sources]
@@ -415,6 +450,7 @@ class TestConvertLookupConfig:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
+
         gen_config = GenLC(concept_types=None)
         result = convert_generated_lookup_config(gen_config)
         assert result.concept_types is None
@@ -423,6 +459,7 @@ class TestConvertLookupConfig:
         from knowledge_lookup.generated_models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
+
         gen_config = GenLC(similarity_threshold=0.9)
         result = convert_generated_lookup_config(gen_config)
         assert result.similarity_threshold == 0.9

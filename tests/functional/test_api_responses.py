@@ -27,6 +27,7 @@ API_KEY_REQUIRED_SOURCES = {
 def warning_manager():
     """Create a warning manager for this test."""
     from tests.functional.utils import APIWarningManager
+
     return APIWarningManager()
 
 
@@ -51,15 +52,15 @@ async def test_uniprot_search(adapter, response_validator, warning_manager, api_
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
-        assert hasattr(result, 'concept_type'), "Result missing concept_type"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
+        assert hasattr(result, "concept_type"), "Result missing concept_type"
 
     # Extract sample response data for validation
     if results:
         response_data = {
             "total_results": len(results),
-            "sample_concepts": [c.__dict__ for c in results[:2]]
+            "sample_concepts": [c.__dict__ for c in results[:2]],
         }
 
     # Validate response structure
@@ -87,14 +88,14 @@ async def test_ols_search(adapter, response_validator, warning_manager):
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
 
     # Extract sample response data
     if results:
         response_data = {
             "total_results": len(results),
-            "sample_concepts": [c.__dict__ for c in results[:2]]
+            "sample_concepts": [c.__dict__ for c in results[:2]],
         }
 
         validator = response_validator(KnowledgeSource.OLS)
@@ -120,8 +121,8 @@ async def test_wikidata_search(adapter, response_validator, warning_manager):
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
 
 
 @pytest.mark.functional
@@ -141,8 +142,8 @@ async def test_pubchem_search(adapter, response_validator, warning_manager):
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
 
 
 @pytest.mark.functional
@@ -211,7 +212,9 @@ async def test_all_adapters_summary(adapter, warning_manager):
 
     passed = sum(1 for _, status, _ in test_results if status == "passed")
     skipped = sum(1 for _, status, _ in test_results if "init_error" in status)
-    failed = sum(1 for _, status, _ in test_results if status != "passed" and "init_error" not in status)
+    failed = sum(
+        1 for _, status, _ in test_results if status != "passed" and "init_error" not in status
+    )
 
     print(f"\nTotal: {len(test_results)}")
     print(f"Passed: {passed}")

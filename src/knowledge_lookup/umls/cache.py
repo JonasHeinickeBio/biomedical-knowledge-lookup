@@ -213,7 +213,9 @@ class UMLSCache:
             finally:
                 conn.close()
 
-    def get_mappings(self, cui: str, target_source: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    def get_mappings(
+        self, cui: str, target_source: str | None = None, limit: int = 50
+    ) -> list[dict[str, Any]]:
         """Get cached cross-references for a CUI."""
         with self._lock:
             conn = self._connect()
@@ -301,9 +303,7 @@ class UMLSCache:
             finally:
                 conn.close()
 
-    def cache_mappings(
-        self, cui: str, mappings: list[dict[str, Any]]
-    ) -> None:
+    def cache_mappings(self, cui: str, mappings: list[dict[str, Any]]) -> None:
         """Insert cached cross-reference mappings for a CUI."""
         with self._lock:
             conn = self._connect()
@@ -320,9 +320,7 @@ class UMLSCache:
             finally:
                 conn.close()
 
-    def cache_relationships(
-        self, cui: str, relationships: list[dict[str, Any]]
-    ) -> None:
+    def cache_relationships(self, cui: str, relationships: list[dict[str, Any]]) -> None:
         """Insert cached relationships for a CUI."""
         with self._lock:
             conn = self._connect()
@@ -474,7 +472,8 @@ class UMLSCache:
         """Create schema and enable WAL mode."""
         conn = self._connect()
         try:
-            conn.executescript("""
+            conn.executescript(
+                """
                 PRAGMA journal_mode=WAL;
                 PRAGMA synchronous=NORMAL;
                 PRAGMA cache_size=-8000;       -- 8 MB page cache
@@ -525,8 +524,9 @@ class UMLSCache:
                 );
                 INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '{_SCHEMA_VERSION}');
             """.replace("{_FTS_TOKENIZER}", _FTS_TOKENIZER).replace(
-                "{_SCHEMA_VERSION}", str(_SCHEMA_VERSION)
-            ))
+                    "{_SCHEMA_VERSION}", str(_SCHEMA_VERSION)
+                )
+            )
             conn.commit()
             logger.debug("UMLSCache initialised at %s", self._db_path)
         finally:
@@ -545,9 +545,7 @@ class UMLSCache:
             conn = self._connect()
             try:
                 # FTS5 supports prefix matching with *
-                fts_query = " OR ".join(
-                    f'"{t}"*' for t in query.strip().split() if t
-                )
+                fts_query = " OR ".join(f'"{t}"*' for t in query.strip().split() if t)
                 if not fts_query:
                     return []
 
@@ -608,7 +606,9 @@ class UMLSCache:
         }
 
     @staticmethod
-    def _insert_fts(conn: sqlite3.Connection, cui: str, name: str, definitions: list[str], synonyms: list[str]) -> None:
+    def _insert_fts(
+        conn: sqlite3.Connection, cui: str, name: str, definitions: list[str], synonyms: list[str]
+    ) -> None:
         """Insert/update a row in the standalone FTS5 index.
 
         Deletes any existing row for the same *cui* first, then inserts.

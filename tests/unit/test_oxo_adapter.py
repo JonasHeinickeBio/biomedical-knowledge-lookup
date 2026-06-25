@@ -71,7 +71,13 @@ class TestOxOAdapter:
                         "curie": "DOID:162",
                         "label": "diabetes mellitus",
                         "mappingResponseList": [
-                            {"curie": "MONDO:0004992", "label": "diabetes", "targetPrefix": "MONDO", "sourcePrefixes": ["DOID"], "distance": 1}
+                            {
+                                "curie": "MONDO:0004992",
+                                "label": "diabetes",
+                                "targetPrefix": "MONDO",
+                                "sourcePrefixes": ["DOID"],
+                                "distance": 1,
+                            }
                         ],
                     }
                 ]
@@ -88,7 +94,9 @@ class TestOxOAdapter:
         """Test get_concept_by_id with mapping_target and mapping_source."""
         mock_session = self._make_mock_session({"_embedded": {"searchResults": []}})
         adapter.session = mock_session
-        result = await adapter.get_concept_by_id("DOID:162", distance=2, mapping_target=["MONDO"], mapping_source=["DOID"])
+        result = await adapter.get_concept_by_id(
+            "DOID:162", distance=2, mapping_target=["MONDO"], mapping_source=["DOID"]
+        )
         assert result is None
 
     @pytest.mark.asyncio
@@ -116,7 +124,11 @@ class TestOxOAdapter:
             "_embedded": {
                 "searchResults": [
                     {"curie": "DOID:162", "label": "diabetes mellitus", "mappingResponseList": []},
-                    {"curie": "DOID:9351", "label": "diabetes mellitus type 2", "mappingResponseList": []},
+                    {
+                        "curie": "DOID:9351",
+                        "label": "diabetes mellitus type 2",
+                        "mappingResponseList": [],
+                    },
                 ]
             }
         }
@@ -160,7 +172,13 @@ class TestOxOAdapter:
                         "queryId": "DOID:162",
                         "curie": "DOID:162",
                         "mappingResponseList": [
-                            {"curie": "MONDO:0004992", "label": "diabetes", "targetPrefix": "MONDO", "sourcePrefixes": ["DOID"], "distance": 1}
+                            {
+                                "curie": "MONDO:0004992",
+                                "label": "diabetes",
+                                "targetPrefix": "MONDO",
+                                "sourcePrefixes": ["DOID"],
+                                "distance": 1,
+                            }
                         ],
                     }
                 ]
@@ -177,7 +195,9 @@ class TestOxOAdapter:
         """Test get_mappings_for_concepts with mapping_target and mapping_source."""
         mock_session = self._make_mock_session({"_embedded": {"searchResults": []}})
         adapter.session = mock_session
-        mappings = await adapter.get_mappings_for_concepts(["DOID:162"], distance=2, mapping_target=["MONDO"], mapping_source=["DOID"])
+        mappings = await adapter.get_mappings_for_concepts(
+            ["DOID:162"], distance=2, mapping_target=["MONDO"], mapping_source=["DOID"]
+        )
         assert mappings == {}
 
     @pytest.mark.asyncio
@@ -195,7 +215,12 @@ class TestOxOAdapter:
         """Test get_datasources."""
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = {
-                "_embedded": {"datasources": [{"id": "DOID", "name": "Disease Ontology"}, {"id": "MONDO", "name": "MONDO"}]}
+                "_embedded": {
+                    "datasources": [
+                        {"id": "DOID", "name": "Disease Ontology"},
+                        {"id": "MONDO", "name": "MONDO"},
+                    ]
+                }
             }
             datasources = await adapter.get_datasources()
             assert len(datasources) == 2
@@ -222,7 +247,13 @@ class TestOxOAdapter:
             "curie": "DOID:162",
             "label": "diabetes mellitus",
             "mappingResponseList": [
-                {"curie": "MONDO:0004992", "label": "diabetes", "targetPrefix": "MONDO", "sourcePrefixes": ["DOID"], "distance": 1}
+                {
+                    "curie": "MONDO:0004992",
+                    "label": "diabetes",
+                    "targetPrefix": "MONDO",
+                    "sourcePrefixes": ["DOID"],
+                    "distance": 1,
+                }
             ],
         }
         concept = adapter._parse_search_result(result, "DOID:162")
@@ -264,7 +295,13 @@ class TestOxOAdapter:
         """Test _extract_mappings with mappingResponseList."""
         result = {
             "mappingResponseList": [
-                {"curie": "MONDO:0004992", "label": "diabetes", "targetPrefix": "MONDO", "sourcePrefixes": ["DOID"], "distance": 1}
+                {
+                    "curie": "MONDO:0004992",
+                    "label": "diabetes",
+                    "targetPrefix": "MONDO",
+                    "sourcePrefixes": ["DOID"],
+                    "distance": 1,
+                }
             ]
         }
         mappings = adapter._extract_mappings(result)

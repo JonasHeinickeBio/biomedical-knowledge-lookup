@@ -1062,7 +1062,7 @@ class CentralKnowledgeLookup:
         # Source statistics
         source_stats: dict[str, int] = {}
         for concept in result.concepts:
-            for source in (concept.sources or []):
+            for source in concept.sources or []:
                 src_str = str(source)
                 source_stats[src_str] = source_stats.get(src_str, 0) + 1
 
@@ -1128,7 +1128,7 @@ class CentralKnowledgeLookup:
         # Source breakdown
         source_stats: dict[str, int] = {}
         for concept in result.concepts:
-            for source in (concept.sources or []):
+            for source in concept.sources or []:
                 src_str = str(source)
                 source_stats[src_str] = source_stats.get(src_str, 0) + 1
 

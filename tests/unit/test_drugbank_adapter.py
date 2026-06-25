@@ -62,7 +62,9 @@ class TestDrugBankAdapter:
                 ]
             }
         }
-        with patch.object(adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data):
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data
+        ):
             results = await adapter.search_concepts("test", limit=10)
         assert len(results) == 1
         assert results[0].primary_id == "DB00001"
@@ -115,7 +117,9 @@ class TestDrugBankAdapter:
                 ]
             }
         }
-        with patch.object(adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data):
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data
+        ):
             results = await adapter.search_concepts("test")
         assert len(results) == 1
 
@@ -131,7 +135,9 @@ class TestDrugBankAdapter:
             "synonyms": ["TestSynonym"],
             "description": ["A test drug"],
         }
-        with patch.object(adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data):
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data
+        ):
             result = await adapter.get_concept_details("DB00001")
         assert result is not None
         assert result.primary_id == "DB00001"
@@ -163,7 +169,9 @@ class TestDrugBankAdapter:
     async def test_get_concept_details_concept_is_none(self, adapter):
         """Test get_concept_details returns None when conversion fails."""
         mock_data = {"short_form": "", "label": ""}
-        with patch.object(adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data):
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data
+        ):
             result = await adapter.get_concept_details("DB00001")
         assert result is None
 

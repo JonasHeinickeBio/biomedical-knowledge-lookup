@@ -91,9 +91,7 @@ class TestOBOFoundrySearchConcepts:
                 "ontology_name": "doid",
             }
         ]
-        adapter._make_request = AsyncMock(
-            return_value={"response": {"docs": docs}}
-        )
+        adapter._make_request = AsyncMock(return_value={"response": {"docs": docs}})
 
         result = await adapter.search_concepts("diabetes", limit=10)
         assert len(result) == 1

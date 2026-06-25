@@ -10,6 +10,8 @@ from knowledge_lookup.adapters.omim_adapter import OMIMAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 pytestmark = pytest.mark.unit
+
+
 class TestOMIMAdapter:
     """Tests for OMIMAdapter."""
 

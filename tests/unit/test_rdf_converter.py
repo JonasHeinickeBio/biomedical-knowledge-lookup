@@ -194,26 +194,34 @@ class TestChemicalHandlerExtended:
 
     def test_get_concept_class_uri(self, ns):
         handler = ChemicalHandler(ns)
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL
+        )
         uri = handler.get_concept_class_uri(concept)
         assert "Compound" in str(uri)
 
     def test_primary_uri_with_unichem(self, ns):
         handler = ChemicalHandler(ns)
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL
+        )
         concept.add_identifier(KnowledgeSource.UNICHEM, "UC123")
         uri = handler.get_primary_uri(concept)
         assert "UC123" in str(uri)
 
     def test_primary_uri_without_unichem(self, ns):
         handler = ChemicalHandler(ns)
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL
+        )
         uri = handler.get_primary_uri(concept)
         assert "compound/C1" in str(uri)
 
     def test_add_type_specific_pubchem(self, ns):
         handler = ChemicalHandler(ns)
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL
+        )
         concept.add_identifier(KnowledgeSource.PUBCHEM, "PUB123", "PubChemLabel")
         graph = Graph()
         concept_uri = URIRef("http://test/c1")
@@ -223,7 +231,9 @@ class TestChemicalHandlerExtended:
 
     def test_add_type_specific_drugbank(self, ns):
         handler = ChemicalHandler(ns)
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL
+        )
         concept.add_identifier(KnowledgeSource.DRUGBANK, "DB123", "DrugBankLabel")
         graph = Graph()
         concept_uri = URIRef("http://test/c1")
@@ -233,7 +243,9 @@ class TestChemicalHandlerExtended:
 
     def test_add_type_specific_generic_identifier(self, ns):
         handler = ChemicalHandler(ns)
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.CHEMICAL
+        )
         concept.add_identifier(KnowledgeSource.OLS, "OLS:123")
         graph = Graph()
         concept_uri = URIRef("http://test/c1")
@@ -249,26 +261,34 @@ class TestDiseaseHandlerExtended:
 
     def test_get_concept_class_uri(self, ns):
         handler = DiseaseHandler(ns)
-        concept = UnifiedConcept(primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         uri = handler.get_concept_class_uri(concept)
         assert "Disease" in str(uri)
 
     def test_primary_uri_with_mondo(self, ns):
         handler = DiseaseHandler(ns)
-        concept = UnifiedConcept(primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         concept.add_identifier(KnowledgeSource.MONDO, "MONDO:123")
         uri = handler.get_primary_uri(concept)
         assert "mondo" in str(uri)
 
     def test_primary_uri_without_mondo(self, ns):
         handler = DiseaseHandler(ns)
-        concept = UnifiedConcept(primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         uri = handler.get_primary_uri(concept)
         assert "disease/D1" in str(uri)
 
     def test_add_type_specific_mondo(self, ns):
         handler = DiseaseHandler(ns)
-        concept = UnifiedConcept(primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         concept.add_identifier(KnowledgeSource.MONDO, "MONDO:123")
         graph = Graph()
         concept_uri = URIRef("http://test/d1")
@@ -278,7 +298,9 @@ class TestDiseaseHandlerExtended:
 
     def test_add_type_specific_oxo(self, ns):
         handler = DiseaseHandler(ns)
-        concept = UnifiedConcept(primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         concept.add_identifier(KnowledgeSource.OXO, "OXO:456")
         graph = Graph()
         concept_uri = URIRef("http://test/d1")
@@ -288,7 +310,9 @@ class TestDiseaseHandlerExtended:
 
     def test_add_type_specific_generic(self, ns):
         handler = DiseaseHandler(ns)
-        concept = UnifiedConcept(primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="D1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         concept.add_identifier(KnowledgeSource.OLS, "OLS:999")
         graph = Graph()
         concept_uri = URIRef("http://test/d1")
@@ -359,26 +383,34 @@ class TestProteinHandlerExtended:
 
     def test_get_concept_class_uri(self, ns):
         handler = ProteinHandler(ns)
-        concept = UnifiedConcept(primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN)
+        concept = UnifiedConcept(
+            primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN
+        )
         uri = handler.get_concept_class_uri(concept)
         assert "Protein" in str(uri)
 
     def test_primary_uri_with_uniprot(self, ns):
         handler = ProteinHandler(ns)
-        concept = UnifiedConcept(primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN)
+        concept = UnifiedConcept(
+            primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN
+        )
         concept.add_identifier(KnowledgeSource.UNIPROT, "P12345")
         uri = handler.get_primary_uri(concept)
         assert "P12345" in str(uri)
 
     def test_primary_uri_without_uniprot(self, ns):
         handler = ProteinHandler(ns)
-        concept = UnifiedConcept(primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN)
+        concept = UnifiedConcept(
+            primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN
+        )
         uri = handler.get_primary_uri(concept)
         assert "protein/P1" in str(uri)
 
     def test_add_type_specific_uniprot(self, ns):
         handler = ProteinHandler(ns)
-        concept = UnifiedConcept(primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN)
+        concept = UnifiedConcept(
+            primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN
+        )
         concept.add_identifier(KnowledgeSource.UNIPROT, "P12345")
         graph = Graph()
         concept_uri = URIRef("http://test/p1")
@@ -388,7 +420,9 @@ class TestProteinHandlerExtended:
 
     def test_add_type_specific_ensembl(self, ns):
         handler = ProteinHandler(ns)
-        concept = UnifiedConcept(primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN)
+        concept = UnifiedConcept(
+            primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN
+        )
         concept.add_identifier(KnowledgeSource.ENSEMBL, "ENSP00001")
         graph = Graph()
         concept_uri = URIRef("http://test/p1")
@@ -398,7 +432,9 @@ class TestProteinHandlerExtended:
 
     def test_add_type_specific_generic(self, ns):
         handler = ProteinHandler(ns)
-        concept = UnifiedConcept(primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN)
+        concept = UnifiedConcept(
+            primary_id="P1", primary_label="X", concept_type=ConceptType.PROTEIN
+        )
         concept.add_identifier(KnowledgeSource.OLS, "OLS:777")
         graph = Graph()
         concept_uri = URIRef("http://test/p1")
@@ -414,33 +450,43 @@ class TestDrugHandlerExtended:
 
     def test_get_concept_class_uri(self, ns):
         handler = DrugHandler(ns)
-        concept = UnifiedConcept(primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG)
+        concept = UnifiedConcept(
+            primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG
+        )
         uri = handler.get_concept_class_uri(concept)
         assert "Drug" in str(uri)
 
     def test_primary_uri_with_drugbank(self, ns):
         handler = DrugHandler(ns)
-        concept = UnifiedConcept(primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG)
+        concept = UnifiedConcept(
+            primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG
+        )
         concept.add_identifier(KnowledgeSource.DRUGBANK, "DB123")
         uri = handler.get_primary_uri(concept)
         assert "DB123" in str(uri)
 
     def test_primary_uri_with_chembl_no_drugbank(self, ns):
         handler = DrugHandler(ns)
-        concept = UnifiedConcept(primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG)
+        concept = UnifiedConcept(
+            primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG
+        )
         concept.add_identifier(KnowledgeSource.CHEMBL, "CHEMBL456")
         uri = handler.get_primary_uri(concept)
         assert "CHEMBL456" in str(uri)
 
     def test_primary_uri_fallback(self, ns):
         handler = DrugHandler(ns)
-        concept = UnifiedConcept(primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG)
+        concept = UnifiedConcept(
+            primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG
+        )
         uri = handler.get_primary_uri(concept)
         assert "drug/DR1" in str(uri)
 
     def test_add_type_specific_drugbank(self, ns):
         handler = DrugHandler(ns)
-        concept = UnifiedConcept(primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG)
+        concept = UnifiedConcept(
+            primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG
+        )
         concept.add_identifier(KnowledgeSource.DRUGBANK, "DB123")
         graph = Graph()
         concept_uri = URIRef("http://test/dr1")
@@ -450,7 +496,9 @@ class TestDrugHandlerExtended:
 
     def test_add_type_specific_chembl(self, ns):
         handler = DrugHandler(ns)
-        concept = UnifiedConcept(primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG)
+        concept = UnifiedConcept(
+            primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG
+        )
         concept.add_identifier(KnowledgeSource.CHEMBL, "CHEMBL456")
         graph = Graph()
         concept_uri = URIRef("http://test/dr1")
@@ -460,7 +508,9 @@ class TestDrugHandlerExtended:
 
     def test_add_type_specific_pubchem(self, ns):
         handler = DrugHandler(ns)
-        concept = UnifiedConcept(primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG)
+        concept = UnifiedConcept(
+            primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG
+        )
         concept.add_identifier(KnowledgeSource.PUBCHEM, "PUB789")
         graph = Graph()
         concept_uri = URIRef("http://test/dr1")
@@ -470,7 +520,9 @@ class TestDrugHandlerExtended:
 
     def test_add_type_specific_generic(self, ns):
         handler = DrugHandler(ns)
-        concept = UnifiedConcept(primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG)
+        concept = UnifiedConcept(
+            primary_id="DR1", primary_label="X", concept_type=ConceptType.DRUG
+        )
         concept.add_identifier(KnowledgeSource.OLS, "OLS:333")
         graph = Graph()
         concept_uri = URIRef("http://test/dr1")
@@ -486,19 +538,25 @@ class TestDefaultHandlerExtended:
 
     def test_get_concept_class_uri(self, ns):
         handler = DefaultHandler(ns)
-        concept = UnifiedConcept(primary_id="X1", primary_label="X", concept_type=ConceptType.SYMPTOM)
+        concept = UnifiedConcept(
+            primary_id="X1", primary_label="X", concept_type=ConceptType.SYMPTOM
+        )
         uri = handler.get_concept_class_uri(concept)
         assert "Concept" in str(uri)
 
     def test_get_primary_uri(self, ns):
         handler = DefaultHandler(ns)
-        concept = UnifiedConcept(primary_id="X1", primary_label="X", concept_type=ConceptType.SYMPTOM)
+        concept = UnifiedConcept(
+            primary_id="X1", primary_label="X", concept_type=ConceptType.SYMPTOM
+        )
         uri = handler.get_primary_uri(concept)
         assert "concept/X1" in str(uri)
 
     def test_add_type_specific_properties(self, ns):
         handler = DefaultHandler(ns)
-        concept = UnifiedConcept(primary_id="X1", primary_label="X", concept_type=ConceptType.SYMPTOM)
+        concept = UnifiedConcept(
+            primary_id="X1", primary_label="X", concept_type=ConceptType.SYMPTOM
+        )
         concept.add_identifier(KnowledgeSource.OLS, "OLS:111")
         concept.add_identifier(KnowledgeSource.GO, "GO:222")
         graph = Graph()
@@ -532,21 +590,32 @@ class TestUnifiedRDFConverterExtended:
         ns = RDFNamespaces()
         hints.add_namespace("myns", ns.AIDPAIS)
         conv = UnifiedRDFConverter(adapter_hints=hints)
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.SYMPTOM)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.SYMPTOM
+        )
         graph = conv.convert_concepts_to_graph([concept])
         assert isinstance(graph, Graph)
 
     def test_convert_single_concept_error_handling(self):
         conv = UnifiedRDFConverter()
-        concept = UnifiedConcept(primary_id="ERR", primary_label="X", concept_type=ConceptType.DISEASE)
-        with patch.object(conv.handlers[ConceptType.DISEASE], "add_common_properties", side_effect=RuntimeError("fail")):
+        concept = UnifiedConcept(
+            primary_id="ERR", primary_label="X", concept_type=ConceptType.DISEASE
+        )
+        with patch.object(
+            conv.handlers[ConceptType.DISEASE],
+            "add_common_properties",
+            side_effect=RuntimeError("fail"),
+        ):
             graph = Graph()
             conv._convert_single_concept(graph, concept)
 
     def test_add_concept_mappings_with_confidence(self):
         conv = UnifiedRDFConverter()
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         from knowledge_lookup.models import ConceptIdentifier, ConceptMapping
+
         concept.mappings = [
             ConceptMapping(
                 from_concept=ConceptIdentifier(source=KnowledgeSource.UMLS, identifier="C1"),
@@ -559,13 +628,18 @@ class TestUnifiedRDFConverterExtended:
         graph = Graph()
         concept_uri = URIRef("http://test/c1")
         conv._add_concept_mappings(graph, concept, concept_uri)
-        mapping_triples = list(graph.triples((None, conv.namespaces.RDF.type, conv.namespaces.VOCAB.Mapping)))
+        mapping_triples = list(
+            graph.triples((None, conv.namespaces.RDF.type, conv.namespaces.VOCAB.Mapping))
+        )
         assert len(mapping_triples) == 1
 
     def test_add_concept_mappings_no_confidence_no_source(self):
         conv = UnifiedRDFConverter()
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         from knowledge_lookup.models import ConceptIdentifier, ConceptMapping
+
         concept.mappings = [
             ConceptMapping(
                 from_concept=ConceptIdentifier(source=KnowledgeSource.UMLS, identifier="C1"),
@@ -578,12 +652,15 @@ class TestUnifiedRDFConverterExtended:
         graph = Graph()
         concept_uri = URIRef("http://test/c1")
         conv._add_concept_mappings(graph, concept, concept_uri)
-        mapping_triples = list(graph.triples((None, conv.namespaces.RDF.type, conv.namespaces.VOCAB.Mapping)))
+        mapping_triples = list(
+            graph.triples((None, conv.namespaces.RDF.type, conv.namespaces.VOCAB.Mapping))
+        )
         assert len(mapping_triples) == 1
 
     def test_get_concept_uri_from_identifier_all_sources(self):
         conv = UnifiedRDFConverter()
         from knowledge_lookup.models import ConceptIdentifier
+
         id_chembl = ConceptIdentifier(source=KnowledgeSource.CHEMBL, identifier="C1")
         id_pubchem = ConceptIdentifier(source=KnowledgeSource.PUBCHEM, identifier="P1")
         id_drugbank = ConceptIdentifier(source=KnowledgeSource.DRUGBANK, identifier="D1")
@@ -612,7 +689,9 @@ class TestUnifiedRDFConverterExtended:
 
     def test_convert_and_save_formats(self, tmp_path):
         conv = UnifiedRDFConverter()
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         for fmt in ["turtle", "xml", "json-ld", "nt", "n3"]:
             out = tmp_path / f"out_{fmt.replace('-', '_')}.ttl"
             conv.convert_and_save([concept], str(out), format=fmt)
@@ -620,7 +699,9 @@ class TestUnifiedRDFConverterExtended:
 
     def test_convert_and_save_unknown_format(self, tmp_path):
         conv = UnifiedRDFConverter()
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         out = tmp_path / "out_unknown.ttl"
         conv.convert_and_save([concept], str(out), format="bogus")
         assert out.exists()
@@ -635,13 +716,19 @@ class TestUnifiedRDFConverterExtended:
 
     def test_load_dynamic_handlers_exception_fallback(self):
         conv = UnifiedRDFConverter()
-        with patch("knowledge_lookup.services.ontology_concept_loader.get_dynamic_concept_handlers", side_effect=RuntimeError("boom")):
+        with patch(
+            "knowledge_lookup.services.ontology_concept_loader.get_dynamic_concept_handlers",
+            side_effect=RuntimeError("boom"),
+        ):
             result = conv._load_dynamic_handlers()
             assert ConceptType.UNKNOWN in result
 
     def test_dynamic_handler_matching(self):
         conv = UnifiedRDFConverter()
-        with patch("knowledge_lookup.services.ontology_concept_loader.get_dynamic_concept_handlers", return_value={"DISEASE": DefaultHandler, "NONENUMKEY": DefaultHandler}):
+        with patch(
+            "knowledge_lookup.services.ontology_concept_loader.get_dynamic_concept_handlers",
+            return_value={"DISEASE": DefaultHandler, "NONENUMKEY": DefaultHandler},
+        ):
             result = conv._load_dynamic_handlers()
             assert ConceptType.DISEASE in result
 
@@ -649,13 +736,17 @@ class TestUnifiedRDFConverterExtended:
         hints = AdapterHints()
         hints.add_type_mapping(ConceptType.DISEASE, URIRef("http://custom/Disease"))
         conv = UnifiedRDFConverter(adapter_hints=hints)
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         graph = conv.convert_concepts_to_graph([concept])
         assert isinstance(graph, Graph)
 
     def test_merge_with_existing_graph(self, tmp_path):
         conv = UnifiedRDFConverter()
-        concept = UnifiedConcept(primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="X", concept_type=ConceptType.DISEASE
+        )
         new_graph = conv.convert_concepts_to_graph([concept])
 
         existing = Graph()

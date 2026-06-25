@@ -241,13 +241,17 @@ class TestWikidataAdapter:
     def test_determine_concept_type_drug(self, adapter):
         """Test _determine_concept_type_from_instance_of for drug."""
         assert adapter._determine_concept_type_from_instance_of("drug") == ConceptType.DRUG
-        assert adapter._determine_concept_type_from_instance_of("pharmaceutical") == ConceptType.DRUG
+        assert (
+            adapter._determine_concept_type_from_instance_of("pharmaceutical") == ConceptType.DRUG
+        )
         assert adapter._determine_concept_type_from_instance_of("medication") == ConceptType.DRUG
 
     def test_determine_concept_type_gene(self, adapter):
         """Test _determine_concept_type_from_instance_of for gene."""
         assert adapter._determine_concept_type_from_instance_of("gene") == ConceptType.GENE
-        assert adapter._determine_concept_type_from_instance_of("genetic element") == ConceptType.GENE
+        assert (
+            adapter._determine_concept_type_from_instance_of("genetic element") == ConceptType.GENE
+        )
 
     def test_determine_concept_type_protein(self, adapter):
         """Test _determine_concept_type_from_instance_of for protein."""
@@ -255,7 +259,10 @@ class TestWikidataAdapter:
 
     def test_determine_concept_type_chemical(self, adapter):
         """Test _determine_concept_type_from_instance_of for chemical."""
-        assert adapter._determine_concept_type_from_instance_of("chemical compound") == ConceptType.CHEMICAL
+        assert (
+            adapter._determine_concept_type_from_instance_of("chemical compound")
+            == ConceptType.CHEMICAL
+        )
 
     def test_determine_concept_type_organism(self, adapter):
         """Test _determine_concept_type_from_instance_of for organism."""
@@ -265,7 +272,10 @@ class TestWikidataAdapter:
 
     def test_determine_concept_type_unknown(self, adapter):
         """Test _determine_concept_type_from_instance_of for unknown type."""
-        assert adapter._determine_concept_type_from_instance_of("something else") == ConceptType.UNKNOWN
+        assert (
+            adapter._determine_concept_type_from_instance_of("something else")
+            == ConceptType.UNKNOWN
+        )
 
     def test_determine_concept_type_empty_string(self, adapter):
         """Test _determine_concept_type_from_instance_of with empty string."""

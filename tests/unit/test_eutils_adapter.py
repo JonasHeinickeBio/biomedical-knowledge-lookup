@@ -77,10 +77,13 @@ class TestEUtilsAdapter:
             }
         }
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             results = await adapter.search_concepts("test", limit=4)
@@ -105,10 +108,13 @@ class TestEUtilsAdapter:
             }
         }
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             results = await adapter.search_concepts("BRCA2", limit=4)
@@ -133,10 +139,13 @@ class TestEUtilsAdapter:
             }
         }
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             results = await adapter.search_concepts("TP53", limit=4)
@@ -161,10 +170,13 @@ class TestEUtilsAdapter:
             }
         }
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             results = await adapter.search_concepts("human", limit=4)
@@ -176,10 +188,13 @@ class TestEUtilsAdapter:
         mock_eu = MagicMock()
         mock_eu.ESearch.side_effect = Exception("Search error")
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             results = await adapter.search_concepts("test")
@@ -198,10 +213,13 @@ class TestEUtilsAdapter:
         mock_eu = MagicMock()
         mock_eu.EFetch.return_value = "Full article text here"
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             result = await adapter.get_concept_details("PMID:12345")
@@ -214,10 +232,13 @@ class TestEUtilsAdapter:
         mock_eu = MagicMock()
         mock_eu.EFetch.return_value = "Gene record"
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             result = await adapter.get_concept_details("GeneID:1234")
@@ -229,10 +250,13 @@ class TestEUtilsAdapter:
         mock_eu = MagicMock()
         mock_eu.EFetch.return_value = "Taxonomy record"
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             result = await adapter.get_concept_details("TaxID:9606")
@@ -244,10 +268,13 @@ class TestEUtilsAdapter:
         mock_eu = MagicMock()
         mock_eu.EFetch.return_value = "Protein record"
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             result = await adapter.get_concept_details("NP_000537")
@@ -259,10 +286,13 @@ class TestEUtilsAdapter:
         mock_eu = MagicMock()
         mock_eu.EFetch.return_value = "Nucleotide record"
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             result = await adapter.get_concept_details("NM_000537")
@@ -274,10 +304,13 @@ class TestEUtilsAdapter:
         mock_eu = MagicMock()
         mock_eu.EFetch.return_value = "Some record"
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             result = await adapter.get_concept_details("12345")
@@ -289,10 +322,13 @@ class TestEUtilsAdapter:
         mock_eu = MagicMock()
         mock_eu.EFetch.side_effect = Exception("Fetch error")
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             result = await adapter.get_concept_details("PMID:12345")
@@ -304,10 +340,13 @@ class TestEUtilsAdapter:
         mock_eu = MagicMock()
         mock_eu.EFetch.return_value = None
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             result = await adapter.get_concept_details("PMID:12345")
@@ -397,10 +436,13 @@ class TestEUtilsAdapter:
             {"IdList": []},  # taxonomy
         ]
 
-        with patch.dict("sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(EUtils=MagicMock(return_value=mock_eu))}
+        ):
             import importlib
 
             import knowledge_lookup.adapters.eutils_adapter as mod
+
             importlib.reload(mod)
             adapter.__class__ = mod.EUtilsAdapter
             results = await adapter.search_concepts("nonexistent", limit=20)

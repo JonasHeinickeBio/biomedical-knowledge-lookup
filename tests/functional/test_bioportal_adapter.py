@@ -50,9 +50,9 @@ async def test_bioportal_search_diabetes(
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
-        assert hasattr(result, 'concept_type'), "Result missing concept_type"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
+        assert hasattr(result, "concept_type"), "Result missing concept_type"
 
     # Extract sample response data
     response_data = {
@@ -64,7 +64,7 @@ async def test_bioportal_search_diabetes(
                 "concept_type": str(c.concept_type),
             }
             for c in results[:2]
-        ]
+        ],
     }
 
     # Validate response structure
@@ -72,11 +72,7 @@ async def test_bioportal_search_diabetes(
     changes = validator.validate_response("bioportal_diabetes_search", response_data)
 
     for change in changes:
-        warning_manager.add_warning(
-            KnowledgeSource.BIOPORTAL,
-            "bioportal_diabetes_search",
-            change
-        )
+        warning_manager.add_warning(KnowledgeSource.BIOPORTAL, "bioportal_diabetes_search", change)
 
     # Print changes if any
     if changes:
@@ -87,7 +83,9 @@ async def test_bioportal_search_diabetes(
 
 @pytest.mark.asyncio
 @requires_api_key(KnowledgeSource.BIOPORTAL)
-async def test_bioportal_search_drug(adapter, response_validator, warning_manager, bioportal_available):
+async def test_bioportal_search_drug(
+    adapter, response_validator, warning_manager, bioportal_available
+):
     """Test BioPortal search for a drug."""
     if not bioportal_available:
         pytest.skip("BIOPORTAL_API_KEY not set")

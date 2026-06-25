@@ -53,15 +53,11 @@ class TestPubChemAdapter:
         """Test search_concepts fetches details for each CID."""
         mock_cids = {"IdentifierList": {"CID": [2244, 2245]}}
         mock_desc = {
-            "InformationList": {
-                "Information": [{"Title": "Aspirin", "Description": "A drug"}]
-            }
+            "InformationList": {"Information": [{"Title": "Aspirin", "Description": "A drug"}]}
         }
         mock_props = {
             "PropertyTable": {
-                "Properties": [
-                    {"IUPACName": "acetylsalicylic acid", "MolecularFormula": "C9H8O4"}
-                ]
+                "Properties": [{"IUPACName": "acetylsalicylic acid", "MolecularFormula": "C9H8O4"}]
             }
         }
 
@@ -273,9 +269,7 @@ class TestPubChemAdapter:
         """Test get_concept_details handles missing InChIKey."""
         mock_desc = {"InformationList": {"Information": [{"Title": "Test"}]}}
         mock_props = {
-            "PropertyTable": {
-                "Properties": [{"IUPACName": "test", "MolecularFormula": "C9H8O4"}]
-            }
+            "PropertyTable": {"Properties": [{"IUPACName": "test", "MolecularFormula": "C9H8O4"}]}
         }
 
         async def mock_make_request(url, *args, **kwargs):

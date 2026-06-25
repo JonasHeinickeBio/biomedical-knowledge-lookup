@@ -51,8 +51,20 @@ class TestReactomeAdapter:
         """Test search_concepts with pathway results."""
         reactome_data = {
             "results": [
-                {"stId": "R-HSA-1640170", "name": "Cell Cycle", "type": "Pathway", "summation": "The cell cycle.", "species": ["Homo sapiens"]},
-                {"stId": "R-HSA-109581", "name": "Apoptosis", "type": "Pathway", "summation": "Programmed cell death.", "species": ["Homo sapiens"]},
+                {
+                    "stId": "R-HSA-1640170",
+                    "name": "Cell Cycle",
+                    "type": "Pathway",
+                    "summation": "The cell cycle.",
+                    "species": ["Homo sapiens"],
+                },
+                {
+                    "stId": "R-HSA-109581",
+                    "name": "Apoptosis",
+                    "type": "Pathway",
+                    "summation": "Programmed cell death.",
+                    "species": ["Homo sapiens"],
+                },
             ]
         }
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
@@ -98,7 +110,12 @@ class TestReactomeAdapter:
     @pytest.mark.asyncio
     async def test_get_concept_details_success(self, adapter):
         """Test successful get_concept_details."""
-        data = {"stId": "R-HSA-1640170", "displayName": "Cell Cycle", "dbId": 1640170, "summation": [{"text": "The cell cycle."}]}
+        data = {
+            "stId": "R-HSA-1640170",
+            "displayName": "Cell Cycle",
+            "dbId": 1640170,
+            "summation": [{"text": "The cell cycle."}],
+        }
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = data
             result = await adapter.get_concept_details("R-HSA-1640170")
@@ -133,7 +150,8 @@ class TestReactomeAdapter:
     def test_convert_reactome_result_full(self, adapter):
         """Test _convert_reactome_result_to_concept with all fields."""
         result = {
-            "stId": "R-HSA-1640170", "name": "Cell Cycle",
+            "stId": "R-HSA-1640170",
+            "name": "Cell Cycle",
             "summation": "The cell cycle describes the series of events.",
             "species": ["Homo sapiens", "Mus musculus"],
         }
@@ -173,7 +191,8 @@ class TestReactomeAdapter:
     def test_convert_reactome_details_full(self, adapter):
         """Test _convert_reactome_details_to_concept with all fields."""
         data = {
-            "stId": "R-HSA-1640170", "displayName": "Cell Cycle",
+            "stId": "R-HSA-1640170",
+            "displayName": "Cell Cycle",
             "summation": [{"text": "The cell cycle describes the series of events."}],
         }
         concept = adapter._convert_reactome_details_to_concept(data)

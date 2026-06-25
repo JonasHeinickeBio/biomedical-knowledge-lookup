@@ -67,7 +67,7 @@ def requires_api_key(source: KnowledgeSource):
 
     return pytest.mark.skipif(
         not has_key,
-        reason=f"API key for {source.value} not available (set {source.value}_API_KEY)"
+        reason=f"API key for {source.value} not available (set {source.value}_API_KEY)",
     )
 
 
@@ -111,11 +111,7 @@ async def recorded_api_response(api_responses_cache):
     recorded_responses = {}
 
     async def record(
-        api_call: Callable,
-        *args,
-        cache_key: str = None,
-        source: KnowledgeSource = None,
-        **kwargs
+        api_call: Callable, *args, cache_key: str = None, source: KnowledgeSource = None, **kwargs
     ) -> tuple[Any, dict[str, Any]]:
         """
         Record or validate an API response.
@@ -138,7 +134,7 @@ async def recorded_api_response(api_responses_cache):
 
         # Convert result to serializable format if needed
         response_data = {}
-        if hasattr(result, '__dict__'):
+        if hasattr(result, "__dict__"):
             response_data = result.__dict__
         elif isinstance(result, (list, dict)):
             response_data = result

@@ -98,7 +98,7 @@ def _convert_generated_unified_concept(
     converted_sources = set()
     if gen_concept.sources:
         converted_sources = {
-            KnowledgeSource(s.value.lower() if hasattr(s, "value") else s.lower())
+            KnowledgeSource(s.value.upper() if hasattr(s, "value") else s.upper())
             for s in gen_concept.sources
         }
     else:
@@ -106,7 +106,7 @@ def _convert_generated_unified_concept(
         for id in gen_concept.identifiers or []:
             source_value = id.source.value if hasattr(id.source, "value") else id.source
             if isinstance(source_value, str):
-                source_value = source_value.lower()
+                source_value = source_value.upper()
             converted_sources.add(KnowledgeSource(source_value))
 
     return UnifiedConcept(
@@ -126,7 +126,9 @@ def _convert_generated_unified_concept(
         children=gen_concept.children or [],
         related=gen_concept.related or [],
         sources=converted_sources,
-        confidence_score=gen_concept.confidence_score if gen_concept.confidence_score is not None else None,
+        confidence_score=gen_concept.confidence_score
+        if gen_concept.confidence_score is not None
+        else None,
         last_updated=gen_concept.last_updated,
     )
 
@@ -140,7 +142,7 @@ def _convert_generated_lookup_result(
     def _normalize_source(s):
         source_value = s.value if hasattr(s, "value") else s
         if isinstance(source_value, str):
-            source_value = source_value.lower()
+            source_value = source_value.upper()
         return KnowledgeSource(source_value)
 
     return LookupResult(
@@ -163,13 +165,13 @@ def _convert_generated_lookup_config(
     def _normalize_source(s):
         source_value = s.value if hasattr(s, "value") else s
         if isinstance(source_value, str):
-            source_value = source_value.lower()
+            source_value = source_value.upper()
         return KnowledgeSource(source_value)
 
     def _normalize_concept_type(t):
         type_value = t.value if hasattr(t, "value") else t
         if isinstance(type_value, str):
-            type_value = type_value.lower()
+            type_value = type_value.upper()
         return ConceptType(type_value)
 
     return LookupConfig(

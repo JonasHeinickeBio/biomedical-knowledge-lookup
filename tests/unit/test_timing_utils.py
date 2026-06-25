@@ -79,12 +79,14 @@ class TestTimingStats:
         assert stats.max_time == 0.0
         assert stats.times == []
 
+
 class TestTimingFunctions:
     """Test suite for timing functions and decorators."""
 
     @pytest.mark.asyncio
     async def test_time_async_operation(self):
         """Test timing an async operation."""
+
         async def mock_op():
             await asyncio.sleep(0.01)
             return "success"
@@ -96,6 +98,7 @@ class TestTimingFunctions:
 
     def test_time_sync_operation(self):
         """Test timing a synchronous operation."""
+
         def mock_op():
             time.sleep(0.01)
             return "sync success"
@@ -116,6 +119,7 @@ class TestTimingFunctions:
     @pytest.mark.asyncio
     async def test_timing_decorator_async(self):
         """Test timing decorator with async function."""
+
         @timing_decorator(description="Async test")
         async def decorated_async_func():
             await asyncio.sleep(0.01)
@@ -126,6 +130,7 @@ class TestTimingFunctions:
 
     def test_timing_decorator_sync(self):
         """Test timing decorator with sync function."""
+
         @timing_decorator(description="Sync test")
         def decorated_sync_func():
             time.sleep(0.01)
@@ -137,6 +142,7 @@ class TestTimingFunctions:
     @pytest.mark.asyncio
     async def test_benchmark_decorator(self):
         """Test benchmark decorator."""
+
         @benchmark_decorator(iterations=3)
         async def benchmarked_func():
             await asyncio.sleep(0.01)

@@ -68,7 +68,9 @@ class TestRetryUtils:
 
     def test_create_chembl_retry_decorator(self):
         """Test ChEMBL-specific retry decorator."""
-        mock_func = MagicMock(side_effect=[Exception("error for url <!doctype html> error"), "success"])
+        mock_func = MagicMock(
+            side_effect=[Exception("error for url <!doctype html> error"), "success"]
+        )
         mock_func.__name__ = "mock_func"
         decorator = create_chembl_retry_decorator(max_tries=3)
         decorated_func = decorator(mock_func)

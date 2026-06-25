@@ -10,6 +10,8 @@ from knowledge_lookup.adapters.cosmic_adapter import COSMICAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 pytestmark = pytest.mark.unit
+
+
 class TestCOSMICAdapter:
     """Tests for COSMICAdapter."""
 

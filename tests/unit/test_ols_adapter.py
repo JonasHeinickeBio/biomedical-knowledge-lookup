@@ -142,9 +142,7 @@ class TestOLSSearchConcepts:
                 "short_form": "DOID_9351",
             }
         ]
-        adapter._make_request = AsyncMock(
-            return_value={"response": {"docs": docs}}
-        )
+        adapter._make_request = AsyncMock(return_value={"response": {"docs": docs}})
 
         result = await adapter.search_concepts("diabetes", limit=10)
         assert len(result) == 1
@@ -157,9 +155,7 @@ class TestOLSSearchConcepts:
             {"iri": f"http://example.com/{i}", "label": f"Term{i}", "ontology_name": "test"}
             for i in range(5)
         ]
-        adapter._make_request = AsyncMock(
-            return_value={"response": {"docs": docs}}
-        )
+        adapter._make_request = AsyncMock(return_value={"response": {"docs": docs}})
 
         result = await adapter.search_concepts("test", limit=2)
         assert len(result) == 2
@@ -198,18 +194,14 @@ class TestOLSGetConceptDetails:
                             "label": "diabetes mellitus",
                             "description": ["A disease"],
                             "synonyms": ["DM"],
-                            "annotation": {
-                                "database_cross_reference": ["UMLS:C0011849"]
-                            },
+                            "annotation": {"database_cross_reference": ["UMLS:C0011849"]},
                         }
                     ]
                 }
             }
         )
 
-        result = await adapter.get_concept_details(
-            "http://purl.obolibrary.org/obo/DOID_9351"
-        )
+        result = await adapter.get_concept_details("http://purl.obolibrary.org/obo/DOID_9351")
         assert result is not None
         assert result.primary_label == "diabetes mellitus"
 
@@ -222,13 +214,9 @@ class TestOLSGetConceptDetails:
     @pytest.mark.asyncio
     async def test_get_details_no_terms(self, adapter):
         """Test get_concept_details when no terms returned."""
-        adapter._make_request = AsyncMock(
-            return_value={"_embedded": {"terms": []}}
-        )
+        adapter._make_request = AsyncMock(return_value={"_embedded": {"terms": []}})
 
-        result = await adapter.get_concept_details(
-            "http://purl.obolibrary.org/obo/DOID_9351"
-        )
+        result = await adapter.get_concept_details("http://purl.obolibrary.org/obo/DOID_9351")
         assert result is None
 
     @pytest.mark.asyncio
@@ -236,18 +224,14 @@ class TestOLSGetConceptDetails:
         """Test get_concept_details handles exceptions."""
         adapter._make_request = AsyncMock(side_effect=Exception("Error"))
 
-        result = await adapter.get_concept_details(
-            "http://purl.obolibrary.org/obo/DOID_9351"
-        )
+        result = await adapter.get_concept_details("http://purl.obolibrary.org/obo/DOID_9351")
         assert result is None
 
     @pytest.mark.asyncio
     async def test_get_details_no_embedded(self, adapter):
         """Test get_concept_details with no _embedded key."""
         adapter._make_request = AsyncMock(return_value={})
-        result = await adapter.get_concept_details(
-            "http://purl.obolibrary.org/obo/DOID_9351"
-        )
+        result = await adapter.get_concept_details("http://purl.obolibrary.org/obo/DOID_9351")
         assert result is None
 
 
@@ -321,9 +305,7 @@ class TestOLSConvertResult:
             "knowledge_lookup.adapters.ols_adapter.UnifiedConcept",
             side_effect=Exception("Error"),
         ):
-            result = adapter._convert_ols_result_to_concept(
-                {"iri": "test", "label": "test"}
-            )
+            result = adapter._convert_ols_result_to_concept({"iri": "test", "label": "test"})
             assert result is None
 
     def test_convert_result_disease_ontology(self, adapter):
@@ -381,12 +363,8 @@ class TestOLSConvertConcept:
             "label": "diabetes mellitus",
             "synonyms": ["DM"],
             "description": ["A disease"],
-            "annotation": {
-                "database_cross_reference": ["UMLS:C0011849"]
-            },
-            "obo_xref": [
-                {"database": "UMLS", "id": "C0011849"}
-            ],
+            "annotation": {"database_cross_reference": ["UMLS:C0011849"]},
+            "obo_xref": [{"database": "UMLS", "id": "C0011849"}],
         }
         concept = adapter._convert_ols_concept_to_unified(data)
         assert concept is not None
@@ -411,9 +389,7 @@ class TestOLSConvertConcept:
         data = {
             "iri": "http://example.com/1",
             "label": "Test",
-            "annotation": {
-                "database_cross_reference": "UMLS:C0001"
-            },
+            "annotation": {"database_cross_reference": "UMLS:C0001"},
         }
         concept = adapter._convert_ols_concept_to_unified(data)
         assert any("Xref: UMLS:C0001" in c for c in concept.categories)
@@ -466,9 +442,7 @@ class TestOLSConvertConcept:
             "knowledge_lookup.adapters.ols_adapter.UnifiedConcept",
             side_effect=Exception("Error"),
         ):
-            result = adapter._convert_ols_concept_to_unified(
-                {"iri": "test", "label": "test"}
-            )
+            result = adapter._convert_ols_concept_to_unified({"iri": "test", "label": "test"})
             assert result is None
 
 

@@ -36,14 +36,14 @@ class ResponseStructureValidator:
         if isinstance(data, dict):
             return {
                 "type": "dict",
-                "keys": {k: self.extract_structure(v, max_depth - 1) for k, v in data.items()}
+                "keys": {k: self.extract_structure(v, max_depth - 1) for k, v in data.items()},
             }
         elif isinstance(data, list):
             if len(data) > 0:
                 return {
                     "type": "list",
                     "length": len(data),
-                    "item_structure": self.extract_structure(data[0], max_depth - 1)
+                    "item_structure": self.extract_structure(data[0], max_depth - 1),
                 }
             return {"type": "list", "length": 0}
         else:
@@ -67,9 +67,7 @@ class ResponseStructureValidator:
             old_structure = self.structures[cache_key]
 
             # Compare structures
-            structure_warnings = self._compare_structures(
-                old_structure, new_structure, path=""
-            )
+            structure_warnings = self._compare_structures(old_structure, new_structure, path="")
             warnings_list.extend(structure_warnings)
 
         # Store new structure
@@ -82,12 +80,14 @@ class ResponseStructureValidator:
         warnings = []
 
         if old.get("type") != new.get("type"):
-            warnings.append({
-                "type": "type_change",
-                "path": path or "root",
-                "old_type": old.get("type"),
-                "new_type": new.get("type")
-            })
+            warnings.append(
+                {
+                    "type": "type_change",
+                    "path": path or "root",
+                    "old_type": old.get("type"),
+                    "new_type": new.get("type"),
+                }
+            )
             return warnings
 
         if old["type"] == "dict":
@@ -97,27 +97,21 @@ class ResponseStructureValidator:
             # Check for removed keys
             removed = old_keys - new_keys
             for key in removed:
-                warnings.append({
-                    "type": "key_removed",
-                    "path": f"{path}.{key}" if path else key,
-                    "key": key
-                })
+                warnings.append(
+                    {"type": "key_removed", "path": f"{path}.{key}" if path else key, "key": key}
+                )
 
             # Check for added keys
             added = new_keys - old_keys
             for key in added:
-                warnings.append({
-                    "type": "key_added",
-                    "path": f"{path}.{key}" if path else key,
-                    "key": key
-                })
+                warnings.append(
+                    {"type": "key_added", "path": f"{path}.{key}" if path else key, "key": key}
+                )
 
             # Recurse into common keys
             for key in old_keys & new_keys:
                 sub_warnings = self._compare_structures(
-                    old["keys"][key],
-                    new["keys"][key],
-                    f"{path}.{key}" if path else key
+                    old["keys"][key], new["keys"][key], f"{path}.{key}" if path else key
                 )
                 warnings.extend(sub_warnings)
 
@@ -126,19 +120,19 @@ class ResponseStructureValidator:
             new_len = new.get("length", 0)
 
             if old_len != new_len:
-                warnings.append({
-                    "type": "list_length_change",
-                    "path": path,
-                    "old_length": old_len,
-                    "new_length": new_len
-                })
+                warnings.append(
+                    {
+                        "type": "list_length_change",
+                        "path": path,
+                        "old_length": old_len,
+                        "new_length": new_len,
+                    }
+                )
 
             # Compare item structures if list is non-empty
             if "item_structure" in old and "item_structure" in new:
                 sub_warnings = self._compare_structures(
-                    old["item_structure"],
-                    new["item_structure"],
-                    f"{path}[item]"
+                    old["item_structure"], new["item_structure"], f"{path}[item]"
                 )
                 warnings.extend(sub_warnings)
 
@@ -163,18 +157,9 @@ class APIWarningManager:
 
     def add_warning(self, source: KnowledgeSource, cache_key: str, warning: dict):
         """Record a warning about API change."""
-        self.warnings.append({
-            "source": source.value,
-            "cache_key": cache_key,
-            **warning
-        })
+        self.warnings.append({"source": source.value, "cache_key": cache_key, **warning})
 
-    def check_structure(
-        self,
-        source: KnowledgeSource,
-        cache_key: str,
-        data: Any
-    ) -> list[dict]:
+    def check_structure(self, source: KnowledgeSource, cache_key: str, data: Any) -> list[dict]:
         """Check structure and return warnings."""
         validator = ResponseStructureValidator(source)
         return validator.validate(cache_key, data)
@@ -194,14 +179,14 @@ class APIWarningManager:
             print(f"Type: {warning['type']}")
             print(f"Path: {warning.get('path', 'N/A')}")
 
-            if warning['type'] == 'key_removed':
+            if warning["type"] == "key_removed":
                 print(f"Removed key: {warning['key']}")
-            elif warning['type'] == 'key_added':
+            elif warning["type"] == "key_added":
                 print(f"Added key: {warning['key']}")
-            elif warning['type'] == 'type_change':
+            elif warning["type"] == "type_change":
                 print(f"Old type: {warning['old_type']}")
                 print(f"New type: {warning['new_type']}")
-            elif warning['type'] == 'list_length_change':
+            elif warning["type"] == "list_length_change":
                 print(f"Old length: {warning['old_length']}")
                 print(f"New length: {warning['new_length']}")
 
@@ -211,10 +196,7 @@ class APIWarningManager:
 
 
 def warn_about_response_changes(
-    source: KnowledgeSource,
-    cache_key: str,
-    data: Any,
-    manager: APIWarningManager = None
+    source: KnowledgeSource, cache_key: str, data: Any, manager: APIWarningManager = None
 ) -> APIWarningManager:
     """
     Convenience function to check for API response changes.

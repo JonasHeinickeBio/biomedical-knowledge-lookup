@@ -20,10 +20,13 @@ class TestCLI:
 
     def test_search_command_basic(self, runner):
         from knowledge_lookup.models import LookupResult
+
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_lookup_class:
             mock_lookup = AsyncMock()
             mock_lookup_class.return_value = mock_lookup
-            mock_lookup.search_concepts.return_value = LookupResult(query="test query", concepts=[])
+            mock_lookup.search_concepts.return_value = LookupResult(
+                query="test query", concepts=[]
+            )
             result = runner.invoke(main.app, ["search", "test query"])
             assert result.exit_code == 0
             assert "Searching for:" in result.output
@@ -36,14 +39,21 @@ class TestCLI:
             LookupResult,
             UnifiedConcept,
         )
+
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_lookup_class:
             mock_lookup = AsyncMock()
             mock_lookup_class.return_value = mock_lookup
-            concept = UnifiedConcept(primary_id="TEST:001", primary_label="Test Concept", concept_type=ConceptType.DISEASE)
+            concept = UnifiedConcept(
+                primary_id="TEST:001",
+                primary_label="Test Concept",
+                concept_type=ConceptType.DISEASE,
+            )
             concept.add_identifier(KnowledgeSource.BIOPORTAL, "TEST:001", "Test Concept")
             mock_result = LookupResult(
-                query="test query", concepts=[concept],
-                sources_queried=[KnowledgeSource.BIOPORTAL], sources_succeeded=[KnowledgeSource.BIOPORTAL],
+                query="test query",
+                concepts=[concept],
+                sources_queried=[KnowledgeSource.BIOPORTAL],
+                sources_succeeded=[KnowledgeSource.BIOPORTAL],
             )
             mock_lookup.search_concepts.return_value = mock_result
             result = runner.invoke(main.app, ["search", "test query"])
@@ -56,9 +66,9 @@ class TestCLI:
         assert "Available Knowledge Sources" in result.output
 
     def test_info_command(self, runner):
-        with patch("knowledge_lookup.__main__.__version__", "1.0.0"), \
-             patch("knowledge_lookup.__main__.__description__", "Test description"), \
-             patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_lookup_class:
+        with patch("knowledge_lookup.__main__.__version__", "1.0.0"), patch(
+            "knowledge_lookup.__main__.__description__", "Test description"
+        ), patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_lookup_class:
             mock_lookup = MagicMock()
             mock_lookup._get_adapter.return_value = MagicMock()
             mock_lookup_class.return_value = mock_lookup
@@ -83,6 +93,7 @@ class TestCLI:
 
     def test_search_with_known_source(self, runner):
         from knowledge_lookup.models import LookupResult
+
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_cls:
             mock_lookup = AsyncMock()
             mock_cls.return_value = mock_lookup
@@ -92,6 +103,7 @@ class TestCLI:
 
     def test_search_sources_printed(self, runner):
         from knowledge_lookup.models import LookupResult
+
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_cls:
             mock_lookup = AsyncMock()
             mock_cls.return_value = mock_lookup
@@ -106,10 +118,13 @@ class TestCLI:
             LookupResult,
             UnifiedConcept,
         )
+
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_cls:
             mock_lookup = AsyncMock()
             mock_cls.return_value = mock_lookup
-            concept = UnifiedConcept(primary_id="C1", primary_label="Concept1", concept_type=ConceptType.DISEASE)
+            concept = UnifiedConcept(
+                primary_id="C1", primary_label="Concept1", concept_type=ConceptType.DISEASE
+            )
             concept.add_identifier(KnowledgeSource.CHEMBL, "C1", "Concept1")
             concept.definitions = ["A definition"]
             mock_lookup.search_concepts.return_value = LookupResult(
@@ -126,10 +141,13 @@ class TestCLI:
             LookupResult,
             UnifiedConcept,
         )
+
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_cls:
             mock_lookup = AsyncMock()
             mock_cls.return_value = mock_lookup
-            concept = UnifiedConcept(primary_id="C1", primary_label="Concept1", concept_type=ConceptType.DISEASE)
+            concept = UnifiedConcept(
+                primary_id="C1", primary_label="Concept1", concept_type=ConceptType.DISEASE
+            )
             concept.add_identifier(KnowledgeSource.CHEMBL, "C1", "Concept1")
             concept.definitions = ["A definition"]
             mock_lookup.search_concepts.return_value = LookupResult(query="q", concepts=[concept])
@@ -139,26 +157,32 @@ class TestCLI:
 
     def test_search_csv_no_definitions(self, runner):
         from knowledge_lookup.models import ConceptType, LookupResult, UnifiedConcept
+
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_cls:
             mock_lookup = AsyncMock()
             mock_cls.return_value = mock_lookup
-            concept = UnifiedConcept(primary_id="C1", primary_label="Concept1", concept_type=ConceptType.DISEASE)
+            concept = UnifiedConcept(
+                primary_id="C1", primary_label="Concept1", concept_type=ConceptType.DISEASE
+            )
             mock_lookup.search_concepts.return_value = LookupResult(query="q", concepts=[concept])
             result = runner.invoke(main.app, ["search", "query", "-o", "csv"])
             assert result.exit_code == 0
 
     def test_search_table_long_description(self, runner):
         from knowledge_lookup.models import ConceptType, LookupResult, UnifiedConcept
+
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_cls:
             mock_lookup = AsyncMock()
             mock_cls.return_value = mock_lookup
-            concept = UnifiedConcept(primary_id="C1", primary_label="Concept1", concept_type=ConceptType.DISEASE)
+            concept = UnifiedConcept(
+                primary_id="C1", primary_label="Concept1", concept_type=ConceptType.DISEASE
+            )
             concept.definitions = ["A" * 100]
             mock_lookup.search_concepts.return_value = LookupResult(query="q", concepts=[concept])
             result = runner.invoke(main.app, ["search", "query"])
             assert result.exit_code == 0
             # Rich table truncation uses "…" character
-            assert len(result.concepts) if hasattr(result, 'concepts') else True
+            assert len(result.concepts) if hasattr(result, "concepts") else True
 
     def test_search_exception_handling(self, runner):
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_cls:
@@ -171,10 +195,13 @@ class TestCLI:
 
     def test_search_json_no_definitions(self, runner):
         from knowledge_lookup.models import ConceptType, LookupResult, UnifiedConcept
+
         with patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_cls:
             mock_lookup = AsyncMock()
             mock_cls.return_value = mock_lookup
-            concept = UnifiedConcept(primary_id="C1", primary_label="Concept1", concept_type=ConceptType.DISEASE)
+            concept = UnifiedConcept(
+                primary_id="C1", primary_label="Concept1", concept_type=ConceptType.DISEASE
+            )
             mock_lookup.search_concepts.return_value = LookupResult(query="q", concepts=[concept])
             result = runner.invoke(main.app, ["search", "query", "-o", "json"])
             assert result.exit_code == 0

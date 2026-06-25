@@ -68,7 +68,7 @@ def requires_api_key(source: KnowledgeSource):
 
     return pytest.mark.skipif(
         not has_key,
-        reason=f"API key for {source.value} not available (set {source.value}_API_KEY)"
+        reason=f"API key for {source.value} not available (set {source.value}_API_KEY)",
     )
 
 
@@ -138,6 +138,7 @@ def warning_manager():
         warning_manager.print_warnings()
     """
     from .utils import APIWarningManager
+
     return APIWarningManager()
 
 
@@ -150,5 +151,6 @@ def adapter(lookup_config):
     The tests use adapter.config to re-create adapters if needed.
     """
     from knowledge_lookup.adapters.uniprot_adapter import UniProtAdapter
+
     # Return a default adapter instance (UniProt as example)
     return UniProtAdapter(lookup_config)

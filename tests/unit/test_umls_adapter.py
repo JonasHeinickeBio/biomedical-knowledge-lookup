@@ -4,9 +4,7 @@ Unit tests for UMLSAdapter.
 
 from __future__ import annotations
 
-import tempfile
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -29,12 +27,16 @@ def make_search_result(
     result.ui = cui
     result.name = name
     result.root_source = root_source
-    result.uri = uri or f"https://uts.nlm.nih.gov/uts/rest/content/current/source/{root_source}/{cui}"
+    result.uri = (
+        uri or f"https://uts.nlm.nih.gov/uts/rest/content/current/source/{root_source}/{cui}"
+    )
     result.raw = {"semanticTypes": semantic_type_names or []}
     return result
 
 
-def make_concept(ui: str = "C001", name: str = "Diabetes", semantic_types: list[dict] | None = None):
+def make_concept(
+    ui: str = "C001", name: str = "Diabetes", semantic_types: list[dict] | None = None
+):
     concept = MagicMock()
     concept.ui = ui
     concept.name = name
@@ -127,7 +129,6 @@ class TestUMLSAdapter:
         client.search_api = MagicMock()
         client.cui_api = MagicMock()
         client.crosswalk_api = MagicMock()
-        client.release_api = MagicMock()
         return client
 
     # ── Basics ──────────────────────────────────────────────────────
@@ -158,10 +159,12 @@ class TestUMLSAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_success(self, adapter, mock_client):
         mock_client.search_api.search = AsyncMock(
-            return_value=make_mock_response([
-                make_search_result("C001", "Diabetes", "SNOMEDCT"),
-                make_search_result("C002", "Diabetes Mellitus", "ICD10CM"),
-            ])
+            return_value=make_mock_response(
+                [
+                    make_search_result("C001", "Diabetes", "SNOMEDCT"),
+                    make_search_result("C002", "Diabetes Mellitus", "ICD10CM"),
+                ]
+            )
         )
         adapter.client = mock_client
 
@@ -179,38 +182,51 @@ class TestUMLSAdapter:
         assert results[1].confidence_score == 0.85
 
         mock_client.search_api.search.assert_awaited_once_with(
-            search_string="diabetes", page_size=10, return_id_type="concept",
-            sabs=None, semantic_groups=None, semantic_types=None,
-            search_type="words", partial_search=False,
+            search_string="diabetes",
+            page_size=10,
+            return_id_type="concept",
+            sabs=None,
+            semantic_groups=None,
+            semantic_types=None,
+            search_type="words",
+            partial_search=False,
         )
 
     @pytest.mark.asyncio
     async def test_search_concepts_with_filters(self, adapter, mock_client):
         mock_client.search_api.search = AsyncMock(
-            return_value=make_mock_response([
-                make_search_result("C001", "Diabetes", "SNOMEDCT"),
-            ])
+            return_value=make_mock_response(
+                [
+                    make_search_result("C001", "Diabetes", "SNOMEDCT"),
+                ]
+            )
         )
         adapter.client = mock_client
 
         results = await adapter.search_concepts(
-            "diabetes", limit=5,
-            sabs="SNOMEDCT", semantic_groups="DISO",
-            search_type="exact", partial_search=True,
+            "diabetes",
+            limit=5,
+            sabs="SNOMEDCT",
+            semantic_groups="DISO",
+            search_type="exact",
+            partial_search=True,
         )
         assert len(results) == 1
 
         mock_client.search_api.search.assert_awaited_once_with(
-            search_string="diabetes", page_size=5, return_id_type="concept",
-            sabs="SNOMEDCT", semantic_groups="DISO", semantic_types=None,
-            search_type="exact", partial_search=True,
+            search_string="diabetes",
+            page_size=5,
+            return_id_type="concept",
+            sabs="SNOMEDCT",
+            semantic_groups="DISO",
+            semantic_types=None,
+            search_type="exact",
+            partial_search=True,
         )
 
     @pytest.mark.asyncio
     async def test_search_concepts_empty(self, adapter, mock_client):
-        mock_client.search_api.search = AsyncMock(
-            return_value=make_mock_response([])
-        )
+        mock_client.search_api.search = AsyncMock(return_value=make_mock_response([]))
         adapter.client = mock_client
         results = await adapter.search_concepts("nonexistent")
         assert results == []
@@ -231,10 +247,9 @@ class TestUMLSAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_respects_limit(self, adapter, mock_client):
         mock_client.search_api.search = AsyncMock(
-            return_value=make_mock_response([
-                make_search_result(f"C{i:03d}", f"Concept {i}")
-                for i in range(10)
-            ])
+            return_value=make_mock_response(
+                [make_search_result(f"C{i:03d}", f"Concept {i}") for i in range(10)]
+            )
         )
         adapter.client = mock_client
         results = await adapter.search_concepts("test", limit=3)
@@ -243,10 +258,16 @@ class TestUMLSAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_with_mth_fallback(self, adapter, mock_client):
         mock_client.search_api.search = AsyncMock(
-            return_value=make_mock_response([
-                make_search_result("C001", "Amoxicillin", "MTH",
-                                   semantic_type_names=["Pharmacologic Substance"]),
-            ])
+            return_value=make_mock_response(
+                [
+                    make_search_result(
+                        "C001",
+                        "Amoxicillin",
+                        "MTH",
+                        semantic_type_names=["Pharmacologic Substance"],
+                    ),
+                ]
+            )
         )
         adapter.client = mock_client
         results = await adapter.search_concepts("amoxicillin", limit=5)
@@ -256,9 +277,11 @@ class TestUMLSAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_with_mth_and_no_semantic_types(self, adapter, mock_client):
         mock_client.search_api.search = AsyncMock(
-            return_value=make_mock_response([
-                make_search_result("C001", "Unknown Concept", "MTH"),
-            ])
+            return_value=make_mock_response(
+                [
+                    make_search_result("C001", "Unknown Concept", "MTH"),
+                ]
+            )
         )
         adapter.client = mock_client
         results = await adapter.search_concepts("unknown", limit=5)
@@ -271,12 +294,16 @@ class TestUMLSAdapter:
     async def test_bulk_search_success(self, adapter, mock_client):
         mock_client.search_api.bulk_search = AsyncMock(
             return_value={
-                "diabetes": make_mock_response([
-                    make_search_result("C001", "Diabetes", "SNOMEDCT"),
-                ]),
-                "asthma": make_mock_response([
-                    make_search_result("C002", "Asthma", "ICD10CM"),
-                ]),
+                "diabetes": make_mock_response(
+                    [
+                        make_search_result("C001", "Diabetes", "SNOMEDCT"),
+                    ]
+                ),
+                "asthma": make_mock_response(
+                    [
+                        make_search_result("C002", "Asthma", "ICD10CM"),
+                    ]
+                ),
             }
         )
         adapter.client = mock_client
@@ -290,8 +317,10 @@ class TestUMLSAdapter:
 
         mock_client.search_api.bulk_search.assert_awaited_once_with(
             ["diabetes", "asthma"],
-            page_size=5, return_id_type="concept",
-            sabs=None, semantic_groups=None,
+            page_size=5,
+            return_id_type="concept",
+            sabs=None,
+            semantic_groups=None,
         )
 
     @pytest.mark.asyncio
@@ -300,13 +329,17 @@ class TestUMLSAdapter:
         adapter.client = mock_client
 
         await adapter.bulk_search(
-            ["diabetes"], limit=3,
-            sabs="SNOMEDCT", semantic_groups="DISO",
+            ["diabetes"],
+            limit=3,
+            sabs="SNOMEDCT",
+            semantic_groups="DISO",
         )
         mock_client.search_api.bulk_search.assert_awaited_once_with(
             ["diabetes"],
-            page_size=3, return_id_type="concept",
-            sabs="SNOMEDCT", semantic_groups="DISO",
+            page_size=3,
+            return_id_type="concept",
+            sabs="SNOMEDCT",
+            semantic_groups="DISO",
         )
 
     @pytest.mark.asyncio
@@ -328,8 +361,14 @@ class TestUMLSAdapter:
     async def test_get_concept_details_success(self, adapter, mock_client):
         cui = "C001"
         concept_info = make_concept(
-            ui=cui, name="Diabetes",
-            semantic_types=[{"uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T047", "name": "Disease or Syndrome"}],
+            ui=cui,
+            name="Diabetes",
+            semantic_types=[
+                {
+                    "uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T047",
+                    "name": "Disease or Syndrome",
+                }
+            ],
         )
         profile = make_profile(
             concept=concept_info,
@@ -347,7 +386,9 @@ class TestUMLSAdapter:
         )
 
         mock_client.cui_api.get_cui_info = AsyncMock(return_value=make_mock_response(concept_info))
-        mock_client.cui_api.get_concept_profile = AsyncMock(return_value=make_mock_response(profile))
+        mock_client.cui_api.get_concept_profile = AsyncMock(
+            return_value=make_mock_response(profile)
+        )
         adapter.client = mock_client
 
         concept = await adapter.get_concept_details(cui)
@@ -381,11 +422,13 @@ class TestUMLSAdapter:
     @pytest.mark.asyncio
     async def test_get_mappings_success(self, adapter, mock_client):
         mock_client.cui_api.get_atoms = AsyncMock(
-            return_value=make_mock_response([
-                make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),
-                make_atom("Diabetes mellitus", "ICD10CM", "A002", code="E11"),
-                make_atom("DM", "MSH", "A003", code="D003920"),
-            ])
+            return_value=make_mock_response(
+                [
+                    make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),
+                    make_atom("Diabetes mellitus", "ICD10CM", "A002", code="E11"),
+                    make_atom("DM", "MSH", "A003", code="D003920"),
+                ]
+            )
         )
         adapter.client = mock_client
 
@@ -399,15 +442,19 @@ class TestUMLSAdapter:
         assert mappings[2]["source_id"] == "D003920"
 
         mock_client.cui_api.get_atoms.assert_awaited_once_with(
-            "C001", sabs=None, page_size=10,
+            "C001",
+            sabs=None,
+            page_size=10,
         )
 
     @pytest.mark.asyncio
     async def test_get_mappings_with_target(self, adapter, mock_client):
         mock_client.cui_api.get_atoms = AsyncMock(
-            return_value=make_mock_response([
-                make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),
-            ])
+            return_value=make_mock_response(
+                [
+                    make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),
+                ]
+            )
         )
         adapter.client = mock_client
 
@@ -416,18 +463,22 @@ class TestUMLSAdapter:
         assert mappings[0]["source"] == "SNOMEDCT"
 
         mock_client.cui_api.get_atoms.assert_awaited_once_with(
-            "C001", sabs="SNOMEDCT", page_size=10,
+            "C001",
+            sabs="SNOMEDCT",
+            page_size=10,
         )
 
     @pytest.mark.asyncio
     async def test_get_mappings_deduplicates(self, adapter, mock_client):
         """Same (source, id) pair should only appear once."""
         mock_client.cui_api.get_atoms = AsyncMock(
-            return_value=make_mock_response([
-                make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),
-                make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),  # duplicate
-                make_atom("DM", "MSH", "A002", code="D003920"),
-            ])
+            return_value=make_mock_response(
+                [
+                    make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),
+                    make_atom("Diabetes", "SNOMEDCT", "A001", code="73211009"),  # duplicate
+                    make_atom("DM", "MSH", "A002", code="D003920"),
+                ]
+            )
         )
         adapter.client = mock_client
         mappings = await adapter.get_mappings("C001", limit=10)
@@ -451,11 +502,13 @@ class TestUMLSAdapter:
     @pytest.mark.asyncio
     async def test_get_relationships_success(self, adapter, mock_client):
         mock_client.cui_api.get_relations = AsyncMock(
-            return_value=make_mock_response([
-                make_relation("C002", "PAR"),
-                make_relation("C003", "CHD"),
-                make_relation("C004", "RB"),
-            ])
+            return_value=make_mock_response(
+                [
+                    make_relation("C002", "PAR"),
+                    make_relation("C003", "CHD"),
+                    make_relation("C004", "RB"),
+                ]
+            )
         )
         adapter.client = mock_client
 
@@ -468,15 +521,19 @@ class TestUMLSAdapter:
         assert rels[2]["relation_label"] == "RB"
 
         mock_client.cui_api.get_relations.assert_awaited_once_with(
-            "C001", include_relation_labels=None, page_size=10,
+            "C001",
+            include_relation_labels=None,
+            page_size=10,
         )
 
     @pytest.mark.asyncio
     async def test_get_relationships_filtered(self, adapter, mock_client):
         mock_client.cui_api.get_relations = AsyncMock(
-            return_value=make_mock_response([
-                make_relation("C002", "PAR"),
-            ])
+            return_value=make_mock_response(
+                [
+                    make_relation("C002", "PAR"),
+                ]
+            )
         )
         adapter.client = mock_client
 
@@ -485,7 +542,9 @@ class TestUMLSAdapter:
         assert rels[0]["relation_label"] == "PAR"
 
         mock_client.cui_api.get_relations.assert_awaited_once_with(
-            "C001", include_relation_labels="PAR", page_size=10,
+            "C001",
+            include_relation_labels="PAR",
+            page_size=10,
         )
 
     @pytest.mark.asyncio
@@ -506,10 +565,12 @@ class TestUMLSAdapter:
     @pytest.mark.asyncio
     async def test_iter_definitions(self, adapter, mock_client):
         """Stream definitions with pagination."""
-        mock_client.cui_api.iter_definitions.return_value = AsyncIter([
-            make_definition("Def one", "SNOMEDCT"),
-            make_definition("Def two", "MSH"),
-        ])
+        mock_client.cui_api.iter_definitions.return_value = AsyncIter(
+            [
+                make_definition("Def one", "SNOMEDCT"),
+                make_definition("Def two", "MSH"),
+            ]
+        )
         adapter.client = mock_client
 
         collected = []
@@ -521,7 +582,8 @@ class TestUMLSAdapter:
         assert collected[1]["root_source"] == "MSH"
 
         mock_client.cui_api.iter_definitions.assert_called_once_with(
-            "C001", page_size=10,
+            "C001",
+            page_size=10,
         )
 
     @pytest.mark.asyncio
@@ -541,10 +603,12 @@ class TestUMLSAdapter:
     @pytest.mark.asyncio
     async def test_iter_relations(self, adapter, mock_client):
         """Stream relations with pagination."""
-        mock_client.cui_api.iter_relations.return_value = AsyncIter([
-            make_relation("C002", "PAR"),
-            make_relation("C003", "CHD"),
-        ])
+        mock_client.cui_api.iter_relations.return_value = AsyncIter(
+            [
+                make_relation("C002", "PAR"),
+                make_relation("C003", "CHD"),
+            ]
+        )
         adapter.client = mock_client
 
         collected = []
@@ -556,7 +620,9 @@ class TestUMLSAdapter:
         assert collected[1]["related_id"] == "C003"
 
         mock_client.cui_api.iter_relations.assert_called_once_with(
-            "C001", page_size=50, include_relation_labels="PAR,CHD",
+            "C001",
+            page_size=50,
+            include_relation_labels="PAR,CHD",
         )
 
     @pytest.mark.asyncio
@@ -635,22 +701,42 @@ class TestUMLSAdapter:
         adapter = UMLSAdapter(config)
 
         result = adapter._determine_concept_type_from_semantic_types(
-            [{"uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T047", "name": "Disease or Syndrome"}]
+            [
+                {
+                    "uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T047",
+                    "name": "Disease or Syndrome",
+                }
+            ]
         )
         assert result == ConceptType.DISEASE
 
         result = adapter._determine_concept_type_from_semantic_types(
-            [{"uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T121", "name": "Pharmacologic Substance"}]
+            [
+                {
+                    "uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T121",
+                    "name": "Pharmacologic Substance",
+                }
+            ]
         )
         assert result == ConceptType.DRUG
 
         result = adapter._determine_concept_type_from_semantic_types(
-            [{"uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T028", "name": "Gene or Genome"}]
+            [
+                {
+                    "uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T028",
+                    "name": "Gene or Genome",
+                }
+            ]
         )
         assert result == ConceptType.GENE
 
         result = adapter._determine_concept_type_from_semantic_types(
-            [{"uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T999", "name": "Unknown"}]
+            [
+                {
+                    "uri": "https://uts.nlm.nih.gov/uts/rest/semantic-network/semantic-type/T999",
+                    "name": "Unknown",
+                }
+            ]
         )
         assert result == ConceptType.UNKNOWN
 
@@ -671,210 +757,3 @@ class TestUMLSAdapter:
         config = LookupConfig(api_keys={"umls": "test_key"})
         adapter = UMLSAdapter(config)
         assert adapter._determine_concept_type_from_semantic_type_names(type_names) == expected
-
-    # ── 7. CROSSWALK CODES ─────────────────────────────────────────
-
-    @pytest.mark.asyncio
-    async def test_crosswalk_codes_success(self, adapter, mock_client):
-        mock_atom = MagicMock()
-        mock_atom.cui = "C001"
-        mock_atom.name = "Diabetes mellitus"
-        mock_atom.root_source = "SNOMEDCT"
-        mock_atom.code = "73211009"
-        mock_atom.ui = "A001"
-        mock_atom.term_type = "PT"
-        mock_atom.language = "ENG"
-
-        mock_client.crosswalk_api.get_crosswalk = AsyncMock(
-            return_value=make_mock_response([mock_atom])
-        )
-        adapter.client = mock_client
-
-        results = await adapter.crosswalk_codes("ICD10CM", "E11.9", target_source="SNOMEDCT_US")
-        assert len(results) >= 1
-        assert results[0]["cui"] == "C001"
-        assert results[0]["source"] == "SNOMEDCT"
-        assert results[0]["source_id"] == "73211009"
-
-        mock_client.crosswalk_api.get_crosswalk.assert_awaited_once_with(
-            source="ICD10CM", id="E11.9", target_source="SNOMEDCT_US",
-            include_obsolete=False, page_size=25,
-        )
-
-    @pytest.mark.asyncio
-    async def test_crosswalk_codes_no_client(self, adapter):
-        adapter.client = None
-        results = await adapter.crosswalk_codes("ICD10CM", "E11")
-        assert results == []
-
-    @pytest.mark.asyncio
-    async def test_crosswalk_codes_error(self, adapter, mock_client):
-        mock_client.crosswalk_api.get_crosswalk = AsyncMock(
-            side_effect=Exception("Crosswalk error")
-        )
-        adapter.client = mock_client
-        results = await adapter.crosswalk_codes("ICD10CM", "E11")
-        assert results == []
-
-    @pytest.mark.asyncio
-    async def test_crosswalk_codes_deduplicates(self, adapter, mock_client):
-        """Same CUI should only appear once."""
-        mock_atom = MagicMock()
-        mock_atom.cui = "C001"
-        mock_atom.name = "Diabetes"
-        mock_atom.root_source = "SNOMEDCT"
-        mock_atom.code = "73211009"
-        mock_atom.ui = "A001"
-        mock_atom.term_type = "PT"
-        mock_atom.language = "ENG"
-
-        mock_client.crosswalk_api.get_crosswalk = AsyncMock(
-            return_value=make_mock_response([mock_atom, mock_atom])
-        )
-        adapter.client = mock_client
-
-        results = await adapter.crosswalk_codes("ICD10CM", "E11")
-        assert len(results) == 1
-
-    # ── 8. DOWNLOAD TERMINOLOGY ─────────────────────────────────────
-
-    @pytest.mark.asyncio
-    async def test_download_terminology_no_client(self, adapter):
-        adapter.client = None
-        with pytest.raises(RuntimeError, match="client not available"):
-            await adapter.download_terminology("2025AA")
-
-    @pytest.mark.asyncio
-    async def test_download_terminology_no_release_name(self, adapter, mock_client):
-        """When release_name is None, should list current releases first."""
-        mock_release = MagicMock()
-        mock_release.name = "2025AA"
-
-        mock_client.release_api.list_releases = AsyncMock(
-            return_value=make_mock_response([mock_release])
-        )
-        mock_client.release_api.download_file = AsyncMock(return_value=Path("/tmp/test.zip"))
-        adapter.client = mock_client
-
-        result = await adapter.download_terminology(
-            release_name=None,
-            output_dir="/tmp",
-            overwrite=True,
-        )
-        assert result is not None
-        mock_client.release_api.list_releases.assert_awaited_once_with(current=True)
-
-    @pytest.mark.asyncio
-    async def test_download_terminology_with_name(self, adapter, mock_client):
-        """When release_name is specified, should download directly."""
-        mock_client.release_api.download_file = AsyncMock(return_value=Path("/tmp/test.zip"))
-        adapter.client = mock_client
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            result = await adapter.download_terminology(
-                release_name="2025AA",
-                output_dir=tmpdir,
-                overwrite=False,
-            )
-            assert result is not None
-
-    @pytest.mark.asyncio
-    async def test_download_terminology_error(self, adapter, mock_client):
-        mock_client.release_api.download_file = AsyncMock(
-            side_effect=Exception("Download failed")
-        )
-        adapter.client = mock_client
-
-        with pytest.raises(Exception, match="Download failed"):
-            await adapter.download_terminology("2025AA", output_dir="/tmp")
-
-    # ── 9. CACHE INTEGRATION ───────────────────────────────────────
-
-    @pytest.mark.asyncio
-    async def test_search_concepts_with_cache(self, adapter, mock_client):
-        """When cache is configured, search should cache results."""
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            from knowledge_lookup.umls.cache import UMLSCache
-
-            cache = UMLSCache(db_path=f"{tmpdir}/test.db", auto_fts=True)
-            adapter_with_cache = UMLSAdapter(adapter.config, cache=cache)
-            adapter_with_cache.client = mock_client
-
-            mock_client.search_api.search = AsyncMock(
-                return_value=make_mock_response([
-                    make_search_result("C001", "Diabetes", "SNOMEDCT"),
-                ])
-            )
-
-            results = await adapter_with_cache.search_concepts("diabetes", limit=10)
-            assert len(results) == 1
-            assert results[0].primary_label == "Diabetes"
-
-            # Concept should be cached
-            cached = cache.get_concept("C001")
-            assert cached is not None
-            assert cached["name"] == "Diabetes"
-
-    @pytest.mark.asyncio
-    async def test_search_concepts_cache_hit(self, adapter, mock_client):
-        """When cache has the data, should return from cache without API call."""
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            from knowledge_lookup.umls.cache import UMLSCache
-
-            cache = UMLSCache(db_path=f"{tmpdir}/test.db", auto_fts=True)
-            adapter_with_cache = UMLSAdapter(adapter.config, cache=cache)
-            adapter_with_cache.client = mock_client
-
-            # Pre-populate cache
-            cache.cache_search_result("C001", "Diabetes", "SNOMEDCT")
-
-            # API should NOT be called
-            mock_client.search_api.search = AsyncMock(
-                side_effect=Exception("Should not be called")
-            )
-
-            results = await adapter_with_cache.search_concepts("diabetes", limit=10)
-            assert len(results) >= 1
-            assert results[0].primary_id == "C001"
-
-    @pytest.mark.asyncio
-    async def test_search_concepts_cache_fallback_on_error(self, adapter, mock_client):
-        """When API fails, cache should act as fallback."""
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            from knowledge_lookup.umls.cache import UMLSCache
-
-            cache = UMLSCache(db_path=f"{tmpdir}/test.db", auto_fts=True)
-            adapter_with_cache = UMLSAdapter(adapter.config, cache=cache)
-            adapter_with_cache.client = mock_client
-
-            # Pre-populate cache
-            cache.cache_search_result("C001", "Diabetes", "SNOMEDCT")
-
-            # API fails
-            mock_client.search_api.search = AsyncMock(
-                side_effect=Exception("API unavailable")
-            )
-
-            results = await adapter_with_cache.search_concepts("diabetes", limit=10, use_cache=True)
-            assert len(results) >= 1
-            assert results[0].primary_id == "C001"
-
-    def test_adapter_cache_disabled_by_default(self, adapter):
-        """By default, cache should be None."""
-        assert adapter._cache is None
-
-    def test_adapter_cache_enabled(self):
-        """Cache can be passed during construction."""
-        import tempfile
-
-        from knowledge_lookup.umls.cache import UMLSCache
-        with tempfile.TemporaryDirectory() as tmpdir:
-            cache = UMLSCache(db_path=f"{tmpdir}/test.db")
-            adapter_with_cache = UMLSAdapter(LookupConfig(), cache=cache)
-            assert adapter_with_cache._cache is cache

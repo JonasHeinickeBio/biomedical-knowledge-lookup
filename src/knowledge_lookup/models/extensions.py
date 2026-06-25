@@ -83,11 +83,20 @@ class UnifiedConcept(_UnifiedConcept):
     works without explicit ``None`` guards.
     """
 
-    LIST_FIELDS: ClassVar[frozenset[str]] = frozenset({
-        "definitions", "synonyms", "categories", "semantic_types",
-        "parents", "children", "identifiers", "related", "mappings",
-        "sources",
-    })
+    LIST_FIELDS: ClassVar[frozenset[str]] = frozenset(
+        {
+            "definitions",
+            "synonyms",
+            "categories",
+            "semantic_types",
+            "parents",
+            "children",
+            "identifiers",
+            "related",
+            "mappings",
+            "sources",
+        }
+    )
 
     def __init__(self, /, **data: Any) -> None:
         if "label" in data and "primary_label" not in data:
@@ -179,7 +188,7 @@ class UnifiedConcept(_UnifiedConcept):
                 if (isinstance(s, str) and source.value == s) or s == source:
                     return True
         # Check identifiers
-        for ident in (self.identifiers or []):
+        for ident in self.identifiers or []:
             if ident.source == source:
                 return True
         return False
@@ -222,7 +231,7 @@ class UnifiedConcept(_UnifiedConcept):
 
     def get_identifier(self, source: _KnowledgeSource) -> _ConceptIdentifier | None:
         """Return the ``ConceptIdentifier`` for *source*, or ``None``."""
-        for ident in (self.identifiers or []):
+        for ident in self.identifiers or []:
             if ident.source == source:
                 return ident
         return None
@@ -423,8 +432,8 @@ class LookupResult(_LookupResult):
     def group_by_source(self) -> dict:
         """Group concepts by their source(s)."""
         groups: dict[str, list] = {}
-        for c in (self.concepts or []):
-            for src in (c.sources or []):
+        for c in self.concepts or []:
+            for src in c.sources or []:
                 groups.setdefault(src, []).append(c)
         # Convert string keys back to KnowledgeSource where possible
         result: dict = {}

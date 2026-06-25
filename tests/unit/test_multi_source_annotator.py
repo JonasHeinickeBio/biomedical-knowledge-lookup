@@ -41,9 +41,7 @@ class TestMultiSourceAnnotator:
     def test_initialization_custom_config(self):
         """Test MultiSourceAnnotator initialization with custom config."""
         config = LookupConfig(max_results_per_source=50)
-        with patch(
-            "knowledge_lookup.core.multi_source_annotator.CentralKnowledgeLookup"
-        ):
+        with patch("knowledge_lookup.core.multi_source_annotator.CentralKnowledgeLookup"):
             annotator = MultiSourceAnnotator(config=config)
             assert annotator.config.max_results_per_source == 50
 
@@ -65,9 +63,7 @@ class TestMultiSourceAnnotator:
             annotator, "_identify_discrepancies", return_value=[]
         ), patch.object(
             annotator, "_calculate_overall_confidence", return_value=0.5
-        ), patch.object(
-            annotator, "_generate_annotation_stats", return_value={}
-        ):
+        ), patch.object(annotator, "_generate_annotation_stats", return_value={}):
             result = await annotator.annotate_sentence(sentence)
             assert isinstance(result, MultiSourceAnnotationResult)
             assert result.sentence == sentence
@@ -326,9 +322,7 @@ class TestMultiSourceAnnotator:
             "knowledge_lookup.models.ConceptIdentifier",
             side_effect=Exception("fail"),
         ):
-            result = await annotator._entity_to_concept(
-                {"id": "X"}, KnowledgeSource.OLS
-            )
+            result = await annotator._entity_to_concept({"id": "X"}, KnowledgeSource.OLS)
             assert result is None
 
     @pytest.mark.asyncio
@@ -521,9 +515,7 @@ class TestMultiSourceAnnotator:
         source_ann1 = SourceAnnotation(KnowledgeSource.OLS, [], [], [], 0.1)
         source_ann2 = SourceAnnotation(KnowledgeSource.BIOPORTAL, [], [], [], 0.1)
 
-        discrepancies = annotator._identify_discrepancies(
-            [source_ann1, source_ann2], [agreement]
-        )
+        discrepancies = annotator._identify_discrepancies([source_ann1, source_ann2], [agreement])
         assert len(discrepancies) == 0
 
     def test_calculate_overall_confidence(self, annotator):
@@ -597,9 +589,7 @@ class TestMultiSourceAnnotator:
     def test_generate_annotation_stats_with_errors(self, annotator):
         """Test stats generation with failed sources."""
         ann_ok = SourceAnnotation(KnowledgeSource.OLS, [], [], [], 0.1)
-        ann_err = SourceAnnotation(
-            KnowledgeSource.BIOPORTAL, [], [], [], 0.2, error="timeout"
-        )
+        ann_err = SourceAnnotation(KnowledgeSource.BIOPORTAL, [], [], [], 0.2, error="timeout")
         stats = annotator._generate_annotation_stats([ann_ok, ann_err], [])
         assert stats["failed_sources"] == 1
         assert stats["successful_sources"] == 1

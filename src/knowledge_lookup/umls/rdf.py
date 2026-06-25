@@ -112,7 +112,9 @@ def concept_to_graph(concept: UnifiedConcept, graph: Graph | None = None) -> Gra
         g.add((uri, ns.VOCAB["related"], related_uri))
 
     # ── Confidence / provenance ─────────────────────────────────────
-    g.add((uri, ns.VOCAB["confidenceScore"], Literal(concept.confidence_score, datatype=XSD.float)))
+    g.add(
+        (uri, ns.VOCAB["confidenceScore"], Literal(concept.confidence_score, datatype=XSD.float))
+    )
     for src in concept.sources:
         g.add((uri, ns.VOCAB["source"], Literal(str(src))))
 
@@ -207,6 +209,7 @@ class SparqlEndpoint:
     async def _get_session(self):
         if self._session is None:
             import aiohttp
+
             self._session = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=self.timeout),
                 headers={"User-Agent": self.user_agent},

@@ -36,10 +36,10 @@ async def test_ols_search_diabetes(adapter, response_validator, warning_manager)
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
-        assert hasattr(result, 'concept_type'), "Result missing concept_type"
-        assert hasattr(result, 'source_data'), "Result missing source_data"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
+        assert hasattr(result, "concept_type"), "Result missing concept_type"
+        assert hasattr(result, "source_data"), "Result missing source_data"
 
     # Extract sample response data
     response_data = {
@@ -49,10 +49,12 @@ async def test_ols_search_diabetes(adapter, response_validator, warning_manager)
                 "primary_id": c.primary_id,
                 "primary_label": c.primary_label,
                 "concept_type": str(c.concept_type),
-                "source_data_keys": list(c.source_data.keys()) if hasattr(c, 'source_data') else []
+                "source_data_keys": list(c.source_data.keys())
+                if hasattr(c, "source_data")
+                else [],
             }
             for c in results[:2]
-        ]
+        ],
     }
 
     # Validate response structure
@@ -79,7 +81,7 @@ async def test_ols_search_gene(adapter, response_validator, warning_manager):
 
     # Check results have ontology info
     for result in results[:2]:
-        assert hasattr(result, 'source_data')
+        assert hasattr(result, "source_data")
         # OLS source_data should contain ontology info
 
 
@@ -100,7 +102,7 @@ async def test_ols_ontology_filter(adapter, response_validator):
 
     # Results should have ontology_name in source_data
     for result in results[:2]:
-        if hasattr(result, 'source_data'):
+        if hasattr(result, "source_data"):
             ols_data = result.source_data.get(KnowledgeSource.OLS, {})
             # OLS data should be present
 

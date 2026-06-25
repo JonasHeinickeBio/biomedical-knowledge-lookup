@@ -32,10 +32,10 @@ async def test_pubchem_search_aspirin(adapter, response_validator, warning_manag
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
-        assert hasattr(result, 'concept_type'), "Result missing concept_type"
-        assert hasattr(result, 'definitions'), "Result missing definitions"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
+        assert hasattr(result, "concept_type"), "Result missing concept_type"
+        assert hasattr(result, "definitions"), "Result missing definitions"
 
     # Extract sample response data
     response_data = {
@@ -45,10 +45,10 @@ async def test_pubchem_search_aspirin(adapter, response_validator, warning_manag
                 "primary_id": c.primary_id,
                 "primary_label": c.primary_label,
                 "concept_type": str(c.concept_type),
-                "definitions": c.definitions if hasattr(c, 'definitions') else []
+                "definitions": c.definitions if hasattr(c, "definitions") else [],
             }
             for c in results[:2]
-        ]
+        ],
     }
 
     # Validate response structure

@@ -288,17 +288,13 @@ class TestBioOntologyBuildParams:
 
     def test_build_params_with_extra_params(self, adapter_with_api_key):
         """Test _build_params merges extra_params."""
-        params = adapter_with_api_key._build_params(
-            extra_params={"custom": "value"}, query="test"
-        )
+        params = adapter_with_api_key._build_params(extra_params={"custom": "value"}, query="test")
         assert params["custom"] == "value"
         assert params["q"] == "test"
 
     def test_build_params_removes_none_values(self, adapter_with_api_key):
         """Test _build_params removes None values."""
-        params = adapter_with_api_key._build_params(
-            include=None, page=None, query="test"
-        )
+        params = adapter_with_api_key._build_params(include=None, page=None, query="test")
         assert "include" not in params
         assert "page" not in params
 
@@ -417,9 +413,7 @@ class TestBioOntologySearchConcepts:
     async def test_search_raw_mode(self, adapter_with_api_key):
         """Test search_concepts returns raw collection in raw mode."""
         collection = [{"@id": "test", "prefLabel": "Test"}]
-        adapter_with_api_key._make_request = AsyncMock(
-            return_value={"collection": collection}
-        )
+        adapter_with_api_key._make_request = AsyncMock(return_value={"collection": collection})
 
         result = await adapter_with_api_key.search_concepts("test", raw=True, limit=10)
         assert result == collection
@@ -455,9 +449,7 @@ class TestBioOntologySearchConcepts:
                 "prefLabel": "Test2",
             },
         ]
-        adapter_with_api_key._make_request = AsyncMock(
-            return_value={"collection": collection}
-        )
+        adapter_with_api_key._make_request = AsyncMock(return_value={"collection": collection})
 
         result = await adapter_with_api_key.search_concepts("test", limit=10)
         assert len(result) == 2
@@ -514,8 +506,7 @@ class TestBioOntologyParseSearchResponse:
         """Test _parse_search_response respects limit."""
         data = {
             "collection": [
-                {"@id": f"http://example.com/{i}", "prefLabel": f"Test{i}"}
-                for i in range(5)
+                {"@id": f"http://example.com/{i}", "prefLabel": f"Test{i}"} for i in range(5)
             ]
         }
         result = adapter_with_api_key._parse_search_response(data, 2)
@@ -704,9 +695,7 @@ class TestBioOntologyBatchAnnotate:
         """Test batch_annotate returns data."""
         adapter_with_api_key._make_request = AsyncMock(return_value={"results": []})
 
-        result = await adapter_with_api_key.batch_annotate(
-            ["text1", "text2"], ontologies="DOID"
-        )
+        result = await adapter_with_api_key.batch_annotate(["text1", "text2"], ontologies="DOID")
         assert result == {"results": []}
 
     @pytest.mark.asyncio
@@ -741,9 +730,7 @@ class TestBioOntologyGetAnalytics:
         """Test get_analytics returns data."""
         adapter_with_api_key._make_request = AsyncMock(return_value={"data": "analytics"})
 
-        result = await adapter_with_api_key.get_analytics(
-            ontology="DOID", month=1, year=2024
-        )
+        result = await adapter_with_api_key.get_analytics(ontology="DOID", month=1, year=2024)
         assert result == {"data": "analytics"}
 
     @pytest.mark.asyncio

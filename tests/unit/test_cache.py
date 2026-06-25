@@ -37,7 +37,9 @@ class TestCacheEntry:
         assert entry.is_expired() is True
 
     def test_to_dict(self):
-        entry = CacheEntry(key="k", value="v", created_at=1.0, ttl=60, access_count=3, last_accessed=2.0)
+        entry = CacheEntry(
+            key="k", value="v", created_at=1.0, ttl=60, access_count=3, last_accessed=2.0
+        )
         d = entry.to_dict()
         assert d["key"] == "k"
         assert d["value"] == "v"
@@ -45,7 +47,14 @@ class TestCacheEntry:
         assert d["access_count"] == 3
 
     def test_from_dict(self):
-        data = {"key": "k", "value": "v", "created_at": 1.0, "ttl": 60, "access_count": 2, "last_accessed": 3.0}
+        data = {
+            "key": "k",
+            "value": "v",
+            "created_at": 1.0,
+            "ttl": 60,
+            "access_count": 2,
+            "last_accessed": 3.0,
+        }
         entry = CacheEntry.from_dict(data)
         assert entry.key == "k"
         assert entry.access_count == 2

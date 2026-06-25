@@ -21,9 +21,20 @@ def export_to_json(result: LookupResult, filepath: str | Path | None = None) -> 
         "query": result.query,
         "execution_time": result.execution_time,
         "total_found": result.total_found,
-        "sources_queried": [str(s.value) if isinstance(s, KnowledgeSource) else str(s) for s in (result.sources_queried or [])],
-        "sources_succeeded": [str(s.value) if isinstance(s, KnowledgeSource) else str(s) for s in (result.sources_succeeded or [])],
-        "errors": {str(k.value) if isinstance(k, KnowledgeSource) else str(k): str(v) for k, v in result.errors.items()} if result.errors else {},
+        "sources_queried": [
+            str(s.value) if isinstance(s, KnowledgeSource) else str(s)
+            for s in (result.sources_queried or [])
+        ],
+        "sources_succeeded": [
+            str(s.value) if isinstance(s, KnowledgeSource) else str(s)
+            for s in (result.sources_succeeded or [])
+        ],
+        "errors": {
+            str(k.value) if isinstance(k, KnowledgeSource) else str(k): str(v)
+            for k, v in result.errors.items()
+        }
+        if result.errors
+        else {},
         "concepts": [],
     }
     for concept in result.concepts or []:

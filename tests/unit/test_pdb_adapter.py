@@ -9,6 +9,8 @@ from knowledge_lookup.adapters.pdb_adapter import PDBAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
 pytestmark = pytest.mark.unit
+
+
 class TestPDBAdapter:
     """Tests for PDBAdapter."""
 
@@ -52,9 +54,7 @@ class TestPDBAdapter:
         post_response = AsyncMock()
         post_response.status = 200
         post_response.raise_for_status = MagicMock()
-        post_response.json = AsyncMock(
-            return_value={"result_set": [{"identifier": "1ABC"}]}
-        )
+        post_response.json = AsyncMock(return_value={"result_set": [{"identifier": "1ABC"}]})
         mock_post.return_value.__aenter__.return_value = post_response
 
         # Mock the GET entry summary response

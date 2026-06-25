@@ -54,9 +54,9 @@ async def test_disgenet_search_diabetes(
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
-        assert hasattr(result, 'concept_type'), "Result missing concept_type"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
+        assert hasattr(result, "concept_type"), "Result missing concept_type"
 
     # Extract sample response data
     response_data = {
@@ -68,7 +68,7 @@ async def test_disgenet_search_diabetes(
                 "concept_type": str(c.concept_type),
             }
             for c in results[:2]
-        ]
+        ],
     }
 
     # Validate response structure
@@ -129,9 +129,7 @@ async def test_disgenet_search_cancer(
 
 @pytest.mark.asyncio
 @requires_api_key(KnowledgeSource.DISGENET)
-async def test_disgenet_empty_search(
-    adapter, response_validator, disgenet_available
-):
+async def test_disgenet_empty_search(adapter, response_validator, disgenet_available):
     """Test DisGeNET search with no results."""
     if not disgenet_available:
         pytest.skip("DISGENET_API_KEY not set")
@@ -146,9 +144,7 @@ async def test_disgenet_empty_search(
 
 @pytest.mark.asyncio
 @requires_api_key(KnowledgeSource.DISGENET)
-async def test_disgenet_limit_parameter(
-    adapter, response_validator, disgenet_available
-):
+async def test_disgenet_limit_parameter(adapter, response_validator, disgenet_available):
     """Test that limit parameter works correctly."""
     if not disgenet_available:
         pytest.skip("DISGENET_API_KEY not set")

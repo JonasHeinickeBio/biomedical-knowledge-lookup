@@ -33,8 +33,12 @@ class TestAllAdapters:
         mock_response.status = 200
         # Provide a generic response that many adapters expect or will just return [] from
         mock_response.json = AsyncMock(
-            return_value={"results": [], "response": {"docs": []}, "IdentifierList": {"CID": []},
-                         "_embedded": {"searchResults": []}}
+            return_value={
+                "results": [],
+                "response": {"docs": []},
+                "IdentifierList": {"CID": []},
+                "_embedded": {"searchResults": []},
+            }
         )
         mock_response.ok = True
 

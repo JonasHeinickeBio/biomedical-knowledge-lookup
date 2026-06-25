@@ -60,7 +60,9 @@ class TestDisGeNETAdapter:
                 {"diseaseid": "DOID:162", "diseasename": "Diabetes", "score": 0.5},
             ]
         }
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = data
             results = await adapter_with_api_key.search_concepts("7157", limit=10)
             assert len(results) == 1
@@ -68,7 +70,9 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_empty_response(self, adapter_with_api_key):
         """Test search concepts with empty response."""
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = None
             results = await adapter_with_api_key.search_concepts("nonexistent", limit=10)
             assert isinstance(results, list)
@@ -132,7 +136,9 @@ class TestDisGeNETAdapter:
             "diseaseid": "DOID:162",
             "diseasename": "Diabetes mellitus",
         }
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = disease_data
             result = await adapter_with_api_key.get_concept_details("DOID:162")
             assert result is not None
@@ -142,7 +148,9 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_get_concept_details_no_data(self, adapter_with_api_key):
         """Test get_concept_details when no data returned."""
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = None
             result = await adapter_with_api_key.get_concept_details("DOID:162")
             assert result is None
@@ -150,7 +158,9 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_get_concept_details_no_diseaseid(self, adapter_with_api_key):
         """Test get_concept_details when diseaseid not in response."""
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = {"diseasename": "Test"}
             result = await adapter_with_api_key.get_concept_details("DOID:162")
             assert result is None
@@ -158,7 +168,9 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_get_concept_details_no_diseaseid(self, adapter_with_api_key):
         """Test get_concept_details when diseaseid not in response."""
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = {"diseasename": "Test"}
             result = await adapter_with_api_key.get_concept_details("DOID:162")
             assert result is None
@@ -192,7 +204,9 @@ class TestDisGeNETAdapter:
         mock_session = MagicMock()
         mock_session.get = MagicMock(side_effect=[ctx_429, ctx_200])
 
-        with patch.object(adapter_with_api_key, "_get_session", new_callable=AsyncMock) as mock_get_session:
+        with patch.object(
+            adapter_with_api_key, "_get_session", new_callable=AsyncMock
+        ) as mock_get_session:
             mock_get_session.return_value = mock_session
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 result = await adapter_with_api_key._make_request("http://test.com/api")
@@ -219,7 +233,9 @@ class TestDisGeNETAdapter:
         mock_session = MagicMock()
         mock_session.get = MagicMock(return_value=ctx)
 
-        with patch.object(adapter_with_api_key, "_get_session", new_callable=AsyncMock) as mock_get_session:
+        with patch.object(
+            adapter_with_api_key, "_get_session", new_callable=AsyncMock
+        ) as mock_get_session:
             mock_get_session.return_value = mock_session
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 with pytest.raises(aiohttp.ClientResponseError):
@@ -228,7 +244,9 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_make_request_exception(self, adapter_with_api_key):
         """Test _make_request exception propagation after retries exhausted."""
-        with patch.object(adapter_with_api_key, "_get_session", new_callable=AsyncMock) as mock_get_session:
+        with patch.object(
+            adapter_with_api_key, "_get_session", new_callable=AsyncMock
+        ) as mock_get_session:
             mock_get_session.side_effect = Exception("Network error")
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 with pytest.raises(Exception, match="Network error"):
@@ -270,9 +288,13 @@ class TestDisGeNETAdapter:
                 }
             ]
         }
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = data
-            result = await adapter_with_api_key.get_gene_disease_associations({"gene_ncbi_id": "7157"})
+            result = await adapter_with_api_key.get_gene_disease_associations(
+                {"gene_ncbi_id": "7157"}
+            )
             assert len(result) == 1
             assert result[0]["gene_symbol"] == "TP53"
 
@@ -280,7 +302,9 @@ class TestDisGeNETAdapter:
     async def test_get_gene_disease_associations_raw(self, adapter_with_api_key):
         """Test get_gene_disease_associations with raw=True."""
         data = {"payload": [{"assocID": "123"}]}
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = data
             result = await adapter_with_api_key.get_gene_disease_associations(
                 {"gene_ncbi_id": "7157"}, raw=True
@@ -290,17 +314,25 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_get_gene_disease_associations_no_data(self, adapter_with_api_key):
         """Test get_gene_disease_associations when no data returned."""
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = None
-            result = await adapter_with_api_key.get_gene_disease_associations({"gene_ncbi_id": "7157"})
+            result = await adapter_with_api_key.get_gene_disease_associations(
+                {"gene_ncbi_id": "7157"}
+            )
             assert result is None
 
     @pytest.mark.asyncio
     async def test_get_gene_disease_associations_no_payload(self, adapter_with_api_key):
         """Test get_gene_disease_associations when no payload in response."""
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = {"error": "bad request"}
-            result = await adapter_with_api_key.get_gene_disease_associations({"gene_ncbi_id": "7157"})
+            result = await adapter_with_api_key.get_gene_disease_associations(
+                {"gene_ncbi_id": "7157"}
+            )
             assert result is None
 
     @pytest.mark.asyncio
@@ -339,7 +371,9 @@ class TestDisGeNETAdapter:
                 }
             ]
         }
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = data
             result = await adapter_with_api_key.get_gene_disease_associations_evidence(
                 {"gene_ncbi_id": "7157"}
@@ -351,7 +385,9 @@ class TestDisGeNETAdapter:
     async def test_get_gene_disease_associations_evidence_raw(self, adapter_with_api_key):
         """Test get_gene_disease_associations_evidence with raw=True."""
         data = {"payload": [{"assocID": "123"}]}
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = data
             result = await adapter_with_api_key.get_gene_disease_associations_evidence(
                 {"gene_ncbi_id": "7157"}, raw=True
@@ -361,7 +397,9 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_get_gene_disease_associations_evidence_no_data(self, adapter_with_api_key):
         """Test get_gene_disease_associations_evidence when no data."""
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = None
             result = await adapter_with_api_key.get_gene_disease_associations_evidence(
                 {"gene_ncbi_id": "7157"}
@@ -385,7 +423,9 @@ class TestDisGeNETAdapter:
                 },
             ]
         }
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = data
             concepts = await adapter_with_api_key.search_concepts("7157", limit=2)
             assert len(concepts) == 2
@@ -400,7 +440,9 @@ class TestDisGeNETAdapter:
                 for i in range(5)
             ]
         }
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = data
             concepts = await adapter_with_api_key.search_concepts("7157", limit=2)
             assert len(concepts) == 2
@@ -408,7 +450,9 @@ class TestDisGeNETAdapter:
     @pytest.mark.asyncio
     async def test_search_concepts_no_data(self, adapter_with_api_key):
         """Test search when no data returned."""
-        with patch.object(adapter_with_api_key, "_make_request", new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = None
             concepts = await adapter_with_api_key.search_concepts("7157")
             assert concepts == []

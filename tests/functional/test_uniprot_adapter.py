@@ -32,9 +32,9 @@ async def test_uniprot_search_insulin(adapter, response_validator, warning_manag
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
-        assert hasattr(result, 'concept_type'), "Result missing concept_type"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
+        assert hasattr(result, "concept_type"), "Result missing concept_type"
         assert result.concept_type is not None, "Concept type should not be None"
 
     # Extract sample response data for validation
@@ -45,10 +45,10 @@ async def test_uniprot_search_insulin(adapter, response_validator, warning_manag
                 "primary_id": c.primary_id,
                 "primary_label": c.primary_label,
                 "concept_type": str(c.concept_type),
-                "identifiers": list(c.identifiers) if hasattr(c, 'identifiers') else []
+                "identifiers": list(c.identifiers) if hasattr(c, "identifiers") else [],
             }
             for c in results[:2]
-        ]
+        ],
     }
 
     # Validate response structure
@@ -56,11 +56,7 @@ async def test_uniprot_search_insulin(adapter, response_validator, warning_manag
     changes = validator.validate_response("uniprot_insulin_search", response_data)
 
     for change in changes:
-        warning_manager.add_warning(
-            KnowledgeSource.UNIPROT,
-            "uniprot_insulin_search",
-            change
-        )
+        warning_manager.add_warning(KnowledgeSource.UNIPROT, "uniprot_insulin_search", change)
 
     # Print changes if any
     if changes:
@@ -81,7 +77,7 @@ async def test_uniprot_search_human(adapter, response_validator, warning_manager
 
     # Check organism info
     for result in results[:2]:
-        assert hasattr(result, 'primary_id')
+        assert hasattr(result, "primary_id")
         # Organism info may be in source_data
 
 
@@ -96,8 +92,8 @@ async def test_uniprot_get_concept_details(adapter, response_validator, warning_
     result = await adapter.get_concept_details(test_id)
 
     assert result is not None, f"Failed to get details for {test_id}"
-    assert hasattr(result, 'primary_id'), "Result missing primary_id"
-    assert hasattr(result, 'primary_label'), "Result missing primary_label"
+    assert hasattr(result, "primary_id"), "Result missing primary_id"
+    assert hasattr(result, "primary_label"), "Result missing primary_label"
     assert result.primary_id == test_id, f"Expected {test_id}, got {result.primary_id}"
 
     # Extract response data
@@ -105,18 +101,16 @@ async def test_uniprot_get_concept_details(adapter, response_validator, warning_
         "primary_id": result.primary_id,
         "primary_label": result.primary_label,
         "concept_type": str(result.concept_type),
-        "source_data_keys": list(result.source_data.keys()) if hasattr(result, 'source_data') else []
+        "source_data_keys": list(result.source_data.keys())
+        if hasattr(result, "source_data")
+        else [],
     }
 
     validator = response_validator(KnowledgeSource.UNIPROT)
     changes = validator.validate_response("uniprot_insulin_details", response_data)
 
     for change in changes:
-        warning_manager.add_warning(
-            KnowledgeSource.UNIPROT,
-            "uniprot_insulin_details",
-            change
-        )
+        warning_manager.add_warning(KnowledgeSource.UNIPROT, "uniprot_insulin_details", change)
 
 
 @pytest.mark.asyncio

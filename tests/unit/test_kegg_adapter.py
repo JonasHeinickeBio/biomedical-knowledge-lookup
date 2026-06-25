@@ -109,7 +109,9 @@ class TestKEGGAdapter:
     @pytest.mark.asyncio
     async def test_get_concept_details_disease(self, adapter):
         """Test get_concept_details for disease."""
-        kegg_text = "ENTRY       H00001\nNAME        Diabetes mellitus\nDESCRIPTION A metabolic disease"
+        kegg_text = (
+            "ENTRY       H00001\nNAME        Diabetes mellitus\nDESCRIPTION A metabolic disease"
+        )
         with patch.object(adapter, "_make_request_text", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = kegg_text
             result = await adapter.get_concept_details("H00001")

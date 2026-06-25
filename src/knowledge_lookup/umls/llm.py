@@ -42,7 +42,9 @@ logger = logging.getLogger(__name__)
 class LLMBackend:
     """Abstract base for LLM backends."""
 
-    async def complete(self, prompt: str, *, max_tokens: int = 256, temperature: float = 0.1) -> str:
+    async def complete(
+        self, prompt: str, *, max_tokens: int = 256, temperature: float = 0.1
+    ) -> str:
         """Send a prompt to the LLM and return the completion text."""
         raise NotImplementedError
 
@@ -63,7 +65,9 @@ class OpenAIBackend(LLMBackend):
         self.model = model
         self.base_url = base_url
 
-    async def complete(self, prompt: str, *, max_tokens: int = 256, temperature: float = 0.1) -> str:
+    async def complete(
+        self, prompt: str, *, max_tokens: int = 256, temperature: float = 0.1
+    ) -> str:
         import aiohttp
 
         url = self.base_url or "https://api.openai.com/v1/chat/completions"
@@ -100,7 +104,9 @@ class AnthropicBackend(LLMBackend):
             self._session = aiohttp.ClientSession()
         return self._session
 
-    async def complete(self, prompt: str, *, max_tokens: int = 256, temperature: float = 0.1) -> str:
+    async def complete(
+        self, prompt: str, *, max_tokens: int = 256, temperature: float = 0.1
+    ) -> str:
         session = await self._get_session()
         url = "https://api.anthropic.com/v1/messages"
         headers = {
@@ -143,16 +149,16 @@ class HuggingFaceBackend(LLMBackend):
         try:
             from transformers import pipeline  # noqa: F811
         except ImportError:
-            raise ImportError(
-                "HuggingFace backend requires `pip install transformers torch`"
-            )
+            raise ImportError("HuggingFace backend requires `pip install transformers torch`")
         self._pipe = pipeline(
             "text-generation",
             model=self.model_name,
             device=self.device,
         )
 
-    async def complete(self, prompt: str, *, max_tokens: int = 256, temperature: float = 0.1) -> str:
+    async def complete(
+        self, prompt: str, *, max_tokens: int = 256, temperature: float = 0.1
+    ) -> str:
         self._load()
         import asyncio
 
@@ -238,7 +244,9 @@ class LLMNormalizer:
         if isinstance(backend, str):
             backend_cls = self._BACKENDS.get(backend)
             if backend_cls is None:
-                raise ValueError(f"Unknown LLM backend '{backend}'. Options: {list(self._BACKENDS)}")
+                raise ValueError(
+                    f"Unknown LLM backend '{backend}'. Options: {list(self._BACKENDS)}"
+                )
             kwargs: dict[str, Any] = {}
             if api_key is not None:
                 kwargs["api_key"] = api_key
@@ -294,7 +302,11 @@ class LLMNormalizer:
             concepts = await self.adapter.search_concepts(query_text, limit=limit)
         except Exception as exc:
             logger.error("Adapter search failed for '%s': %s", query_text, exc)
-            return NormalizationResult(query=original, method=method, raw_llm_output=expanded if method == "llm_expanded" else None)
+            return NormalizationResult(
+                query=original,
+                method=method,
+                raw_llm_output=expanded if method == "llm_expanded" else None,
+            )
 
         if not concepts:
             return NormalizationResult(
@@ -316,7 +328,9 @@ class LLMNormalizer:
             cui=selected.primary_id,
             concept_name=selected.primary_label,
             confidence=selected.confidence_score,
-            method=f"{method}+llm_pruned" if self.prune_candidates and len(concepts) > 1 else method,
+            method=f"{method}+llm_pruned"
+            if self.prune_candidates and len(concepts) > 1
+            else method,
             raw_llm_output=expanded if method == "llm_expanded" else None,
         )
 
@@ -342,6 +356,7 @@ class LLMNormalizer:
         -------
         A list of :class:`NormalizationResult` in the same order as *texts*.
         """
+
         async def _normalize_one(t: str) -> NormalizationResult:
             return await self.normalize(t, limit=limit)
 

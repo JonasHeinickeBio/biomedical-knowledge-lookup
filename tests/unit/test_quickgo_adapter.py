@@ -81,10 +81,18 @@ class TestQuickGOSearchConcepts:
         """Test search with GO term results."""
         mock_qgo = MagicMock()
         mock_qgo.get_go_terms.return_value = [
-            {"id": "GO:0008150", "name": "biological_process", "aspect": "biological_process", "definition": "A process", "isObsolete": False}
+            {
+                "id": "GO:0008150",
+                "name": "biological_process",
+                "aspect": "biological_process",
+                "definition": "A process",
+                "isObsolete": False,
+            }
         ]
         mock_qgo.Annotation.return_value = []
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.search_concepts("biological process", limit=10)
             assert len(result) == 1
             assert result[0].primary_id == "GO:0008150"
@@ -93,9 +101,13 @@ class TestQuickGOSearchConcepts:
     async def test_search_molecular_function(self, adapter):
         """Test search with molecular function term."""
         mock_qgo = MagicMock()
-        mock_qgo.get_go_terms.return_value = [{"id": "GO:0003674", "name": "molecular_function", "aspect": "molecular_function"}]
+        mock_qgo.get_go_terms.return_value = [
+            {"id": "GO:0003674", "name": "molecular_function", "aspect": "molecular_function"}
+        ]
         mock_qgo.Annotation.return_value = []
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.search_concepts("molecular function", limit=10)
             assert result[0].concept_type == ConceptType.MOLECULAR_FUNCTION
 
@@ -103,9 +115,13 @@ class TestQuickGOSearchConcepts:
     async def test_search_cellular_component(self, adapter):
         """Test search with cellular component term."""
         mock_qgo = MagicMock()
-        mock_qgo.get_go_terms.return_value = [{"id": "GO:0005575", "name": "cellular_component", "aspect": "cellular_component"}]
+        mock_qgo.get_go_terms.return_value = [
+            {"id": "GO:0005575", "name": "cellular_component", "aspect": "cellular_component"}
+        ]
         mock_qgo.Annotation.return_value = []
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.search_concepts("cellular component", limit=10)
             assert result[0].concept_type == ConceptType.CELLULAR_COMPONENT
 
@@ -113,9 +129,13 @@ class TestQuickGOSearchConcepts:
     async def test_search_unknown_aspect(self, adapter):
         """Test search with unknown aspect defaults to biological_process."""
         mock_qgo = MagicMock()
-        mock_qgo.get_go_terms.return_value = [{"id": "GO:9999999", "name": "unknown", "aspect": "unknown"}]
+        mock_qgo.get_go_terms.return_value = [
+            {"id": "GO:9999999", "name": "unknown", "aspect": "unknown"}
+        ]
         mock_qgo.Annotation.return_value = []
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.search_concepts("unknown", limit=10)
             assert result[0].concept_type == ConceptType.BIOLOGICAL_PROCESS
 
@@ -124,8 +144,18 @@ class TestQuickGOSearchConcepts:
         """Test search with annotation results."""
         mock_qgo = MagicMock()
         mock_qgo.get_go_terms.return_value = []
-        mock_qgo.Annotation.return_value = [{"geneProductId": "P12345", "goId": "GO:0008150", "qualifier": "enables", "evidenceCode": "IEA", "aspect": "biological_process"}]
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        mock_qgo.Annotation.return_value = [
+            {
+                "geneProductId": "P12345",
+                "goId": "GO:0008150",
+                "qualifier": "enables",
+                "evidenceCode": "IEA",
+                "aspect": "biological_process",
+            }
+        ]
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.search_concepts("P12345", limit=10)
             assert result[0].concept_type == ConceptType.GENE_DISEASE_ASSOCIATION
 
@@ -134,7 +164,9 @@ class TestQuickGOSearchConcepts:
         """Test search handles exceptions."""
         mock_qgo = MagicMock()
         mock_qgo.get_go_terms.side_effect = Exception("API Error")
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.search_concepts("test", limit=10)
             assert result == []
 
@@ -144,7 +176,9 @@ class TestQuickGOSearchConcepts:
         mock_qgo = MagicMock()
         mock_qgo.get_go_terms.return_value = ["not_a_dict", 123]
         mock_qgo.Annotation.return_value = []
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.search_concepts("test", limit=10)
             assert result == []
 
@@ -154,7 +188,9 @@ class TestQuickGOSearchConcepts:
         mock_qgo = MagicMock()
         mock_qgo.get_go_terms.return_value = [{"id": "", "name": ""}]
         mock_qgo.Annotation.return_value = []
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.search_concepts("test", limit=10)
             assert result == []
 
@@ -177,8 +213,20 @@ class TestQuickGOGetConceptDetails:
     async def test_get_details_go_term(self, adapter):
         """Test get_details for GO term."""
         mock_qgo = MagicMock()
-        mock_qgo.get_go_terms.return_value = [{"name": "biological_process", "aspect": "biological_process", "definition": "A process", "synonyms": ["BP"], "isObsolete": False, "comment": "test", "usage": "test"}]
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        mock_qgo.get_go_terms.return_value = [
+            {
+                "name": "biological_process",
+                "aspect": "biological_process",
+                "definition": "A process",
+                "synonyms": ["BP"],
+                "isObsolete": False,
+                "comment": "test",
+                "usage": "test",
+            }
+        ]
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.get_concept_details("GO:0008150")
             assert result is not None
             assert result.primary_id == "GO:0008150"
@@ -187,8 +235,12 @@ class TestQuickGOGetConceptDetails:
     async def test_get_details_go_term_molecular_function(self, adapter):
         """Test get_details for molecular function."""
         mock_qgo = MagicMock()
-        mock_qgo.get_go_terms.return_value = [{"name": "molecular_function", "aspect": "molecular_function"}]
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        mock_qgo.get_go_terms.return_value = [
+            {"name": "molecular_function", "aspect": "molecular_function"}
+        ]
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.get_concept_details("GO:0003674")
             assert result.concept_type == ConceptType.MOLECULAR_FUNCTION
 
@@ -196,8 +248,12 @@ class TestQuickGOGetConceptDetails:
     async def test_get_details_go_term_cellular_component(self, adapter):
         """Test get_details for cellular component."""
         mock_qgo = MagicMock()
-        mock_qgo.get_go_terms.return_value = [{"name": "cellular_component", "aspect": "cellular_component"}]
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        mock_qgo.get_go_terms.return_value = [
+            {"name": "cellular_component", "aspect": "cellular_component"}
+        ]
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.get_concept_details("GO:0005575")
             assert result.concept_type == ConceptType.CELLULAR_COMPONENT
 
@@ -206,7 +262,9 @@ class TestQuickGOGetConceptDetails:
         """Test get_details for unknown aspect."""
         mock_qgo = MagicMock()
         mock_qgo.get_go_terms.return_value = [{"name": "unknown", "aspect": "unknown"}]
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.get_concept_details("GO:9999999")
             assert result.concept_type == ConceptType.BIOLOGICAL_PROCESS
 
@@ -215,7 +273,9 @@ class TestQuickGOGetConceptDetails:
         """Test get_details skips term with empty name."""
         mock_qgo = MagicMock()
         mock_qgo.get_go_terms.return_value = [{"name": "", "aspect": "biological_process"}]
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.get_concept_details("GO:0008150")
             assert result is None
 
@@ -224,7 +284,9 @@ class TestQuickGOGetConceptDetails:
         """Test get_details returns None when no results."""
         mock_qgo = MagicMock()
         mock_qgo.get_go_terms.return_value = []
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.get_concept_details("GO:0008150")
             assert result is None
 
@@ -232,8 +294,24 @@ class TestQuickGOGetConceptDetails:
     async def test_get_details_annotation(self, adapter):
         """Test get_details for non-GO annotation concept."""
         mock_qgo = MagicMock()
-        mock_qgo.Annotation.return_value = [{"geneProductId": "P12345", "goId": "GO:0008150", "qualifier": "enables", "evidenceCode": "IEA", "aspect": "biological_process", "reference": "REF:001", "withFrom": ["gene"], "taxonId": "9606", "date": "2024-01-01", "assignedBy": "UniProt", "extensions": []}]
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        mock_qgo.Annotation.return_value = [
+            {
+                "geneProductId": "P12345",
+                "goId": "GO:0008150",
+                "qualifier": "enables",
+                "evidenceCode": "IEA",
+                "aspect": "biological_process",
+                "reference": "REF:001",
+                "withFrom": ["gene"],
+                "taxonId": "9606",
+                "date": "2024-01-01",
+                "assignedBy": "UniProt",
+                "extensions": [],
+            }
+        ]
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.get_concept_details("P12345")
             assert result.concept_type == ConceptType.GENE_DISEASE_ASSOCIATION
 
@@ -242,7 +320,9 @@ class TestQuickGOGetConceptDetails:
         """Test get_details returns None for annotation with no results."""
         mock_qgo = MagicMock()
         mock_qgo.Annotation.return_value = []
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.get_concept_details("P12345")
             assert result is None
 
@@ -251,7 +331,9 @@ class TestQuickGOGetConceptDetails:
         """Test get_details skips annotation with empty gene or go id."""
         mock_qgo = MagicMock()
         mock_qgo.Annotation.return_value = [{"geneProductId": "", "goId": ""}]
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.get_concept_details("P12345")
             assert result is None
 
@@ -260,6 +342,8 @@ class TestQuickGOGetConceptDetails:
         """Test get_details handles exceptions."""
         mock_qgo = MagicMock()
         mock_qgo.get_go_terms.side_effect = Exception("API Error")
-        with patch.dict("sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}):
+        with patch.dict(
+            "sys.modules", {"bioservices": MagicMock(QuickGO=MagicMock(return_value=mock_qgo))}
+        ):
             result = await adapter.get_concept_details("GO:0008150")
             assert result is None

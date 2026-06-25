@@ -157,7 +157,9 @@ class TestSparqlEndpoint:
 
         mock_resp = MagicMock()
         mock_resp.__aenter__.return_value = mock_resp
-        mock_resp.json = AsyncMock(return_value=data or {}) if data is not None else AsyncMock(return_value={})
+        mock_resp.json = (
+            AsyncMock(return_value=data or {}) if data is not None else AsyncMock(return_value={})
+        )
         mock_resp.raise_for_status = MagicMock(side_effect=side_effect)
         return mock_resp
 
@@ -204,7 +206,10 @@ class TestSparqlEndpoint:
         data = {
             "results": {
                 "bindings": [
-                    {"s": {"type": "uri", "value": "http://example.org/s1"}, "p": {"type": "uri", "value": "http://example.org/p1"}},
+                    {
+                        "s": {"type": "uri", "value": "http://example.org/s1"},
+                        "p": {"type": "uri", "value": "http://example.org/p1"},
+                    },
                 ]
             }
         }
@@ -215,6 +220,7 @@ class TestSparqlEndpoint:
 
     def test_sparql_endpoints_dict(self):
         from knowledge_lookup.umls.rdf import SPARQL_ENDPOINTS
+
         assert "wikidata" in SPARQL_ENDPOINTS
         assert "bioportal" in SPARQL_ENDPOINTS
         assert SPARQL_ENDPOINTS["wikidata"] == "https://query.wikidata.org/sparql"

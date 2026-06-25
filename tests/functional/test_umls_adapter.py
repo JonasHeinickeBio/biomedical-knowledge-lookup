@@ -25,9 +25,7 @@ def umls_available():
 
 @pytest.mark.asyncio
 @requires_api_key(KnowledgeSource.UMLS)
-async def test_umls_search_diabetes(
-    adapter, response_validator, warning_manager, umls_available
-):
+async def test_umls_search_diabetes(adapter, response_validator, warning_manager, umls_available):
     """
     Test UMLS search for diabetes with real API call.
 
@@ -50,9 +48,9 @@ async def test_umls_search_diabetes(
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, 'primary_id'), "Result missing primary_id"
-        assert hasattr(result, 'primary_label'), "Result missing primary_label"
-        assert hasattr(result, 'concept_type'), "Result missing concept_type"
+        assert hasattr(result, "primary_id"), "Result missing primary_id"
+        assert hasattr(result, "primary_label"), "Result missing primary_label"
+        assert hasattr(result, "concept_type"), "Result missing concept_type"
 
     # Extract sample response data
     response_data = {
@@ -64,7 +62,7 @@ async def test_umls_search_diabetes(
                 "concept_type": str(c.concept_type),
             }
             for c in results[:2]
-        ]
+        ],
     }
 
     # Validate response structure

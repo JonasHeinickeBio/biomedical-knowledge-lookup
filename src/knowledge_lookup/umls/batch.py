@@ -218,9 +218,7 @@ class BatchProcessor:
                     }
 
                     # Filter already-seen CUIs
-                    entry["concepts"] = [
-                        c for c in entry["concepts"] if c["cui"] not in skip
-                    ]
+                    entry["concepts"] = [c for c in entry["concepts"] if c["cui"] not in skip]
                     skip.update(c["cui"] for c in entry["concepts"])
 
                     if self.cache_results:
@@ -349,15 +347,17 @@ class BatchProcessor:
             writer.writerow(["query", "cui", "name", "type", "score", "definition", "synonyms"])
             for entry in result.results:
                 for c in entry.get("concepts", []):
-                    writer.writerow([
-                        entry["query"],
-                        c.get("cui", ""),
-                        c.get("name", ""),
-                        c.get("type", ""),
-                        c.get("score", ""),
-                        "; ".join(c.get("definitions", [])),
-                        "; ".join(c.get("synonyms", [])),
-                    ])
+                    writer.writerow(
+                        [
+                            entry["query"],
+                            c.get("cui", ""),
+                            c.get("name", ""),
+                            c.get("type", ""),
+                            c.get("score", ""),
+                            "; ".join(c.get("definitions", [])),
+                            "; ".join(c.get("synonyms", [])),
+                        ]
+                    )
 
     def _write_rdf(self, result: BatchResult, path: Path) -> None:
         """Write results as RDF (Turtle)."""

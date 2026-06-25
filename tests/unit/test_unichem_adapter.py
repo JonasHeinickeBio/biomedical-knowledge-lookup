@@ -100,9 +100,7 @@ class TestUniChemAdapter:
     def test_determine_search_strategy_strategy_exception(self, adapter):
         """Test _determine_search_strategy continues after strategy exception."""
         with patch.object(adapter, "_search_by_uci", side_effect=Exception("fail")):
-            with patch.object(
-                adapter, "_search_by_inchikey", return_value=["concept"]
-            ) as mock:
+            with patch.object(adapter, "_search_by_inchikey", return_value=["concept"]) as mock:
                 results = adapter._determine_search_strategy("test", 10)
                 mock.assert_called_once()
 
@@ -256,9 +254,7 @@ class TestUniChemAdapter:
         data = {"compounds": [{"uci": "12345", "sources": []}]}
         adapter.unichem.get_compounds.return_value = data
         with patch.object(adapter, "_is_valid_compound_data", return_value=True):
-            with patch.object(
-                adapter, "_convert_compound_to_concept", return_value="concept"
-            ):
+            with patch.object(adapter, "_convert_compound_to_concept", return_value="concept"):
                 result = await adapter.get_concept_details("12345")
         assert result == "concept"
 
@@ -326,9 +322,7 @@ class TestUniChemAdapter:
         empty_data = {"compounds": []}
         valid_data = {"compounds": [{"uci": "12345"}]}
         adapter.unichem.get_compounds.side_effect = [empty_data, valid_data]
-        with patch.object(
-            adapter, "_is_valid_compound_data", side_effect=[False, True]
-        ):
+        with patch.object(adapter, "_is_valid_compound_data", side_effect=[False, True]):
             result = adapter._find_compound_data("12345")
         assert result == valid_data
 
@@ -340,9 +334,7 @@ class TestUniChemAdapter:
             Exception("fail"),  # ChEMBL
             {"compounds": []},  # ChEBI - valid structure but empty
         ]
-        with patch.object(
-            adapter, "_is_valid_compound_data", side_effect=[False, False]
-        ):
+        with patch.object(adapter, "_is_valid_compound_data", side_effect=[False, False]):
             result = adapter._find_compound_data("12345")
         assert result is None
 
@@ -389,11 +381,7 @@ class TestUniChemAdapter:
     @pytest.mark.asyncio
     async def test_extract_cross_references_no_url(self, adapter):
         """Test _extract_cross_references_with_urls skips sources without URL."""
-        data = {
-            "compounds": [
-                {"sources": [{"shortName": "ChEMBL", "compoundId": "CHEMBL25"}]}
-            ]
-        }
+        data = {"compounds": [{"sources": [{"shortName": "ChEMBL", "compoundId": "CHEMBL25"}]}]}
         result = await adapter._extract_cross_references_with_urls(data)
         assert "ChEMBL" not in result
 
@@ -401,9 +389,7 @@ class TestUniChemAdapter:
     async def test_extract_cross_references_no_compound_id(self, adapter):
         """Test _extract_cross_references_with_urls skips sources without compoundId."""
         data = {
-            "compounds": [
-                {"sources": [{"shortName": "ChEMBL", "url": "https://example.com"}]}
-            ]
+            "compounds": [{"sources": [{"shortName": "ChEMBL", "url": "https://example.com"}]}]
         }
         result = await adapter._extract_cross_references_with_urls(data)
         assert "ChEMBL" not in result
@@ -849,9 +835,7 @@ class TestUniChemAdapter:
         """Test get_sources_by_inchikey_verbose returns data."""
         adapter.unichem = MagicMock()
         with patch("asyncio.to_thread", return_value=[{"source": 1}]):
-            result = await adapter.get_sources_by_inchikey_verbose(
-                "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
-            )
+            result = await adapter.get_sources_by_inchikey_verbose("BSYNRYMUTXBXSQ-UHFFFAOYSA-N")
         assert result == [{"source": 1}]
 
     @pytest.mark.asyncio
@@ -859,9 +843,7 @@ class TestUniChemAdapter:
         """Test get_sources_by_inchikey_verbose returns empty on exception."""
         adapter.unichem = MagicMock()
         with patch("asyncio.to_thread", side_effect=Exception("fail")):
-            result = await adapter.get_sources_by_inchikey_verbose(
-                "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
-            )
+            result = await adapter.get_sources_by_inchikey_verbose("BSYNRYMUTXBXSQ-UHFFFAOYSA-N")
         assert result == []
 
     # --- get_structure (lines 625-646) ---

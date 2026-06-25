@@ -54,9 +54,16 @@ class TestUniProtAdapter:
                 {
                     "primaryAccession": "P04637",
                     "genes": [{"geneName": {"value": "TP53"}}],
-                    "proteinDescription": {"recommendedName": {"fullName": {"value": "Tumor protein p53"}}},
+                    "proteinDescription": {
+                        "recommendedName": {"fullName": {"value": "Tumor protein p53"}}
+                    },
                     "organism": {"scientificName": "Homo sapiens"},
-                    "comments": [{"commentType": "FUNCTION", "texts": [{"value": "Acts as a tumor suppressor"}]}],
+                    "comments": [
+                        {
+                            "commentType": "FUNCTION",
+                            "texts": [{"value": "Acts as a tumor suppressor"}],
+                        }
+                    ],
                 }
             ]
         }
@@ -91,7 +98,9 @@ class TestUniProtAdapter:
         data = {
             "primaryAccession": "P04637",
             "genes": [{"geneName": {"value": "TP53"}}],
-            "proteinDescription": {"recommendedName": {"fullName": {"value": "Tumor protein p53"}}},
+            "proteinDescription": {
+                "recommendedName": {"fullName": {"value": "Tumor protein p53"}}
+            },
             "organism": {"scientificName": "Homo sapiens"},
         }
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
@@ -124,7 +133,9 @@ class TestUniProtAdapter:
                 {"geneName": {"value": "TP53"}},
                 {"geneName": {"value": "p53"}},
             ],
-            "proteinDescription": {"recommendedName": {"fullName": {"value": "Tumor protein p53"}}},
+            "proteinDescription": {
+                "recommendedName": {"fullName": {"value": "Tumor protein p53"}}
+            },
             "organism": {"scientificName": "Homo sapiens"},
             "comments": [
                 {"commentType": "FUNCTION", "texts": [{"value": "Acts as a tumor suppressor"}]},
@@ -151,7 +162,9 @@ class TestUniProtAdapter:
         """Test conversion when no genes are present - uses recommended name as label."""
         result = {
             "primaryAccession": "P04637",
-            "proteinDescription": {"recommendedName": {"fullName": {"value": "Tumor protein p53"}}},
+            "proteinDescription": {
+                "recommendedName": {"fullName": {"value": "Tumor protein p53"}}
+            },
             "organism": {"scientificName": "Homo sapiens"},
         }
         concept = adapter._convert_uniprot_result_to_concept(result)
@@ -206,7 +219,9 @@ class TestUniProtAdapter:
         result = {
             "primaryAccession": "P04637",
             "genes": [{"geneName": {"value": "TP53"}}],
-            "proteinDescription": {"recommendedName": {"fullName": {"value": "Tumor protein p53"}}},
+            "proteinDescription": {
+                "recommendedName": {"fullName": {"value": "Tumor protein p53"}}
+            },
         }
         concept = adapter._convert_uniprot_result_to_concept(result)
         assert concept is not None
@@ -217,7 +232,9 @@ class TestUniProtAdapter:
         result = {
             "primaryAccession": "P04637",
             "genes": [{"geneName": {"value": "TP53"}}],
-            "proteinDescription": {"recommendedName": {"fullName": {"value": "Tumor protein p53"}}},
+            "proteinDescription": {
+                "recommendedName": {"fullName": {"value": "Tumor protein p53"}}
+            },
             "organism": {"scientificName": "Homo sapiens"},
             "comments": [{"commentType": "SUBCELLULAR LOCATION", "texts": [{"value": "Nucleus"}]}],
         }

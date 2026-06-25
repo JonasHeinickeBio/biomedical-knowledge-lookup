@@ -86,9 +86,7 @@ class TestMondoSearchConcepts:
                 "description": ["A metabolic disease"],
             }
         ]
-        adapter._make_request = AsyncMock(
-            return_value={"response": {"docs": docs}}
-        )
+        adapter._make_request = AsyncMock(return_value={"response": {"docs": docs}})
 
         result = await adapter.search_concepts("diabetes", limit=10)
         assert len(result) == 1
@@ -245,9 +243,7 @@ class TestMondoConvertDetails:
             "iri": "http://purl.obolibrary.org/obo/MONDO_0005148",
             "synonyms": ["DM"],
             "description": ["A disease"],
-            "annotation": {
-                "database_cross_reference": ["UMLS:C0011849", "MESH:D003924"]
-            },
+            "annotation": {"database_cross_reference": ["UMLS:C0011849", "MESH:D003924"]},
         }
         concept = adapter._convert_mondo_details_to_concept(data)
         assert concept is not None

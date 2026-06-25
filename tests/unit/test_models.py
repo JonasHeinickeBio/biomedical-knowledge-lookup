@@ -21,7 +21,9 @@ from knowledge_lookup.models import (
 
 class TestUnifiedConcept:
     def test_unified_concept_creation(self):
-        concept = UnifiedConcept(primary_id="TEST:001", primary_label="Test Concept", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="TEST:001", primary_label="Test Concept", concept_type=ConceptType.DISEASE
+        )
         assert concept.primary_id == "TEST:001"
         assert concept.primary_label == "Test Concept"
         assert concept.concept_type == ConceptType.DISEASE
@@ -40,8 +42,12 @@ class TestUnifiedConcept:
         assert not concept.has_source(KnowledgeSource.OLS)
 
     def test_merge_with(self):
-        concept1 = UnifiedConcept(primary_id="TEST:001", primary_label="Test", confidence_score=0.8)
-        concept2 = UnifiedConcept(primary_id="TEST:001", primary_label="Test", confidence_score=0.6)
+        concept1 = UnifiedConcept(
+            primary_id="TEST:001", primary_label="Test", confidence_score=0.8
+        )
+        concept2 = UnifiedConcept(
+            primary_id="TEST:001", primary_label="Test", confidence_score=0.6
+        )
         concept2.synonyms.append("Alias")
         merged = concept1.merge_with(concept2)
         assert merged.confidence_score == 0.8
@@ -70,8 +76,12 @@ class TestLookupResult:
 
     def test_get_best_matches(self):
         result = LookupResult(query="test")
-        concept1 = UnifiedConcept(primary_id="TEST:001", primary_label="Test1", confidence_score=0.5)
-        concept2 = UnifiedConcept(primary_id="TEST:002", primary_label="Test2", confidence_score=0.8)
+        concept1 = UnifiedConcept(
+            primary_id="TEST:001", primary_label="Test1", confidence_score=0.5
+        )
+        concept2 = UnifiedConcept(
+            primary_id="TEST:002", primary_label="Test2", confidence_score=0.8
+        )
         result.concepts = [concept1, concept2]
         best = result.get_best_matches(1)
         assert len(best) == 1
@@ -118,10 +128,15 @@ class TestModelsExtended:
         assert str(cid) == "ols:DOID:1"
 
     def test_unified_concept_add_mapping(self):
-        concept = UnifiedConcept(primary_id="C1", primary_label="Test", concept_type=ConceptType.DISEASE)
+        concept = UnifiedConcept(
+            primary_id="C1", primary_label="Test", concept_type=ConceptType.DISEASE
+        )
         concept.add_mapping(
-            target_source=KnowledgeSource.CHEMBL, target_id="CHEMBL123",
-            mapping_type="narrow", confidence=0.9, mapping_source="test_source",
+            target_source=KnowledgeSource.CHEMBL,
+            target_id="CHEMBL123",
+            mapping_type="narrow",
+            confidence=0.9,
+            mapping_source="test_source",
         )
         assert len(concept.mappings) == 1
         m = concept.mappings[0]

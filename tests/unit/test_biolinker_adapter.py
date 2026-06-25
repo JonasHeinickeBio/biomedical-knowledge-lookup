@@ -120,7 +120,13 @@ class TestBioLinkerAdapter:
         """Test search with actual results."""
         biolinker_response = {
             "results": [
-                {"best_candidate": {"id": "C0001", "label": "Diabetes", "type": ["disease"]}, "surface_form": "diabetes", "start": 0, "end": 8, "category": "entities"}
+                {
+                    "best_candidate": {"id": "C0001", "label": "Diabetes", "type": ["disease"]},
+                    "surface_form": "diabetes",
+                    "start": 0,
+                    "end": 8,
+                    "category": "entities",
+                }
             ]
         }
         mock_session = self._make_mock_session(biolinker_response)
@@ -133,9 +139,42 @@ class TestBioLinkerAdapter:
         """Test annotate_sentence with successful response."""
         biolinker_response = {
             "results": [
-                {"best_candidate": {"id": "C0001", "label": "Diabetes", "description": "A metabolic disease", "type": ["disease"]}, "surface_form": "diabetes", "start": 0, "end": 8, "category": "entities"},
-                {"best_candidate": {"id": "C0002", "label": "causes", "description": "", "type": ["predicate"]}, "surface_form": "causes", "start": 9, "end": 15, "category": "predicates"},
-                {"best_candidate": {"id": "C0003", "label": "Obesity", "description": "Being overweight", "type": ["disease"]}, "surface_form": "obesity", "start": 16, "end": 23, "category": "entities"},
+                {
+                    "best_candidate": {
+                        "id": "C0001",
+                        "label": "Diabetes",
+                        "description": "A metabolic disease",
+                        "type": ["disease"],
+                    },
+                    "surface_form": "diabetes",
+                    "start": 0,
+                    "end": 8,
+                    "category": "entities",
+                },
+                {
+                    "best_candidate": {
+                        "id": "C0002",
+                        "label": "causes",
+                        "description": "",
+                        "type": ["predicate"],
+                    },
+                    "surface_form": "causes",
+                    "start": 9,
+                    "end": 15,
+                    "category": "predicates",
+                },
+                {
+                    "best_candidate": {
+                        "id": "C0003",
+                        "label": "Obesity",
+                        "description": "Being overweight",
+                        "type": ["disease"],
+                    },
+                    "surface_form": "obesity",
+                    "start": 16,
+                    "end": 23,
+                    "category": "entities",
+                },
             ]
         }
         mock_session = self._make_mock_session(biolinker_response)
@@ -170,11 +209,32 @@ class TestBioLinkerAdapter:
     def test_identify_sentence_relations(self, adapter):
         """Test _identify_sentence_relations."""
         entities = [
-            {"surface_form": "diabetes", "label": "Diabetes", "id": "C0001", "type": "disease", "position": {"start": 0, "end": 8}, "confidence": 0.9},
-            {"surface_form": "obesity", "label": "Obesity", "id": "C0003", "type": "disease", "position": {"start": 16, "end": 23}, "confidence": 0.85},
+            {
+                "surface_form": "diabetes",
+                "label": "Diabetes",
+                "id": "C0001",
+                "type": "disease",
+                "position": {"start": 0, "end": 8},
+                "confidence": 0.9,
+            },
+            {
+                "surface_form": "obesity",
+                "label": "Obesity",
+                "id": "C0003",
+                "type": "disease",
+                "position": {"start": 16, "end": 23},
+                "confidence": 0.85,
+            },
         ]
         predicates = [
-            {"surface_form": "causes", "label": "causes", "id": "C0002", "type": "predicate", "position": {"start": 9, "end": 15}, "confidence": 0.95}
+            {
+                "surface_form": "causes",
+                "label": "causes",
+                "id": "C0002",
+                "type": "predicate",
+                "position": {"start": 9, "end": 15},
+                "confidence": 0.95,
+            }
         ]
         relations = adapter._identify_sentence_relations(entities, predicates)
         assert len(relations) == 1
@@ -184,15 +244,51 @@ class TestBioLinkerAdapter:
 
     def test_identify_sentence_relations_no_nearby_entities(self, adapter):
         """Test with no nearby entities."""
-        entities = [{"surface_form": "diabetes", "label": "Diabetes", "id": "C0001", "type": "disease", "position": {"start": 0, "end": 8}, "confidence": 0.9}]
-        predicates = [{"surface_form": "far", "label": "related", "id": "C0002", "type": "predicate", "position": {"start": 200, "end": 210}, "confidence": 0.95}]
+        entities = [
+            {
+                "surface_form": "diabetes",
+                "label": "Diabetes",
+                "id": "C0001",
+                "type": "disease",
+                "position": {"start": 0, "end": 8},
+                "confidence": 0.9,
+            }
+        ]
+        predicates = [
+            {
+                "surface_form": "far",
+                "label": "related",
+                "id": "C0002",
+                "type": "predicate",
+                "position": {"start": 200, "end": 210},
+                "confidence": 0.95,
+            }
+        ]
         relations = adapter._identify_sentence_relations(entities, predicates)
         assert len(relations) == 0
 
     def test_identify_sentence_relations_one_nearby_entity(self, adapter):
         """Test with only 1 nearby entity."""
-        entities = [{"surface_form": "diabetes", "label": "Diabetes", "id": "C0001", "type": "disease", "position": {"start": 0, "end": 8}, "confidence": 0.9}]
-        predicates = [{"surface_form": "causes", "label": "causes", "id": "C0002", "type": "predicate", "position": {"start": 9, "end": 15}, "confidence": 0.95}]
+        entities = [
+            {
+                "surface_form": "diabetes",
+                "label": "Diabetes",
+                "id": "C0001",
+                "type": "disease",
+                "position": {"start": 0, "end": 8},
+                "confidence": 0.9,
+            }
+        ]
+        predicates = [
+            {
+                "surface_form": "causes",
+                "label": "causes",
+                "id": "C0002",
+                "type": "predicate",
+                "position": {"start": 9, "end": 15},
+                "confidence": 0.95,
+            }
+        ]
         relations = adapter._identify_sentence_relations(entities, predicates)
         assert len(relations) == 0
 
@@ -216,7 +312,18 @@ class TestBioLinkerAdapter:
         """Test _process_biolinker_response with results."""
         response_data = {
             "results": [
-                {"best_candidate": {"id": "C0001", "label": "Diabetes", "description": "A metabolic disease", "type": ["disease"]}, "surface_form": "diabetes", "start": 0, "end": 8, "category": "entities"}
+                {
+                    "best_candidate": {
+                        "id": "C0001",
+                        "label": "Diabetes",
+                        "description": "A metabolic disease",
+                        "type": ["disease"],
+                    },
+                    "surface_form": "diabetes",
+                    "start": 0,
+                    "end": 8,
+                    "category": "entities",
+                }
             ]
         }
         concepts = adapter._process_biolinker_response(response_data, 10)
@@ -226,7 +333,15 @@ class TestBioLinkerAdapter:
         """Test _process_biolinker_response respects limit."""
         response_data = {
             "results": [
-                {"best_candidate": {"id": f"C{i:04d}", "label": f"Concept {i}", "type": ["disease"]}, "surface_form": f"concept{i}", "category": "entities"}
+                {
+                    "best_candidate": {
+                        "id": f"C{i:04d}",
+                        "label": f"Concept {i}",
+                        "type": ["disease"],
+                    },
+                    "surface_form": f"concept{i}",
+                    "category": "entities",
+                }
                 for i in range(5)
             ]
         }
@@ -238,7 +353,11 @@ class TestBioLinkerAdapter:
         response_data = {
             "results": [
                 {"bad": "data"},
-                {"best_candidate": {"id": "C0001", "label": "Diabetes", "type": ["disease"]}, "surface_form": "diabetes", "category": "entities"},
+                {
+                    "best_candidate": {"id": "C0001", "label": "Diabetes", "type": ["disease"]},
+                    "surface_form": "diabetes",
+                    "category": "entities",
+                },
             ]
         }
         concepts = adapter._process_biolinker_response(response_data, 10)
@@ -247,8 +366,16 @@ class TestBioLinkerAdapter:
     def test_convert_biolinker_result_full(self, adapter):
         """Test _convert_biolinker_result_to_concept with all fields."""
         result = {
-            "best_candidate": {"id": "C0001", "label": "Diabetes", "description": "A metabolic disease", "type": ["disease"]},
-            "surface_form": "diabetes", "start": 0, "end": 8, "category": "entities",
+            "best_candidate": {
+                "id": "C0001",
+                "label": "Diabetes",
+                "description": "A metabolic disease",
+                "type": ["disease"],
+            },
+            "surface_form": "diabetes",
+            "start": 0,
+            "end": 8,
+            "category": "entities",
         }
         concept = adapter._convert_biolinker_result_to_concept(result)
         assert concept is not None
@@ -264,30 +391,46 @@ class TestBioLinkerAdapter:
 
     def test_convert_biolinker_result_no_id(self, adapter):
         """Test with no id."""
-        concept = adapter._convert_biolinker_result_to_concept({"best_candidate": {"label": "Test", "type": ["disease"]}, "surface_form": "test"})
+        concept = adapter._convert_biolinker_result_to_concept(
+            {"best_candidate": {"label": "Test", "type": ["disease"]}, "surface_form": "test"}
+        )
         assert concept is None
 
     def test_convert_biolinker_result_no_label(self, adapter):
         """Test with no label."""
-        concept = adapter._convert_biolinker_result_to_concept({"best_candidate": {"id": "C0001", "type": ["disease"]}, "surface_form": "test"})
+        concept = adapter._convert_biolinker_result_to_concept(
+            {"best_candidate": {"id": "C0001", "type": ["disease"]}, "surface_form": "test"}
+        )
         assert concept is None
 
     def test_convert_biolinker_result_semantic_types_as_string(self, adapter):
         """Test conversion when semantic_types is a string."""
-        result = {"best_candidate": {"id": "C0001", "label": "Diabetes", "type": "disease"}, "surface_form": "diabetes", "category": "entities"}
+        result = {
+            "best_candidate": {"id": "C0001", "label": "Diabetes", "type": "disease"},
+            "surface_form": "diabetes",
+            "category": "entities",
+        }
         concept = adapter._convert_biolinker_result_to_concept(result)
         assert concept is not None
         assert concept.semantic_types == ["disease"]
 
     def test_convert_biolinker_result_semantic_types_none(self, adapter):
         """Test when semantic_types is None."""
-        result = {"best_candidate": {"id": "C0001", "label": "Diabetes", "type": None}, "surface_form": "diabetes", "category": "entities"}
+        result = {
+            "best_candidate": {"id": "C0001", "label": "Diabetes", "type": None},
+            "surface_form": "diabetes",
+            "category": "entities",
+        }
         concept = adapter._convert_biolinker_result_to_concept(result)
         assert concept is not None
 
     def test_convert_biolinker_result_surface_form_same_as_label(self, adapter):
         """Test when surface_form equals label."""
-        result = {"best_candidate": {"id": "C0001", "label": "Diabetes", "type": ["disease"]}, "surface_form": "Diabetes", "category": "entities"}
+        result = {
+            "best_candidate": {"id": "C0001", "label": "Diabetes", "type": ["disease"]},
+            "surface_form": "Diabetes",
+            "category": "entities",
+        }
         concept = adapter._convert_biolinker_result_to_concept(result)
         assert concept is not None
         assert "Diabetes" not in concept.synonyms

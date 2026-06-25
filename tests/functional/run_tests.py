@@ -21,7 +21,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-
 def main():
     parser = argparse.ArgumentParser(
         description="Run functional adapter tests",
@@ -36,33 +35,20 @@ Examples:
 
     # Run specific tests
     poetry run pytest -m functional -m network tests/functional/test_api_responses.py::test_uniprot_search
-        """
+        """,
     )
 
     parser.add_argument(
-        "--network",
-        action="store_true",
-        default=True,
-        help="Include network tests (default)"
+        "--network", action="store_true", default=True, help="Include network tests (default)"
     )
     parser.add_argument(
-        "--api",
-        action="store_true",
-        default=False,
-        help="Include API key required tests"
+        "--api", action="store_true", default=False, help="Include API key required tests"
     )
     parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        default=False,
-        help="Show detailed output"
+        "--verbose", "-v", action="store_true", default=False, help="Show detailed output"
     )
     parser.add_argument(
-        "--pytest-args",
-        type=str,
-        default="",
-        help="Additional arguments to pass to pytest"
+        "--pytest-args", type=str, default="", help="Additional arguments to pass to pytest"
     )
 
     args = parser.parse_args()

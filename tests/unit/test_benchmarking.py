@@ -126,9 +126,7 @@ class TestKnowledgeLookupBenchmarker:
 
         benchmarker.lookup.search_concepts = AsyncMock(return_value=mock_result)
 
-        results = await benchmarker.benchmark_single_source(
-            KnowledgeSource.OLS, ["test query"]
-        )
+        results = await benchmarker.benchmark_single_source(KnowledgeSource.OLS, ["test query"])
         assert isinstance(results, list)
 
     @pytest.mark.asyncio
