@@ -130,10 +130,12 @@ class KEGGAdapter(KnowledgeSourceAdapter):
             )
 
             if description:
-                concept.definitions.append(description)
+                if concept.definitions is not None:
+                    concept.definitions.append(description)
 
             concept.confidence_score = 1.0
-            concept.source_data[KnowledgeSource.KEGG] = {"raw_text": text}
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.KEGG] = {"raw_text": text}
 
             return concept
 

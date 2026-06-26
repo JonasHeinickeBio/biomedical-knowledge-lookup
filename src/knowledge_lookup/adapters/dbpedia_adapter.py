@@ -123,14 +123,17 @@ class DBpediaAdapter(KnowledgeSourceAdapter):
             concept.add_identifier(KnowledgeSource.DBPEDIA, resource_id, label, resource_uri)
             if "abstract" in result:
                 abstract = result["abstract"]["value"]
-                concept.definitions.append(
-                    abstract[:500] + "..." if len(abstract) > 500 else abstract
-                )
+                if concept.definitions is not None:
+                    concept.definitions.append(
+                        abstract[:500] + "..." if len(abstract) > 500 else abstract
+                    )
             if "type" in result:
                 type_uri = result["type"]["value"]
-                concept.categories.append(type_uri.split("/")[-1])
+                if concept.categories is not None:
+                    concept.categories.append(type_uri.split("/")[-1])
             concept.confidence_score = 0.6
-            concept.source_data[KnowledgeSource.DBPEDIA] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.DBPEDIA] = result
             return concept
         except Exception as e:
             logger.error(f"Error converting DBpedia result: {e}")
@@ -167,17 +170,20 @@ class DBpediaAdapter(KnowledgeSourceAdapter):
                 if property_uri.endswith("dbo:abstract") and prop["value"].get("xml:lang") == "en":
                     abstract = value
                 elif property_uri == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
-                    concept.categories.append(value.split("/")[-1])
+                    if concept.categories is not None:
+                        concept.categories.append(value.split("/")[-1])
                 elif "ontology/icd10" in property_uri:
-                    concept.categories.append(f"ICD-10: {value}")
+                    if concept.categories is not None:
+                        concept.categories.append(f"ICD-10: {value}")
 
-            if abstract:
+            if abstract and concept.definitions is not None:
                 concept.definitions.append(
                     abstract[:1000] + "..." if len(abstract) > 1000 else abstract
                 )
 
             concept.confidence_score = 0.65
-            concept.source_data[KnowledgeSource.DBPEDIA] = properties
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.DBPEDIA] = properties
             return concept
         except Exception as e:
             logger.error(f"Error converting DBpedia entity: {e}")

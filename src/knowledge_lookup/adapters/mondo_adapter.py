@@ -89,13 +89,16 @@ class MondoAdapter(KnowledgeSourceAdapter):
             concept.add_identifier(KnowledgeSource.MONDO, mondo_id, label, result.get("iri", ""))
 
             if "synonym" in result:
-                concept.synonyms.extend(result["synonym"])
+                if concept.synonyms is not None:
+                    concept.synonyms.extend(result["synonym"])
 
             if "description" in result:
-                concept.definitions.extend(result["description"])
+                if concept.definitions is not None:
+                    concept.definitions.extend(result["description"])
 
             concept.confidence_score = 0.95
-            concept.source_data[KnowledgeSource.MONDO] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.MONDO] = result
 
             return concept
 
@@ -119,20 +122,24 @@ class MondoAdapter(KnowledgeSourceAdapter):
             concept.add_identifier(KnowledgeSource.MONDO, mondo_id, label, data.get("iri", ""))
 
             if "synonyms" in data:
-                concept.synonyms.extend(data["synonyms"])
+                if concept.synonyms is not None:
+                    concept.synonyms.extend(data["synonyms"])
 
             if "description" in data:
-                concept.definitions.extend(data["description"])
+                if concept.definitions is not None:
+                    concept.definitions.extend(data["description"])
 
             # Extract cross-references (like UMLS, MESH, etc.)
             if "annotation" in data:
                 xrefs = data["annotation"].get("database_cross_reference", [])
                 for xref in xrefs:
                     # xref might be like "UMLS:C0005745"
-                    concept.categories.append(f"Xref: {xref}")
+                    if concept.categories is not None:
+                        concept.categories.append(f"Xref: {xref}")
 
             concept.confidence_score = 1.0
-            concept.source_data[KnowledgeSource.MONDO] = data
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.MONDO] = data
 
             return concept
 

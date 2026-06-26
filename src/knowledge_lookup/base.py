@@ -2,15 +2,38 @@
 Base classes for knowledge source adapters.
 """
 
+from __future__ import annotations
+
+import asyncio
+import functools
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import aiohttp
 
 from .models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+from .utils.retry_utils import (
+    CircuitBreaker,
+    CircuitBreakerOpen,
+    ErrorCategory,
+    classify_error,
+)
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
+
+# Default per-category retry strategies shared by all adapter HTTP calls
+DEFAULT_RETRY_STRATEGIES: dict[ErrorCategory, tuple[int, float, float]] = {
+    ErrorCategory.NETWORK_ERROR: (3, 0.0, 0.0),  # 2 immediate retries
+    ErrorCategory.RATE_LIMITED: (4, 2.0, 60.0),  # exponential backoff, up to 60s
+    ErrorCategory.SERVER_ERROR: (4, 1.5, 30.0),
+    ErrorCategory.TRANSIENT: (2, 0.0, 0.0),  # 1 immediate retry
+    ErrorCategory.CLIENT_ERROR: (1, 0.0, 0.0),  # never retry
+    ErrorCategory.UNKNOWN: (2, 1.0, 5.0),
+}
 
 
 class KnowledgeSourceAdapter(ABC):
@@ -23,9 +46,110 @@ class KnowledgeSourceAdapter(ABC):
         self.config = config
         self.source = self.get_source()
         self.session: aiohttp.ClientSession | None = None
+        self._circuit_breaker: CircuitBreaker | None = None
+
+    def set_circuit_breaker(self, cb: CircuitBreaker) -> None:
+        """Attach a circuit breaker (injected by the orchestrator)."""
+        self._circuit_breaker = cb
+
+    # ------------------------------------------------------------------
+    # Smart retry primitive — available to ALL adapters
+    # ------------------------------------------------------------------
+
+    async def _call_with_retry(
+        self,
+        operation_name: str,
+        operation: Callable[[], Any],
+        strategies: dict[ErrorCategory, tuple[int, float, float]] | None = None,
+    ) -> Any:
+        """Execute *operation* with smart retry and circuit-breaker protection.
+
+        Parameters
+        ----------
+        operation_name :
+            Human-readable label for logging (e.g. ``"search_concepts"``).
+        operation :
+            Async callable that performs the actual work.
+        strategies :
+            Optional per-category retry overrides.  Falls back to
+            :data:`DEFAULT_RETRY_STRATEGIES`.
+
+        Raises
+        ------
+        CircuitBreakerOpen
+            When the circuit breaker is open and the call is short-circuited.
+        """
+        strat = strategies or DEFAULT_RETRY_STRATEGIES
+        last_exc: Exception | None = None
+
+        for attempt in range(1, 100):  # upper bound — strategies cap actual tries
+            # --- circuit-breaker gate (check before every attempt) ---
+            if self._circuit_breaker is not None and not self._circuit_breaker.allow_request():
+                raise CircuitBreakerOpen(
+                    f"Circuit breaker is {self._circuit_breaker.state.value} "
+                    f"({self._circuit_breaker.failure_count} consecutive failures) "
+                    f"for {self.source.value} ({operation_name})"
+                )
+
+            try:
+                result = await operation()
+
+                # Success — update circuit breaker
+                if self._circuit_breaker is not None:
+                    self._circuit_breaker.record_success()
+                return result
+
+            except CircuitBreakerOpen:
+                raise  # don't retry these — pass through immediately
+
+            except Exception as exc:
+                last_exc = exc
+                category = classify_error(exc)
+                max_tries, factor, max_delay = strat.get(category, strat[ErrorCategory.UNKNOWN])
+
+                if attempt >= max_tries:
+                    if self._circuit_breaker is not None:
+                        self._circuit_breaker.record_failure()
+                    raise
+
+                # Compute delay for this attempt
+                delay = 0.0
+                if factor > 0:
+                    delay = factor * (2 ** (attempt - 1))
+                    if max_delay > 0:
+                        delay = min(delay, max_delay)
+                if delay > 0:
+                    await asyncio.sleep(delay)
+
+        # Should never reach here (strategies bound attempts)
+        if last_exc is not None:
+            raise last_exc
+        raise RuntimeError(
+            f"_call_with_retry({operation_name}): unexpected exit from retry loop"
+        )  # pragma: no cover
+
+    # ------------------------------------------------------------------
+    # Circuit-breaker notification for adapters that handle errors
+    # internally but still want to report failures
+    # ------------------------------------------------------------------
+
+    def _notify_circuit_breaker(self, error: Exception | None = None) -> None:
+        """Explicitly record a failure in the circuit breaker.
+
+        Call this from adapter code that catches its own errors and returns
+        ``[]`` / ``None`` so the circuit breaker still sees the failure.
+        """
+        if self._circuit_breaker is not None:
+            if error is not None:
+                self._circuit_breaker.record_failure()
+            else:
+                self._circuit_breaker.record_success()
+
+    # ------------------------------------------------------------------
+    # Standard interface
+    # ------------------------------------------------------------------
 
     async def __aenter__(self):
-        # Optionally initialize session here if needed
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -98,7 +222,8 @@ class KnowledgeSourceAdapter(ABC):
 
     def get_rate_limit(self) -> float:
         """Get rate limit for this source (requests per second)."""
-        return self.config.rate_limits.get(self.source, 1.0)
+        rate_limits = self.config.rate_limits
+        return rate_limits.get(self.source, 1.0) if rate_limits is not None else 1.0
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
@@ -114,55 +239,77 @@ class KnowledgeSourceAdapter(ABC):
         headers: dict | None = None,
         json_data: dict | None = None,
     ) -> dict[str, Any]:
-        """Make HTTP request with error handling."""
-        session = await self._get_session()
-
-        # Add default User-Agent if not present
+        """Make HTTP request with smart retry and error handling."""
         request_headers = headers or {}
         if "User-Agent" not in request_headers:
             request_headers["User-Agent"] = "AID-PAIS-Knowledge-Lookup/1.0"
 
-        try:
+        async def _do() -> dict[str, Any]:
+            session = await self._get_session()
             if json_data:
-                # Use POST for JSON data
                 async with session.post(
                     url, params=params, headers=request_headers, json=json_data
                 ) as response:
                     response.raise_for_status()
                     return await response.json()
             else:
-                # Use GET for params
                 async with session.get(url, params=params, headers=request_headers) as response:
                     response.raise_for_status()
                     return await response.json()
-        except aiohttp.ClientError as e:
-            logger.error(f"Request failed for {self.source.value}: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error for {self.source.value}: {e}")
-            raise
+
+        return await self._call_with_retry("_make_request", _do)
 
     async def _make_request_text(
         self, url: str, params: dict | None = None, headers: dict | None = None
     ) -> str:
-        """Make HTTP request and return text response."""
-        session = await self._get_session()
+        """Make HTTP request with smart retry and return text response."""
 
-        try:
+        async def _do() -> str:
+            session = await self._get_session()
             async with session.get(url, params=params, headers=headers) as response:
                 response.raise_for_status()
                 return await response.text()
-        except aiohttp.ClientError as e:
-            logger.error(f"Request failed for {self.source.value}: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error for {self.source.value}: {e}")
-            raise
+
+        return await self._call_with_retry("_make_request_text", _do)
 
     async def close(self):
         """Close the adapter and cleanup resources."""
         if self.session and not self.session.closed:
             await self.session.close()
+
+    # ------------------------------------------------------------------
+    # Thread-safe retry helper (for synchronous third-party libraries)
+    # ------------------------------------------------------------------
+
+    async def _thread_with_retry(
+        self,
+        operation_name: str,
+        func: Callable[..., Any],
+        *args: Any,
+    ) -> Any:
+        """Run *func* in a thread with smart retry and circuit-breaker protection.
+
+        Useful for adapters that wrap synchronous libraries via
+        ``asyncio.to_thread`` (e.g. ``bioservices``, ``chembl_webresource_client``).
+        The sync callable is executed in a thread, errors are classified,
+        retried per-category, and reported to the circuit breaker.
+
+        Parameters
+        ----------
+        operation_name :
+            Human-readable label for logging (e.g. ``\"unichem_search\"``).
+        func :
+            Synchronous callable to invoke.
+        *args :
+            Positional arguments forwarded to *func*.
+
+        Returns
+        -------
+        Any
+            The return value of *func*.
+        """
+        wrapper = functools.partial(asyncio.to_thread, func, *args)
+        return await self._call_with_retry(operation_name, wrapper)
 
     def _create_concept(
         self, concept_id: str, label: str, concept_type: ConceptType = ConceptType.UNKNOWN
@@ -172,6 +319,7 @@ class KnowledgeSourceAdapter(ABC):
             primary_id=concept_id, primary_label=label, concept_type=concept_type
         )
         concept.add_identifier(self.source, concept_id, label)
+        concept.sources = [self.source]
         return concept
 
     def _determine_concept_type(

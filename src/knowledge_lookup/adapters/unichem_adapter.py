@@ -53,12 +53,9 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             return []
 
         try:
-            concepts = []
-
-            # Determine query type and search accordingly
-            search_results = self._determine_search_strategy(query, limit)
-            concepts.extend(search_results)
-
+            concepts = await self._thread_with_retry(
+                "unichem_search", self._determine_search_strategy, query, limit
+            )
             logger.info(f"UniChem search for '{query}' returned {len(concepts)} concepts")
             return concepts[:limit]
 
@@ -166,12 +163,11 @@ class UniChemAdapter(KnowledgeSourceAdapter):
             return None
 
         try:
-            if not self.unichem:
-                return None
+            compound_data = await self._thread_with_retry(
+                "unichem_get_details", self._find_compound_data, concept_id
+            )
 
-            compound_data = self.unichem.get_compounds(concept_id, "uci")
-
-            if self._is_valid_compound_data(compound_data):
+            if compound_data and "compounds" in compound_data and compound_data["compounds"]:
                 compound = compound_data["compounds"][0]
                 return self._convert_compound_to_concept(compound)
 
@@ -727,9 +723,11 @@ class UniChemAdapter(KnowledgeSourceAdapter):
         """Add source names as categories."""
         sources = compound.get("sources", [])
         source_names = [s.get("shortName", "") for s in sources if s.get("shortName")]
-        concept.categories.extend(source_names)
+        if concept.categories is not None:
+            concept.categories.extend(source_names)
 
     def _set_concept_metadata(self, concept: UnifiedConcept, compound: dict[str, Any]) -> None:
         """Set confidence score and source data."""
         concept.confidence_score = 0.9
-        concept.source_data[KnowledgeSource.UNICHEM] = compound
+        if isinstance(concept.source_data, dict):
+            concept.source_data[KnowledgeSource.UNICHEM] = compound

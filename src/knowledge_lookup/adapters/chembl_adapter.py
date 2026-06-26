@@ -503,7 +503,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 concept_type = ConceptType.CHEMICAL
                 identifier = ConceptIdentifier(
                     source=KnowledgeSource.CHEMBL,
-                    identifier=chembl_id,
+                    identifier=chembl_id or "",
                     label=label,
                     url=(
                         f"https://www.ebi.ac.uk/chembl/compound_report_card/{chembl_id}/"
@@ -542,7 +542,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                             self.logger.error(f"Error mapping category '{cat}': {e}")
 
                 concept = UnifiedConcept(
-                    primary_id=chembl_id,
+                    primary_id=chembl_id or "",
                     primary_label=label,
                     concept_type=concept_type,
                     identifiers=[identifier],
@@ -578,7 +578,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 concept_type = ConceptType.DRUG
                 identifier = ConceptIdentifier(
                     source=KnowledgeSource.CHEMBL,
-                    identifier=chembl_id,
+                    identifier=chembl_id or "",
                     label=label,
                     url=f"https://www.ebi.ac.uk/chembl/drug/{chembl_id}/" if chembl_id else None,
                 )
@@ -591,7 +591,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                     self.logger.error(f"Error mapping drug category '{raw_category}': {e}")
                     mapped_category = None
                 concept = UnifiedConcept(
-                    primary_id=chembl_id,
+                    primary_id=chembl_id or "",
                     primary_label=label,
                     concept_type=concept_type,
                     identifiers=[identifier],
@@ -631,7 +631,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 )
                 identifier = ConceptIdentifier(
                     source=KnowledgeSource.CHEMBL,
-                    identifier=target_id,
+                    identifier=target_id or "",
                     label=label,
                     url=(
                         f"https://www.ebi.ac.uk/chembl/target_report_card/{target_id}/"
@@ -648,7 +648,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                     self.logger.error(f"Error mapping target category '{raw_category}': {e}")
                     mapped_category = None
                 concept = UnifiedConcept(
-                    primary_id=target_id,
+                    primary_id=target_id or "",
                     primary_label=label,
                     concept_type=concept_type,
                     identifiers=[identifier],
@@ -701,7 +701,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                         )
                         return concept.primary_label
                     # Fallback to synonyms
-                    for syn in concept.synonyms:
+                    for syn in concept.synonyms or []:
                         if syn.strip().lower() == norm_category:
                             logger.info(f"Mapped category '{category}' to OLS synonym '{syn}'")
                             return syn
@@ -719,7 +719,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                             f"Mapped category '{category}' to BioOntology label '{concept.primary_label}'"  # noqa: E501
                         )
                         return concept.primary_label
-                    for syn in concept.synonyms:
+                    for syn in concept.synonyms or []:
                         if syn.strip().lower() == norm_category:
                             logger.info(
                                 f"Mapped category '{category}' to BioOntology synonym '{syn}'"  # noqa: E501

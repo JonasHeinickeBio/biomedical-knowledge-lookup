@@ -2,8 +2,7 @@
 Unified tests for all knowledge source adapters to ensure broad coverage.
 """
 
-import sys
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -21,7 +20,7 @@ class TestAllAdapters:
         adapter = adapter_class(lookup_config)
         assert adapter.get_source() == source
         assert isinstance(adapter.is_available(), bool)
-        assert isinstance(adapter.get_rate_limit(), (int, float))
+        assert isinstance(adapter.get_rate_limit(), int | float)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("source, adapter_class", ADAPTER_CLASSES.items())
@@ -34,8 +33,12 @@ class TestAllAdapters:
         mock_response.status = 200
         # Provide a generic response that many adapters expect or will just return [] from
         mock_response.json = AsyncMock(
-            return_value={"results": [], "response": {"docs": []}, "IdentifierList": {"CID": []},
-                         "_embedded": {"searchResults": []}}
+            return_value={
+                "results": [],
+                "response": {"docs": []},
+                "IdentifierList": {"CID": []},
+                "_embedded": {"searchResults": []},
+            }
         )
         mock_response.ok = True
 

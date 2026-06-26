@@ -124,7 +124,7 @@ class TestCentralKnowledgeLookupIntegration:
             ]
             mock_search.return_value = mock_concepts
 
-            results = await lookup.search_concepts(
+            await lookup.search_concepts(
                 "test", sources=[KnowledgeSource.OLS], max_results=10
             )
             # Should pass the limit parameter to adapters

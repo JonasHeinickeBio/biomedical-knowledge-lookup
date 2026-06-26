@@ -5,6 +5,7 @@ Integrates with TIB BioLinker AI API for entity and relation extraction.
 """
 
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -52,19 +53,12 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         Returns:
             List of unified concepts extracted from the text
         """
-        try:
-            # Prepare request payload with custom search depth
-            payload = {"input_text": query, "k": search_depth}
 
+        async def _do() -> list[UnifiedConcept]:
+            payload = {"input_text": query, "k": search_depth}
             headers = {"Content-Type": "application/json"}
 
-            # Make request to BioLinker AI API with extended timeout
             session = await self._get_session()
-
-            logger.info(
-                f"Calling BioLinker AI API for query: '{query}' with search depth: {search_depth}"
-            )
-
             async with session.post(
                 self.process_endpoint, json=payload, headers=headers
             ) as response:
@@ -77,14 +71,10 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                     return concepts
                 else:
                     error_text = await response.text()
-                    logger.error(f"BioLinker AI API error {response.status}: {error_text}")
-                    return []
+                    raise OSError(f"BioLinker AI API error {response.status}: {error_text}")
 
-        except asyncio.TimeoutError:
-            logger.warning(
-                f"BioLinker AI API timeout for query: '{query}' (API may be slow or unavailable)"
-            )
-            return []
+        try:
+            return await self._call_with_retry("biolinker_search", _do)
         except Exception as e:
             logger.error(f"Error querying BioLinker AI: {e}")
             return []
@@ -143,7 +133,12 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
 
             # Separate entities and predicates
             for concept in concepts:
-                bl_data = concept.source_data.get(KnowledgeSource.BIOLINKER, {})
+                bl_data: dict[str, Any] = (
+                    json.loads(concept.source_data)
+                    if isinstance(concept.source_data, str)
+                    else (concept.source_data if concept.source_data else {})
+                )
+                bl_data = bl_data.get(KnowledgeSource.BIOLINKER, {})
                 category = bl_data.get("category", "unknown")
                 surface_form = bl_data.get("surface_form", concept.primary_label)
                 position = bl_data.get("text_position", {})
@@ -152,7 +147,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                     "surface_form": surface_form,
                     "label": concept.primary_label,
                     "id": concept.primary_id,
-                    "type": concept.concept_type.value,
+                    "type": str(concept.concept_type) if concept.concept_type else None,
                     "semantic_types": concept.semantic_types,
                     "position": position,
                     "confidence": concept.confidence_score,
@@ -405,15 +400,20 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
             # Add surface form information as additional synonym
             surface_form = result.get("surface_form", "")
             if surface_form and surface_form != label:
-                concept.synonyms.append(surface_form)
+                if concept.synonyms is not None:
+                    concept.synonyms.append(surface_form)
 
             # Store position and category information in source_data
-            concept.source_data[KnowledgeSource.BIOLINKER] = {
-                "surface_form": surface_form,
-                "text_position": {"start": result.get("start", 0), "end": result.get("end", 0)},
-                "category": result.get("category", ""),
-                "biolinker_source": "TIB BioLinker AI",
-            }
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.BIOLINKER] = {
+                    "surface_form": surface_form,
+                    "text_position": {
+                        "start": result.get("start", 0),
+                        "end": result.get("end", 0),
+                    },
+                    "category": result.get("category", ""),
+                    "biolinker_source": "TIB BioLinker AI",
+                }
 
             return concept
 

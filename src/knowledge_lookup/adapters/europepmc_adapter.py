@@ -102,22 +102,26 @@ class EuropePMCAdapter(KnowledgeSourceAdapter):
                         if isinstance(a, dict)
                     ]
                     if author_names:
-                        concept.categories.append(f"authors:{', '.join(author_names)}")
+                        if concept.categories is not None:
+                            concept.categories.append(f"authors:{', '.join(author_names)}")
 
             # Abstract
             abstract_text = item.get("abstractText", "")
             if abstract_text:
-                concept.definitions.append(abstract_text[:1000])
+                if concept.definitions is not None:
+                    concept.definitions.append(abstract_text[:1000])
 
             # Journal / source
             journal_title = item.get("journalTitle", "")
             if journal_title:
-                concept.categories.append(f"journal:{journal_title}")
+                if concept.categories is not None:
+                    concept.categories.append(f"journal:{journal_title}")
 
             # Publication year
             pub_year = item.get("pubYear", "")
             if pub_year:
-                concept.categories.append(f"year:{pub_year}")
+                if concept.categories is not None:
+                    concept.categories.append(f"year:{pub_year}")
 
             # DOI
             doi = item.get("doi", "")
@@ -130,7 +134,8 @@ class EuropePMCAdapter(KnowledgeSourceAdapter):
                 )
 
             concept.confidence_score = 0.85
-            concept.source_data[KnowledgeSource.EUROPEPMC] = item
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.EUROPEPMC] = item
             return concept
 
         except Exception as e:

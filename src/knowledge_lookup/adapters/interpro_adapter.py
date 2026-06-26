@@ -106,15 +106,19 @@ class InterProAdapter(KnowledgeSourceAdapter):
                     if isinstance(desc, dict):
                         text = desc.get("text", "")
                         if text:
-                            concept.definitions.append(text[:500])
+                            if concept.definitions is not None:
+                                concept.definitions.append(text[:500])
                     elif isinstance(desc, str):
-                        concept.definitions.append(desc[:500])
+                        if concept.definitions is not None:
+                            concept.definitions.append(desc[:500])
             elif isinstance(description, str) and description:
-                concept.definitions.append(description[:500])
+                if concept.definitions is not None:
+                    concept.definitions.append(description[:500])
 
             # Entry type
             if entry_type:
-                concept.semantic_types.append(entry_type)
+                if concept.semantic_types is not None:
+                    concept.semantic_types.append(entry_type)
 
             # Source databases (integrated signatures)
             integrated_db = metadata.get("integrated", [])
@@ -123,10 +127,12 @@ class InterProAdapter(KnowledgeSourceAdapter):
                     if isinstance(db_entry, dict):
                         db_acc = db_entry.get("accession", "")
                         if db_acc:
-                            concept.categories.append(db_acc)
+                            if concept.categories is not None:
+                                concept.categories.append(db_acc)
 
             concept.confidence_score = 0.85
-            concept.source_data[KnowledgeSource.INTERPRO] = item
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.INTERPRO] = item
             return concept
 
         except Exception as e:

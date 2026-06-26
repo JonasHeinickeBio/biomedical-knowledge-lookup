@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Any
 
@@ -47,7 +46,8 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
             primary_label=disease_name,
             concept_type=ConceptType.DISEASE,
         )
-        concept.source_data[KnowledgeSource.DISGENET] = data
+        if isinstance(concept.source_data, dict):
+            concept.source_data[KnowledgeSource.DISGENET] = data
         return concept
 
     async def _make_request(
@@ -57,27 +57,23 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
         headers: dict | None = None,
         json_data: dict | None = None,
     ) -> dict[str, Any]:
+        """Make HTTP request with smart retry and DisGeNET rate-limit awareness.
+
+        Delegates to the base class ``_call_with_retry`` which handles
+        circuit-breaker gating, error classification, and per-category
+        exponential backoff (4 retries for rate limits, 2s/4s/8s/16s).
+
+        Uses ``json_data is None`` to always do GET requests (DisGeNET API
+        does not use POST for search operations).
         """
-        Make HTTP request with error handling and rate limit support.
-        """
-        try:
+
+        async def _do() -> dict[str, Any]:
             session = await self._get_session()
-            while True:
-                async with session.get(url, params=params, headers=headers) as response:
-                    if response.status == 429:
-                        retry_after = int(
-                            response.headers.get("x-rate-limit-retry-after-seconds", "5")
-                        )
-                        logger.warning(f"Rate limit reached. Waiting {retry_after} seconds...")
-                        await asyncio.sleep(retry_after)
-                        continue
-                    if not response.ok:
-                        logger.error(f"DisGeNET API error: {response.status}")
-                        return {}
-                    return await response.json()
-        except Exception as e:
-            logger.error(f"DisGeNET API network error: {e}")
-            return {}
+            async with session.get(url, params=params, headers=headers) as response:
+                response.raise_for_status()
+                return await response.json()
+
+        return await self._call_with_retry("disgenet_api", _do)
 
     async def get_gene_disease_associations(
         self, params: dict[str, Any], raw: bool = False
@@ -246,29 +242,55 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
     async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """
         Search for gene-disease associations and return UnifiedConcepts.
-        query: NCBI gene ID (as string)
-        limit: max results (maps to page_number, 100 results per page)
+
+        Smart parameter detection:
+        - All-numeric query → ``gene_ncbi_id`` (e.g. ``"1017"`` for CDK2)
+        - Short uppercase-alpha query → ``gene_symbol`` (e.g. ``"CDK2"``)
+        - Everything else → ``disease`` free-text (e.g. ``"diabetes"``)
         """
-        params = {"gene_ncbi_id": query, "page_number": 0}
-        # DisGeNET returns 100 results per page, so limit is only used for page_number=0
-        data = await self.get_gene_disease_associations(params)
-        concepts = []
-        if data and "payload" in data:
-            for i, item in enumerate(data["payload"]):
-                if i >= limit:
-                    break
-                disease_id = item.get("diseaseid", "")
-                disease_name = item.get("diseasename", "")
-                score = item.get("score", 0.0)
-                concept = UnifiedConcept(
-                    primary_id=disease_id,
-                    primary_label=disease_name,
-                    concept_type=ConceptType.UNKNOWN,
-                )
-                concept.confidence_score = score
-                concept.source_data[KnowledgeSource.DISGENET] = item
-                concepts.append(concept)
-        logger.info(
-            f"DisGeNET search for gene {params.get('gene_ncbi_id', query)} returned {len(concepts)} concepts (limit {limit})"  # noqa: E501
-        )
-        return concepts
+        try:
+            query_stripped = query.strip()
+
+            # Detect query type
+            if query_stripped.isdigit():
+                params: dict[str, Any] = {"gene_ncbi_id": query_stripped, "page_number": 0}
+            elif (
+                query_stripped.isalpha() and query_stripped.isupper() and len(query_stripped) <= 15
+            ):
+                params = {"gene_symbol": query_stripped, "page_number": 0}
+            else:
+                params = {"disease": query_stripped, "page_number": 0}
+
+            data = await self._make_request(
+                f"{self.BASE_URL}/gda/summary",
+                params=params,
+                headers={
+                    "Authorization": self.api_key or "",
+                    "accept": "application/json",
+                },
+            )
+
+            concepts: list[UnifiedConcept] = []
+            if data and "payload" in data:
+                for item in data["payload"]:
+                    if len(concepts) >= limit:
+                        break
+                    disease_id = item.get("diseaseid", "")
+                    disease_name = item.get("diseasename", "")
+                    score = item.get("score", 0.0)
+                    concept = UnifiedConcept(
+                        primary_id=disease_id,
+                        primary_label=disease_name,
+                        concept_type=ConceptType.UNKNOWN,
+                    )
+                    concept.confidence_score = score
+                    if isinstance(concept.source_data, dict):
+                        concept.source_data[KnowledgeSource.DISGENET] = item
+                    concepts.append(concept)
+
+            logger.info(f"DisGeNET search for '{query}' returned {len(concepts)} concepts")
+            return concepts
+
+        except Exception as e:
+            logger.error(f"DisGeNET search failed for '{query}': {e}")
+            return []

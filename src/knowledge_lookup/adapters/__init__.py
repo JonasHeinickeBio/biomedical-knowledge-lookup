@@ -35,14 +35,18 @@ from .quickgo_adapter import QuickGOAdapter
 from .reactome_adapter import ReactomeAdapter
 from .string_adapter import STRINGAdapter
 from .tyto_adapter import TytoAdapter
-from .umls_adapter import UMLSAdapter
 from .unichem_adapter import UniChemAdapter
 from .uniprot_adapter import UniProtAdapter
 from .wikidata_adapter import WikidataAdapter
 from .zooma_adapter import ZoomaAdapter
 
+# UMLS adapter is optional (requires umls-client)
+try:
+    from .umls_adapter import UMLSAdapter
+except ImportError:
+    UMLSAdapter = None  # type: ignore
+
 __all__ = [
-    "UMLSAdapter",
     "UniChemAdapter",
     "BioPortalAdapter",
     "OLSAdapter",
@@ -81,10 +85,12 @@ __all__ = [
     "ADAPTER_CLASSES",
 ]
 
+if UMLSAdapter is not None:
+    __all__.insert(0, "UMLSAdapter")
+
 from ..models import KnowledgeSource
 
 ADAPTER_CLASSES = {
-    KnowledgeSource.UMLS: UMLSAdapter,
     KnowledgeSource.UNICHEM: UniChemAdapter,
     KnowledgeSource.BIOPORTAL: BioPortalAdapter,
     KnowledgeSource.OLS: OLSAdapter,
@@ -92,17 +98,17 @@ ADAPTER_CLASSES = {
     KnowledgeSource.TYTO: TytoAdapter,
     KnowledgeSource.ZOOMA: ZoomaAdapter,
     KnowledgeSource.BIOLINKER: BioLinkerAdapter,
+    KnowledgeSource.DBPEDIA: DBpediaAdapter,
     KnowledgeSource.OXO: OxOAdapter,
+    KnowledgeSource.BIOONTOLOGY: BioOntologyAdapter,
     KnowledgeSource.MONDO: MondoAdapter,
     KnowledgeSource.UNIPROT: UniProtAdapter,
-    KnowledgeSource.DBPEDIA: DBpediaAdapter,
-    KnowledgeSource.BIOONTOLOGY: BioOntologyAdapter,
+    KnowledgeSource.CHEMBL: ChEMBLAdapter,
     KnowledgeSource.DISGENET: DisGeNETAdapter,
     KnowledgeSource.OPENTARGETS: OpenTargetsAdapter,
     KnowledgeSource.REACTOME: ReactomeAdapter,
     KnowledgeSource.PUBCHEM: PubChemAdapter,
     KnowledgeSource.DRUGBANK: DrugBankAdapter,
-    KnowledgeSource.CHEMBL: ChEMBLAdapter,
     KnowledgeSource.GENEONTOLOGY: GeneOntologyAdapter,
     KnowledgeSource.HPO: HPOAdapter,
     KnowledgeSource.OBOFOUNDRY: OBOFoundryAdapter,
@@ -121,3 +127,6 @@ ADAPTER_CLASSES = {
     KnowledgeSource.PFAM: PfamAdapter,
     KnowledgeSource.STRING: STRINGAdapter,
 }
+
+if UMLSAdapter is not None:
+    ADAPTER_CLASSES[KnowledgeSource.UMLS] = UMLSAdapter

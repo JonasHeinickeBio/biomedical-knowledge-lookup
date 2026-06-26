@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Optional
 
 from pydantic import (
     BaseModel,
@@ -95,6 +95,15 @@ linkml_meta = LinkMLMeta(
                 "from_schema": "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/linkml/schema",
                 "name": "integer",
                 "uri": "xsd:integer",
+            },
+            "json_string": {
+                "base": "str",
+                "description": "A JSON-serialized string for "
+                "complex nested data (dicts, lists "
+                "of dicts)",
+                "from_schema": "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/linkml/schema",
+                "name": "json_string",
+                "uri": "xsd:string",
             },
             "string": {
                 "base": "str",
@@ -253,6 +262,10 @@ class KnowledgeSource(str, Enum):
     CLINVAR = "CLINVAR"
     """
     ClinVar
+    """
+    DBVAR = "DBVAR"
+    """
+    dbVar
     """
     COSMIC = "COSMIC"
     """
@@ -518,6 +531,56 @@ class ConfidenceLevel(str, Enum):
     """
 
 
+class CircuitState(str, Enum):
+    """
+    State of a circuit breaker for source health tracking
+    """
+
+    CLOSED = "CLOSED"
+    """
+    Normal operation — requests pass through
+    """
+    OPEN = "OPEN"
+    """
+    Failing — requests are short-circuited
+    """
+    HALF_OPEN = "HALF_OPEN"
+    """
+    Probing — single test request allowed
+    """
+
+
+class ErrorCategory(str, Enum):
+    """
+    Category of an error for determining retry strategy
+    """
+
+    NETWORK_ERROR = "NETWORK_ERROR"
+    """
+    Connection/DNS/timeout/SSL errors — transient, retry fast
+    """
+    RATE_LIMITED = "RATE_LIMITED"
+    """
+    HTTP 429/403 quota — retry with exponential backoff
+    """
+    SERVER_ERROR = "SERVER_ERROR"
+    """
+    HTTP 5xx — server-side, retry with moderate backoff
+    """
+    TRANSIENT = "TRANSIENT"
+    """
+    Other temporary errors that might resolve on retry
+    """
+    CLIENT_ERROR = "CLIENT_ERROR"
+    """
+    HTTP 4xx (except 429) — not retryable
+    """
+    UNKNOWN = "UNKNOWN"
+    """
+    Unclassified — cautious single retry then give up
+    """
+
+
 class ConceptIdentifier(ConfiguredBaseModel):
     """
     Represents an identifier for a concept in a specific knowledge source
@@ -534,7 +597,13 @@ class ConceptIdentifier(ConfiguredBaseModel):
         description="""The knowledge source""",
         json_schema_extra={
             "linkml_meta": {
-                "domain_of": ["ConceptIdentifier", "ConceptMapping", "SourceAnnotation"]
+                "domain_of": [
+                    "ConceptIdentifier",
+                    "ConceptMapping",
+                    "SourceHealth",
+                    "RetryInfo",
+                    "SourceAnnotation",
+                ]
             }
         },
     )
@@ -543,12 +612,12 @@ class ConceptIdentifier(ConfiguredBaseModel):
         description="""The identifier string""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptIdentifier"]}},
     )
-    label: str | None = Field(
+    label: Optional[str] = Field(
         default=None,
         description="""The label for the concept""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptIdentifier"]}},
     )
-    url: str | None = Field(
+    url: Optional[str] = Field(
         default=None,
         description="""The URL to the concept in the source""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptIdentifier"]}},
@@ -576,22 +645,28 @@ class ConceptMapping(ConfiguredBaseModel):
         description="""The target concept identifier""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptMapping"]}},
     )
-    mapping_type: str | None = Field(
+    mapping_type: Optional[str] = Field(
         default=None,
         description="""Type of mapping (exact, narrow, broad, related)""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptMapping"]}},
     )
-    confidence: float | None = Field(
+    confidence: Optional[float] = Field(
         default=None,
         description="""Confidence score for the mapping""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptMapping"]}},
     )
-    source: str | None = Field(
+    source: Optional[str] = Field(
         default=None,
         description="""Source of the mapping""",
         json_schema_extra={
             "linkml_meta": {
-                "domain_of": ["ConceptIdentifier", "ConceptMapping", "SourceAnnotation"]
+                "domain_of": [
+                    "ConceptIdentifier",
+                    "ConceptMapping",
+                    "SourceHealth",
+                    "RetryInfo",
+                    "SourceAnnotation",
+                ]
             }
         },
     )
@@ -618,75 +693,216 @@ class UnifiedConcept(ConfiguredBaseModel):
         description="""Primary label for the concept""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    concept_type: ConceptType | None = Field(
+    concept_type: Optional[ConceptType] = Field(
         default=None,
         description="""Type of concept""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    identifiers: list[ConceptIdentifier] | None = Field(
+    identifiers: Optional[list[ConceptIdentifier]] = Field(
         default=None,
         description="""List of cross-reference identifiers""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    mappings: list[ConceptMapping] | None = Field(
+    mappings: Optional[list[ConceptMapping]] = Field(
         default=None,
         description="""List of concept mappings""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    labels: list[str] | None = Field(
+    labels: Optional[str] = Field(
         default=None,
-        description="""Labels in different languages""",
+        description="""Labels in different languages (JSON-serialized dict of language->label)""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    synonyms: list[str] | None = Field(
+    synonyms: Optional[list[str]] = Field(
         default=None,
         description="""List of synonyms""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    definitions: list[str] | None = Field(
+    definitions: Optional[list[str]] = Field(
         default=None,
         description="""List of definitions""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    semantic_types: list[str] | None = Field(
+    semantic_types: Optional[list[str]] = Field(
         default=None,
         description="""List of semantic types""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    categories: list[str] | None = Field(
+    categories: Optional[list[str]] = Field(
         default=None,
         description="""List of categories""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    parents: list[str] | None = Field(
+    parents: Optional[list[str]] = Field(
         default=None,
         description="""List of parent concept IDs""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    children: list[str] | None = Field(
+    children: Optional[list[str]] = Field(
         default=None,
         description="""List of child concept IDs""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    related: list[str] | None = Field(
+    related: Optional[list[str]] = Field(
         default=None,
         description="""List of related concept IDs""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    sources: list[KnowledgeSource] | None = Field(
+    sources: Optional[list[KnowledgeSource]] = Field(
         default=None,
         description="""Set of knowledge sources""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    confidence_score: float | None = Field(
+    confidence_score: Optional[float] = Field(
         default=None,
         description="""Confidence score for the concept""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
     )
-    last_updated: datetime | None = Field(
+    last_updated: Optional[datetime] = Field(
         default=None,
         description="""Timestamp of last update""",
         json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
+    )
+    source_data: Optional[str] = Field(
+        default=None,
+        description="""Raw data from sources (JSON-serialized dict of source->raw data)""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["UnifiedConcept"]}},
+    )
+
+
+class SourceHealth(ConfiguredBaseModel):
+    """
+    Runtime health snapshot for a single knowledge source fed by circuit breakers
+    """
+
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta(
+        {
+            "from_schema": "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/linkml/schema"
+        }
+    )
+
+    source: KnowledgeSource = Field(
+        default=...,
+        description="""The knowledge source""",
+        json_schema_extra={
+            "linkml_meta": {
+                "domain_of": [
+                    "ConceptIdentifier",
+                    "ConceptMapping",
+                    "SourceHealth",
+                    "RetryInfo",
+                    "SourceAnnotation",
+                ]
+            }
+        },
+    )
+    circuit_state: Optional[CircuitState] = Field(
+        default=None,
+        description="""Current circuit breaker state""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["SourceHealth"]}},
+    )
+    failure_count: Optional[int] = Field(
+        default=None,
+        description="""Current consecutive failure count""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["SourceHealth"]}},
+    )
+    threshold: Optional[int] = Field(
+        default=None,
+        description="""Failure threshold before circuit opens""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["SourceHealth"]}},
+    )
+    cooldown: Optional[float] = Field(
+        default=None,
+        description="""Cooldown period in seconds before half-open probe""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["SourceHealth"]}},
+    )
+    total_calls: Optional[int] = Field(
+        default=None,
+        description="""Total calls made to this source""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["SourceHealth"]}},
+    )
+    total_failures: Optional[int] = Field(
+        default=None,
+        description="""Total failures recorded""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["SourceHealth"]}},
+    )
+    total_successes: Optional[int] = Field(
+        default=None,
+        description="""Total successes recorded""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["SourceHealth"]}},
+    )
+    health_score: Optional[float] = Field(
+        default=None,
+        description="""Health score 0..1 based on success/failure ratio""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["SourceHealth"]}},
+    )
+    last_error: Optional[str] = Field(
+        default=None,
+        description="""Last error message recorded""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["SourceHealth"]}},
+    )
+    is_open: Optional[bool] = Field(
+        default=None,
+        description="""Derived property — true if circuit_state is OPEN""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["SourceHealth"]}},
+    )
+
+
+class RetryInfo(ConfiguredBaseModel):
+    """
+    Per-source retry statistics for a single operation
+    """
+
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta(
+        {
+            "from_schema": "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/linkml/schema"
+        }
+    )
+
+    source: KnowledgeSource = Field(
+        default=...,
+        description="""The knowledge source""",
+        json_schema_extra={
+            "linkml_meta": {
+                "domain_of": [
+                    "ConceptIdentifier",
+                    "ConceptMapping",
+                    "SourceHealth",
+                    "RetryInfo",
+                    "SourceAnnotation",
+                ]
+            }
+        },
+    )
+    attempts: Optional[int] = Field(
+        default=None,
+        description="""Number of attempts made""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["RetryInfo"]}},
+    )
+    max_attempts: Optional[int] = Field(
+        default=None,
+        description="""Maximum allowed attempts""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["RetryInfo"]}},
+    )
+    last_delay: Optional[float] = Field(
+        default=None,
+        description="""Last delay applied between retries in seconds""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["RetryInfo"]}},
+    )
+    strategy: Optional[str] = Field(
+        default=None,
+        description="""Retry strategy name used""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["RetryInfo"]}},
+    )
+    success: Optional[bool] = Field(
+        default=None,
+        description="""Whether the operation ultimately succeeded""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["RetryInfo"]}},
+    )
+    error_category: Optional[ErrorCategory] = Field(
+        default=None,
+        description="""Category of the error if the operation failed""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["RetryInfo"]}},
     )
 
 
@@ -706,39 +922,44 @@ class LookupResult(ConfiguredBaseModel):
         description="""The original query string""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupResult"]}},
     )
-    concepts: list[UnifiedConcept] | None = Field(
+    concepts: Optional[list[UnifiedConcept]] = Field(
         default=None,
         description="""List of matching concepts""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupResult", "SourceAnnotation"]}},
     )
-    total_found: int | None = Field(
+    total_found: Optional[int] = Field(
         default=None,
         description="""Total number of concepts found""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupResult"]}},
     )
-    sources_queried: list[KnowledgeSource] | None = Field(
+    sources_queried: Optional[list[KnowledgeSource]] = Field(
         default=None,
         description="""List of sources that were queried""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupResult"]}},
     )
-    sources_succeeded: list[KnowledgeSource] | None = Field(
+    sources_succeeded: Optional[list[KnowledgeSource]] = Field(
         default=None,
         description="""List of sources that succeeded""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupResult"]}},
     )
-    sources_failed: list[KnowledgeSource] | None = Field(
+    sources_failed: Optional[list[KnowledgeSource]] = Field(
         default=None,
         description="""List of sources that failed""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupResult"]}},
     )
-    execution_time: float | None = Field(
+    execution_time: Optional[float] = Field(
         default=None,
         description="""Execution time in seconds""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupResult"]}},
     )
-    errors: list[str] | None = Field(
+    errors: Optional[str] = Field(
         default=None,
-        description="""Dictionary of errors per source""",
+        description="""Dictionary of errors per source (JSON-serialized dict)""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["LookupResult"]}},
+    )
+    source_health: Optional[str] = Field(
+        default=None,
+        description="""Health snapshot for all tracked sources (JSON-serialized dict of source->SourceHealth)""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupResult"]}},
     )
 
@@ -754,69 +975,84 @@ class LookupConfig(ConfiguredBaseModel):
         }
     )
 
-    enabled_sources: list[KnowledgeSource] | None = Field(
+    enabled_sources: Optional[list[KnowledgeSource]] = Field(
         default=None,
         description="""List of enabled knowledge sources""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    max_results_per_source: int | None = Field(
+    max_results_per_source: Optional[int] = Field(
         default=None,
         description="""Maximum results per source""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    timeout_per_source: float | None = Field(
+    timeout_per_source: Optional[float] = Field(
         default=None,
         description="""Timeout per source in seconds""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    parallel_queries: bool | None = Field(
+    parallel_queries: Optional[bool] = Field(
         default=None,
         description="""Whether to run queries in parallel""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    min_confidence_threshold: float | None = Field(
+    min_confidence_threshold: Optional[float] = Field(
         default=None,
         description="""Minimum confidence threshold""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    preferred_languages: list[str] | None = Field(
+    preferred_languages: Optional[list[str]] = Field(
         default=None,
         description="""List of preferred languages""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    concept_types: list[ConceptType] | None = Field(
+    concept_types: Optional[list[ConceptType]] = Field(
         default=None,
         description="""List of preferred concept types""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    rate_limits: list[float] | None = Field(
+    rate_limits: Optional[str] = Field(
         default=None,
-        description="""Rate limits per source (requests per second)""",
+        description="""Rate limits per source (requests per second, JSON-serialized dict)""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    enable_deduplication: bool | None = Field(
+    enable_deduplication: Optional[bool] = Field(
         default=None,
         description="""Whether to enable deduplication""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    similarity_threshold: float | None = Field(
+    similarity_threshold: Optional[float] = Field(
         default=None,
         description="""Similarity threshold for deduplication""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    merge_similar_concepts: bool | None = Field(
+    merge_similar_concepts: Optional[bool] = Field(
         default=None,
         description="""Whether to merge similar concepts""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    enable_ontology_mapping: bool | None = Field(
+    enable_ontology_mapping: Optional[bool] = Field(
         default=None,
         description="""Whether to enable ontology mapping""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
-    api_keys: list[str] | None = Field(
+    api_keys: Optional[str] = Field(
         default=None,
-        description="""API keys for external services""",
+        description="""API keys for external services (JSON-serialized dict)""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
+    )
+    circuit_breaker_threshold: Optional[int] = Field(
+        default=None,
+        description="""Failure threshold before circuit breaker opens (default: 5)""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
+    )
+    circuit_breaker_cooldown: Optional[float] = Field(
+        default=None,
+        description="""Cooldown period in seconds before half-open probe (default: 30.0)""",
+        json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
+    )
+    enable_source_health_tracking: Optional[bool] = Field(
+        default=None,
+        description="""Whether to enable source health tracking via circuit breakers""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupConfig"]}},
     )
 
@@ -837,33 +1073,39 @@ class SourceAnnotation(ConfiguredBaseModel):
         description="""The knowledge source""",
         json_schema_extra={
             "linkml_meta": {
-                "domain_of": ["ConceptIdentifier", "ConceptMapping", "SourceAnnotation"]
+                "domain_of": [
+                    "ConceptIdentifier",
+                    "ConceptMapping",
+                    "SourceHealth",
+                    "RetryInfo",
+                    "SourceAnnotation",
+                ]
             }
         },
     )
-    concepts: list[UnifiedConcept] | None = Field(
+    concepts: Optional[list[UnifiedConcept]] = Field(
         default=None,
         description="""List of annotated concepts""",
         json_schema_extra={"linkml_meta": {"domain_of": ["LookupResult", "SourceAnnotation"]}},
     )
-    surface_forms: list[str] | None = Field(
+    surface_forms: Optional[list[str]] = Field(
         default=None,
         description="""List of surface forms found""",
         json_schema_extra={"linkml_meta": {"domain_of": ["SourceAnnotation"]}},
     )
-    positions: list[str] | None = Field(
+    positions: Optional[list[str]] = Field(
         default=None,
-        description="""List of position dictionaries""",
+        description="""List of position dictionaries (JSON-serialized string)""",
         json_schema_extra={"linkml_meta": {"domain_of": ["SourceAnnotation"]}},
     )
-    processing_time: float | None = Field(
+    processing_time: Optional[float] = Field(
         default=None,
         description="""Processing time in seconds""",
         json_schema_extra={
             "linkml_meta": {"domain_of": ["SourceAnnotation", "MultiSourceAnnotationResult"]}
         },
     )
-    error: str | None = Field(
+    error: Optional[str] = Field(
         default=None,
         description="""Error message if any""",
         json_schema_extra={"linkml_meta": {"domain_of": ["SourceAnnotation"]}},
@@ -886,27 +1128,27 @@ class ConceptAgreement(ConfiguredBaseModel):
         description="""The primary concept""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptAgreement"]}},
     )
-    agreeing_sources: list[KnowledgeSource] | None = Field(
+    agreeing_sources: Optional[list[KnowledgeSource]] = Field(
         default=None,
         description="""Set of sources that agree""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptAgreement"]}},
     )
-    disagreeing_sources: list[KnowledgeSource] | None = Field(
+    disagreeing_sources: Optional[list[KnowledgeSource]] = Field(
         default=None,
         description="""Set of sources that disagree""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptAgreement"]}},
     )
-    alternative_concepts: list[UnifiedConcept] | None = Field(
+    alternative_concepts: Optional[list[UnifiedConcept]] = Field(
         default=None,
         description="""List of alternative concepts""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptAgreement"]}},
     )
-    confidence_level: ConfidenceLevel | None = Field(
+    confidence_level: Optional[ConfidenceLevel] = Field(
         default=None,
         description="""Confidence level based on source agreement""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptAgreement"]}},
     )
-    consensus_score: float | None = Field(
+    consensus_score: Optional[float] = Field(
         default=None,
         description="""Consensus score""",
         json_schema_extra={"linkml_meta": {"domain_of": ["ConceptAgreement"]}},
@@ -929,36 +1171,36 @@ class MultiSourceAnnotationResult(ConfiguredBaseModel):
         description="""The original sentence""",
         json_schema_extra={"linkml_meta": {"domain_of": ["MultiSourceAnnotationResult"]}},
     )
-    source_annotations: list[SourceAnnotation] | None = Field(
+    source_annotations: Optional[list[SourceAnnotation]] = Field(
         default=None,
         description="""Annotations from each source""",
         json_schema_extra={"linkml_meta": {"domain_of": ["MultiSourceAnnotationResult"]}},
     )
-    consensus_concepts: list[ConceptAgreement] | None = Field(
+    consensus_concepts: Optional[list[ConceptAgreement]] = Field(
         default=None,
         description="""Consensus concepts""",
         json_schema_extra={"linkml_meta": {"domain_of": ["MultiSourceAnnotationResult"]}},
     )
-    discrepancies: list[str] | None = Field(
+    discrepancies: Optional[list[str]] = Field(
         default=None,
-        description="""List of discrepancies""",
+        description="""List of discrepancy dicts (JSON-serialized)""",
         json_schema_extra={"linkml_meta": {"domain_of": ["MultiSourceAnnotationResult"]}},
     )
-    overall_confidence: float | None = Field(
+    overall_confidence: Optional[float] = Field(
         default=None,
         description="""Overall confidence score""",
         json_schema_extra={"linkml_meta": {"domain_of": ["MultiSourceAnnotationResult"]}},
     )
-    processing_time: float | None = Field(
+    processing_time: Optional[float] = Field(
         default=None,
         description="""Total processing time in seconds""",
         json_schema_extra={
             "linkml_meta": {"domain_of": ["SourceAnnotation", "MultiSourceAnnotationResult"]}
         },
     )
-    annotation_stats: str | None = Field(
+    annotation_stats: Optional[str] = Field(
         default=None,
-        description="""Annotation statistics""",
+        description="""Annotation statistics dict (JSON-serialized)""",
         json_schema_extra={"linkml_meta": {"domain_of": ["MultiSourceAnnotationResult"]}},
     )
 
@@ -968,6 +1210,8 @@ class MultiSourceAnnotationResult(ConfiguredBaseModel):
 ConceptIdentifier.model_rebuild()
 ConceptMapping.model_rebuild()
 UnifiedConcept.model_rebuild()
+SourceHealth.model_rebuild()
+RetryInfo.model_rebuild()
 LookupResult.model_rebuild()
 LookupConfig.model_rebuild()
 SourceAnnotation.model_rebuild()

@@ -101,7 +101,7 @@ class TestHelpers:
         assert "Concept 1:" in lines[0]
         assert "Label: Test Concept 1" in detailed
         assert "ID: TEST:001" in detailed
-        assert "Type: disease" in detailed
+        assert "Type: DISEASE" in detailed
         assert "Concept 2:" in lines[7]  # After blank line
 
     def test_format_results_detailed_empty_results(self):

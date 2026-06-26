@@ -36,80 +36,91 @@ class QuickGOAdapter(KnowledgeSourceAdapter):
             logger.error("bioservices not available for QuickGO adapter")
             return []
 
-        qgo = QuickGO()
-        results = []
+        def _do_search(search_limit: int) -> list[UnifiedConcept]:
+            qgo = QuickGO()
+            results: list[UnifiedConcept] = []
 
-        try:
             # Search for GO terms
-            term_results = qgo.get_go_terms(query=query)
-            if term_results and isinstance(term_results, list) and len(term_results) > 0:
-                for term in term_results[: limit // 2]:
-                    if isinstance(term, dict):
-                        go_id = term.get("id", "")
-                        go_name = term.get("name", "")
-                        go_namespace = term.get("aspect", "")
+            try:
+                term_results = qgo.get_go_terms(query=query)
+                if term_results and isinstance(term_results, list) and len(term_results) > 0:
+                    for term in term_results[: search_limit // 2]:
+                        if isinstance(term, dict):
+                            go_id = term.get("id", "")
+                            go_name = term.get("name", "")
+                            go_namespace = term.get("aspect", "")
 
-                        # Map GO aspect to concept type
-                        if go_namespace == "biological_process":
-                            concept_type = ConceptType.BIOLOGICAL_PROCESS
-                        elif go_namespace == "molecular_function":
-                            concept_type = ConceptType.MOLECULAR_FUNCTION
-                        elif go_namespace == "cellular_component":
-                            concept_type = ConceptType.CELLULAR_COMPONENT
-                        else:
-                            concept_type = ConceptType.BIOLOGICAL_PROCESS
+                            if go_namespace == "biological_process":
+                                concept_type = ConceptType.BIOLOGICAL_PROCESS
+                            elif go_namespace == "molecular_function":
+                                concept_type = ConceptType.MOLECULAR_FUNCTION
+                            elif go_namespace == "cellular_component":
+                                concept_type = ConceptType.CELLULAR_COMPONENT
+                            else:
+                                concept_type = ConceptType.BIOLOGICAL_PROCESS
 
-                        if go_id and go_name:  # Only add if we have valid data
-                            concept = UnifiedConcept(
-                                primary_id=go_id,
-                                primary_label=go_name,
-                                concept_type=concept_type,
-                            )
-                            concept.sources.add(self.source)
-                            concept.source_data[self.source] = {
-                                "go_aspect": go_namespace,
-                                "definition": term.get("definition", ""),
-                                "obsolete": term.get("isObsolete", False),
-                                "description": f"GO Term: {go_name} ({go_namespace})",
-                            }
-                            results.append(concept)
+                            if go_id and go_name:
+                                concept = UnifiedConcept(
+                                    primary_id=go_id,
+                                    primary_label=go_name,
+                                    concept_type=concept_type,
+                                )
+                                if concept.sources is not None:
+                                    concept.sources.append(KnowledgeSource.QUICKGO)
+                                if isinstance(concept.source_data, dict):
+                                    concept.source_data[KnowledgeSource.QUICKGO] = {
+                                        "go_aspect": go_namespace,
+                                        "definition": term.get("definition", ""),
+                                        "obsolete": term.get("isObsolete", False),
+                                        "description": f"GO Term: {go_name} ({go_namespace})",
+                                    }
+                                results.append(concept)
+            except Exception:
+                pass
 
             # Search for annotations (gene associations)
-            annotation_results = qgo.Annotation(geneProductId=query, limit=limit // 2)
-            if (
-                annotation_results
-                and isinstance(annotation_results, list)
-                and len(annotation_results) > 0
-            ):
-                for annotation in annotation_results[: limit // 2]:
-                    if isinstance(annotation, dict):
-                        gene_id = annotation.get("geneProductId", "")
-                        go_id = annotation.get("goId", "")
-                        qualifier = annotation.get("qualifier", "")
-                        evidence_code = annotation.get("evidenceCode", "")
+            try:
+                annotation_results = qgo.Annotation(geneProductId=query, limit=search_limit // 2)
+                if (
+                    annotation_results
+                    and isinstance(annotation_results, list)
+                    and len(annotation_results) > 0
+                ):
+                    for annotation in annotation_results[: search_limit // 2]:
+                        if isinstance(annotation, dict):
+                            gene_id = annotation.get("geneProductId", "")
+                            go_id = annotation.get("goId", "")
+                            qualifier = annotation.get("qualifier", "")
+                            evidence_code = annotation.get("evidenceCode", "")
 
-                        if gene_id and go_id:  # Only add if we have valid data
-                            # Create concept for gene-GO association
-                            concept = UnifiedConcept(
-                                primary_id=f"{gene_id}_{go_id}",
-                                primary_label=f"{gene_id} → {go_id}",
-                                concept_type=ConceptType.GENE_DISEASE_ASSOCIATION,
-                            )
-                            concept.sources.add(self.source)
-                            concept.source_data[self.source] = {
-                                "gene_id": gene_id,
-                                "go_id": go_id,
-                                "qualifier": qualifier,
-                                "evidence_code": evidence_code,
-                                "aspect": annotation.get("aspect", ""),
-                                "description": f"GO Annotation: {gene_id} associated with {go_id}",
-                            }
-                            results.append(concept)
+                            if gene_id and go_id:
+                                concept = UnifiedConcept(
+                                    primary_id=f"{gene_id}_{go_id}",
+                                    primary_label=f"{gene_id} → {go_id}",
+                                    concept_type=ConceptType.GENE_DISEASE_ASSOCIATION,
+                                )
+                                if concept.sources is not None:
+                                    concept.sources.append(KnowledgeSource.QUICKGO)
+                                if isinstance(concept.source_data, dict):
+                                    concept.source_data[KnowledgeSource.QUICKGO] = {
+                                        "gene_id": gene_id,
+                                        "go_id": go_id,
+                                        "qualifier": qualifier,
+                                        "evidence_code": evidence_code,
+                                        "aspect": annotation.get("aspect", ""),
+                                        "description": f"GO Annotation: {gene_id} associated with {go_id}",
+                                    }
+                                results.append(concept)
+            except Exception:
+                pass
 
+            return results[:search_limit]
+
+        try:
+            return await self._thread_with_retry("quickgo_search", _do_search, limit)
         except Exception as e:
             logger.error(f"Error searching QuickGO: {e}")
-
-        return results[:limit]
+            return []
 
     async def get_concept_details(self, concept_id: str):
         """
@@ -123,20 +134,17 @@ class QuickGOAdapter(KnowledgeSourceAdapter):
             logger.error("bioservices not available for QuickGO adapter")
             return None
 
-        qgo = QuickGO()
+        def _do_get_details(cid: str) -> UnifiedConcept | None:
+            qgo = QuickGO()
 
-        try:
-            # Check if it's a GO term ID (starts with GO:)
-            if concept_id.startswith("GO:"):
-                # Get term details using go_search or get_go_terms
-                term_results = qgo.get_go_terms(query=concept_id)
+            if cid.startswith("GO:"):
+                term_results = qgo.get_go_terms(query=cid)
                 if term_results and isinstance(term_results, list) and len(term_results) > 0:
-                    term = term_results[0]  # Assume first result is the match
+                    term = term_results[0]
                     if isinstance(term, dict):
                         go_name = term.get("name", "")
                         go_namespace = term.get("aspect", "")
 
-                        # Map GO aspect to concept type
                         if go_namespace == "biological_process":
                             concept_type = ConceptType.BIOLOGICAL_PROCESS
                         elif go_namespace == "molecular_function":
@@ -146,62 +154,68 @@ class QuickGOAdapter(KnowledgeSourceAdapter):
                         else:
                             concept_type = ConceptType.BIOLOGICAL_PROCESS
 
-                        if go_name:  # Only create if we have valid data
+                        if go_name:
                             concept = UnifiedConcept(
-                                primary_id=concept_id,
+                                primary_id=cid,
                                 primary_label=go_name,
                                 concept_type=concept_type,
                             )
-                            concept.sources.add(self.source)
-                            concept.source_data[self.source] = {
-                                "go_aspect": go_namespace,
-                                "definition": term.get("definition", ""),
-                                "synonyms": term.get("synonyms", []),
-                                "obsolete": term.get("isObsolete", False),
-                                "comment": term.get("comment", ""),
-                                "usage": term.get("usage", ""),
-                                "full_details": term,
-                            }
+                            if concept.sources is not None:
+                                concept.sources.append(KnowledgeSource.QUICKGO)
+                            if isinstance(concept.source_data, dict):
+                                concept.source_data[KnowledgeSource.QUICKGO] = {
+                                    "go_aspect": go_namespace,
+                                    "definition": term.get("definition", ""),
+                                    "synonyms": term.get("synonyms", []),
+                                    "obsolete": term.get("isObsolete", False),
+                                    "comment": term.get("comment", ""),
+                                    "usage": term.get("usage", ""),
+                                    "full_details": term,
+                                }
                             return concept
-
             else:
-                # Try to get annotations for this concept
-                annotation_results = qgo.Annotation(geneProductId=concept_id, limit=10)
+                annotation_results = qgo.Annotation(geneProductId=cid, limit=10)
                 if (
                     annotation_results
                     and isinstance(annotation_results, list)
                     and len(annotation_results) > 0
                 ):
-                    # Return the first annotation as representative
                     annotation = annotation_results[0]
                     if isinstance(annotation, dict):
                         gene_id = annotation.get("geneProductId", "")
                         go_id = annotation.get("goId", "")
 
-                        if gene_id and go_id:  # Only create if we have valid data
+                        if gene_id and go_id:
                             concept = UnifiedConcept(
                                 primary_id=f"{gene_id}_{go_id}",
                                 primary_label=f"{gene_id} → {go_id}",
                                 concept_type=ConceptType.GENE_DISEASE_ASSOCIATION,
                             )
-                            concept.sources.add(self.source)
-                            concept.source_data[self.source] = {
-                                "gene_id": gene_id,
-                                "go_id": go_id,
-                                "qualifier": annotation.get("qualifier", ""),
-                                "evidence_code": annotation.get("evidenceCode", ""),
-                                "aspect": annotation.get("aspect", ""),
-                                "reference": annotation.get("reference", ""),
-                                "withFrom": annotation.get("withFrom", []),
-                                "taxonId": annotation.get("taxonId", ""),
-                                "date": annotation.get("date", ""),
-                                "assignedBy": annotation.get("assignedBy", ""),
-                                "extensions": annotation.get("extensions", []),
-                                "full_annotation": annotation,
-                            }
+                            if concept.sources is not None:
+                                concept.sources.append(KnowledgeSource.QUICKGO)
+                            if isinstance(concept.source_data, dict):
+                                concept.source_data[KnowledgeSource.QUICKGO] = {
+                                    "gene_id": gene_id,
+                                    "go_id": go_id,
+                                    "qualifier": annotation.get("qualifier", ""),
+                                    "evidence_code": annotation.get("evidenceCode", ""),
+                                    "aspect": annotation.get("aspect", ""),
+                                    "reference": annotation.get("reference", ""),
+                                    "withFrom": annotation.get("withFrom", []),
+                                    "taxonId": annotation.get("taxonId", ""),
+                                    "date": annotation.get("date", ""),
+                                    "assignedBy": annotation.get("assignedBy", ""),
+                                    "extensions": annotation.get("extensions", []),
+                                    "full_annotation": annotation,
+                                }
                             return concept
 
+            return None
+
+        try:
+            return await self._thread_with_retry(
+                "quickgo_get_details", _do_get_details, concept_id
+            )
         except Exception as e:
             logger.error(f"Error getting QuickGO concept details for {concept_id}: {e}")
-
-        return None
+            return None

@@ -158,17 +158,21 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
             # Add definition based on entity type
             if entity_type == "disease":
                 if "definition" in result and result["definition"]:
-                    concept.definitions.append(result["definition"])
+                    if concept.definitions is not None:
+                        concept.definitions.append(result["definition"])
             else:
                 # For targets, there's no description - use biotype as additional info
                 if "biotype" in result:
-                    concept.definitions.append(f"Biotype: {result['biotype']}")
+                    if concept.definitions is not None:
+                        concept.definitions.append(f"Biotype: {result['biotype']}")
 
             if "approvedSymbol" in result:
-                concept.synonyms.append(result["approvedSymbol"])
+                if concept.synonyms is not None:
+                    concept.synonyms.append(result["approvedSymbol"])
 
             concept.confidence_score = 0.9
-            concept.source_data[KnowledgeSource.OPENTARGETS] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.OPENTARGETS] = result
 
             return concept
 

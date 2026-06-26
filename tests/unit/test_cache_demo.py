@@ -1,15 +1,16 @@
 """Unit tests for cache_demo.py"""
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from knowledge_lookup.cache_demo import (
-    demonstrate_caching,
+import pytest
+from knowledge_lookup.cache.cache_demo import (
     adapter_integration_example,
+    demonstrate_caching,
 )
 
-
 pytestmark = pytest.mark.unit
+
+
 class TestCacheDemo:
     """Tests for cache_demo functions."""
 
@@ -35,12 +36,11 @@ class TestCacheDemo:
         mock_adapter.get_cross_references = AsyncMock(return_value={"source1": "xref1"})
         mock_adapter._cache.cleanup.return_value = {"total_evicted": 0}
 
-        with patch("knowledge_lookup.cache_demo.init_cache") as mock_init, \
-             patch("knowledge_lookup.cache_demo.UniChemAdapter", return_value=mock_adapter), \
-             patch("builtins.print") as mock_print:
-            
+        with patch("knowledge_lookup.cache.cache_demo.init_cache") as mock_init, patch(
+            "knowledge_lookup.cache.cache_demo.UniChemAdapter", return_value=mock_adapter
+        ), patch("builtins.print"):
             await demonstrate_caching()
-            
+
             mock_init.assert_called_once()
             mock_adapter.get_sources.assert_called()
             mock_adapter.search_concepts.assert_called()
@@ -61,10 +61,9 @@ class TestCacheDemo:
         mock_adapter.get_cross_references = AsyncMock(return_value={})
         mock_adapter._cache.cleanup.return_value = {"total_evicted": 0}
 
-        with patch("knowledge_lookup.cache_demo.init_cache"), \
-             patch("knowledge_lookup.cache_demo.UniChemAdapter", return_value=mock_adapter), \
-             patch("builtins.print"):
-            
+        with patch("knowledge_lookup.cache.cache_demo.init_cache"), patch(
+            "knowledge_lookup.cache.cache_demo.UniChemAdapter", return_value=mock_adapter
+        ), patch("builtins.print"):
             await demonstrate_caching()
 
     @pytest.mark.asyncio
@@ -82,10 +81,9 @@ class TestCacheDemo:
         mock_adapter.get_cross_references = AsyncMock(return_value={})
         mock_adapter._cache.cleanup.return_value = {"total_evicted": 0}
 
-        with patch("knowledge_lookup.cache_demo.init_cache") as mock_init, \
-             patch("knowledge_lookup.cache_demo.UniChemAdapter", return_value=mock_adapter), \
-             patch("builtins.print"):
-            
+        with patch("knowledge_lookup.cache.cache_demo.init_cache") as mock_init, patch(
+            "knowledge_lookup.cache.cache_demo.UniChemAdapter", return_value=mock_adapter
+        ), patch("builtins.print"):
             await demonstrate_caching()
-            
+
             mock_init.assert_called_once()

@@ -89,18 +89,22 @@ class GeneOntologyAdapter(KnowledgeSourceAdapter):
 
             if "synonyms" in result:
                 for syn in result["synonyms"]:
-                    concept.synonyms.append(syn.get("name", ""))
+                    if concept.synonyms is not None:
+                        concept.synonyms.append(syn.get("name", ""))
 
             if "definition" in result:
-                concept.definitions.append(result["definition"].get("text", ""))
+                if concept.definitions is not None:
+                    concept.definitions.append(result["definition"].get("text", ""))
 
             # Aspect (BP, MF, CC)
             aspect = result.get("aspect", "")
             if aspect:
-                concept.categories.append(f"Aspect: {aspect}")
+                if concept.categories is not None:
+                    concept.categories.append(f"Aspect: {aspect}")
 
             concept.confidence_score = 0.95
-            concept.source_data[KnowledgeSource.GENEONTOLOGY] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.GENEONTOLOGY] = result
 
             return concept
 

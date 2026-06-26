@@ -135,7 +135,7 @@ class TestKnowledgeSourceAdapter:
         concept = adapter._create_concept("TEST:001", "Test Concept")
         assert concept.primary_id == "TEST:001"
         assert concept.primary_label == "Test Concept"
-        assert concept.sources == {KnowledgeSource.BIOPORTAL}
+        assert concept.sources == ["BIOPORTAL"]
 
     def test_determine_concept_type_disease(self, adapter):
         """Test _determine_concept_type for disease."""

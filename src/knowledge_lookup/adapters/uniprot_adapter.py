@@ -100,27 +100,32 @@ class UniProtAdapter(KnowledgeSourceAdapter):
 
             # Add recommended name as synonym if different from label
             if recommended_name and recommended_name != label:
-                concept.synonyms.append(recommended_name)
+                if concept.synonyms is not None:
+                    concept.synonyms.append(recommended_name)
 
             # Add gene names as synonyms
             for gn in gene_names:
                 if gn and gn != label:
-                    concept.synonyms.append(gn)
+                    if concept.synonyms is not None:
+                        concept.synonyms.append(gn)
 
             # Add definitions (comments)
             if "comments" in result:
                 for comment in result["comments"]:
                     if comment.get("commentType") == "FUNCTION":
                         for text in comment.get("texts", []):
-                            concept.definitions.append(text.get("value", ""))
+                            if concept.definitions is not None:
+                                concept.definitions.append(text.get("value", ""))
 
             # Add organism as category
             organism = result.get("organism", {}).get("scientificName", "")
             if organism:
-                concept.categories.append(f"Organism: {organism}")
+                if concept.categories is not None:
+                    concept.categories.append(f"Organism: {organism}")
 
             concept.confidence_score = 0.95
-            concept.source_data[KnowledgeSource.UNIPROT] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.UNIPROT] = result
 
             return concept
 

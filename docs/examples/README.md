@@ -79,7 +79,7 @@ docs/examples/
 ```bash
 # Set up environment (optional, for adapters requiring API keys)
 export BIOPORTAL_API_KEY="your_api_key"
-export UMLS_API_KEY_TU="your_api_key"
+export UMLS_API_KEY="your_api_key"
 export DISGENET_API_KEY="your_api_key"
 export COSMIC_API_KEY="your_api_key"
 export OMIM_API_KEY="your_api_key"
@@ -95,7 +95,7 @@ poetry run python docs/examples/chemicals/pubchem/pubchem_example.py
 | Adapter | Description | Example |
 |---------|-------------|---------|
 | OLS | Ontology Lookup Service | `core/ols/ols_example.py` |
-| UMLS | Unified Medical Language System | `core/umls/umls_example.py` |
+| UMLS | Unified Medical Language System — search, source/semantic filters, bulk, mappings, relationships, streaming | `core/umls/umls_example.py` |
 | OpenTargets | Drug targets and disease associations | `core/opentargets/opentargets_example.py` |
 | ChEMBL | Bioactive drug-like molecules | `core/chembl/chembl_example.py` |
 | DisGeNET | Gene-disease associations | `core/disgenet/disgenet_example.py` |
@@ -155,7 +155,7 @@ poetry run python test_all_adapters.py
 This will:
 1. Test each adapter's availability
 2. Test `search_concepts(query, sources=[...])`
-3. Generate detailed results in `docs/examples/all_adapters_test_results.json`
+3. Generate detailed results in `docs/examples/scripts/all_adapters_test_results.json`
 4. Create summary in `docs/examples/availability_status.md`
 
 ## Common Patterns
@@ -196,7 +196,7 @@ Set environment variables before running these examples:
 |---------|---------------------|
 | Bioontology | `BIOPORTAL_API_KEY` |
 | Bioportal | `BIOPORTAL_API_KEY` |
-| UMLS | `UMLS_API_KEY_TU` |
+| UMLS | `UMLS_API_KEY` (or `UMLS_API_KEY_TU`) |
 | DisGeNET | `DISGENET_API_KEY` |
 | Cosmic | `COSMIC_API_KEY` |
 | OMIM | `OMIM_API_KEY` |
@@ -205,10 +205,10 @@ Set environment variables before running these examples:
 
 ### Generate All Examples
 ```bash
-poetry run python docs/examples/generate_all_examples.py
+poetry run python docs/examples/scripts/generate_all_examples.py
 ```
 
 ### Generate Status Report
 ```bash
-poetry run python docs/examples/generate_status.py
+poetry run python docs/examples/scripts/generate_status.py
 ```

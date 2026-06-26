@@ -6,11 +6,11 @@ import asyncio
 import hashlib
 import json
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pytest
-
 from knowledge_lookup.models import KnowledgeSource
 
 # Base directory for fixture storage
@@ -34,7 +34,7 @@ def load_fixture_responses(source: KnowledgeSource) -> dict[str, Any]:
     """Load previously recorded API responses for a source."""
     fixture_path = get_source_fixture_path(source)
     if fixture_path.exists():
-        with open(fixture_path, "r") as f:
+        with open(fixture_path) as f:
             return json.load(f)
     return {}
 
@@ -64,10 +64,10 @@ def requires_api_key(source: KnowledgeSource):
     """Decorator to skip test if API key is not available."""
     api_key = load_env_api_key(source)
     has_key = api_key is not None and len(api_key) > 10
-    
+
     return pytest.mark.skipif(
         not has_key,
-        reason=f"API key for {source.value} not available (set {source.value}_API_KEY)"
+        reason=f"API key for {source.value} not available (set {source.value}_API_KEY)",
     )
 
 
@@ -97,77 +97,72 @@ def api_responses_cache():
 async def recorded_api_response(api_responses_cache):
     """
     Fixture that records and validates real API responses.
-    
+
     Usage:
         result, response_data = await recorded_api_response(
-            adapter.search_concepts, 
-            "query", 
+            adapter.search_concepts,
+            "query",
             cache_key="search_diabetes"
         )
-        
+
         # Response data is cached for comparison across runs
         # Will warn if response structure changes
     """
-    recorded_responses = {}
-    
+
     async def record(
-        api_call: Callable,
-        *args,
-        cache_key: str = None,
-        source: KnowledgeSource = None,
-        **kwargs
+        api_call: Callable, *args, cache_key: str = None, source: KnowledgeSource = None, **kwargs
     ) -> tuple[Any, dict[str, Any]]:
         """
         Record or validate an API response.
-        
+
         Args:
             api_call: Async function to call
             *args: Arguments to pass to api_call
             cache_key: Unique key for this API call
             source: KnowledgeSource for fixture storage
             **kwargs: Keyword arguments to pass to api_call
-            
+
         Returns:
             Tuple of (api_result, response_data_dict)
         """
         if cache_key is None:
             cache_key = f"{api_call.__name__}_{args[0] if args else 'unknown'}"
-        
+
         # Execute the API call
         result = await api_call(*args, **kwargs)
-        
+
         # Convert result to serializable format if needed
         response_data = {}
-        if hasattr(result, '__dict__'):
+        if hasattr(result, "__dict__"):
             response_data = result.__dict__
-        elif isinstance(result, (list, dict)):
+        elif isinstance(result, list | dict):
             response_data = result
-        
+
         # Store in cache
         if source and cache_key:
             if source.value not in api_responses_cache:
                 api_responses_cache[source.value] = {}
             api_responses_cache[source.value][cache_key] = response_data
-        
+
         return result, response_data
-    
+
     yield record
-    
+
     # Cleanup: save cached responses to fixture files
     for source_name, responses in api_responses_cache.items():
         try:
             source_enum = KnowledgeSource(source_name)
             fixture_path = get_source_fixture_path(source_enum)
-            
+
             # Load existing fixtures
             existing = {}
             if fixture_path.exists():
-                with open(fixture_path, "r") as f:
+                with open(fixture_path) as f:
                     existing = json.load(f)
-            
+
             # Update with new responses
             existing.update(responses)
-            
+
             # Save back
             with open(fixture_path, "w") as f:
                 json.dump(existing, f, indent=2, default=str)
@@ -180,20 +175,20 @@ async def recorded_api_response(api_responses_cache):
 async def adapter_factory(lookup_config):
     """
     Factory fixture for creating adapters with proper configuration.
-    
+
     Usage:
         adapter = await adapter_factory(KnowledgeSource.UNIPROT)
         async with adapter:
             results = await adapter.search_concepts("test")
     """
     from knowledge_lookup.adapters import ADAPTER_CLASSES
-    
+
     async def create(source: KnowledgeSource):
         adapter_class = ADAPTER_CLASSES.get(source)
         if adapter_class is None:
             raise ValueError(f"No adapter for source: {source}")
-        
+
         adapter = adapter_class(lookup_config)
         return adapter
-    
+
     yield create

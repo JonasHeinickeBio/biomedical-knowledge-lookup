@@ -47,51 +47,164 @@ class TestHPOAdapter:
         assert adapter.get_rate_limit() == 5.0
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_success(self, mock_get, adapter):
-        """Test successful search concepts."""
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json = AsyncMock(return_value={"results": []})  # Mock response structure
-        mock_get.return_value.__aenter__.return_value = mock_response
-
-        results = await adapter.search_concepts("test query", limit=10)
-        assert isinstance(results, list)
-
-    @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_empty_response(self, mock_get, adapter):
-        """Test search concepts with empty response."""
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json = AsyncMock(return_value={"results": []})
-        mock_get.return_value.__aenter__.return_value = mock_response
-
-        results = await adapter.search_concepts("nonexistent", limit=10)
-        assert isinstance(results, list)
-        assert len(results) == 0
+    async def test_search_concepts_with_terms(self, adapter):
+        """Test search_concepts when API returns terms (lines 39-42)."""
+        hpo_data = {
+            "terms": [
+                {
+                    "id": "HP:0000118",
+                    "name": "Phenotypic abnormality",
+                    "synonyms": ["abnormal phenotype"],
+                },
+                {"id": "HP:0000819", "name": "Diabetes mellitus", "synonyms": ["diabetes"]},
+            ]
+        }
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = hpo_data
+            results = await adapter.search_concepts("diabetes", limit=10)
+            assert len(results) == 2
+            assert results[0].primary_id == "HP:0000118"
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_http_error(self, mock_get, adapter):
-        """Test search concepts with HTTP error."""
-        mock_response = AsyncMock()
-        mock_response.status = 500
-        mock_get.return_value.__aenter__.return_value = mock_response
-
-        results = await adapter.search_concepts("test")
-        assert isinstance(results, list)
-        assert len(results) == 0
+    async def test_search_concepts_term_conversion_returns_none(self, adapter):
+        """Test search when _convert_hpo_result_to_concept returns None."""
+        hpo_data = {"terms": [{"invalid": "data"}]}
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = hpo_data
+            with patch.object(adapter, "_convert_hpo_result_to_concept", return_value=None):
+                results = await adapter.search_concepts("test")
+                assert len(results) == 0
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_network_error(self, mock_get, adapter):
+    async def test_search_concepts_no_terms_key(self, adapter):
+        """Test search when response has no 'terms' key."""
+        data = {"error": "not found"}
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = data
+            results = await adapter.search_concepts("test")
+            assert results == []
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_network_error(self, adapter):
         """Test search concepts with network error."""
-        mock_get.side_effect = Exception("Network error")
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = Exception("Network error")
+            results = await adapter.search_concepts("test")
+            assert isinstance(results, list)
+            assert len(results) == 0
 
-        results = await adapter.search_concepts("test")
-        assert isinstance(results, list)
-        assert len(results) == 0
+    @pytest.mark.asyncio
+    async def test_get_concept_details_success(self, adapter):
+        """Test successful get_concept_details (lines 59-60)."""
+        data = {
+            "details": {
+                "id": "HP:0000118",
+                "name": "Phenotypic abnormality",
+                "synonyms": ["abnormal phenotype"],
+                "definition": "A phenotypic abnormality.",
+            }
+        }
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = data
+            result = await adapter.get_concept_details("HP:0000118")
+            assert result is not None
+            assert result.primary_id == "HP:0000118"
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_error(self, adapter):
+        """Test get_concept_details error handling (lines 64-66)."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = Exception("Network error")
+            result = await adapter.get_concept_details("HP:0000118")
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_no_details_key(self, adapter):
+        """Test get_concept_details with no 'details' key."""
+        data = {"error": "not found"}
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = data
+            result = await adapter.get_concept_details("HP:0000118")
+            assert result is None
+
+    def test_convert_hpo_result_full(self, adapter):
+        """Test _convert_hpo_result_to_concept with all fields (lines 70-95)."""
+        result = {
+            "id": "HP:0000118",
+            "name": "Phenotypic abnormality",
+            "synonyms": ["abnormal phenotype", "phenotype abnormality"],
+        }
+        concept = adapter._convert_hpo_result_to_concept(result)
+        assert concept is not None
+        assert concept.primary_id == "HP:0000118"
+        assert concept.primary_label == "Phenotypic abnormality"
+        assert "abnormal phenotype" in concept.synonyms
+        assert concept.confidence_score == 0.95
+
+    def test_convert_hpo_result_no_id(self, adapter):
+        """Test _convert_hpo_result_to_concept with missing id (returns None)."""
+        result = {"name": "Some term"}
+        concept = adapter._convert_hpo_result_to_concept(result)
+        assert concept is None
+
+    def test_convert_hpo_result_no_name(self, adapter):
+        """Test _convert_hpo_result_to_concept with missing name (returns None)."""
+        result = {"id": "HP:0000118"}
+        concept = adapter._convert_hpo_result_to_concept(result)
+        assert concept is None
+
+    def test_convert_hpo_result_no_synonyms(self, adapter):
+        """Test _convert_hpo_result_to_concept without synonyms."""
+        result = {"id": "HP:0000118", "name": "Phenotypic abnormality"}
+        concept = adapter._convert_hpo_result_to_concept(result)
+        assert concept is not None
+        assert len(concept.synonyms) == 0
+
+    def test_convert_hpo_result_error(self, adapter):
+        """Test _convert_hpo_result_to_concept with error-causing data."""
+        concept = adapter._convert_hpo_result_to_concept(None)
+        assert concept is None
+
+    def test_convert_hpo_details_full(self, adapter):
+        """Test _convert_hpo_details_to_concept with all fields (lines 99-127)."""
+        details = {
+            "id": "HP:0000118",
+            "name": "Phenotypic abnormality",
+            "synonyms": ["abnormal phenotype"],
+            "definition": "A phenotypic abnormality.",
+        }
+        concept = adapter._convert_hpo_details_to_concept(details)
+        assert concept is not None
+        assert concept.primary_id == "HP:0000118"
+        assert concept.primary_label == "Phenotypic abnormality"
+        assert "abnormal phenotype" in concept.synonyms
+        assert "A phenotypic abnormality." in concept.definitions
+        assert concept.confidence_score == 1.0
+
+    def test_convert_hpo_details_no_id(self, adapter):
+        """Test _convert_hpo_details_to_concept with missing id."""
+        details = {"name": "Some term"}
+        concept = adapter._convert_hpo_details_to_concept(details)
+        assert concept is None
+
+    def test_convert_hpo_details_no_name(self, adapter):
+        """Test _convert_hpo_details_to_concept with missing name."""
+        details = {"id": "HP:0000118"}
+        concept = adapter._convert_hpo_details_to_concept(details)
+        assert concept is None
+
+    def test_convert_hpo_details_no_synonyms_no_definition(self, adapter):
+        """Test _convert_hpo_details_to_concept without optional fields."""
+        details = {"id": "HP:0000118", "name": "Phenotypic abnormality"}
+        concept = adapter._convert_hpo_details_to_concept(details)
+        assert concept is not None
+        assert len(concept.synonyms) == 0
+        assert len(concept.definitions) == 0
+
+    def test_convert_hpo_details_error(self, adapter):
+        """Test _convert_hpo_details_to_concept with error-causing data."""
+        concept = adapter._convert_hpo_details_to_concept(None)
+        assert concept is None
 
     @pytest.mark.asyncio
     async def test_get_mappings_default(self, adapter):
@@ -111,4 +224,4 @@ class TestHPOAdapter:
     async def test_context_manager(self, adapter):
         """Test async context manager."""
         async with adapter:
-            pass  # Should not raise any exceptions
+            pass

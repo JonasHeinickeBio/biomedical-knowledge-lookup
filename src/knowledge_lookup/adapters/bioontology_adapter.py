@@ -365,7 +365,8 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
                     logger.info(f"Related resource API URL: {link}")
                     logger.info(f"Related resource API Params: {params}")
                     related_data = await self._make_request(link, params)
-                    concept.source_data[f"bioontology_{key}"] = related_data
+                    if isinstance(concept.source_data, dict):
+                        concept.source_data[f"bioontology_{key}"] = related_data
                 except Exception as e:
                     logger.warning(
                         f"Failed to fetch related resource '{key}' for concept '{concept_id}': {e}"
@@ -409,34 +410,44 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             # Parse synonyms
             synonyms = result.get("synonym") or result.get("synonyms")
             if isinstance(synonyms, list):
-                concept.synonyms.extend(synonyms)
+                if concept.synonyms is not None:
+                    concept.synonyms.extend(synonyms)
             elif isinstance(synonyms, str):
-                concept.synonyms.append(synonyms)
+                if concept.synonyms is not None:
+                    concept.synonyms.append(synonyms)
             # Parse definitions
             definitions = result.get("definition")
             if isinstance(definitions, list):
-                concept.definitions.extend(definitions)
+                if concept.definitions is not None:
+                    concept.definitions.extend(definitions)
             elif isinstance(definitions, str):
-                concept.definitions.append(definitions)
+                if concept.definitions is not None:
+                    concept.definitions.append(definitions)
             # Parse CUI
             cui = result.get("cui")
             if cui:
                 if isinstance(cui, list):
-                    concept.categories.extend(cui)
+                    if concept.categories is not None:
+                        concept.categories.extend(cui)
                 else:
-                    concept.categories.append(str(cui))
+                    if concept.categories is not None:
+                        concept.categories.append(str(cui))
             # Parse semanticType
             semantic_type = result.get("semanticType")
             if semantic_type:
                 if isinstance(semantic_type, list):
-                    concept.semantic_types.extend(semantic_type)
+                    if concept.semantic_types is not None:
+                        concept.semantic_types.extend(semantic_type)
                 else:
-                    concept.semantic_types.append(str(semantic_type))
+                    if concept.semantic_types is not None:
+                        concept.semantic_types.append(str(semantic_type))
             # Parse obsolete status
             if result.get("obsolete") is True:
-                concept.categories.append("obsolete")
+                if concept.categories is not None:
+                    concept.categories.append("obsolete")
             concept.confidence_score = 0.8
-            concept.source_data[KnowledgeSource.BIOONTOLOGY] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.BIOONTOLOGY] = result
             return concept
         except Exception as e:
             logger.error(f"Error converting BioOntology result: {e}")

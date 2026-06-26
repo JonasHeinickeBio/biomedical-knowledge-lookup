@@ -30,13 +30,19 @@ A unified Python library for biological concept lookup across **29+ biomedical k
 
 ```bash
 pip install biomedical-knowledge-lookup
+# optional UMLS support
+pip install "biomedical-knowledge-lookup[umls]"
 # or
 poetry add biomedical-knowledge-lookup
+# optional UMLS support
+poetry add biomedical-knowledge-lookup -E umls
 # or from source
 git clone https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup.git
 cd biomedical-knowledge-lookup
 poetry install
 ```
+
+UMLS support is optional and requires installing the `umls` extra plus a valid UMLS API key.
 
 ### Basic Usage
 

@@ -47,7 +47,6 @@ def lookup_config():
     return LookupConfig(
         max_results_per_source=20,
         timeout_per_source=30.0,
-        rate_limits={},
     )
 
 

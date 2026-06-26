@@ -8,7 +8,7 @@ import pytest
 
 pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.drugbank_adapter import DrugBankAdapter
-from knowledge_lookup.models import KnowledgeSource, LookupConfig
+from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig
 
 
 class TestDrugBankAdapter:
@@ -32,7 +32,7 @@ class TestDrugBankAdapter:
     def test_is_available(self, adapter):
         """Test is_available method."""
         result = adapter.is_available()
-        assert isinstance(result, bool)
+        assert result is True
 
     def test_get_rate_limit_default(self, adapter):
         """Test get_rate_limit returns default value."""
@@ -46,69 +46,274 @@ class TestDrugBankAdapter:
         adapter = DrugBankAdapter(config)
         assert adapter.get_rate_limit() == 5.0
 
-    @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_success(self, mock_get, adapter):
-        """Test successful search concepts."""
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json = AsyncMock(return_value={"results": []})  # Mock response structure
-        mock_get.return_value.__aenter__.return_value = mock_response
-
-        results = await adapter.search_concepts("test query", limit=10)
-        assert isinstance(results, list)
+    # --- search_concepts (lines 32-57) ---
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_empty_response(self, mock_get, adapter):
-        """Test search concepts with empty response."""
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json = AsyncMock(return_value={"results": []})
-        mock_get.return_value.__aenter__.return_value = mock_response
-
-        results = await adapter.search_concepts("nonexistent", limit=10)
-        assert isinstance(results, list)
-        assert len(results) == 0
-
-    @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_http_error(self, mock_get, adapter):
-        """Test search concepts with HTTP error."""
-        mock_response = AsyncMock()
-        mock_response.status = 500
-        mock_get.return_value.__aenter__.return_value = mock_response
-
-        results = await adapter.search_concepts("test")
-        assert isinstance(results, list)
-        assert len(results) == 0
+    async def test_search_concepts_with_results(self, adapter):
+        """Test search_concepts returns converted concepts."""
+        mock_data = {
+            "response": {
+                "docs": [
+                    {
+                        "short_form": "DB00001",
+                        "label": "Test Drug",
+                        "iri": "http://purl.bioontology.org/ontology/DRUGBANK/DB00001",
+                    }
+                ]
+            }
+        }
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data
+        ):
+            results = await adapter.search_concepts("test", limit=10)
+        assert len(results) == 1
+        assert results[0].primary_id == "DB00001"
 
     @pytest.mark.asyncio
-    @patch("aiohttp.ClientSession.get")
-    async def test_search_concepts_network_error(self, mock_get, adapter):
-        """Test search concepts with network error."""
-        mock_get.side_effect = Exception("Network error")
-
-        results = await adapter.search_concepts("test")
-        assert isinstance(results, list)
-        assert len(results) == 0
+    async def test_search_concepts_no_response_key(self, adapter):
+        """Test search_concepts with missing response key."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock, return_value={}):
+            results = await adapter.search_concepts("test")
+        assert results == []
 
     @pytest.mark.asyncio
-    async def test_get_mappings_default(self, adapter):
-        """Test get_mappings returns empty list by default."""
-        mappings = await adapter.get_mappings("TEST:001")
-        assert isinstance(mappings, list)
-        assert len(mappings) == 0
+    async def test_search_concepts_no_docs_key(self, adapter):
+        """Test search_concepts with missing docs key."""
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value={"response": {}}
+        ):
+            results = await adapter.search_concepts("test")
+        assert results == []
 
     @pytest.mark.asyncio
-    async def test_get_relationships_default(self, adapter):
-        """Test get_relationships returns empty list by default."""
-        relationships = await adapter.get_relationships("TEST:001")
-        assert isinstance(relationships, list)
-        assert len(relationships) == 0
+    async def test_search_concepts_exception(self, adapter):
+        """Test search_concepts returns empty on exception."""
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, side_effect=Exception("fail")
+        ):
+            results = await adapter.search_concepts("test")
+        assert results == []
 
     @pytest.mark.asyncio
-    async def test_context_manager(self, adapter):
-        """Test async context manager."""
-        async with adapter:
-            pass  # Should not raise any exceptions
+    async def test_search_concepts_empty_docs(self, adapter):
+        """Test search_concepts with empty docs list."""
+        with patch.object(
+            adapter,
+            "_make_request",
+            new_callable=AsyncMock,
+            return_value={"response": {"docs": []}},
+        ):
+            results = await adapter.search_concepts("test")
+        assert results == []
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_none_concept_filtered(self, adapter):
+        """Test search_concepts filters None concepts from conversion."""
+        mock_data = {
+            "response": {
+                "docs": [
+                    {"short_form": "", "label": ""},  # empty -> None
+                    {"short_form": "DB00001", "label": "Valid"},
+                ]
+            }
+        }
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data
+        ):
+            results = await adapter.search_concepts("test")
+        assert len(results) == 1
+
+    # --- get_concept_details (lines 59-75) ---
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_success(self, adapter):
+        """Test get_concept_details returns concept."""
+        mock_data = {
+            "short_form": "DB00001",
+            "label": "Test Drug",
+            "iri": "http://purl.bioontology.org/ontology/DRUGBANK/DB00001",
+            "synonyms": ["TestSynonym"],
+            "description": ["A test drug"],
+        }
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data
+        ):
+            result = await adapter.get_concept_details("DB00001")
+        assert result is not None
+        assert result.primary_id == "DB00001"
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_empty_data(self, adapter):
+        """Test get_concept_details returns None with empty data."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock, return_value={}):
+            result = await adapter.get_concept_details("DB00001")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_none_data(self, adapter):
+        """Test get_concept_details returns None with None data."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock, return_value=None):
+            result = await adapter.get_concept_details("DB00001")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_exception(self, adapter):
+        """Test get_concept_details returns None on exception."""
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, side_effect=Exception("fail")
+        ):
+            result = await adapter.get_concept_details("DB00001")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_concept_is_none(self, adapter):
+        """Test get_concept_details returns None when conversion fails."""
+        mock_data = {"short_form": "", "label": ""}
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value=mock_data
+        ):
+            result = await adapter.get_concept_details("DB00001")
+        assert result is None
+
+    # --- _convert_drugbank_result_to_concept (lines 77-105) ---
+
+    def test_convert_result_basic(self, adapter):
+        """Test _convert_drugbank_result_to_concept with basic data."""
+        result_data = {
+            "short_form": "DB00001",
+            "label": "Test Drug",
+            "iri": "http://example.com",
+        }
+        concept = adapter._convert_drugbank_result_to_concept(result_data)
+        assert concept is not None
+        assert concept.primary_id == "DB00001"
+        assert concept.primary_label == "Test Drug"
+        assert concept.concept_type == ConceptType.DRUG
+
+    def test_convert_result_no_short_form(self, adapter):
+        """Test _convert_drugbank_result_to_concept returns None without short_form."""
+        result_data = {"label": "Test Drug"}
+        concept = adapter._convert_drugbank_result_to_concept(result_data)
+        assert concept is None
+
+    def test_convert_result_no_label(self, adapter):
+        """Test _convert_drugbank_result_to_concept returns None without label."""
+        result_data = {"short_form": "DB00001"}
+        concept = adapter._convert_drugbank_result_to_concept(result_data)
+        assert concept is None
+
+    def test_convert_result_with_synonyms(self, adapter):
+        """Test _convert_drugbank_result_to_concept includes synonyms."""
+        result_data = {
+            "short_form": "DB00001",
+            "label": "Test Drug",
+            "synonym": ["Syn1", "Syn2"],
+        }
+        concept = adapter._convert_drugbank_result_to_concept(result_data)
+        assert "Syn1" in concept.synonyms
+        assert "Syn2" in concept.synonyms
+
+    def test_convert_result_with_description(self, adapter):
+        """Test _convert_drugbank_result_to_concept includes description."""
+        result_data = {
+            "short_form": "DB00001",
+            "label": "Test Drug",
+            "description": ["A test drug description"],
+        }
+        concept = adapter._convert_drugbank_result_to_concept(result_data)
+        assert "A test drug description" in concept.definitions
+
+    def test_convert_result_with_iri(self, adapter):
+        """Test _convert_drugbank_result_to_concept adds identifier with IRI."""
+        result_data = {
+            "short_form": "DB00001",
+            "label": "Test Drug",
+            "iri": "http://example.com/drug",
+        }
+        concept = adapter._convert_drugbank_result_to_concept(result_data)
+        assert len(concept.identifiers) == 1
+        assert concept.identifiers[0].url == "http://example.com/drug"
+
+    def test_convert_result_no_synonyms_no_description(self, adapter):
+        """Test _convert_drugbank_result_to_concept handles missing optional fields."""
+        result_data = {"short_form": "DB00001", "label": "Test Drug"}
+        concept = adapter._convert_drugbank_result_to_concept(result_data)
+        assert concept.synonyms == []
+        assert concept.definitions == []
+
+    def test_convert_result_exception(self, adapter):
+        """Test _convert_drugbank_result_to_concept returns None on exception."""
+        concept = adapter._convert_drugbank_result_to_concept(None)
+        assert concept is None
+
+    # --- _convert_drugbank_details_to_concept (lines 107-135) ---
+
+    def test_convert_details_basic(self, adapter):
+        """Test _convert_drugbank_details_to_concept with basic data."""
+        data = {
+            "short_form": "DB00001",
+            "label": "Test Drug",
+            "iri": "http://example.com",
+        }
+        concept = adapter._convert_drugbank_details_to_concept(data)
+        assert concept is not None
+        assert concept.primary_id == "DB00001"
+        assert concept.primary_label == "Test Drug"
+        assert concept.confidence_score == 0.95
+        assert concept.concept_type == ConceptType.DRUG
+
+    def test_convert_details_no_short_form(self, adapter):
+        """Test _convert_drugbank_details_to_concept returns None without short_form."""
+        data = {"label": "Test Drug"}
+        concept = adapter._convert_drugbank_details_to_concept(data)
+        assert concept is None
+
+    def test_convert_details_no_label(self, adapter):
+        """Test _convert_drugbank_details_to_concept returns None without label."""
+        data = {"short_form": "DB00001"}
+        concept = adapter._convert_drugbank_details_to_concept(data)
+        assert concept is None
+
+    def test_convert_details_with_synonyms(self, adapter):
+        """Test _convert_drugbank_details_to_concept includes synonyms."""
+        data = {
+            "short_form": "DB00001",
+            "label": "Test Drug",
+            "synonyms": ["Syn1", "Syn2"],
+        }
+        concept = adapter._convert_drugbank_details_to_concept(data)
+        assert "Syn1" in concept.synonyms
+        assert "Syn2" in concept.synonyms
+
+    def test_convert_details_with_description(self, adapter):
+        """Test _convert_drugbank_details_to_concept includes description."""
+        data = {
+            "short_form": "DB00001",
+            "label": "Test Drug",
+            "description": ["A test drug description"],
+        }
+        concept = adapter._convert_drugbank_details_to_concept(data)
+        assert "A test drug description" in concept.definitions
+
+    def test_convert_details_with_iri(self, adapter):
+        """Test _convert_drugbank_details_to_concept adds identifier with IRI."""
+        data = {
+            "short_form": "DB00001",
+            "label": "Test Drug",
+            "iri": "http://example.com/drug",
+        }
+        concept = adapter._convert_drugbank_details_to_concept(data)
+        assert len(concept.identifiers) == 1
+        assert concept.identifiers[0].url == "http://example.com/drug"
+
+    def test_convert_details_no_synonyms_no_description(self, adapter):
+        """Test _convert_drugbank_details_to_concept handles missing optional fields."""
+        data = {"short_form": "DB00001", "label": "Test Drug"}
+        concept = adapter._convert_drugbank_details_to_concept(data)
+        assert concept.synonyms == []
+        assert concept.definitions == []
+
+    def test_convert_details_exception(self, adapter):
+        """Test _convert_drugbank_details_to_concept returns None on exception."""
+        concept = adapter._convert_drugbank_details_to_concept(None)
+        assert concept is None

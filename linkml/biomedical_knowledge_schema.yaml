@@ -29,6 +29,10 @@ types:
   uri:
     uri: xsd:anyURI
     base: str
+  json_string:
+    uri: xsd:string
+    base: str
+    description: "A JSON-serialized string for complex nested data (dicts, lists of dicts)"
 
 enums:
   KnowledgeSource:
@@ -102,6 +106,8 @@ enums:
         description: "OMIM"
       CLINVAR:
         description: "ClinVar"
+      DBVAR:
+        description: "dbVar"
       COSMIC:
         description: "COSMIC"
       PDB:
@@ -235,6 +241,32 @@ enums:
       disputed:
         description: "Disputed"
 
+  CircuitState:
+    description: "State of a circuit breaker for source health tracking"
+    permissible_values:
+      CLOSED:
+        description: "Normal operation — requests pass through"
+      OPEN:
+        description: "Failing — requests are short-circuited"
+      HALF_OPEN:
+        description: "Probing — single test request allowed"
+
+  ErrorCategory:
+    description: "Category of an error for determining retry strategy"
+    permissible_values:
+      NETWORK_ERROR:
+        description: "Connection/DNS/timeout/SSL errors — transient, retry fast"
+      RATE_LIMITED:
+        description: "HTTP 429/403 quota — retry with exponential backoff"
+      SERVER_ERROR:
+        description: "HTTP 5xx — server-side, retry with moderate backoff"
+      TRANSIENT:
+        description: "Other temporary errors that might resolve on retry"
+      CLIENT_ERROR:
+        description: "HTTP 4xx (except 429) — not retryable"
+      UNKNOWN:
+        description: "Unclassified — cautious single retry then give up"
+
 classes:
   ConceptIdentifier:
     description: "Represents an identifier for a concept in a specific knowledge source"
@@ -298,9 +330,8 @@ classes:
         range: ConceptMapping
         multivalued: true
       labels:
-        description: "Labels in different languages"
-        range: string
-        multivalued: true
+        description: "Labels in different languages (JSON-serialized dict of language->label)"
+        range: json_string
       synonyms:
         description: "List of synonyms"
         range: string
@@ -339,6 +370,73 @@ classes:
       last_updated:
         description: "Timestamp of last update"
         range: datetime
+      source_data:
+        description: "Raw data from sources (JSON-serialized dict of source->raw data)"
+        range: json_string
+
+  SourceHealth:
+    description: "Runtime health snapshot for a single knowledge source fed by circuit breakers"
+    attributes:
+      source:
+        description: "The knowledge source"
+        range: KnowledgeSource
+        required: true
+      circuit_state:
+        description: "Current circuit breaker state"
+        range: CircuitState
+      failure_count:
+        description: "Current consecutive failure count"
+        range: integer
+      threshold:
+        description: "Failure threshold before circuit opens"
+        range: integer
+      cooldown:
+        description: "Cooldown period in seconds before half-open probe"
+        range: float
+      total_calls:
+        description: "Total calls made to this source"
+        range: integer
+      total_failures:
+        description: "Total failures recorded"
+        range: integer
+      total_successes:
+        description: "Total successes recorded"
+        range: integer
+      health_score:
+        description: "Health score 0..1 based on success/failure ratio"
+        range: float
+      last_error:
+        description: "Last error message recorded"
+        range: string
+      is_open:
+        description: "Derived property — true if circuit_state is OPEN"
+        range: boolean
+
+  RetryInfo:
+    description: "Per-source retry statistics for a single operation"
+    attributes:
+      source:
+        description: "The knowledge source"
+        range: KnowledgeSource
+        required: true
+      attempts:
+        description: "Number of attempts made"
+        range: integer
+      max_attempts:
+        description: "Maximum allowed attempts"
+        range: integer
+      last_delay:
+        description: "Last delay applied between retries in seconds"
+        range: float
+      strategy:
+        description: "Retry strategy name used"
+        range: string
+      success:
+        description: "Whether the operation ultimately succeeded"
+        range: boolean
+      error_category:
+        description: "Category of the error if the operation failed"
+        range: ErrorCategory
 
   LookupResult:
     description: "Result of a knowledge lookup operation"
@@ -370,9 +468,11 @@ classes:
         description: "Execution time in seconds"
         range: float
       errors:
-        description: "Dictionary of errors per source"
-        range: string
-        multivalued: true
+        description: "Dictionary of errors per source (JSON-serialized dict)"
+        range: json_string
+      source_health:
+        description: "Health snapshot for all tracked sources (JSON-serialized dict of source->SourceHealth)"
+        range: json_string
 
   LookupConfig:
     description: "Configuration for knowledge lookup operations"
@@ -402,9 +502,8 @@ classes:
         range: ConceptType
         multivalued: true
       rate_limits:
-        description: "Rate limits per source (requests per second)"
-        range: float
-        multivalued: true
+        description: "Rate limits per source (requests per second, JSON-serialized dict)"
+        range: json_string
       enable_deduplication:
         description: "Whether to enable deduplication"
         range: boolean
@@ -418,9 +517,17 @@ classes:
         description: "Whether to enable ontology mapping"
         range: boolean
       api_keys:
-        description: "API keys for external services"
-        range: string
-        multivalued: true
+        description: "API keys for external services (JSON-serialized dict)"
+        range: json_string
+      circuit_breaker_threshold:
+        description: "Failure threshold before circuit breaker opens (default: 5)"
+        range: integer
+      circuit_breaker_cooldown:
+        description: "Cooldown period in seconds before half-open probe (default: 30.0)"
+        range: float
+      enable_source_health_tracking:
+        description: "Whether to enable source health tracking via circuit breakers"
+        range: boolean
 
   SourceAnnotation:
     description: "Annotation from a single knowledge source"
@@ -438,8 +545,8 @@ classes:
         range: string
         multivalued: true
       positions:
-        description: "List of position dictionaries"
-        range: string
+        description: "List of position dictionaries (JSON-serialized string)"
+        range: json_string
         multivalued: true
       processing_time:
         description: "Processing time in seconds"
@@ -490,8 +597,8 @@ classes:
         range: ConceptAgreement
         multivalued: true
       discrepancies:
-        description: "List of discrepancies"
-        range: string
+        description: "List of discrepancy dicts (JSON-serialized)"
+        range: json_string
         multivalued: true
       overall_confidence:
         description: "Overall confidence score"
@@ -500,5 +607,5 @@ classes:
         description: "Total processing time in seconds"
         range: float
       annotation_stats:
-        description: "Annotation statistics"
-        range: string
+        description: "Annotation statistics dict (JSON-serialized)"
+        range: json_string

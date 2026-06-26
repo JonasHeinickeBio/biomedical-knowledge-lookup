@@ -4,13 +4,13 @@ Unit tests for PDBAdapter.
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import aiohttp
 import pytest
 from knowledge_lookup.adapters.pdb_adapter import PDBAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
-
 pytestmark = pytest.mark.unit
+
+
 class TestPDBAdapter:
     """Tests for PDBAdapter."""
 
@@ -36,7 +36,7 @@ class TestPDBAdapter:
     def test_get_rate_limit_default(self, adapter):
         """Test get_rate_limit returns default value."""
         rate_limit = adapter.get_rate_limit()
-        assert isinstance(rate_limit, (int, float))
+        assert isinstance(rate_limit, int | float)
         assert rate_limit > 0
 
     def test_get_rate_limit_custom(self):
@@ -54,9 +54,7 @@ class TestPDBAdapter:
         post_response = AsyncMock()
         post_response.status = 200
         post_response.raise_for_status = MagicMock()
-        post_response.json = AsyncMock(
-            return_value={"result_set": [{"identifier": "1ABC"}]}
-        )
+        post_response.json = AsyncMock(return_value={"result_set": [{"identifier": "1ABC"}]})
         mock_post.return_value.__aenter__.return_value = post_response
 
         # Mock the GET entry summary response

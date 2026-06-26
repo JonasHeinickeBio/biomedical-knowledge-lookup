@@ -44,6 +44,9 @@ class TestAdapters:
             KnowledgeSource.ENSEMBL,
         ]
 
+        if getattr(adapters_module, "UMLSAdapter", None) is not None:
+            expected_sources.append(KnowledgeSource.UMLS)
+
         for source in expected_sources:
             assert source in ADAPTER_CLASSES, f"Missing adapter class for {source.value}"
             # Check that the value is a class (not instantiated)
@@ -71,7 +74,11 @@ class TestAdapters:
         """Test that all imported adapter classes exist."""
         # This test will fail if any of the imports in adapters.py fail
         # It's a smoke test to ensure all adapter modules can be imported
-        from knowledge_lookup.adapters import BioPortalAdapter, OLSAdapter, UniProtAdapter
+        from knowledge_lookup.adapters import (
+            BioPortalAdapter,
+            OLSAdapter,
+            UniProtAdapter,
+        )
 
         # Just check that they are classes/types
         assert BioPortalAdapter is not None

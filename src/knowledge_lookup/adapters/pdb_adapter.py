@@ -34,8 +34,8 @@ class PDBAdapter(KnowledgeSourceAdapter):
         """Search PDB for protein structures."""
         try:
             url = f"{self.base_url}/query"
-            # RCSB full-text search using POST-style JSON
-            session = await self._get_session()
+            # RCSB full-text search using POST through _make_request
+            # (gets retry + circuit-breaker protection automatically)
             search_payload = {
                 "query": {
                     "type": "terminal",
@@ -46,18 +46,16 @@ class PDBAdapter(KnowledgeSourceAdapter):
                 "request_options": {"paginate": {"start": 0, "rows": min(limit, 25)}},
             }
 
-            concepts = []
-            async with session.post(url, json=search_payload) as response:
-                response.raise_for_status()
-                data = await response.json()
+            data = await self._make_request(url, json_data=search_payload)
 
-                result_set = data.get("result_set", [])
-                for item in result_set[:limit]:
-                    entry_id = item.get("identifier", "")
-                    if entry_id:
-                        concept = await self._fetch_entry_summary(entry_id)
-                        if concept:
-                            concepts.append(concept)
+            concepts = []
+            result_set = data.get("result_set", []) if data else []
+            for item in result_set[:limit]:
+                entry_id = item.get("identifier", "")
+                if entry_id:
+                    concept = await self._fetch_entry_summary(entry_id)
+                    if concept:
+                        concepts.append(concept)
 
             logger.info(f"PDB search for '{query}' returned {len(concepts)} concepts")
             return concepts
@@ -106,21 +104,24 @@ class PDBAdapter(KnowledgeSourceAdapter):
                 for kw in keywords.split(","):
                     kw = kw.strip()
                     if kw:
-                        concept.semantic_types.append(kw)
+                        if concept.semantic_types is not None:
+                            concept.semantic_types.append(kw)
 
             # Experimental method
             exptl = item.get("exptl", [{}])
             if isinstance(exptl, list) and exptl:
                 method = exptl[0].get("method", "")
                 if method:
-                    concept.categories.append(f"method:{method}")
+                    if concept.categories is not None:
+                        concept.categories.append(f"method:{method}")
 
             # Resolution
             refine = item.get("refine", [{}])
             if isinstance(refine, list) and refine:
                 resolution = refine[0].get("ls_d_res_high", "")
                 if resolution:
-                    concept.categories.append(f"resolution:{resolution}Å")
+                    if concept.categories is not None:
+                        concept.categories.append(f"resolution:{resolution}Å")
 
             # Release date
             revision = item.get("pdbx_audit_revision_history", [{}])
@@ -130,7 +131,8 @@ class PDBAdapter(KnowledgeSourceAdapter):
                     concept.last_updated = release_date
 
             concept.confidence_score = 0.85
-            concept.source_data[KnowledgeSource.PDB] = item
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.PDB] = item
             return concept
 
         except Exception as e:

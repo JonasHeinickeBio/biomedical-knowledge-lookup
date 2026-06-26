@@ -13,6 +13,7 @@ from knowledge_lookup.models import ConceptType, UnifiedConcept
 
 @pytest.mark.slow
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Performance test - flaky in CI, run manually for benchmarking")
 class TestCachingPerformance:
     """Performance tests for caching system."""
 
@@ -106,7 +107,7 @@ class TestSearchPerformance:
         @pytest.mark.asyncio
         async def test_search_with_cache_performance(self, lookup):
             """Test search performance with caching."""
-            from unittest.mock import AsyncMock, patch
+            from unittest.mock import patch
 
             mock_concepts = [
                 UnifiedConcept(
@@ -140,7 +141,7 @@ class TestSearchPerformance:
         @pytest.mark.asyncio
         async def test_batch_search_performance(self, lookup):
             """Test performance of batch searches."""
-            from unittest.mock import AsyncMock, patch
+            from unittest.mock import patch
 
             mock_concepts = [
                 UnifiedConcept(

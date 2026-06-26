@@ -2,7 +2,7 @@
 Unit tests for additional_adapters module.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -170,7 +170,10 @@ class TestOxOAdapterFromAdditional:
                 "_embedded": {
                     "mappings": [
                         {
-                            "fromTerm": {"curie": "MONDO:0000001", "datasource": {"name": "MONDO"}},
+                            "fromTerm": {
+                                "curie": "MONDO:0000001",
+                                "datasource": {"name": "MONDO"},
+                            },
                             "toTerm": {"curie": "DOID:0000001", "datasource": {"name": "DOID"}},
                             "scope": "exact",
                         }
@@ -262,18 +265,16 @@ class TestBioOntologyAdapterFromAdditional:
         """Test search_concepts with API key."""
         config = LookupConfig(api_keys={"bioontology": "test-key"})
         adapter = BioOntologyAdapter(config)
-        
+
         mock_response = AsyncMock()
         mock_response.status = 200
         mock_response.json = AsyncMock(
             return_value={
-                "collection": [
-                    {"@id": "http://test.org/test", "prefLabel": "Test Concept"}
-                ]
+                "collection": [{"@id": "http://test.org/test", "prefLabel": "Test Concept"}]
             }
         )
         mock_get.return_value.__aenter__.return_value = mock_response
-        
+
         results = await adapter.search_concepts("test", limit=5)
         assert isinstance(results, list)
 

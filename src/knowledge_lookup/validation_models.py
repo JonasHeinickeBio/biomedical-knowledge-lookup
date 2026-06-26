@@ -7,31 +7,31 @@ conversion methods to existing dataclass models.
 """
 
 
-from src.knowledge_lookup.generated_models.biomedical_knowledge_models import (
+from .generated_models.biomedical_knowledge_models import (
     ConceptAgreement as GeneratedConceptAgreement,
 )
-from src.knowledge_lookup.generated_models.biomedical_knowledge_models import (
+from .generated_models.biomedical_knowledge_models import (
     ConceptIdentifier as GeneratedConceptIdentifier,
 )
-from src.knowledge_lookup.generated_models.biomedical_knowledge_models import (
+from .generated_models.biomedical_knowledge_models import (
     ConceptMapping as GeneratedConceptMapping,
 )
-from src.knowledge_lookup.generated_models.biomedical_knowledge_models import (
+from .generated_models.biomedical_knowledge_models import (
     LookupConfig as GeneratedLookupConfig,
 )
-from src.knowledge_lookup.generated_models.biomedical_knowledge_models import (
+from .generated_models.biomedical_knowledge_models import (
     LookupResult as GeneratedLookupResult,
 )
-from src.knowledge_lookup.generated_models.biomedical_knowledge_models import (
+from .generated_models.biomedical_knowledge_models import (
     MultiSourceAnnotationResult as GeneratedMultiSourceAnnotationResult,
 )
-from src.knowledge_lookup.generated_models.biomedical_knowledge_models import (
+from .generated_models.biomedical_knowledge_models import (
     SourceAnnotation as GeneratedSourceAnnotation,
 )
-from src.knowledge_lookup.generated_models.biomedical_knowledge_models import (
+from .generated_models.biomedical_knowledge_models import (
     UnifiedConcept as GeneratedUnifiedConcept,
 )
-from src.knowledge_lookup.models import (
+from .models import (
     ConceptIdentifier,
     ConceptMapping,
     ConceptType,
@@ -48,9 +48,9 @@ def _convert_generated_concept_identifier(
     """Convert a generated ConceptIdentifier to the existing model."""
     # Handle both enum and string formats
     source_value = gen_id.source.value if hasattr(gen_id.source, "value") else gen_id.source
-    # Convert to lowercase to match existing KnowledgeSource enum values
+    # Convert to uppercase to match existing KnowledgeSource enum values
     if isinstance(source_value, str):
-        source_value = source_value.lower()
+        source_value = source_value.upper()
     return ConceptIdentifier(
         source=KnowledgeSource(source_value),
         identifier=gen_id.identifier,
@@ -76,7 +76,7 @@ def _convert_generated_unified_concept(
     gen_concept: GeneratedUnifiedConcept,
 ) -> UnifiedConcept:
     """Convert a generated UnifiedConcept to the existing model."""
-    # Map concept type - generated uses string values (uppercase), existing uses lowercase
+    # Map concept type - generated uses string values (uppercase), existing uses uppercase
     concept_type_value = gen_concept.concept_type
     if concept_type_value:
         # Handle both enum and string formats
@@ -84,9 +84,9 @@ def _convert_generated_unified_concept(
             concept_type_str = concept_type_value.value
         else:
             concept_type_str = concept_type_value
-        # Convert to lowercase to match existing ConceptType enum values
+        # Ensure uppercase to match ConceptType enum
         if isinstance(concept_type_str, str):
-            concept_type_str = concept_type_str.lower()
+            concept_type_str = concept_type_str.upper()
         try:
             concept_type = ConceptType(concept_type_str)
         except ValueError:
@@ -98,7 +98,7 @@ def _convert_generated_unified_concept(
     converted_sources = set()
     if gen_concept.sources:
         converted_sources = {
-            KnowledgeSource(s.value.lower() if hasattr(s, "value") else s.lower())
+            KnowledgeSource(s.value.upper() if hasattr(s, "value") else s.upper())
             for s in gen_concept.sources
         }
     else:
@@ -106,7 +106,7 @@ def _convert_generated_unified_concept(
         for id in gen_concept.identifiers or []:
             source_value = id.source.value if hasattr(id.source, "value") else id.source
             if isinstance(source_value, str):
-                source_value = source_value.lower()
+                source_value = source_value.upper()
             converted_sources.add(KnowledgeSource(source_value))
 
     return UnifiedConcept(
@@ -117,7 +117,6 @@ def _convert_generated_unified_concept(
             _convert_generated_concept_identifier(id) for id in gen_concept.identifiers or []
         ],
         mappings=[_convert_generated_concept_mapping(m) for m in gen_concept.mappings or []],
-        labels={},
         synonyms=gen_concept.synonyms or [],
         definitions=gen_concept.definitions or [],
         semantic_types=gen_concept.semantic_types or [],
@@ -125,8 +124,8 @@ def _convert_generated_unified_concept(
         parents=gen_concept.parents or [],
         children=gen_concept.children or [],
         related=gen_concept.related or [],
-        sources=converted_sources,
-        confidence_score=gen_concept.confidence_score or 0.0,
+        sources=list(converted_sources) if converted_sources else [],
+        confidence_score=gen_concept.confidence_score,
         last_updated=gen_concept.last_updated,
     )
 
@@ -140,7 +139,7 @@ def _convert_generated_lookup_result(
     def _normalize_source(s):
         source_value = s.value if hasattr(s, "value") else s
         if isinstance(source_value, str):
-            source_value = source_value.lower()
+            source_value = source_value.upper()
         return KnowledgeSource(source_value)
 
     return LookupResult(
@@ -151,7 +150,7 @@ def _convert_generated_lookup_result(
         sources_succeeded=[_normalize_source(s) for s in (gen_result.sources_succeeded or [])],
         sources_failed=[_normalize_source(s) for s in (gen_result.sources_failed or [])],
         execution_time=gen_result.execution_time or 0.0,
-        errors={},
+        errors=None,
     )
 
 
@@ -163,14 +162,35 @@ def _convert_generated_lookup_config(
     def _normalize_source(s):
         source_value = s.value if hasattr(s, "value") else s
         if isinstance(source_value, str):
-            source_value = source_value.lower()
+            source_value = source_value.upper()
         return KnowledgeSource(source_value)
 
     def _normalize_concept_type(t):
         type_value = t.value if hasattr(t, "value") else t
         if isinstance(type_value, str):
-            type_value = type_value.lower()
+            type_value = type_value.upper()
         return ConceptType(type_value)
+
+    import json
+
+    # Parse rate_limits and api_keys from JSON strings if they are strings
+    rate_limits_raw = gen_config.rate_limits
+    if isinstance(rate_limits_raw, str):
+        try:
+            rate_limits: dict[str, float] | None = json.loads(rate_limits_raw)
+        except (json.JSONDecodeError, TypeError):
+            rate_limits = {}
+    else:
+        rate_limits = rate_limits_raw
+
+    api_keys_raw = gen_config.api_keys
+    if isinstance(api_keys_raw, str):
+        try:
+            api_keys = json.loads(api_keys_raw)
+        except (json.JSONDecodeError, TypeError):
+            api_keys = {}
+    else:
+        api_keys = api_keys_raw
 
     return LookupConfig(
         enabled_sources=[_normalize_source(s) for s in (gen_config.enabled_sources or [])],
@@ -182,12 +202,12 @@ def _convert_generated_lookup_config(
         concept_types=[_normalize_concept_type(t) for t in (gen_config.concept_types or [])]
         if gen_config.concept_types
         else None,
-        rate_limits={},
+        rate_limits=rate_limits,
         enable_deduplication=gen_config.enable_deduplication or True,
         similarity_threshold=gen_config.similarity_threshold or 0.8,
         merge_similar_concepts=gen_config.merge_similar_concepts or True,
         enable_ontology_mapping=gen_config.enable_ontology_mapping or True,
-        api_keys={},
+        api_keys=api_keys,
     )
 
 

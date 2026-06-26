@@ -9,8 +9,9 @@ import pytest
 from knowledge_lookup.adapters.clinvar_adapter import ClinVarAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
-
 pytestmark = pytest.mark.unit
+
+
 class TestClinVarAdapter:
     """Tests for ClinVarAdapter."""
 
@@ -36,7 +37,7 @@ class TestClinVarAdapter:
     def test_get_rate_limit_default(self, adapter):
         """Test get_rate_limit returns default value."""
         rate_limit = adapter.get_rate_limit()
-        assert isinstance(rate_limit, (int, float))
+        assert isinstance(rate_limit, int | float)
         assert rate_limit > 0
 
     def test_get_rate_limit_custom(self):
@@ -53,9 +54,7 @@ class TestClinVarAdapter:
         esearch_response = AsyncMock()
         esearch_response.status = 200
         esearch_response.raise_for_status = MagicMock()
-        esearch_response.json = AsyncMock(
-            return_value={"esearchresult": {"idlist": ["12345"]}}
-        )
+        esearch_response.json = AsyncMock(return_value={"esearchresult": {"idlist": ["12345"]}})
 
         # Second call: esummary
         esummary_response = AsyncMock()
@@ -89,9 +88,7 @@ class TestClinVarAdapter:
         mock_response = AsyncMock()
         mock_response.status = 200
         mock_response.raise_for_status = MagicMock()
-        mock_response.json = AsyncMock(
-            return_value={"esearchresult": {"idlist": []}}
-        )
+        mock_response.json = AsyncMock(return_value={"esearchresult": {"idlist": []}})
         mock_get.return_value.__aenter__.return_value = mock_response
 
         results = await adapter.search_concepts("nonexistent", limit=10)

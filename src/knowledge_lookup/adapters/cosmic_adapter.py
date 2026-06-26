@@ -102,19 +102,23 @@ class COSMICAdapter(KnowledgeSourceAdapter):
             # Role in cancer
             role = item.get("role_in_cancer", "") or item.get("role", "")
             if role:
-                concept.categories.append(f"role_in_cancer:{role}")
+                if concept.categories is not None:
+                    concept.categories.append(f"role_in_cancer:{role}")
 
             # Tier
             tier = item.get("tier", "")
             if tier:
-                concept.categories.append(f"tier:{tier}")
+                if concept.categories is not None:
+                    concept.categories.append(f"tier:{tier}")
 
             # Synonyms / aliases
             synonyms = item.get("synonyms", [])
             if isinstance(synonyms, list):
-                concept.synonyms.extend(synonyms)
+                if concept.synonyms is not None:
+                    concept.synonyms.extend(synonyms)
             elif synonyms:
-                concept.synonyms.append(str(synonyms))
+                if concept.synonyms is not None:
+                    concept.synonyms.append(str(synonyms))
 
             # Hallmarks / molecular info
             hallmarks = item.get("hallmarks", [])
@@ -123,10 +127,12 @@ class COSMICAdapter(KnowledgeSourceAdapter):
                     if isinstance(h, dict):
                         hm = h.get("hallmark", "")
                         if hm:
-                            concept.semantic_types.append(hm)
+                            if concept.semantic_types is not None:
+                                concept.semantic_types.append(hm)
 
             concept.confidence_score = 0.85
-            concept.source_data[KnowledgeSource.COSMIC] = item
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.COSMIC] = item
             return concept
 
         except Exception as e:

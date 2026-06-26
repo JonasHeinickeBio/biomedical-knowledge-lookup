@@ -34,8 +34,17 @@ from .adapters import (
     ZoomaAdapter,
 )
 from .cache import KnowledgeLookupCache, get_cache, init_cache
-from .central_lookup import CentralKnowledgeLookup
-from .factory import create_knowledge_lookup
+from .core import (
+    CentralKnowledgeLookup,
+    MultiSourceAnnotator,
+    create_knowledge_lookup,
+)
+from .core.multi_source_annotator import (
+    AnnotationConfidence,
+    ConceptAgreement,
+    MultiSourceAnnotationResult,
+    SourceAnnotation,
+)
 from .models import (
     ConceptIdentifier,
     ConceptMapping,
@@ -44,13 +53,6 @@ from .models import (
     LookupConfig,
     LookupResult,
     UnifiedConcept,
-)
-from .multi_source_annotator import (
-    AnnotationConfidence,
-    ConceptAgreement,
-    MultiSourceAnnotationResult,
-    MultiSourceAnnotator,
-    SourceAnnotation,
 )
 
 # Make key classes available at package level

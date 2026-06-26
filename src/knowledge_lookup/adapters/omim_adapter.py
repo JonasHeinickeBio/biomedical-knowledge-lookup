@@ -113,16 +113,19 @@ class OMIMAdapter(KnowledgeSourceAdapter):
             ).split(";;"):
                 alt = alt_title.strip()
                 if alt:
-                    concept.synonyms.append(alt)
+                    if concept.synonyms is not None:
+                        concept.synonyms.append(alt)
 
             # Gene symbols
             gene_map = item.get("geneMap", {})
             gene_symbols = gene_map.get("geneSymbols", "")
             if gene_symbols:
-                concept.categories.append(f"gene_symbols:{gene_symbols}")
+                if concept.categories is not None:
+                    concept.categories.append(f"gene_symbols:{gene_symbols}")
 
             concept.confidence_score = 0.9
-            concept.source_data[KnowledgeSource.OMIM] = item
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.OMIM] = item
             return concept
 
         except Exception as e:

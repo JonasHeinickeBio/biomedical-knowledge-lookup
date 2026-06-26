@@ -28,16 +28,29 @@ class PubChemAdapter(KnowledgeSourceAdapter):
     async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search PubChem for compounds."""
         try:
+            # Skip obviously non-chemical queries
+            if not any(c.isalpha() for c in query) or len(query) > 200:
+                logger.debug(f"PubChem skipping non-chemical query: '{query}'")
+                return []
+
             # Search by name to get CIDs
             url = f"{self.base_url}/compound/name/{query}/cids/JSON"
-            data = await self._make_request(url)
+            try:
+                data = await self._make_request(url)
+            except Exception as e:
+                err_str = str(e)
+                # Expected 404 for non-chemical entities — log at debug level
+                if "404" in err_str or "PUGREST.NotFound" in err_str:
+                    logger.debug(f"PubChem: no compounds found for '{query}'")
+                else:
+                    logger.warning(f"PubChem search failed for '{query}': {e}")
+                return []
 
             concepts = []
             if "IdentifierList" in data and "CID" in data["IdentifierList"]:
                 cids = data["IdentifierList"]["CID"][:limit]
 
                 # For each CID, get basic details
-                # In a real implementation, we might want to do this in batch or on demand
                 for cid in cids:
                     concept = await self.get_concept_details(str(cid))
                     if concept:
@@ -76,7 +89,8 @@ class PubChemAdapter(KnowledgeSourceAdapter):
 
                 # Add description if available
                 if "Description" in info:
-                    concept.definitions.append(info["Description"])
+                    if concept.definitions is not None:
+                        concept.definitions.append(info["Description"])
 
                 # Get more properties (like IUPAC name, formula, etc.)  # noqa: E501
                 props_url = f"{self.base_url}/compound/cid/{concept_id}/property/IUPACName,MolecularFormula,InChIKey/JSON"  # noqa: E501
@@ -85,14 +99,17 @@ class PubChemAdapter(KnowledgeSourceAdapter):
                 if "PropertyTable" in props_data and "Properties" in props_data["PropertyTable"]:
                     props = props_data["PropertyTable"]["Properties"][0]
                     if "IUPACName" in props:
-                        concept.synonyms.append(props["IUPACName"])
+                        if concept.synonyms is not None:
+                            concept.synonyms.append(props["IUPACName"])
                     if "MolecularFormula" in props:
-                        concept.categories.append(f"Formula: {props['MolecularFormula']}")
+                        if concept.categories is not None:
+                            concept.categories.append(f"Formula: {props['MolecularFormula']}")
                     if "InChIKey" in props:
                         concept.add_identifier(KnowledgeSource.PUBCHEM, props["InChIKey"], label)
 
                 concept.confidence_score = 0.9
-                concept.source_data[KnowledgeSource.PUBCHEM] = data
+                if isinstance(concept.source_data, dict):
+                    concept.source_data[KnowledgeSource.PUBCHEM] = data
 
                 return concept
 

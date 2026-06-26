@@ -99,24 +99,29 @@ class PfamAdapter(KnowledgeSourceAdapter):
             # Description
             description = metadata.get("description", "")
             if isinstance(description, str) and description:
-                concept.definitions.append(description[:500])
+                if concept.definitions is not None:
+                    concept.definitions.append(description[:500])
             elif isinstance(description, list):
                 for desc in description:
                     text = desc.get("text", "") if isinstance(desc, dict) else str(desc)
                     if text:
-                        concept.definitions.append(text[:500])
+                        if concept.definitions is not None:
+                            concept.definitions.append(text[:500])
 
             # Entry type
             if entry_type:
-                concept.semantic_types.append(entry_type)
+                if concept.semantic_types is not None:
+                    concept.semantic_types.append(entry_type)
 
             # Clan info
             clan = metadata.get("clan", "")
             if clan:
-                concept.categories.append(f"clan:{clan}")
+                if concept.categories is not None:
+                    concept.categories.append(f"clan:{clan}")
 
             concept.confidence_score = 0.85
-            concept.source_data[KnowledgeSource.PFAM] = item
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.PFAM] = item
             return concept
 
         except Exception as e:

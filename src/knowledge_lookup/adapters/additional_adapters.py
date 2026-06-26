@@ -120,17 +120,20 @@ class DBpediaAdapter(KnowledgeSourceAdapter):
             # Add abstract as definition if available
             if "abstract" in result:
                 abstract = result["abstract"]["value"]
-                concept.definitions.append(
-                    abstract[:500] + "..." if len(abstract) > 500 else abstract
-                )
+                if concept.definitions is not None:
+                    concept.definitions.append(
+                        abstract[:500] + "..." if len(abstract) > 500 else abstract
+                    )
 
             # Add type information
             if "type" in result:
                 type_uri = result["type"]["value"]
-                concept.categories.append(type_uri.split("/")[-1])
+                if concept.categories is not None:
+                    concept.categories.append(type_uri.split("/")[-1])
 
             concept.confidence_score = 0.6  # DBpedia may be less precise for biological concepts
-            concept.source_data[KnowledgeSource.DBPEDIA] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.DBPEDIA] = result
 
             return concept
 
@@ -174,17 +177,19 @@ class DBpediaAdapter(KnowledgeSourceAdapter):
             concept.add_identifier(KnowledgeSource.DBPEDIA, entity_id, label, entity_uri)
 
             # Add abstract as definition
-            if abstract:
+            if abstract and concept.definitions is not None:
                 concept.definitions.append(
                     abstract[:1000] + "..." if len(abstract) > 1000 else abstract
                 )
 
             # Add type information
             for type_uri in types:
-                concept.categories.append(type_uri.split("/")[-1])
+                if concept.categories is not None:
+                    concept.categories.append(type_uri.split("/")[-1])
 
             concept.confidence_score = 0.65
-            concept.source_data[KnowledgeSource.DBPEDIA] = properties
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.DBPEDIA] = properties
 
             return concept
 
@@ -331,7 +336,8 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
             )
 
             concept.confidence_score = 0.8
-            concept.source_data[KnowledgeSource.BIOONTOLOGY] = result
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.BIOONTOLOGY] = result
 
             return concept
 
