@@ -383,6 +383,7 @@ class LookupResult(_LookupResult):
     """
 
     _errors_dict: dict[str, str] | None = None
+    _source_health_dict: dict | None = None
 
     def __init__(self, /, **data: Any) -> None:
         # Backward-compat: default None fields to sensible defaults
@@ -396,18 +397,36 @@ class LookupResult(_LookupResult):
             if data.get(field) is None:
                 data[field] = []
         raw_errors = data.pop("errors", None)
+        raw_sh = data.pop("source_health", None)
         super().__init__(**data)
         if isinstance(raw_errors, dict):
             object.__setattr__(self, "_errors_dict", raw_errors)
         elif raw_errors is None:
             object.__setattr__(self, "_errors_dict", {})
+        if isinstance(raw_sh, dict):
+            object.__setattr__(self, "_source_health_dict", raw_sh)
+        elif raw_sh is None:
+            object.__setattr__(self, "_source_health_dict", {})
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "source_health" and isinstance(value, dict):
+            target = object.__getattribute__(self, "_source_health_dict")
+            target.clear()
+            target.update(value)
+            return
+        if name == "errors" and isinstance(value, dict):
+            target = object.__getattribute__(self, "_errors_dict")
+            target.clear()
+            target.update(value)
+            return
+        super().__setattr__(name, value)
 
     def __getattribute__(self, name: str) -> Any:
         if name == "errors":
             errors_dict = object.__getattribute__(self, "_errors_dict")
             return errors_dict or {}
         if name == "source_health":
-            sh = object.__getattribute__(self, "source_health")
+            sh = object.__getattribute__(self, "_source_health_dict")
             return sh if sh is not None else {}
         if name in ("sources_succeeded", "sources_failed"):
             raw = object.__getattribute__(self, name)

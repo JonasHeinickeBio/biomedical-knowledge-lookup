@@ -8,7 +8,7 @@ authors = [
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.10"
-dynamic = ["dependencies", "optional-dependencies", "scripts", "classifiers"]
+dynamic = ["dependencies", "optional-dependencies", "classifiers"]
 urls = {Documentation = "https://jonasheinickeBio.github.io/biomedical-knowledge-lookup/", "Issue Tracker" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/issues", "Changelog" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/blob/main/CHANGELOG.md"}
 
 [project.scripts]
@@ -22,27 +22,8 @@ requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry]
-name = "biomedical-knowledge-lookup"
 packages = [{ include = "knowledge_lookup", from = "src" }]
 include = ["src/knowledge_lookup/py.typed"]
-version = "1.1.0"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
-pytest-asyncio = "^0.21.0"
-pytest-cov = "^4.0.0"
-pytest-timeout = "^2.2.0"
-ruff = "^0.1.0"
-mypy = "^1.0.0"
-jupyter = "^1.0.0"
-ipykernel = "^6.0.0"
-pre-commit = "^4.5.1"
-linkml = "^1.8.0"
-linkml-runtime = "^1.8.0"
-
-[tool.poetry.group.docs.dependencies]
-sphinx = "^7.0.0"
-sphinx-rtd-theme = "^2.0.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -61,12 +42,24 @@ umls-python-client = { version = "^1.2.0", optional = true }
 tyto = "^1.4"
 bioservices = "^1.16.0"
 setuptools = "^82.0.1"
+langgraph = "^1.2.7"
 
-[tool.poetry.extras]
-umls = ["umls-python-client"]
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.21.0"
+pytest-cov = "^4.0.0"
+pytest-timeout = "^2.2.0"
+ruff = "^0.1.0"
+mypy = "^1.0.0"
+jupyter = "^1.0.0"
+ipykernel = "^6.0.0"
+pre-commit = "^4.5.1"
+linkml = "^1.8.0"
+linkml-runtime = "^1.8.0"
 
-[line-length]
-line-length = 99
+[tool.poetry.group.docs.dependencies]
+sphinx = "^7.0.0"
+sphinx-rtd-theme = "^2.0.0"
 
 [tool.ruff]
 line-length = 99

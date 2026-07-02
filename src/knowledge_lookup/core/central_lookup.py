@@ -88,9 +88,17 @@ class SourceHealthTracker:
         cb = self._breakers.get(source)
         if cb is None:
             return None
+        # Map retry_utils CircuitState (lowercase) to model CircuitState (uppercase)
+        from ..models.biomedical_knowledge_models import CircuitState as ModelCircuitState
+
+        state_map = {
+            CircuitState.CLOSED: ModelCircuitState.CLOSED,
+            CircuitState.OPEN: ModelCircuitState.OPEN,
+            CircuitState.HALF_OPEN: ModelCircuitState.HALF_OPEN,
+        }
         return SourceHealth(
             source=source,
-            circuit_state=cb.state,
+            circuit_state=state_map.get(cb.state),
             failure_count=cb.failure_count,
             threshold=cb.threshold,
             cooldown=cb.cooldown,
