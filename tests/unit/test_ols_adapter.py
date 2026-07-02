@@ -18,7 +18,12 @@ class TestOLSAdapter:
     @pytest.fixture
     def adapter(self, lookup_config):
         """Create OLSAdapter instance."""
-        return OLSAdapter(lookup_config)
+        adapter = OLSAdapter(lookup_config)
+        yield adapter
+        # Cleanup: close the aiohttp session to prevent "Unclosed client session" warnings
+        if adapter.session and not adapter.session.closed:
+            import asyncio
+            asyncio.run(adapter.close())
 
     def test_adapter_initialization(self, lookup_config):
         """Test OLSAdapter initialization."""

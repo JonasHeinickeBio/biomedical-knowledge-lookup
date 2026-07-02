@@ -23,7 +23,17 @@ class TestChEMBLAdapter:
     @pytest.fixture
     def adapter(self, lookup_config):
         """Create ChEMBLAdapter instance."""
-        return ChEMBLAdapter(lookup_config)
+        adapter = ChEMBLAdapter(lookup_config)
+        # Mock ontology adapters to prevent network calls
+        adapter.ols_adapter.search_concepts = AsyncMock(return_value=[])
+        adapter.ols_adapter.get_concept_details = AsyncMock(return_value=None)
+        adapter.bioontology_adapter.search_concepts = AsyncMock(return_value=[])
+        adapter.bioontology_adapter.get_concept_details = AsyncMock(return_value=None)
+        yield adapter
+        # Cleanup: close the aiohttp session to prevent "Unclosed client session" warnings
+        if adapter.session and not adapter.session.closed:
+            import asyncio
+            asyncio.run(adapter.close())
 
     def test_adapter_initialization(self, lookup_config):
         """Test ChEMBLAdapter initialization."""

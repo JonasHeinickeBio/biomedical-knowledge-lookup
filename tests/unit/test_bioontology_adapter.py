@@ -23,13 +23,23 @@ class TestBioOntologyAdapter:
     @pytest.fixture
     def adapter(self, lookup_config):
         """Create BioOntologyAdapter instance."""
-        return BioOntologyAdapter(lookup_config)
+        adapter = BioOntologyAdapter(lookup_config)
+        yield adapter
+        # Cleanup: close the aiohttp session to prevent "Unclosed client session" warnings
+        if adapter.session and not adapter.session.closed:
+            import asyncio
+            asyncio.run(adapter.close())
 
     @pytest.fixture
     def adapter_with_api_key(self):
         """Create BioOntologyAdapter with API key."""
         config = LookupConfig(api_keys={"bioontology": "test_api_key"})
-        return BioOntologyAdapter(config)
+        adapter = BioOntologyAdapter(config)
+        yield adapter
+        # Cleanup: close the aiohttp session to prevent "Unclosed client session" warnings
+        if adapter.session and not adapter.session.closed:
+            import asyncio
+            asyncio.run(adapter.close())
 
     def test_adapter_initialization(self, lookup_config):
         """Test BioOntologyAdapter initialization."""
