@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from ...core.central_lookup import CentralKnowledgeLookup
-from ...models import KnowledgeSource, LookupConfig, LookupResult
+from ...models import ConceptIdentifier, KnowledgeSource, LookupConfig
 from ..state import LookupWorkflowState, dict_to_lookup_result, lookup_result_to_dict, make_step
 
 logger = logging.getLogger(__name__)
@@ -49,18 +49,15 @@ async def enrichment_node(state: LookupWorkflowState) -> dict:
             )
             if already_has_umls:
                 already_had_count += 1
-                logger.info(
-                    "'%s' already has UMLS CUI: %s",
-                    label,
-                    next(
-                        (
-                            ident.identifier
-                            for ident in (concept.identifiers or [])
-                            if ident.source == KnowledgeSource.UMLS
-                        ),
-                        "?",
+                existing = next(
+                    (
+                        ident.identifier
+                        for ident in (concept.identifiers or [])
+                        if ident.source == KnowledgeSource.UMLS
                     ),
+                    "?",
                 )
+                logger.info("'%s' already has UMLS CUI: %s", label, existing)
                 continue
 
             # Search UMLS for the concept label
@@ -75,19 +72,22 @@ async def enrichment_node(state: LookupWorkflowState) -> dict:
                 best = umls_result.concepts[0]
                 cui = best.primary_id  # e.g. "C0033047"
                 if cui:
-                    concept.add_identifier(  # type: ignore[attr-defined]
-                        source=KnowledgeSource.UMLS,
-                        identifier=cui,
-                        label=best.primary_label or label,
-                        url=f"https://uts.nlm.nih.gov/uts/umls/concept/{cui}",
+                    # Directly append identifier (avoid mixin add_identifier for compat)
+                    if concept.identifiers is None:
+                        concept.identifiers = []
+                    concept.identifiers.append(
+                        ConceptIdentifier(
+                            source=KnowledgeSource.UMLS,
+                            identifier=cui,
+                            label=best.primary_label or label,
+                            url=f"https://uts.nlm.nih.gov/uts/umls/concept/{cui}",
+                        )
                     )
                     # Also add UMLS as a source
                     if concept.sources is not None and KnowledgeSource.UMLS not in concept.sources:
                         concept.sources.append(KnowledgeSource.UMLS)
                     enriched_count += 1
-                    logger.info(
-                        "Enriched '%s' with UMLS CUI: %s", label, cui
-                    )
+                    logger.info("Enriched '%s' with UMLS CUI: %s", label, cui)
 
     except Exception as e:
         logger.warning("UMLS enrichment failed: %s", e)

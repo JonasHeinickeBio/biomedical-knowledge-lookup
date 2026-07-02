@@ -178,7 +178,7 @@ RESPOND IN THIS EXACT JSON FORMAT (no markdown, no extra text):
   "summary": "<one_line_summary>"
 }}"""
 
-    llm_output = await call_llm(prompt, max_tokens=512, temperature=0.2)
+    llm_output = await call_llm(prompt, max_tokens=1000, temperature=0.2)
     if llm_output is None:
         return None
 

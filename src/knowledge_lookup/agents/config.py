@@ -26,23 +26,33 @@ def load_llm_config() -> dict[str, str | None]:
     # Try Blablador first (Helmholtz AI - OpenAI-compatible)
     blablador_key = os.getenv("BLABLADOR_API_KEY")
     if blablador_key:
+        base_url = os.getenv(
+            "BLABLADOR_API_BASE",
+            "https://api.helmholtz-blablador.fz-juelich.de/v1/",
+        )
+        # Ensure the base_url includes the chat completions endpoint
+        base_url = base_url.rstrip("/")
+        if not base_url.endswith("/chat/completions"):
+            base_url = base_url + "/chat/completions"
         return {
             "backend": "openai",
             "api_key": blablador_key,
-            "base_url": os.getenv(
-                "BLABLADOR_API_BASE",
-                "https://api.helmholtz-blablador.fz-juelich.de/v1/",
-            ),
+            "base_url": base_url,
             "model": os.getenv("BLABLADOR_MODEL", "alias-fast"),
         }
 
     # Try OpenAI
     openai_key = os.getenv("OPENAI_API_KEY")
     if openai_key:
+        base_url = os.getenv("OPENAI_API_BASE")
+        if base_url:
+            base_url = base_url.rstrip("/")
+            if not base_url.endswith("/chat/completions"):
+                base_url = base_url + "/chat/completions"
         return {
             "backend": "openai",
             "api_key": openai_key,
-            "base_url": os.getenv("OPENAI_API_BASE"),
+            "base_url": base_url,
             "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
         }
 
