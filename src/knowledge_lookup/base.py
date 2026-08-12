@@ -13,6 +13,7 @@ from typing import Any, TypeVar
 
 import aiohttp
 
+from .cache import get_cache
 from .models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 from .utils.retry_utils import (
     CircuitBreaker,
@@ -47,6 +48,7 @@ class KnowledgeSourceAdapter(ABC):
         self.source = self.get_source()
         self.session: aiohttp.ClientSession | None = None
         self._circuit_breaker: CircuitBreaker | None = None
+        self._cache = get_cache()
 
     def set_circuit_breaker(self, cb: CircuitBreaker) -> None:
         """Attach a circuit breaker (injected by the orchestrator)."""
@@ -276,6 +278,29 @@ class KnowledgeSourceAdapter(ABC):
         """Close the adapter and cleanup resources."""
         if self.session and not self.session.closed:
             await self.session.close()
+
+    def _get_cache_key(self, operation: str, *params: Any) -> str:
+        """Generate a cache key for adapter operations."""
+        import hashlib
+
+        key_data = f"{self.source}:{operation}:{params}"
+        return hashlib.md5(key_data.encode()).hexdigest()
+
+    def _get_from_cache(self, key: str) -> Any | None:
+        """Get value from cache."""
+        return self._cache.get(key, namespace=str(self.source))
+
+    def _set_in_cache(self, key: str, value: Any, ttl: int = 3600) -> None:
+        """Set value in cache with TTL (default 1 hour)."""
+        self._cache.set(key, value, ttl=ttl, namespace=str(self.source))
+
+    def _has_in_cache(self, key: str) -> bool:
+        """Check if value exists in cache."""
+        return self._cache.get(key, namespace=str(self.source)) is not None
+
+    def clear_cache(self) -> None:
+        """Clear cache for this adapter's source."""
+        self._cache.clear(namespace=str(self.source))
 
     # ------------------------------------------------------------------
     # Thread-safe retry helper (for synchronous third-party libraries)

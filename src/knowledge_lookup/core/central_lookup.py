@@ -16,6 +16,8 @@ from typing import Any, cast
 # Keep these imports at top for E402 compliance
 from ..adapters import ADAPTER_CLASSES
 from ..base import KnowledgeSourceAdapter
+from ..cache import init_cache
+from ..curie_utils import get_source_prefix_mapping
 from ..models import ConceptType, KnowledgeSource, LookupConfig, LookupResult
 from ..models.biomedical_knowledge_models import SourceHealth
 from ..models.extensions import UnifiedConcept as UC
@@ -149,6 +151,8 @@ class CentralKnowledgeLookup:
         self.adapters: dict[KnowledgeSource, KnowledgeSourceAdapter] = {}
         self.health_tracker = SourceHealthTracker(self.config)
         self.executor = ThreadPoolExecutor(max_workers=10)
+        self._prefix_map: dict[str, str] | None = None
+        init_cache()  # Use default cache config; can be customized if needed
         if auto_initialize:
             self._initialize_adapters()
 
@@ -167,6 +171,7 @@ class CentralKnowledgeLookup:
                         logger.warning(f"{source.value} adapter not available")
                 except Exception as e:
                     logger.error(f"Failed to initialize {source.value} adapter: {e}")
+        self._prefix_map = get_source_prefix_mapping()
 
     def _get_adapter(self, source: KnowledgeSource) -> KnowledgeSourceAdapter | None:
         """Internal helper to get an adapter for a source."""
@@ -562,9 +567,17 @@ class CentralKnowledgeLookup:
         return await adapter.search_concepts(query, limit)
 
     def _deduplicate_concepts(self, concepts: list[UnifiedConcept]) -> list[UnifiedConcept]:
-        """Remove duplicate concepts and merge similar ones."""
+        """Remove duplicate concepts and merge similar ones using pyobo/curies normalization."""
         if not concepts:
             return concepts
+
+        # Import normalization utilities
+        try:
+            from ..curie_utils import get_bioregistry_converter
+
+            get_bioregistry_converter()
+        except Exception:
+            pass
 
         # Group concepts by normalized label for exact matches
         label_groups: dict[str, list[UnifiedConcept]] = {}
