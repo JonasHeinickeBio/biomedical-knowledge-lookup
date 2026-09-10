@@ -41,15 +41,21 @@ Module Structure::
         └── export.py    # Multi-format export
 """
 
-from .config import call_llm, load_llm_config
-from .graph import build_workflow_graph
-from .runners import resume_workflow, run_workflow
-from .state import (
-    LookupWorkflowState,
-    dict_to_lookup_result,
-    lookup_result_to_dict,
-    make_step,
-)
+try:
+    from .config import call_llm, load_llm_config
+    from .graph import build_workflow_graph
+    from .runners import resume_workflow, run_workflow
+    from .state import (
+        LookupWorkflowState,
+        dict_to_lookup_result,
+        lookup_result_to_dict,
+        make_step,
+    )
+except ImportError as _err:  # pragma: no cover - optional dependency
+    raise ImportError(
+        "The agent workflow requires the 'agents' extra: "
+        "pip install 'biomedical-knowledge-lookup[agents]'"
+    ) from _err
 
 __all__ = [
     # High-level API

@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Lean core install.** Heavy / niche dependencies moved out of the base
+  install into optional extras: `pandas` → `[export]`, `chembl-webresource-client`
+  → `[chembl]`, `bioservices` → `[bioservices]` (EUtils/QuickGO/UniChem),
+  `tyto` → `[tyto]`, `langgraph` → `[agents]`, plus `[curie]`
+  (`bioregistry`/`curies`/`pyobo`) and the existing `[umls]`. A new `[all]`
+  extra installs everything. `pip install biomedical-knowledge-lookup` now
+  pulls only `aiohttp`/`requests`/`rdflib`/`pydantic`/`rich`/`typer` and the
+  small helpers — every HTTP-only adapter still works.
+- `requires-python` relaxed `>=3.11` → `>=3.10,<4` (CI already tests 3.10; ruff
+  and mypy target py310).
+- Extras declared as PEP 621 `[project.optional-dependencies]` (was the
+  deprecated `[tool.poetry.extras]`).
+
+### Fixed
+- `ChEMBLAdapter` and `knowledge_lookup.agents` now raise a clear
+  `ImportError` naming the required extra instead of a bare
+  `ModuleNotFoundError`; `chembl_adapter` no longer fails to import when
+  `chembl-webresource-client` is absent.
+
 ## [1.1.0] - 2026-06-24
 
 ### Added
