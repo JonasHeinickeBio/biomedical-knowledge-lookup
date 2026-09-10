@@ -26,6 +26,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ImportError` naming the required extra instead of a bare
   `ModuleNotFoundError`; `chembl_adapter` no longer fails to import when
   `chembl-webresource-client` is absent.
+- **Adapter CURIE-parsing snippet removed.** A `parse_curie_or_uri` /
+  `validate_prefix` block (debug-logging only, no behaviour) had been pasted
+  into ~30 adapter methods; in `oxo`, `zooma`, `obofoundry`, `disgenet`,
+  `tyto` and `biolinker` it referenced an out-of-scope `concept_id` / `query`
+  (or, in `oxo`, an import trapped inside the class docstring), so those
+  adapters raised `NameError` and returned nothing. All of it is gone; those
+  six adapters work again (29 unit tests unblocked). CURIE-aware input
+  handling, if reintroduced, belongs once in the base class.
+- **HPO adapter**: `hpo.jax.org/api/ontological` (now 404) → the current
+  `ontology.jax.org/api/hp` API; search/details work again and UMLS xrefs
+  are captured.
+- **`CentralKnowledgeLookup.find_mappings`** now returns real cross-references
+  from OxO (was a stub returning the concept's own id), de-duplicated, with a
+  working `target_sources` filter.
+- **`search_concepts(concept_types=[...])`** no longer silently drops every
+  result: concepts an adapter left as `UNKNOWN` pass the filter instead of
+  being discarded.
+- Retry backoff is skipped under pytest (`PYTEST_CURRENT_TEST`), so error-path
+  tests no longer spend ~10 s sleeping; set `BKL_RETRY_SLEEP=1` to force it.
+- New `tests/unit/conftest.py` stubs the agent-workflow LLM call so unit tests
+  are deterministic and offline (fixes two flaky `review_node` tests).
+- `zooma_adapter`: removed a duplicated `if concept.categories is not None`.
+
+### Known / follow-up
+- Adapters built on a library client (ChEMBL, EUtils/QuickGO/UniChem, Tyto,
+  UMLS, EBI-OLS) don't route through the shared retry + circuit-breaker.
+- Agent-workflow node coverage is low (7–64%).
+- Dependabot reports outstanding dependency vulnerabilities on the branch.
 
 ## [1.1.0] - 2026-06-24
 

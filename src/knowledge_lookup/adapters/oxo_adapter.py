@@ -17,11 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 class OxOAdapter(KnowledgeSourceAdapter):
-    """
-    Adapter for EBI OxO (Ontology Cross-reference Service) API
+    """Adapter for EBI OxO (Ontology Cross-reference Service) API.
 
-    OxO provides mappings and cross-references between terms from different ontologies,
-    vocabularies and coding standards.
+    OxO provides mappings and cross-references between terms from different
+    ontologies, vocabularies and coding standards.
     """
 
     def __init__(self, config: LookupConfig):

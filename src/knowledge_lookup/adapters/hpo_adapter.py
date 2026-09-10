@@ -18,7 +18,8 @@ class HPOAdapter(KnowledgeSourceAdapter):
 
     def __init__(self, config: LookupConfig):
         super().__init__(config)
-        self.base_url = "https://hpo.jax.org/api/ontological"
+        # HPO's public API moved from hpo.jax.org/api/ontological to ontology.jax.org/api/hp
+        self.base_url = "https://ontology.jax.org/api/hp"
 
     def get_source(self) -> KnowledgeSource:
         return KnowledgeSource.HPO
@@ -30,12 +31,12 @@ class HPOAdapter(KnowledgeSourceAdapter):
         """Search HPO for phenotypes."""
         try:
             url = f"{self.base_url}/search"
-            params = {"q": query}
+            params = {"q": query, "limit": min(limit, 100)}
 
             data = await self._make_request(url, params)
 
             concepts = []
-            if "terms" in data:
+            if isinstance(data, dict) and "terms" in data:
                 for term in data["terms"][:limit]:
                     concept = self._convert_hpo_result_to_concept(term)
                     if concept:
@@ -51,13 +52,15 @@ class HPOAdapter(KnowledgeSourceAdapter):
     async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed phenotype information from HPO."""
         try:
-            # concept_id should be HPO ID (e.g., HP:0000118)
-            url = f"{self.base_url}/term/{concept_id}"
+            # concept_id should be an HPO ID (e.g., HP:0000118)
+            url = f"{self.base_url}/terms/{concept_id}"
             data = await self._make_request(url)
 
-            if "details" in data:
-                concept = self._convert_hpo_details_to_concept(data["details"])
-                return concept
+            # The new API returns the term object directly (older API wrapped it
+            # in {"details": ...}).
+            term = data.get("details", data) if isinstance(data, dict) else None
+            if term and term.get("id"):
+                return self._convert_hpo_details_to_concept(term)
 
             return None
 
@@ -79,12 +82,14 @@ class HPOAdapter(KnowledgeSourceAdapter):
             )
 
             concept.add_identifier(
-                KnowledgeSource.HPO, hpo_id, label, f"https://hpo.jax.org/app/browse/term/{hpo_id}"
+                KnowledgeSource.HPO, hpo_id, label, f"https://hpo.jax.org/browse/term/{hpo_id}"
             )
+            self._add_xrefs(concept, result.get("xrefs"))
 
-            if "synonyms" in result:
-                if concept.synonyms is not None:
-                    concept.synonyms.extend(result["synonyms"])
+            if result.get("synonyms") and concept.synonyms is not None:
+                concept.synonyms.extend(result["synonyms"])
+            if result.get("definition") and concept.definitions is not None:
+                concept.definitions.append(result["definition"])
 
             concept.confidence_score = 0.95
             if isinstance(concept.source_data, dict):
@@ -110,16 +115,14 @@ class HPOAdapter(KnowledgeSourceAdapter):
             )
 
             concept.add_identifier(
-                KnowledgeSource.HPO, hpo_id, label, f"https://hpo.jax.org/app/browse/term/{hpo_id}"
+                KnowledgeSource.HPO, hpo_id, label, f"https://hpo.jax.org/browse/term/{hpo_id}"
             )
+            self._add_xrefs(concept, details.get("xrefs"))
 
-            if "synonyms" in details:
-                if concept.synonyms is not None:
-                    concept.synonyms.extend(details["synonyms"])
-
-            if "definition" in details:
-                if concept.definitions is not None:
-                    concept.definitions.append(details["definition"])
+            if details.get("synonyms") and concept.synonyms is not None:
+                concept.synonyms.extend(details["synonyms"])
+            if details.get("definition") and concept.definitions is not None:
+                concept.definitions.append(details["definition"])
 
             concept.confidence_score = 1.0
             if isinstance(concept.source_data, dict):
@@ -130,3 +133,17 @@ class HPOAdapter(KnowledgeSourceAdapter):
         except Exception as e:
             logger.error(f"Error converting HPO details: {e}")
             return None
+
+    @staticmethod
+    def _add_xrefs(concept: UnifiedConcept, xrefs: Any) -> None:
+        """Record HPO cross-references we have a source for (e.g. ``UMLS:C0015672``)."""
+        if not isinstance(xrefs, list):
+            return
+        for xref in xrefs:
+            if isinstance(xref, str) and xref.startswith("UMLS:"):
+                try:
+                    concept.add_identifier(
+                        KnowledgeSource.UMLS, xref, concept.primary_label, None
+                    )
+                except Exception:  # noqa: BLE001 - best-effort identifier bookkeeping
+                    pass

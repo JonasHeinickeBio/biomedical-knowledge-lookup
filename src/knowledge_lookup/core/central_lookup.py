@@ -24,6 +24,30 @@ from ..models.extensions import UnifiedConcept as UC
 from ..models.models import ConceptIdentifier
 from ..utils.retry_utils import CircuitBreaker, CircuitState
 
+# CURIE prefix -> the KnowledgeSource that can resolve it. Prefixes without a
+# dedicated adapter (MESH, NCIT, EFO, ORDO, SNOMEDCT, ICD10, ...) fall back to
+# KnowledgeSource.OXO (the mapping was obtained via OxO).
+_CURIE_PREFIX_TO_SOURCE: dict[str, KnowledgeSource] = {
+    "MONDO": KnowledgeSource.MONDO,
+    "HP": KnowledgeSource.HPO,
+    "DOID": KnowledgeSource.OLS,
+    "GO": KnowledgeSource.GENEONTOLOGY,
+    "UNIPROT": KnowledgeSource.UNIPROT,
+    "UNIPROTKB": KnowledgeSource.UNIPROT,
+    "NCBIGENE": KnowledgeSource.NCBI,
+    "ENSEMBL": KnowledgeSource.ENSEMBL,
+    "PUBCHEM.COMPOUND": KnowledgeSource.PUBCHEM,
+    "CHEMBL.COMPOUND": KnowledgeSource.CHEMBL,
+    "CHEMBL": KnowledgeSource.CHEMBL,
+    "DRUGBANK": KnowledgeSource.DRUGBANK,
+    "REACT": KnowledgeSource.REACTOME,
+    "REACTOME": KnowledgeSource.REACTOME,
+    "KEGG": KnowledgeSource.KEGG,
+    "OMIM": KnowledgeSource.OMIM,
+    "UMLS": KnowledgeSource.UMLS,
+    "WIKIDATA": KnowledgeSource.WIKIDATA,
+}
+
 # Optional imports for formatting
 try:
     import pandas as pd
@@ -288,13 +312,19 @@ class CentralKnowledgeLookup:
             else:
                 result.add_concepts(source_concepts, source)
 
-        # Filter by concept types if specified
+        # Filter by concept types if specified. Many adapters do not classify
+        # concept type and return ``UNKNOWN`` — those are kept (rather than
+        # silently dropped) so the filter narrows without losing unclassified
+        # hits. Compare by value so str/enum both work after model regen.
         if concept_types:
+            wanted = {getattr(ct, "value", ct) for ct in concept_types}
+            wanted.add(ConceptType.UNKNOWN.value)
             concept_list = result.concepts or []
-            filtered_concepts = []
-            for concept in concept_list:
-                if concept.concept_type in concept_types:
-                    filtered_concepts.append(concept)
+            filtered_concepts = [
+                c
+                for c in concept_list
+                if getattr(c.concept_type, "value", c.concept_type) in wanted
+            ]
             result.concepts = filtered_concepts
             result.total_found = len(filtered_concepts)
 
@@ -378,28 +408,66 @@ class CentralKnowledgeLookup:
         """
         Find cross-references and mappings for a concept.
 
+        Combines (a) the identifiers already attached to the concept and
+        (b) live cross-references from the OxO mapping service, when the OxO
+        adapter is enabled.
+
         Args:
-            concept_id: Source concept identifier
-            target_sources: Target sources to find mappings to
+            concept_id: Source concept identifier (CURIE, e.g. ``MONDO:0005404``)
+            target_sources: If given, only return mappings whose source is in
+                this list.
 
         Returns:
-            List of concept identifiers in other sources
+            De-duplicated list of :class:`ConceptIdentifier` in other sources.
         """
+        seen: set[tuple[str, str]] = set()
         mappings: list[ConceptIdentifier] = []
+        # str because model regen stores ``source`` as a string on the wrapper
+        wanted = (
+            {getattr(s, "value", s) for s in target_sources}
+            if target_sources is not None
+            else None
+        )
 
-        # Get concept details first
+        def _add(source: Any, identifier: str, label: str = "", url: str = "") -> None:
+            ident = (identifier or "").strip()
+            if not ident or ident == concept_id:
+                return
+            src_val = getattr(source, "value", source)
+            if wanted is not None and src_val not in wanted:
+                return
+            key = (str(src_val), ident)
+            if key in seen:
+                return
+            seen.add(key)
+            mappings.append(
+                ConceptIdentifier(source=source, identifier=ident, label=label, url=url)
+            )
+
+        # (a) identifiers already on the concept
         concept = await self.get_concept_details(concept_id)
-        if not concept:
-            return mappings
+        for identifier in (concept.identifiers if concept else None) or []:
+            _add(
+                identifier.source,
+                getattr(identifier, "identifier", ""),
+                getattr(identifier, "label", "") or "",
+                getattr(identifier, "url", "") or "",
+            )
 
-        # Extract existing mappings from concept
-        identifiers = concept.identifiers or []
-        for identifier in identifiers:
-            if target_sources is None or identifier.source in target_sources:
-                mappings.append(identifier)  # type: ignore[arg-type]
-
-        # Query mapping services (like OxO) if available
-        # This would be implemented when OxO adapter is added
+        # (b) live cross-references from OxO
+        oxo = self.adapters.get(KnowledgeSource.OXO)
+        if oxo is not None and hasattr(oxo, "get_mappings_for_concepts"):
+            try:
+                by_id = await oxo.get_mappings_for_concepts([concept_id], distance=2)
+            except Exception as exc:  # noqa: BLE001 - OxO is best-effort here
+                logger.warning("OxO mapping lookup failed for %s: %s", concept_id, exc)
+                by_id = {}
+            for entries in (by_id or {}).values():
+                for m in entries or []:
+                    curie = m.get("curie") or ""
+                    prefix = curie.split(":", 1)[0] if ":" in curie else ""
+                    src = _CURIE_PREFIX_TO_SOURCE.get(prefix.upper(), KnowledgeSource.OXO)
+                    _add(src, curie, m.get("label") or "")
 
         return mappings
 

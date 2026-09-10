@@ -79,10 +79,8 @@ class ZoomaAdapter(KnowledgeSourceAdapter):
                 source = (
                     result["derivedFrom"].get("provenance", {}).get("source", {}).get("name", "")
                 )
-                if source:
-                    if concept.categories is not None:
-                        if concept.categories is not None:
-                            concept.categories.append(f"Source: {source}")
+                if source and concept.categories is not None:
+                    concept.categories.append(f"Source: {source}")
 
             if isinstance(concept.source_data, dict):
                 concept.source_data[KnowledgeSource.ZOOMA] = result

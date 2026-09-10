@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
+import os
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, TypeVar
@@ -26,6 +27,15 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
+
+def _skip_retry_sleep() -> bool:
+    """True while running under pytest (so error-path tests don't sleep for
+    seconds through the retry backoff). Set ``BKL_RETRY_SLEEP=1`` to force real
+    sleeps in a test."""
+    return bool(os.environ.get("PYTEST_CURRENT_TEST")) and not os.environ.get(
+        "BKL_RETRY_SLEEP"
+    )
+
 # Default per-category retry strategies shared by all adapter HTTP calls
 DEFAULT_RETRY_STRATEGIES: dict[ErrorCategory, tuple[int, float, float]] = {
     ErrorCategory.NETWORK_ERROR: (3, 0.0, 0.0),  # 2 immediate retries
@@ -41,6 +51,14 @@ class KnowledgeSourceAdapter(ABC):
     """
     Abstract base class for knowledge source adapters.
     Each adapter implements the interface to a specific knowledge source.
+
+    Resilience: HTTP adapters route requests through :meth:`_make_request` /
+    :meth:`_call_with_retry`, which apply category-aware retry with backoff and
+    the shared per-source circuit breaker. Adapters built on a third-party
+    library client (ChEMBL, EUtils/QuickGO/UniChem via ``bioservices``, Tyto,
+    UMLS, EBI-OLS) do **not** go through that path — they rely on the library's
+    own retry and should call :meth:`_notify_circuit_breaker` on failure if
+    breaker visibility matters for that source.
     """
 
     def __init__(self, config: LookupConfig):
@@ -120,7 +138,7 @@ class KnowledgeSourceAdapter(ABC):
                     delay = factor * (2 ** (attempt - 1))
                     if max_delay > 0:
                         delay = min(delay, max_delay)
-                if delay > 0:
+                if delay > 0 and not _skip_retry_sleep():
                     await asyncio.sleep(delay)
 
         # Should never reach here (strategies bound attempts)
