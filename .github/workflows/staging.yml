@@ -114,7 +114,13 @@ jobs:
         UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
         DISGENET_API_KEY: ${{ secrets.DISGENET_API_KEY }}
         DRUGBANK_API_KEY: ${{ secrets.DRUGBANK_API_KEY }}
-      run: poetry run pytest tests/functional -q --timeout=120
+      # --reruns: running the whole suite in one burst has repeatedly hit
+      # transient rate-limit responses (PubChem, EBI OLS) from individual
+      # adapters — confirmed transient locally by an immediate/delayed
+      # retry succeeding, not a real regression (which fails the same way
+      # every time, reruns included). --reruns-delay gives the rate limit
+      # time to actually clear between attempts.
+      run: poetry run pytest tests/functional -q --timeout=120 --reruns 2 --reruns-delay 5
 
   # ---------------------------------------------------------------------------
   # Packaging: build the wheel exactly as `python -m build` would (matches

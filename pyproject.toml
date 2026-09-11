@@ -89,6 +89,7 @@ pytest = "^8.0.0"
 pytest-asyncio = "^0.21.0"
 pytest-cov = "^4.0.0"
 pytest-timeout = "^2.2.0"
+pytest-rerunfailures = "^14.0"  # absorbs live-API transient rate-limit blips in tests/functional
 ruff = "^0.1.0"
 mypy = "^1.0.0"
 jupyter = "^1.0.0"
