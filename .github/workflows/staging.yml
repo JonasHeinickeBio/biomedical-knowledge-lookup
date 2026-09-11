@@ -193,11 +193,20 @@ jobs:
           PR_NUMBER=$(gh pr list --base main --head staging --state open --json number --jq '.[0].number')
         fi
         echo "PR #$PR_NUMBER"
+        # A real merge commit, NOT --squash: staging is a persistent branch
+        # that keeps accumulating commits between promotions, and squashing
+        # rewrites main's history to a commit staging's own branch doesn't
+        # contain — the next promotion then sees the two branches as
+        # unrelated/diverged and reports a merge conflict even though the
+        # file contents agree (confirmed the hard way on the first two
+        # promotions). A merge commit keeps staging's tip as an ancestor of
+        # main, so the next `staging` push is always cleanly mergeable.
+        #
         # Requires "Allow auto-merge" enabled in repo settings (Settings ->
         # General -> Pull Requests). One-time setup; this call is best-effort
         # so a not-yet-enabled setting doesn't fail the whole gate silently —
         # it fails loud instead, with a clear message.
-        gh pr merge "$PR_NUMBER" --auto --squash || {
+        gh pr merge "$PR_NUMBER" --auto --merge || {
           echo "::error::Could not enable auto-merge on PR #$PR_NUMBER. Enable 'Allow auto-merge' under Settings -> General -> Pull Requests for this repo, then re-run this job or merge the PR manually."
           exit 1
         }
