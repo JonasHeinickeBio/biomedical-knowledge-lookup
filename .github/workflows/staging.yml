@@ -1,0 +1,203 @@
+name: Staging Gate
+
+# The strict pre-release gate. Push (or open a PR) to `staging` to run
+# everything below; once every job is green on a push to `staging` itself,
+# `promote-to-main` opens (or updates) a staging -> main PR and turns on
+# GitHub's native auto-merge for it — main only ever moves via a real,
+# checked PR, with no extra click once the gate is green.
+#
+# Feature branches merge into `staging` (as a normal PR — `staging` also
+# gets this same gate on every PR into it), not straight into `main`.
+
+on:
+  push:
+    branches: [staging]
+  pull_request:
+    branches: [staging]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Unit + integration tests, lint, and type-check across the supported
+  # Python matrix. Mirrors tests.yml's `test`/`lint` jobs but is a hard
+  # blocker here (mypy is not allowed to fail).
+  # ---------------------------------------------------------------------------
+  unit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # required for poetry-dynamic-versioning
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Poetry
+      run: |
+        pip install --upgrade pip
+        pip install poetry
+        poetry --version
+
+    - name: Install dependencies (core + dev + all extras)
+      run: poetry install --with dev --no-interaction
+
+    - name: Ruff lint
+      run: poetry run ruff check src/
+
+    - name: Ruff format check
+      run: poetry run ruff format --check src/
+
+    - name: mypy (blocking)
+      run: poetry run mypy src/
+
+    - name: Unit tests
+      run: |
+        poetry run pytest tests/unit -q -m "not network and not slow" \
+          --cov=knowledge_lookup --cov-report=xml --cov-report=term-missing --timeout=90
+
+    - name: Integration tests
+      run: poetry run pytest tests/integration -q -m integration --timeout=120
+
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.12'
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: staging
+        name: codecov-staging
+        fail_ci_if_error: false
+
+  # ---------------------------------------------------------------------------
+  # Live-API functional tests — the class of bug a mocked-adapter test can't
+  # catch (a dead endpoint, a changed response shape). Tests requiring an API
+  # key skip gracefully when that secret isn't configured; add the secret to
+  # the repo to widen coverage, no workflow change needed.
+  # ---------------------------------------------------------------------------
+  functional:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Poetry
+      run: |
+        pip install --upgrade pip
+        pip install poetry
+
+    - name: Install dependencies
+      run: poetry install --with dev --no-interaction
+
+    - name: Live-API functional tests
+      env:
+        BIOPORTAL_API_KEY: ${{ secrets.BIOPORTAL_API_KEY }}
+        UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
+        DISGENET_API_KEY: ${{ secrets.DISGENET_API_KEY }}
+        DRUGBANK_API_KEY: ${{ secrets.DRUGBANK_API_KEY }}
+      run: poetry run pytest tests/functional -q --timeout=120
+
+  # ---------------------------------------------------------------------------
+  # Packaging: build the wheel exactly as `python -m build` would (matches
+  # publish.yml), install it fresh with no extras, assert the lean-core
+  # promise holds, then re-check with every extra installed.
+  # ---------------------------------------------------------------------------
+  packaging:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Build wheel
+      run: |
+        pip install --upgrade pip build
+        python -m build --wheel
+
+    - name: Install core only (no extras)
+      run: pip install dist/*.whl
+
+    - name: Assert heavy deps are absent
+      # A single physical line, not a heredoc / multi-line `python -c "..."` —
+      # a YAML block scalar (`run: |`) strips the *same* leading indentation
+      # from every line, so an indented heredoc terminator no longer matches
+      # its opener, and an indented multi-line `-c` body is an IndentationError
+      # on its first statement. Both fail to parse rather than testing anything.
+      run: |
+        python -c "import importlib.util as u; heavy = ['pandas', 'chembl_webresource_client', 'bioservices', 'tyto', 'langgraph']; present = [m for m in heavy if u.find_spec(m) is not None]; assert not present, f'heavy deps leaked into the core install: {present}'"
+
+    - name: Core import smoke test
+      run: |
+        python -c "from knowledge_lookup import CentralKnowledgeLookup, MultiSourceAnnotator, ADAPTER_CLASSES; from knowledge_lookup.adapters import MondoAdapter, HPOAdapter, OLSAdapter, OxOAdapter, UniProtAdapter, DrugBankAdapter; from knowledge_lookup.curie_utils import parse_curie_or_uri; print('core OK:', len(ADAPTER_CLASSES), 'adapters')"
+
+    - name: Install with every extra, smoke test
+      run: |
+        pip install "$(ls dist/*.whl)[all]"
+        python -c "import knowledge_lookup.agents; from knowledge_lookup.adapters import ChEMBLAdapter; from knowledge_lookup.curie_utils import validate_prefix; assert ChEMBLAdapter is not None; assert validate_prefix('doid') is True; print('all-extras OK')"
+
+  # ---------------------------------------------------------------------------
+  # Promote: on a green push to `staging` itself (not on PRs into it), open
+  # or update a staging -> main PR and enable GitHub auto-merge on it. main's
+  # own branch-protection checks (tests.yml on the PR) still have to pass too
+  # — this just removes the manual "click merge" step once everything is green.
+  # ---------------------------------------------------------------------------
+  promote-to-main:
+    runs-on: ubuntu-latest
+    needs: [unit, functional, packaging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Open or update staging -> main PR, enable auto-merge
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -euo pipefail
+        PR_NUMBER=$(gh pr list --base main --head staging --state open --json number --jq '.[0].number // empty')
+        if [[ -z "$PR_NUMBER" ]]; then
+          PR_BODY="Automated promotion: every job in the Staging Gate (unit + integration across Python 3.10-3.12, blocking ruff/mypy, live-API functional tests, packaging smoke tests) passed on staging at ${{ github.sha }}. Merging this triggers release-draft.yml, which opens a draft GitHub Release for a maintainer to review before it is published (publishing it is what actually ships to PyPI; see publish.yml)."
+          gh pr create --base main --head staging --title "Release: staging -> main" --body "$PR_BODY"
+          PR_NUMBER=$(gh pr list --base main --head staging --state open --json number --jq '.[0].number')
+        fi
+        echo "PR #$PR_NUMBER"
+        # Requires "Allow auto-merge" enabled in repo settings (Settings ->
+        # General -> Pull Requests). One-time setup; this call is best-effort
+        # so a not-yet-enabled setting doesn't fail the whole gate silently —
+        # it fails loud instead, with a clear message.
+        gh pr merge "$PR_NUMBER" --auto --squash || {
+          echo "::error::Could not enable auto-merge on PR #$PR_NUMBER. Enable 'Allow auto-merge' under Settings -> General -> Pull Requests for this repo, then re-run this job or merge the PR manually."
+          exit 1
+        }

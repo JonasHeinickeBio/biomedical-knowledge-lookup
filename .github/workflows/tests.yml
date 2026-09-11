@@ -72,6 +72,8 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # required for poetry-dynamic-versioning
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
@@ -82,22 +84,18 @@ jobs:
     - name: Install core only (no extras)
       run: pip install dist/*.whl
     - name: Assert heavy deps are absent
+      # NOTE: a single physical line, not a `python - <<'PY' ... PY` heredoc
+      # or a multi-line `python -c "..."` — a YAML block scalar (`run: |`)
+      # strips the *same* leading indentation from every line, so an
+      # indented heredoc terminator no longer matches its opener, and an
+      # indented multi-line `-c` body hits "IndentationError: unexpected
+      # indent" on its first statement. Both fail silently-ish (a script
+      # parse error) rather than testing anything.
       run: |
-        python - <<'PY'
-        import importlib.util as u
-        heavy = ["pandas", "chembl_webresource_client", "bioservices", "tyto", "langgraph"]
-        present = [m for m in heavy if u.find_spec(m) is not None]
-        assert not present, f"heavy deps leaked into the core install: {present}"
-        PY
+        python -c "import importlib.util as u; heavy = ['pandas', 'chembl_webresource_client', 'bioservices', 'tyto', 'langgraph']; present = [m for m in heavy if u.find_spec(m) is not None]; assert not present, f'heavy deps leaked into the core install: {present}'"
     - name: Import smoke test
       run: |
-        python - <<'PY'
-        import knowledge_lookup as kl
-        from knowledge_lookup import CentralKnowledgeLookup, MultiSourceAnnotator, ADAPTER_CLASSES
-        from knowledge_lookup.adapters import MondoAdapter, HPOAdapter, OLSAdapter, OxOAdapter, UniProtAdapter, DrugBankAdapter
-        from knowledge_lookup.curie_utils import parse_curie_or_uri
-        print("core OK:", len(ADAPTER_CLASSES), "adapters")
-        PY
+        python -c "from knowledge_lookup import CentralKnowledgeLookup, MultiSourceAnnotator, ADAPTER_CLASSES; from knowledge_lookup.adapters import MondoAdapter, HPOAdapter, OLSAdapter, OxOAdapter, UniProtAdapter, DrugBankAdapter; from knowledge_lookup.curie_utils import parse_curie_or_uri; print('core OK:', len(ADAPTER_CLASSES), 'adapters')"
 
   lint:
     runs-on: ubuntu-latest
