@@ -1,8 +1,20 @@
 name: Draft Release
 
-# Runs on every push to `main` (i.e. every staging -> main promotion). Cuts
-# CHANGELOG.md's [Unreleased] section into a new dated version, commits that
-# back to main, and opens a DRAFT GitHub Release for it — nothing is
+# Runs on every push to `main` (i.e. every staging -> main promotion) *and*
+# on every PR into `main` being merged. Both triggers are needed: a PR
+# merged via GitHub's auto-merge (as staging.yml's promote-to-main job sets
+# up) is performed using the default GITHUB_TOKEN, and GitHub's anti-loop
+# protection means a push made with that token does NOT fire other
+# workflows' `on: push` triggers — confirmed empirically (the first
+# staging -> main auto-merge produced no `push` event on main at all). The
+# `pull_request: closed` trigger is a *different* event class, tied to the
+# PR resource's own state transition rather than the push that resulted
+# from it, and isn't subject to that same suppression — so it's the
+# reliable trigger for anything merged by a workflow, while `push` stays as
+# a fallback for a human merging by hand.
+#
+# Cuts CHANGELOG.md's [Unreleased] section into a new dated version, commits
+# that back to main, and opens a DRAFT GitHub Release for it — nothing is
 # tagged or published yet. A maintainer reviews the draft (CHANGELOG diff,
 # version number) and clicks "Publish release" when ready; publishing it
 # creates the `vX.Y.Z` tag and fires publish.yml, which builds, verifies,
@@ -14,6 +26,9 @@ name: Draft Release
 
 on:
   push:
+    branches: [main]
+  pull_request:
+    types: [closed]
     branches: [main]
 
 permissions:
@@ -28,11 +43,14 @@ concurrency:
 jobs:
   draft-release:
     runs-on: ubuntu-latest
-    if: github.repository == 'JonasHeinickeBio/biomedical-knowledge-lookup'
+    if: >-
+      github.repository == 'JonasHeinickeBio/biomedical-knowledge-lookup' &&
+      (github.event_name == 'push' || github.event.pull_request.merged == true)
 
     steps:
     - uses: actions/checkout@v4
       with:
+        ref: main  # for the pull_request trigger, check out main post-merge, not the PR head
         fetch-depth: 0  # need full tag history to compute the next version
 
     - uses: actions/setup-python@v5
