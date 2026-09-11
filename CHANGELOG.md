@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [1.2.0] - 2026-09-11
+
 ### Added
 - **Richer agent workflow** (`knowledge_lookup.agents`, `[agents]` extra).
   The LangGraph graph gained four stages between lookup and review:
