@@ -23,6 +23,14 @@ name: Draft Release
 # This is the intended manual approval point before anything public happens.
 # If [Unreleased] is empty (nothing merged since the last release), this
 # workflow is a no-op.
+#
+# `workflow_dispatch` is a manual fallback: GitHub only starts honoring a
+# *newly added* trigger once the workflow file that defines it exists on the
+# default branch — the very first PR that adds the `pull_request: closed`
+# trigger above can't be caught by it (confirmed: PR #18, which added it,
+# didn't fire this workflow when merged). Run this manually from the Actions
+# tab if a merge to main doesn't produce a draft release within a minute or
+# two and you don't want to wait for the next one to self-correct it.
 
 on:
   push:
@@ -30,6 +38,7 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
+  workflow_dispatch: {}  # manual escape hatch — see note below
 
 permissions:
   contents: write
@@ -45,7 +54,8 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       github.repository == 'JonasHeinickeBio/biomedical-knowledge-lookup' &&
-      (github.event_name == 'push' || github.event.pull_request.merged == true)
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' ||
+       github.event.pull_request.merged == true)
 
     steps:
     - uses: actions/checkout@v4
