@@ -47,6 +47,7 @@ The Biomedical Knowledge Lookup framework provides a unified interface to query 
 | **Rate Limited** | Built-in rate limiting for responsible API usage |
 | **Error Handling** | Graceful degradation on partial failures |
 | **Caching** | Optional caching for repeated queries |
+| **CURIE Validation** | CURIE/URI parsing, validation, and normalization using bioregistry |
 
 ### Data Integration
 
@@ -83,6 +84,7 @@ poetry install
 - Python 3.10+
 - AIOHTTP (async HTTP client)
 - Pydantic (data validation)
+- **Optional**: `curies`, `pyobo`, `bioregistry` for CURIE validation and normalization
 
 ### Environment Setup
 
@@ -94,8 +96,6 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -e .
 ```
-
-## Quick Start
 
 ## Quick Start
 
@@ -207,6 +207,7 @@ docs/
 | `guides/caching.md` | Caching configuration and usage |
 | `guides/rate_limiting.md` | Rate limiting strategies |
 | `guides/error_handling.md` | Error handling patterns |
+| `curie-management.md` | CURIE/URI parsing, validation, and normalization |
 | `examples/use_cases.md` | Real-world use cases |
 | `examples/notebooks/` | Jupyter notebooks |
 | `adapters/index.md` | All adapters by category |
@@ -398,6 +399,7 @@ See `examples/use_cases.md` for real-world examples:
 - **Text Mining** - Extract knowledge from literature
 - **Clinical Support** - Query disease ontologies for clinical decision support
 - **Knowledge Graphs** - Build knowledge graphs from multiple sources
+- **CURIE Validation** - CURIE/URI parsing, validation, and normalization using bioregistry
 
 ### Python Examples
 
@@ -405,6 +407,7 @@ See `examples/python/` for standalone Python scripts:
 - `opentargets_example.py` - Open Targets Platform
 - `chembl_example.py` - ChEMBL Database
 - `mondo_example.py` - Mondo Disease Ontology
+- `curie_validation_example.py` - CURIE/URI validation and parsing
 - And more...
 
 ### Notebooks
@@ -414,6 +417,7 @@ For interactive examples, see `examples/notebooks/`:
 - `02-api-keys.ipynb` - API key configuration
 - `03-rate-limiting.ipynb` - Rate limiting
 - `04-error-handling.ipynb` - Error handling
+- `05-curie-validation.ipynb` - CURIE/URI parsing and validation
 
 ---
 
@@ -449,6 +453,7 @@ If you use this framework in your research, please cite:
 - Comprehensive error handling
 - Full type hints and Pydantic models
 - Documentation structure overhaul with guides
+- **CURIE validation and normalization** using bioregistry
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 

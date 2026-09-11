@@ -4,10 +4,10 @@ Knowledge Source Adapters Package
 This package contains adapters for various knowledge sources.
 """
 
+from ..models import KnowledgeSource
 from .biolinker_adapter import BioLinkerAdapter
 from .bioontology_adapter import BioOntologyAdapter
 from .bioportal_adapter import BioPortalAdapter
-from .chembl_adapter import ChEMBLAdapter
 from .clinvar_adapter import ClinVarAdapter
 from .cosmic_adapter import COSMICAdapter
 from .dbpedia_adapter import DBpediaAdapter
@@ -40,8 +40,15 @@ from .uniprot_adapter import UniProtAdapter
 from .wikidata_adapter import WikidataAdapter
 from .zooma_adapter import ZoomaAdapter
 
-# UMLS adapter is optional (requires umls-client)
-try:
+# Adapters that need an optional extra. Each import fails cleanly when the
+# dependency is absent so `import knowledge_lookup` still works; the adapter is
+# just left as ``None`` and skipped by CentralKnowledgeLookup.
+try:  # extra: chembl
+    from .chembl_adapter import ChEMBLAdapter
+except ImportError:
+    ChEMBLAdapter = None  # type: ignore[assignment,misc]
+
+try:  # extra: umls
     from .umls_adapter import UMLSAdapter
 except ImportError:
     UMLSAdapter = None  # type: ignore
@@ -57,7 +64,6 @@ __all__ = [
     "BioOntologyAdapter",
     "MondoAdapter",
     "UniProtAdapter",
-    "ChEMBLAdapter",
     "DisGeNETAdapter",
     "OpenTargetsAdapter",
     "ReactomeAdapter",
@@ -85,10 +91,9 @@ __all__ = [
     "ADAPTER_CLASSES",
 ]
 
-if UMLSAdapter is not None:
-    __all__.insert(0, "UMLSAdapter")
-
-from ..models import KnowledgeSource
+for _name, _cls in (("ChEMBLAdapter", ChEMBLAdapter), ("UMLSAdapter", UMLSAdapter)):
+    if _cls is not None:
+        __all__.insert(0, _name)
 
 ADAPTER_CLASSES = {
     KnowledgeSource.UNICHEM: UniChemAdapter,
@@ -103,7 +108,6 @@ ADAPTER_CLASSES = {
     KnowledgeSource.BIOONTOLOGY: BioOntologyAdapter,
     KnowledgeSource.MONDO: MondoAdapter,
     KnowledgeSource.UNIPROT: UniProtAdapter,
-    KnowledgeSource.CHEMBL: ChEMBLAdapter,
     KnowledgeSource.DISGENET: DisGeNETAdapter,
     KnowledgeSource.OPENTARGETS: OpenTargetsAdapter,
     KnowledgeSource.REACTOME: ReactomeAdapter,
@@ -128,5 +132,7 @@ ADAPTER_CLASSES = {
     KnowledgeSource.STRING: STRINGAdapter,
 }
 
+if ChEMBLAdapter is not None:
+    ADAPTER_CLASSES[KnowledgeSource.CHEMBL] = ChEMBLAdapter
 if UMLSAdapter is not None:
     ADAPTER_CLASSES[KnowledgeSource.UMLS] = UMLSAdapter

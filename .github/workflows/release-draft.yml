@@ -1,0 +1,85 @@
+name: Draft Release
+
+# Runs on every push to `main` (i.e. every staging -> main promotion). Cuts
+# CHANGELOG.md's [Unreleased] section into a new dated version, commits that
+# back to main, and opens a DRAFT GitHub Release for it — nothing is
+# tagged or published yet. A maintainer reviews the draft (CHANGELOG diff,
+# version number) and clicks "Publish release" when ready; publishing it
+# creates the `vX.Y.Z` tag and fires publish.yml, which builds, verifies,
+# and — after the "pypi" environment's approval gate — uploads to PyPI.
+#
+# This is the intended manual approval point before anything public happens.
+# If [Unreleased] is empty (nothing merged since the last release), this
+# workflow is a no-op.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  # Never cancel a mid-flight release cut for a newer push; let it finish
+  # and let the next push queue behind it instead.
+  cancel-in-progress: false
+
+jobs:
+  draft-release:
+    runs-on: ubuntu-latest
+    if: github.repository == 'JonasHeinickeBio/biomedical-knowledge-lookup'
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # need full tag history to compute the next version
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Cut CHANGELOG.md, compute next version
+      id: cut
+      run: |
+        set +e
+        OUTPUT=$(python scripts/release/cut_changelog.py --github-output "$GITHUB_OUTPUT")
+        STATUS=$?
+        set -e
+        echo "$OUTPUT"
+        if [[ $STATUS -eq 2 ]]; then
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+        elif [[ $STATUS -ne 0 ]]; then
+          exit "$STATUS"
+        fi
+
+    - name: Commit the cut CHANGELOG.md to main
+      if: steps.cut.outputs.skip != 'true'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add CHANGELOG.md
+        git commit -m "chore(release): cut CHANGELOG for v${{ steps.cut.outputs.version }}"
+        git push origin HEAD:main
+
+    - name: Create draft release
+      if: steps.cut.outputs.skip != 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release create "v${{ steps.cut.outputs.version }}" \
+          --draft \
+          --title "v${{ steps.cut.outputs.version }}" \
+          --notes-file release_notes.md \
+          --target main
+
+    - name: Summary
+      if: steps.cut.outputs.skip != 'true'
+      run: |
+        echo "### Draft release v${{ steps.cut.outputs.version }} created" >> "$GITHUB_STEP_SUMMARY"
+        echo "Review it under the repo's Releases tab and click **Publish release** when ready." >> "$GITHUB_STEP_SUMMARY"
+        echo "Publishing creates the \`v${{ steps.cut.outputs.version }}\` tag and triggers \`publish.yml\` (build -> attest -> PyPI, gated by the \"pypi\" environment's approval)." >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Summary (nothing to release)
+      if: steps.cut.outputs.skip == 'true'
+      run: echo "Nothing merged into [Unreleased] since the last release — no draft created." >> "$GITHUB_STEP_SUMMARY"

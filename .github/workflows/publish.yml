@@ -33,6 +33,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        # Full history + tags — required for poetry-dynamic-versioning to
+        # compute the version; a shallow checkout silently yields 0.0.0.
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -51,16 +55,28 @@ jobs:
 
     - name: Validate version
       run: |
-        VERSION=$(poetry version --short)
+        # `poetry version` needs the poetry-dynamic-versioning *plugin* (not
+        # just the build backend) to see the computed version, so compute it
+        # the same way the PEP 517 backend does instead of installing that
+        # plugin here.
+        pip install --quiet poetry-core poetry-dynamic-versioning
+        VERSION=$(python -c "from pathlib import Path; import poetry_dynamic_versioning.patch as patch; patch.activate(); from poetry.core.factory import Factory; print(Factory().create_poetry(Path('.').resolve()).package.version)")
         echo "Package version: $VERSION"
+        echo "PKG_VERSION=$VERSION" >> "$GITHUB_ENV"
         # Ensure version matches the git tag for tag-triggered runs
         if [[ "${{ github.ref_type }}" == "tag" ]]; then
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           if [[ "$VERSION" != "$TAG_VERSION" ]]; then
-            echo "ERROR: Package version ($VERSION) does not match tag version ($TAG_VERSION)"
+            echo "ERROR: computed version ($VERSION) does not match tag ($TAG_VERSION)."
+            echo "This should not happen if the tag was pushed normally — check"
+            echo "fetch-depth: 0 above and that no local/dirty changes exist."
             exit 1
           fi
           echo "Version check: OK ($VERSION matches tag)"
+        elif [[ "$VERSION" == *.dev0+* || "$VERSION" == *dirty* ]]; then
+          # release-triggered runs build at the tag's commit, so this branch
+          # is expected only for workflow_dispatch test runs off a non-tag ref.
+          echo "::warning::Building a dev version ($VERSION) — not at a release tag."
         fi
 
     - name: Run lint checks
@@ -83,6 +99,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # required for poetry-dynamic-versioning, see verify job
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -179,7 +197,11 @@ jobs:
   github-release:
     runs-on: ubuntu-latest
     needs: [publish]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    # Normal path: a release is published (see release-draft.yml — it opens a
+    # human-reviewed draft on every push to main; publishing it is *the*
+    # release trigger). Fallback path: someone pushed a `vX.Y.Z` tag by hand
+    # with no release yet.
+    if: github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
 
     permissions:
       contents: write
@@ -193,10 +215,13 @@ jobs:
         name: dist-packages
         path: dist/
 
-    - name: Create GitHub Release
+    - name: Attach distributions to the release
       uses: softprops/action-gh-release@v2
       with:
-        body_path: CHANGELOG.md
+        # A release-published run already has real, human-reviewed notes
+        # (from the draft) — only attach the built artifacts there. A direct
+        # tag push has no release yet, so generate one from the CHANGELOG.
+        body_path: ${{ github.event_name == 'push' && 'CHANGELOG.md' || '' }}
+        generate_release_notes: ${{ github.event_name == 'push' }}
         files: dist/*
-        generate_release_notes: true
         make_latest: true

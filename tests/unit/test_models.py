@@ -268,3 +268,32 @@ class TestModelsExtended:
         merged = c1.merge_with(c2)
         assert KnowledgeSource.OLS in merged.source_data
         assert KnowledgeSource.CHEMBL in merged.source_data
+
+
+class TestConceptIdentifierCurieIntegration:
+    """Tests for ConceptIdentifier curies Reference integration."""
+
+    def test_to_curies_reference(self):
+        """Test converting ConceptIdentifier to curies Reference."""
+        pytest.importorskip("curies", reason="requires the 'curie' extra")
+        cid = ConceptIdentifier(source=KnowledgeSource.MONDO, identifier="0007254")
+        ref = cid.to_curies_reference()
+        assert ref is not None
+        assert ref.prefix == "mondo"
+        assert ref.identifier == "0007254"
+
+    def test_from_curies_reference(self):
+        """Test creating ConceptIdentifier from curies Reference."""
+        pytest.importorskip("curies", reason="requires the 'curie' extra")
+        from curies import Reference
+
+        ref = Reference(prefix="mondo", identifier="0007254")
+        cid = ConceptIdentifier.from_curies_reference(ref)
+        assert cid is not None
+        assert cid.source == "MONDO"
+        assert cid.identifier == "0007254"
+
+    def test_from_curies_reference_invalid(self):
+        """Test creating ConceptIdentifier from invalid Reference."""
+        cid = ConceptIdentifier.from_curies_reference(None)
+        assert cid is None

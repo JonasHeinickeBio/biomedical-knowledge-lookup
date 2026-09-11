@@ -12,6 +12,8 @@ import pytest
 from knowledge_lookup.adapters import ADAPTER_CLASSES
 from knowledge_lookup.models import KnowledgeSource
 
+from .conftest import skip_wikidata_in_ci
+
 # Sources that require API keys
 API_KEY_REQUIRED_SOURCES = {
     KnowledgeSource.BIOPORTAL,
@@ -107,6 +109,7 @@ async def test_ols_search(adapter, response_validator, warning_manager):
 @pytest.mark.functional
 @pytest.mark.network
 @pytest.mark.asyncio
+@skip_wikidata_in_ci
 async def test_wikidata_search(adapter, response_validator, warning_manager):
     """Test Wikidata search with real API call."""
     from knowledge_lookup.adapters.wikidata_adapter import WikidataAdapter

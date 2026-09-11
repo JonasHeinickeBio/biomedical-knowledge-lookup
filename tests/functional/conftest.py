@@ -77,6 +77,20 @@ def requires_network(func):
     return pytest.mark.network(func)
 
 
+# Wikidata's Query Service (WDQS) blocks the `SERVICE wikibase:mwapi`
+# federated-search pattern with a 403 from GitHub Actions / other datacenter
+# IP ranges (an anti-abuse measure on Wikidata's side, not a code bug — the
+# same call works fine from a residential IP; verified manually). Apply this
+# to any test that goes through WikidataAdapter.search_concepts().
+skip_wikidata_in_ci = pytest.mark.skipif(
+    os.environ.get("CI") == "true",
+    reason=(
+        "Wikidata's WDQS blocks the wikibase:mwapi federated search pattern "
+        "from CI/datacenter IPs (403 Forbidden); run locally to exercise this."
+    ),
+)
+
+
 def requires_api(func):
     """Decorator to mark test as requiring API key AND network access."""
     return pytest.mark.network(pytest.mark.api(func))

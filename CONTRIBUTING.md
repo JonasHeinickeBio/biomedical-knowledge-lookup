@@ -159,28 +159,63 @@ Brief description of changes
 
 ## 📦 Release Process
 
-### Creating a Release
+The version number is **not** hand-edited anywhere — `pyproject.toml`'s
+`version` is a placeholder (`0.0.0`) that `poetry-dynamic-versioning`
+overwrites at build time from the nearest `vX.Y.Z` git tag. There is nothing
+to bump manually; the pipeline below computes it for you.
 
-1. **Update version** in `pyproject.toml` and commit:
-   ```bash
-   poetry version <major|minor|patch>
-   git add pyproject.toml
-   git commit -m "chore: bump version to $(poetry version --short)"
-   ```
+### The pipeline: staging → main → draft release → publish
 
-2. **Update CHANGELOG.md** with the new version and release date.
+1. **Land your change on `staging`** (directly, or — for anything nontrivial
+   — via a PR into `staging`) with a `CHANGELOG.md` entry under
+   `## [Unreleased]`. A `### Added` entry signals a minor release; anything
+   else defaults to a patch release; a line starting with `- **Breaking`
+   signals a major release.
 
-3. **Push and tag**:
-   ```bash
-   git push origin main
-   git tag v$(poetry version --short)
-   git push origin v$(poetry version --short)
-   ```
+2. **`.github/workflows/staging.yml`** runs on every push to `staging`: the
+   full unit + integration matrix (Python 3.10–3.12), blocking `ruff`/`mypy`,
+   live-API functional tests, and a packaging smoke test (core-only install
+   + all-extras install). When everything passes, it opens (or updates) a
+   `staging → main` PR and turns on GitHub's native auto-merge for it —
+   `main`'s own required checks (from `tests.yml` on that PR) still have to
+   pass too.
 
-4. **Automated publishing**:
-   - The `publish.yml` workflow is triggered when a tag matching `v*` is pushed.
-   - It builds the package, runs checks, generates Sigstore provenance attestations, and publishes to PyPI using **Trusted Publishing (OIDC)** — no API tokens needed.
-   - A GitHub Release is automatically drafted with the distribution files attached.
+3. **`.github/workflows/release-draft.yml`** runs on every push to `main`
+   (i.e. every promotion): it cuts `[Unreleased]` into a new
+   `## [X.Y.Z] - <date>` section, commits that to `main`, and opens a
+   **draft** GitHub Release with that content as the notes. Nothing is
+   tagged or published yet. If `[Unreleased]` is empty, this is a no-op.
+
+4. **You review and publish the draft** (repo → Releases → the draft →
+   *Publish release*). This is the deliberate manual checkpoint before
+   anything reaches PyPI — check the CHANGELOG diff and version number here.
+
+5. **`.github/workflows/publish.yml`** fires on `release: published`
+   (creating the tag is automatic — GitHub does it when you publish a
+   release against a not-yet-existing tag name): it re-verifies, builds,
+   generates Sigstore provenance attestations, and publishes to PyPI using
+   **Trusted Publishing (OIDC)** — no API tokens needed — gated by the
+   `pypi` GitHub Environment's approval rule, if one is configured. Add a
+   required reviewer to that environment (Settings → Environments → pypi)
+   for an extra manual gate right before the upload itself.
+
+A tag pushed by hand (`git tag vX.Y.Z && git push origin vX.Y.Z`) still
+works too — `publish.yml` also triggers on `push: tags: v*` as a fallback,
+independent of the staging/draft-release flow above.
+
+### One-time repo setup this pipeline needs
+
+- **Settings → General → Pull Requests → "Allow auto-merge"**, so
+  `staging.yml`'s promotion step can enable auto-merge on the `staging →
+  main` PR it opens.
+- `main`'s branch protection (if any) needs to allow the `github-actions[bot]`
+  push that `release-draft.yml` makes to commit the cut CHANGELOG.
+- **Strongly recommended:** Settings → Environments → `pypi` → add yourself
+  (or the maintainer team) as a **required reviewer**. This is the current
+  PyPA-recommended hardening for OIDC trusted publishing from Actions — it
+  forces one explicit human approval on the actual PyPI upload step of
+  `publish.yml`, on top of the draft-release review in step 4. Without it,
+  step 4 (publishing the draft) is the *only* human checkpoint before PyPI.
 
 ### Manual TestPyPI Publishing
 

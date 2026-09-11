@@ -7,12 +7,14 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
+import os
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, TypeVar
 
 import aiohttp
 
+from .cache import get_cache
 from .models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 from .utils.retry_utils import (
     CircuitBreaker,
@@ -24,6 +26,14 @@ from .utils.retry_utils import (
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+
+def _skip_retry_sleep() -> bool:
+    """True while running under pytest (so error-path tests don't sleep for
+    seconds through the retry backoff). Set ``BKL_RETRY_SLEEP=1`` to force real
+    sleeps in a test."""
+    return bool(os.environ.get("PYTEST_CURRENT_TEST")) and not os.environ.get("BKL_RETRY_SLEEP")
+
 
 # Default per-category retry strategies shared by all adapter HTTP calls
 DEFAULT_RETRY_STRATEGIES: dict[ErrorCategory, tuple[int, float, float]] = {
@@ -40,6 +50,14 @@ class KnowledgeSourceAdapter(ABC):
     """
     Abstract base class for knowledge source adapters.
     Each adapter implements the interface to a specific knowledge source.
+
+    Resilience: HTTP adapters route requests through :meth:`_make_request` /
+    :meth:`_call_with_retry`, which apply category-aware retry with backoff and
+    the shared per-source circuit breaker. Adapters built on a third-party
+    library client (ChEMBL, EUtils/QuickGO/UniChem via ``bioservices``, Tyto,
+    UMLS, EBI-OLS) do **not** go through that path — they rely on the library's
+    own retry and should call :meth:`_notify_circuit_breaker` on failure if
+    breaker visibility matters for that source.
     """
 
     def __init__(self, config: LookupConfig):
@@ -47,6 +65,7 @@ class KnowledgeSourceAdapter(ABC):
         self.source = self.get_source()
         self.session: aiohttp.ClientSession | None = None
         self._circuit_breaker: CircuitBreaker | None = None
+        self._cache = get_cache()
 
     def set_circuit_breaker(self, cb: CircuitBreaker) -> None:
         """Attach a circuit breaker (injected by the orchestrator)."""
@@ -118,7 +137,7 @@ class KnowledgeSourceAdapter(ABC):
                     delay = factor * (2 ** (attempt - 1))
                     if max_delay > 0:
                         delay = min(delay, max_delay)
-                if delay > 0:
+                if delay > 0 and not _skip_retry_sleep():
                     await asyncio.sleep(delay)
 
         # Should never reach here (strategies bound attempts)
@@ -276,6 +295,29 @@ class KnowledgeSourceAdapter(ABC):
         """Close the adapter and cleanup resources."""
         if self.session and not self.session.closed:
             await self.session.close()
+
+    def _get_cache_key(self, operation: str, *params: Any) -> str:
+        """Generate a cache key for adapter operations."""
+        import hashlib
+
+        key_data = f"{self.source}:{operation}:{params}"
+        return hashlib.md5(key_data.encode()).hexdigest()
+
+    def _get_from_cache(self, key: str) -> Any | None:
+        """Get value from cache."""
+        return self._cache.get(key, namespace=str(self.source))
+
+    def _set_in_cache(self, key: str, value: Any, ttl: int = 3600) -> None:
+        """Set value in cache with TTL (default 1 hour)."""
+        self._cache.set(key, value, ttl=ttl, namespace=str(self.source))
+
+    def _has_in_cache(self, key: str) -> bool:
+        """Check if value exists in cache."""
+        return self._cache.get(key, namespace=str(self.source)) is not None
+
+    def clear_cache(self) -> None:
+        """Clear cache for this adapter's source."""
+        self._cache.clear(namespace=str(self.source))
 
     # ------------------------------------------------------------------
     # Thread-safe retry helper (for synchronous third-party libraries)

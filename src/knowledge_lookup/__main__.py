@@ -185,6 +185,219 @@ def search(
         raise typer.Exit(1) from e
 
 
+def _get_concept_umls_cui(concept) -> str | None:
+    """Extract UMLS CUI from a concept's identifiers."""
+    if not concept.identifiers:
+        return None
+    for ident in concept.identifiers:
+        if ident.source == KnowledgeSource.UMLS:
+            return ident.identifier
+    # Fallback: check source_data for umls_cui
+    if concept.source_data:
+        for val in concept.source_data.values():
+            if isinstance(val, dict) and "umls_cui" in val:
+                return val["umls_cui"]
+    return None
+
+
+@app.command()
+def workflow(
+    query: str = typer.Argument(..., help="Search query for the agent workflow"),
+    sources: list[str] | None = typer.Option(
+        None, "--source", "-s", help="Knowledge sources to search"
+    ),
+    limit: int = typer.Option(20, "--limit", "-l", help="Maximum results"),
+    export_formats: list[str] = typer.Option(
+        ["json"], "--format", "-f", help="Export formats (json, csv, ttl)"
+    ),
+    export_path: str | None = typer.Option(
+        None, "--export-path", "-e", help="Export directory path"
+    ),
+    max_iterations: int = typer.Option(3, "--max-iter", help="Maximum refinement rounds"),
+    auto_approve: float = typer.Option(0.8, "--auto-approve", help="Auto-approve threshold (0-1)"),
+    concept_types: list[str] | None = typer.Option(
+        None, "--type", "-t", help="Filter by concept types"
+    ),
+):
+    """
+    Run the intelligent agent workflow with review and approval.
+
+    Supports multi-term queries: separate terms by comma to search each
+    independently against all sources, then aggregate results.
+
+    Examples:
+      knowledge-lookup workflow "diabetes" --source OLS --source UMLS
+      knowledge-lookup workflow "Gliederschmerzen, body ache" --format json --format csv
+      knowledge-lookup workflow "BRCA1, BRCA2, TP53" --limit 10 --auto-approve 0.7
+
+    The workflow performs:
+    1. Parallel lookup across knowledge sources
+    2. Cross-source detail gathering (IDs, definitions, types, synonyms)
+    3. UMLS CUI enrichment
+    4. LLM-powered quality review (or rule-based fallback)
+    5. Human approval gate (or auto-approve if score is high enough)
+    6. Optional refinement rounds based on feedback
+    7. Export to configured formats with concept map output
+    """
+    from knowledge_lookup.agents import resume_workflow, run_workflow
+
+    console.print(f"[bold blue]Starting agent workflow for:[/bold blue] {query}")
+
+    async def _run():
+        return await run_workflow(
+            query=query,
+            max_results=limit,
+            sources=sources,
+            concept_types=concept_types,
+            export_formats=export_formats,
+            export_path=export_path,
+            max_iterations=max_iterations,
+            auto_approve_threshold=auto_approve,
+        )
+
+    result = asyncio.run(_run())
+
+    # Display concept map (term → CUI → ontology IDs → type)
+    concept_map = result.get("summary", {}).get("concept_map") or result.get("concept_map") or []
+    llm_explanation = (
+        result.get("summary", {}).get("llm_explanation") or result.get("llm_explanation") or ""
+    )
+
+    # Display review
+    if result.get("review_score") is not None:
+        score = result["review_score"]
+        color = "green" if score >= auto_approve else "yellow" if score >= 0.5 else "red"
+        console.print(f"\n[bold {color}]Review Score: {score:.2f}[/bold {color}]")
+        if result.get("review_summary"):
+            console.print(f"[dim]{result['review_summary']}[/dim]")
+
+    # Show concept map
+    if concept_map:
+        console.print("\n[bold]Concept Map:[/bold]")
+        map_table = Table()
+        map_table.add_column("Term", style="bold", no_wrap=True)
+        map_table.add_column("UMLS CUI", style="magenta")
+        map_table.add_column("Ontology IDs", style="cyan")
+        map_table.add_column("Type", style="yellow")
+        for entry in concept_map[:15]:
+            term = entry.get("term", "")
+            cui = entry.get("umls_cui", "") or "—"
+            ids = ", ".join(entry.get("ontology_ids", [])[:5])
+            if len(entry.get("ontology_ids", [])) > 5:
+                ids += f" … (+{len(entry['ontology_ids']) - 5} more)"
+            ptype = entry.get("primary_type", "") or "—"
+            map_table.add_row(term, cui, ids, ptype)
+        console.print(map_table)
+
+    # Show LLM explanation
+    if llm_explanation:
+        console.print("\n[bold]LLM Explanation:[/bold]")
+        console.print(f"{llm_explanation[:500]}{'…' if len(llm_explanation) > 500 else ''}")
+
+    # Show strengths/weaknesses
+    if result.get("review_strengths"):
+        console.print("\n[bold green]Strengths:[/bold green]")
+        for s in result["review_strengths"]:
+            console.print(f"  [green]✓[/green] {s}")
+    if result.get("review_weaknesses"):
+        console.print("\n[bold red]Weaknesses:[/bold red]")
+        for w in result["review_weaknesses"]:
+            console.print(f"  [red]✗[/red] {w}")
+    if result.get("review_suggestions"):
+        console.print("\n[bold yellow]Suggestions:[/bold yellow]")
+        for s in result["review_suggestions"]:
+            console.print(f"  [yellow]→[/yellow] {s}")
+
+    # Check if paused for approval
+    if result.get("status") == "awaiting_approval":
+        console.print("\n[bold yellow]Workflow paused for approval.[/bold yellow]")
+        console.print(f"Thread ID: {result['thread_id']}")
+
+        # Interactive approval
+        approve = typer.confirm("Do you approve these results?")
+        if approve:
+            decision = {"approved": True}
+        else:
+            refine = typer.confirm("Would you like to refine the search?")
+            if refine:
+                notes = typer.prompt("Enter refinement notes (or press Enter to skip)", default="")
+                decision = {"approved": False, "refine": True, "notes": notes}
+            else:
+                decision = {"approved": False, "refine": False}
+
+        async def _resume():
+            return await resume_workflow(result["thread_id"], decision)
+
+        final = asyncio.run(_resume())
+        result = final
+
+    # Display final results
+    if result.get("status") == "completed":
+        console.print("\n[bold green]Workflow completed![/bold green]")
+
+        # Show concept map in final output
+        concept_map = result.get("concept_map") or []
+        if concept_map:
+            console.print(f"[bold]Concept Map ({len(concept_map)} concepts):[/bold]")
+            map_table = Table()
+            map_table.add_column("#", style="dim")
+            map_table.add_column("Term", style="bold")
+            map_table.add_column("UMLS CUI", style="magenta")
+            map_table.add_column("Ontology IDs", style="cyan")
+            map_table.add_column("Type", style="yellow")
+            for i, entry in enumerate(concept_map, 1):
+                term = entry.get("term", "")
+                cui = entry.get("umls_cui", "") or "—"
+                ids = ", ".join(entry.get("ontology_ids", [])[:6])
+                if len(entry.get("ontology_ids", [])) > 6:
+                    ids += f" … (+{len(entry['ontology_ids']) - 6} more)"
+                ptype = entry.get("primary_type", "") or "—"
+                map_table.add_row(str(i), term, cui, ids, ptype)
+            console.print(map_table)
+        else:
+            res = result.get("result")
+            if res and res.concepts:
+                console.print(f"[bold]Results: {len(res.concepts)} concepts[/bold]")
+                table = Table()
+                table.add_column("ID", style="cyan")
+                table.add_column("Label", style="bold")
+                table.add_column("UMLS CUI", style="magenta")
+                table.add_column("Confidence", style="green")
+                for c in res.concepts[:10]:
+                    umls_cui = _get_concept_umls_cui(c)
+                    table.add_row(
+                        c.primary_id,
+                        c.primary_label or "",
+                        umls_cui or "-",
+                        f"{c.confidence_score:.2f}" if c.confidence_score else "",
+                    )
+                console.print(table)
+
+        # Show LLM explanation
+        llm_explanation = result.get("llm_explanation") or ""
+        if llm_explanation:
+            console.print("\n[bold]LLM Explanation:[/bold]")
+            console.print(f"{llm_explanation[:800]}{'…' if len(llm_explanation) > 800 else ''}")
+
+        if result.get("export_paths"):
+            console.print("[bold]Exported to:[/bold]")
+            for path in result["export_paths"]:
+                console.print(f"  [green]{path}[/green]")
+    elif result.get("status") == "failed":
+        console.print("\n[bold red]Workflow failed![/bold red]")
+        for err in result.get("errors", []):
+            console.print(f"  [red]{err}[/red]")
+
+    # Show steps
+    if result.get("steps"):
+        console.print("\n[bold]Workflow steps:[/bold]")
+        for step in result["steps"]:
+            console.print(
+                f"  [cyan]{step.get('agent', '?')}[/cyan] - "
+                f"{step.get('action', '?')}: {step.get('detail', '')}"
+            )
+
+
 @app.command()
 def sources():
     """

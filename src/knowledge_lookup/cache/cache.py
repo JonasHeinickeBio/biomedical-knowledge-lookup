@@ -3,6 +3,13 @@ Professional Caching System for Knowledge Lookup Adapters
 
 Provides memory and disk caching with TTL support, thread safety, and monitoring.
 Designed for high-performance API integrations with configurable cache strategies.
+
+## Adapter Integration
+
+All adapters inherit `KnowledgeSourceAdapter` which provides built-in cache integration.
+
+Adapter methods use `_get_cache_key()`, `_get_from_cache()`, `_set_in_cache()`, and `clear_cache()`
+for automatic caching support with configurable TTL.
 """
 
 import hashlib

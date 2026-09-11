@@ -50,7 +50,7 @@ class _SourceList(list):
 
 
 class ConceptIdentifier(_ConceptIdentifier):
-    """Backward-compatible wrapper with a human-friendly ``__str__``."""
+    """Backward-compatible wrapper with a human-friendly ``__str__`` and curies support."""
 
     def __str__(self) -> str:
         src = self.source
@@ -61,6 +61,39 @@ class ConceptIdentifier(_ConceptIdentifier):
         else:
             src_str = str(src).lower()
         return f"{src_str}:{self.identifier}"
+
+    def to_curies_reference(self) -> object | None:
+        """Convert to curies Reference model for normalized CURIE handling."""
+        try:
+            from curies import Reference
+
+            source = self.source
+            if isinstance(source, _KnowledgeSource):
+                source_str = source.value.lower()
+            elif isinstance(source, str):
+                source_str = source.lower()
+            else:
+                source_str = str(source).lower()
+            return Reference(prefix=source_str, identifier=self.identifier)
+        except Exception:
+            return None
+
+    @classmethod
+    def from_curies_reference(cls, reference: object) -> ConceptIdentifier | None:
+        """Create ConceptIdentifier from curies Reference."""
+        try:
+            prefix = getattr(reference, "prefix", None)
+            identifier = getattr(reference, "identifier", None)
+            if prefix and identifier:
+                return cls(
+                    source=prefix.upper(),
+                    identifier=identifier,
+                    label=None,
+                    url=None,
+                )
+        except Exception:
+            pass
+        return None
 
 
 class ConceptMapping(_ConceptMapping):
@@ -383,6 +416,7 @@ class LookupResult(_LookupResult):
     """
 
     _errors_dict: dict[str, str] | None = None
+    _source_health_dict: dict | None = None
 
     def __init__(self, /, **data: Any) -> None:
         # Backward-compat: default None fields to sensible defaults
@@ -396,18 +430,36 @@ class LookupResult(_LookupResult):
             if data.get(field) is None:
                 data[field] = []
         raw_errors = data.pop("errors", None)
+        raw_sh = data.pop("source_health", None)
         super().__init__(**data)
         if isinstance(raw_errors, dict):
             object.__setattr__(self, "_errors_dict", raw_errors)
         elif raw_errors is None:
             object.__setattr__(self, "_errors_dict", {})
+        if isinstance(raw_sh, dict):
+            object.__setattr__(self, "_source_health_dict", raw_sh)
+        elif raw_sh is None:
+            object.__setattr__(self, "_source_health_dict", {})
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "source_health" and isinstance(value, dict):
+            target = object.__getattribute__(self, "_source_health_dict")
+            target.clear()
+            target.update(value)
+            return
+        if name == "errors" and isinstance(value, dict):
+            target = object.__getattribute__(self, "_errors_dict")
+            target.clear()
+            target.update(value)
+            return
+        super().__setattr__(name, value)
 
     def __getattribute__(self, name: str) -> Any:
         if name == "errors":
             errors_dict = object.__getattribute__(self, "_errors_dict")
             return errors_dict or {}
         if name == "source_health":
-            sh = object.__getattribute__(self, "source_health")
+            sh = object.__getattribute__(self, "_source_health_dict")
             return sh if sh is not None else {}
         if name in ("sources_succeeded", "sources_failed"):
             raw = object.__getattribute__(self, name)

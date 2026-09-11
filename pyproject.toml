@@ -1,31 +1,88 @@
 [project]
 name = "biomedical-knowledge-lookup"
-version = "1.1.0"
 description = "Unified biological concept lookup across 29+ biomedical knowledge sources including BioPortal, OLS, UMLS, ChEMBL, DisGeNET, and more"
 authors = [
-    {name = "Jonas Heinicke", email = "jonas.heinicke@helmholtz-hzi.de"}
+    { name = "Jonas Heinicke", email = "jonas.heinicke@helmholtz-hzi.de" },
 ]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.10"
-dynamic = ["dependencies", "optional-dependencies", "scripts", "classifiers"]
-urls = {Documentation = "https://jonasheinickeBio.github.io/biomedical-knowledge-lookup/", "Issue Tracker" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/issues", "Changelog" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/blob/main/CHANGELOG.md"}
+requires-python = ">=3.10,<4.0"
+# "version" is computed by poetry-dynamic-versioning from the nearest git tag
+# (see [tool.poetry-dynamic-versioning] below and the [tool.poetry] version
+# placeholder it reads/overwrites) — do not set it statically here.
+dynamic = ["version", "dependencies", "classifiers"]
+urls = { Documentation = "https://jonasheinickeBio.github.io/biomedical-knowledge-lookup/", "Issue Tracker" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/issues", "Changelog" = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/blob/main/CHANGELOG.md" }
+
+# Optional feature groups. The core install pulls none of these; each dependency
+# guards its own import so `import knowledge_lookup` works without them and the
+# matching adapter/feature is simply disabled when absent.
+
+[project.optional-dependencies]
+export = ["pandas>=2.0.0,<3.0.0"]                       # export -> DataFrame / Excel
+chembl = ["chembl-webresource-client>=0.10.9,<0.11.0"]  # ChEMBL adapter
+bioservices = ["bioservices>=1.16.0,<2.0.0"]            # EUtils / QuickGO / UniChem adapters
+tyto = ["tyto>=1.4,<2.0"]                               # Tyto adapter (owlready2)
+agents = ["langgraph>=1.2.7,<2.0.0"]                    # LLM agent workflow (knowledge_lookup.agents)
+umls = ["umls-python-client>=1.2.0,<2.0.0"]             # UMLS adapter
+curie = ["bioregistry>=0.11", "curies>=0.7", "pyobo>=0.10"]  # CURIE validation / normalization
+all = [
+    "pandas>=2.0.0,<3.0.0",
+    "chembl-webresource-client>=0.10.9,<0.11.0",
+    "bioservices>=1.16.0,<2.0.0",
+    "tyto>=1.4,<2.0",
+    "langgraph>=1.2.7,<2.0.0",
+    "umls-python-client>=1.2.0,<2.0.0",
+    "bioregistry>=0.11",
+    "curies>=0.7",
+    "pyobo>=0.10",
+]
 
 [project.scripts]
 knowledge-lookup = "knowledge_lookup.__main__:app"
-
-[project.optional-dependencies]
-umls = ["umls-python-client>=1.2.0,<2.0.0"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0"]
 build-backend = "poetry_dynamic_versioning.backend"
 
+# Derives the package version from the nearest `vX.Y.Z` git tag (e.g. exactly
+# "1.2.0" when built at that tag, "1.2.0.post3+abcdef1" for 3 commits past it).
+# Also substitutes `__version__` in src/knowledge_lookup/__init__.py at build
+# time so the installed package reports the same version. `poetry version` /
+# `poetry build` need the `poetry-dynamic-versioning` *plugin* installed
+# (`poetry self add poetry-dynamic-versioning`) to see this; PEP 517 builds
+# (`pip install .`, `python -m build`) pick it up automatically via
+# [build-system], no plugin required.
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+
+[tool.poetry-dynamic-versioning.substitution]
+# Default glob patterns don't reach 2 directories deep (src/knowledge_lookup/),
+# so __version__ there is never substituted without listing it explicitly.
+files = ["src/knowledge_lookup/__init__.py"]
+
 [tool.poetry]
-name = "biomedical-knowledge-lookup"
+# Placeholder — poetry-dynamic-versioning reads/overwrites this (not
+# [project].version) at build time. Never ships as-is; do not hand-edit for
+# a release. See [tool.poetry-dynamic-versioning] above.
 packages = [{ include = "knowledge_lookup", from = "src" }]
 include = ["src/knowledge_lookup/py.typed"]
-version = "1.1.0"
+version = "0.0.0"
+
+[tool.poetry.dependencies]
+# core only — needed for `import knowledge_lookup` and the HTTP-only adapters.
+# Optional feature groups live in [project.optional-dependencies] above.
+python = ">=3.10,<4.0"
+aiohttp = "^3.9.0"
+requests = "^2.31.0"
+rdflib = "^7.0.0"
+pydantic = "^2.0.0"
+tenacity = "^8.2.0"
+backoff = "^2.2.0"
+python-dotenv = "^1.0.0"
+rich = "^13.0.0"
+typer = ">=0.12.0,<1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
@@ -39,34 +96,20 @@ ipykernel = "^6.0.0"
 pre-commit = "^4.5.1"
 linkml = "^1.8.0"
 linkml-runtime = "^1.8.0"
+setuptools = "^82.0.1"
+# dev installs everything so the full test suite runs
+pandas = "^2.0.0"
+chembl-webresource-client = "^0.10.9"
+bioservices = "^1.16.0"
+tyto = "^1.4"
+langgraph = "^1.2.7"
+bioregistry = ">=0.11"
+curies = ">=0.7"
+pyobo = ">=0.10"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^7.0.0"
 sphinx-rtd-theme = "^2.0.0"
-
-[tool.poetry.dependencies]
-python = "^3.10"
-aiohttp = "^3.9.0"
-requests = "^2.31.0"
-rdflib = "^7.0.0"
-pandas = "^2.0.0"
-pydantic = "^2.0.0"
-tenacity = "^8.2.0"
-backoff = "^2.2.0"
-python-dotenv = "^1.0.0"
-rich = "^13.0.0"
-typer = ">=0.12.0,<1.0.0"
-chembl-webresource-client = "^0.10.9"
-umls-python-client = { version = "^1.2.0", optional = true }
-tyto = "^1.4"
-bioservices = "^1.16.0"
-setuptools = "^82.0.1"
-
-[tool.poetry.extras]
-umls = ["umls-python-client"]
-
-[line-length]
-line-length = 99
 
 [tool.ruff]
 line-length = 99
@@ -83,9 +126,9 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "B008", # do not perform function calls in argument defaults
-    "C901", # too complex
-    "E501", # line too long (enforced by ruff format, not check)
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "E501",  # line too long (enforced by ruff format, not check)
     "UP007", # use X | Y for type annotations (generated model compatibility)
 ]
 

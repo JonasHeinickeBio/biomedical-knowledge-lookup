@@ -85,7 +85,10 @@ class TestTimingFunctions:
     """Test suite for timing functions and decorators."""
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(sys.platform == "win32", reason="Windows timer resolution too low for precise timing assertions")
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Windows timer resolution too low for precise timing assertions",
+    )
     async def test_time_async_operation(self):
         """Test timing an async operation."""
 
