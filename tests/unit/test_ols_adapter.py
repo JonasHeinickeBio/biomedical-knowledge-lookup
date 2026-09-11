@@ -329,7 +329,7 @@ class TestOLSConvertResult:
         result = {
             "iri": "http://example.com/1",
             "label": "Test",
-            "ontology_name": "chebi",
+            "ontology_name": "drugbank",
         }
         concept = adapter._convert_ols_result_to_concept(result)
         assert concept.concept_type == ConceptType.DRUG
@@ -352,7 +352,7 @@ class TestOLSConvertResult:
             "ontology_name": "uberon",
         }
         concept = adapter._convert_ols_result_to_concept(result)
-        assert concept.concept_type == ConceptType.ANATOMY
+        assert concept.concept_type == ConceptType.ANATOMICAL_ENTITY
 
 
 class TestOLSConvertConcept:
@@ -468,11 +468,17 @@ class TestOLSDetermineConceptType:
     def test_disease_ordo(self, adapter):
         assert adapter._determine_concept_type_from_ontology("ordo") == ConceptType.DISEASE
 
-    def test_disease_hp(self, adapter):
-        assert adapter._determine_concept_type_from_ontology("hp") == ConceptType.DISEASE
+    def test_phenotype_hp(self, adapter):
+        # "hp" (Human Phenotype Ontology) is a phenotype ontology, not a
+        # disease one — it used to be listed in both branches, with the
+        # disease branch shadowing the phenotype one since it came first.
+        assert adapter._determine_concept_type_from_ontology("hp") == ConceptType.PHENOTYPE
 
-    def test_drug_chebi(self, adapter):
-        assert adapter._determine_concept_type_from_ontology("chebi") == ConceptType.DRUG
+    def test_chemical_chebi(self, adapter):
+        # ChEBI ("Chemical Entities of Biological Interest") is the chemical
+        # ontology; it used to be shadowed by an earlier "chebi" -> DRUG
+        # branch and never actually reachable.
+        assert adapter._determine_concept_type_from_ontology("chebi") == ConceptType.CHEMICAL
 
     def test_drug_drugbank(self, adapter):
         assert adapter._determine_concept_type_from_ontology("drugbank") == ConceptType.DRUG
@@ -487,13 +493,18 @@ class TestOLSDetermineConceptType:
         assert adapter._determine_concept_type_from_ontology("pr") == ConceptType.GENE
 
     def test_anatomy_uberon(self, adapter):
-        assert adapter._determine_concept_type_from_ontology("uberon") == ConceptType.ANATOMY
+        assert (
+            adapter._determine_concept_type_from_ontology("uberon")
+            == ConceptType.ANATOMICAL_ENTITY
+        )
 
     def test_anatomy_fma(self, adapter):
-        assert adapter._determine_concept_type_from_ontology("fma") == ConceptType.ANATOMY
+        assert (
+            adapter._determine_concept_type_from_ontology("fma") == ConceptType.ANATOMICAL_ENTITY
+        )
 
     def test_anatomy_ma(self, adapter):
-        assert adapter._determine_concept_type_from_ontology("ma") == ConceptType.ANATOMY
+        assert adapter._determine_concept_type_from_ontology("ma") == ConceptType.ANATOMICAL_ENTITY
 
     def test_phenotype_mp(self, adapter):
         assert adapter._determine_concept_type_from_ontology("mp") == ConceptType.PHENOTYPE

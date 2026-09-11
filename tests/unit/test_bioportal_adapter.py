@@ -334,9 +334,14 @@ class TestBioPortalDetermineConceptType:
             == ConceptType.DISEASE
         )
 
-    def test_drug_type_chebi(self, adapter_with_api_key):
+    def test_chemical_type_chebi(self, adapter_with_api_key):
+        # ChEBI ("Chemical Entities of Biological Interest") is the chemical
+        # ontology, not the drug-specific one (DrugBank) — it used to be
+        # listed alongside drugbank in the drug branch, which shadowed the
+        # separate chebi -> CHEMICAL branch and made it unreachable.
         assert (
-            adapter_with_api_key._determine_concept_type_from_ontology("CHEBI") == ConceptType.DRUG
+            adapter_with_api_key._determine_concept_type_from_ontology("CHEBI")
+            == ConceptType.CHEMICAL
         )
 
     def test_drug_type_drugbank(self, adapter_with_api_key):
@@ -354,13 +359,13 @@ class TestBioPortalDetermineConceptType:
     def test_anatomy_type_uberon(self, adapter_with_api_key):
         assert (
             adapter_with_api_key._determine_concept_type_from_ontology("UBERON")
-            == ConceptType.ANATOMY
+            == ConceptType.ANATOMICAL_ENTITY
         )
 
     def test_anatomy_type_fma(self, adapter_with_api_key):
         assert (
             adapter_with_api_key._determine_concept_type_from_ontology("FMA")
-            == ConceptType.ANATOMY
+            == ConceptType.ANATOMICAL_ENTITY
         )
 
     def test_phenotype_type_hp(self, adapter_with_api_key):

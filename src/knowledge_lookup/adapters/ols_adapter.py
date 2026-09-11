@@ -206,19 +206,30 @@ class OLSAdapter(KnowledgeSourceAdapter):
         """Determine concept type from OLS ontology name."""
         ontology_lower = ontology.lower()
 
-        # Map OLS ontologies to concept types
-        if ontology_lower in ["doid", "mondo", "ordo", "hp"]:
+        # Map OLS ontologies to concept types. Order matters: an ontology
+        # name must appear in exactly one branch, or an earlier branch
+        # silently shadows a later one (chebi -> DRUG used to shadow the
+        # chebi -> CHEMICAL branch below it, so CentralKnowledgeLookup's
+        # concept_types=[ConceptType.CHEMICAL] filter never matched any OLS
+        # result). ChEBI ("Chemical Entities of Biological Interest") is the
+        # chemical-structure ontology; DrugBank is the drug-specific one —
+        # they're related but not interchangeable.
+        if ontology_lower in ["doid", "mondo", "ordo"]:
             return ConceptType.DISEASE
-        elif ontology_lower in ["chebi", "drugbank"]:
+        elif ontology_lower == "drugbank":
             return ConceptType.DRUG
+        elif ontology_lower == "chebi":
+            return ConceptType.CHEMICAL
         elif ontology_lower in ["go", "so", "pr"]:
             return ConceptType.GENE
         elif ontology_lower in ["uberon", "fma", "ma"]:
-            return ConceptType.ANATOMY
+            # ANATOMICAL_ENTITY, not the separate (differently-scoped)
+            # ConceptType.ANATOMY member — CentralKnowledgeLookup's
+            # concept_types filter compares by exact enum value, so the
+            # wrong member here means zero matches, not a near miss.
+            return ConceptType.ANATOMICAL_ENTITY
         elif ontology_lower in ["hp", "mp", "zp"]:
             return ConceptType.PHENOTYPE
-        elif ontology_lower in ["chebi"]:
-            return ConceptType.CHEMICAL
         elif ontology_lower in ["ncbitaxon"]:
             return ConceptType.ORGANISM
 

@@ -204,18 +204,26 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
         """Determine concept type from BioPortal ontology."""
         ontology_lower = ontology.lower()
 
-        # Map common BioPortal ontologies to concept types
+        # Map common BioPortal ontologies to concept types. "chebi" must not
+        # appear in the drug branch: it used to be checked before (and so
+        # always won over) the later chebi -> CHEMICAL branch below, which
+        # was consequently dead code (same bug as ols_adapter.py's identical
+        # mapping — ChEBI is the chemical-structure ontology, DrugBank the
+        # drug-specific one, and they aren't interchangeable).
         if any(disease_ont in ontology_lower for disease_ont in ["doid", "mondo", "ordo"]):
             return ConceptType.DISEASE
-        elif any(drug_ont in ontology_lower for drug_ont in ["chebi", "drugbank"]):
+        elif "drugbank" in ontology_lower:
             return ConceptType.DRUG
+        elif "chebi" in ontology_lower:
+            return ConceptType.CHEMICAL
         elif any(gene_ont in ontology_lower for gene_ont in ["go", "so"]):
             return ConceptType.GENE
         elif any(anatomy_ont in ontology_lower for anatomy_ont in ["uberon", "fma"]):
-            return ConceptType.ANATOMY
+            # ANATOMICAL_ENTITY, not the separate ConceptType.ANATOMY member
+            # — CentralKnowledgeLookup's concept_types filter compares by
+            # exact enum value, so the wrong member means zero matches.
+            return ConceptType.ANATOMICAL_ENTITY
         elif any(phenotype_ont in ontology_lower for phenotype_ont in ["hp", "mp"]):
             return ConceptType.PHENOTYPE
-        elif any(chem_ont in ontology_lower for chem_ont in ["chebi"]):
-            return ConceptType.CHEMICAL
 
         return ConceptType.UNKNOWN

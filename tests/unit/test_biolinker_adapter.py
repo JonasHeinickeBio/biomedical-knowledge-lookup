@@ -461,16 +461,27 @@ class TestBioLinkerAdapter:
         assert adapter._map_semantic_type_to_concept_type(["pathway"]) == ConceptType.PATHWAY
 
     def test_map_semantic_type_anatomy(self, adapter):
-        assert adapter._map_semantic_type_to_concept_type(["anatomy"]) == ConceptType.ANATOMY
+        assert (
+            adapter._map_semantic_type_to_concept_type(["anatomy"])
+            == ConceptType.ANATOMICAL_ENTITY
+        )
+        assert (
+            adapter._map_semantic_type_to_concept_type(["organ"]) == ConceptType.ANATOMICAL_ENTITY
+        )
 
     def test_map_semantic_type_phenotype(self, adapter):
         assert adapter._map_semantic_type_to_concept_type(["phenotype"]) == ConceptType.PHENOTYPE
 
     def test_map_semantic_type_chemical(self, adapter):
         assert adapter._map_semantic_type_to_concept_type(["chemical"]) == ConceptType.CHEMICAL
+        # "organic" contains "organ" as a substring — used to be
+        # misclassified as anatomy before that branch was tightened to a
+        # \borgans?\b word-boundary match.
+        assert adapter._map_semantic_type_to_concept_type(["organic"]) == ConceptType.CHEMICAL
 
     def test_map_semantic_type_organism(self, adapter):
-        assert adapter._map_semantic_type_to_concept_type(["organism"]) == ConceptType.ANATOMY
+        # "organism" contains "organ" as a substring too — same fix.
+        assert adapter._map_semantic_type_to_concept_type(["organism"]) == ConceptType.ORGANISM
         assert adapter._map_semantic_type_to_concept_type(["species"]) == ConceptType.ORGANISM
 
     def test_map_semantic_type_procedure(self, adapter):

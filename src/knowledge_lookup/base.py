@@ -400,7 +400,10 @@ class KnowledgeSourceAdapter(ABC):
 
         # Anatomy detection
         if any(term in semantic_types for term in ["anatomy", "anatomical", "body part", "organ"]):
-            return ConceptType.ANATOMY
+            # ANATOMICAL_ENTITY, not the separate ConceptType.ANATOMY member
+            # — see the identical fix in ols_adapter.py for why this matters
+            # to CentralKnowledgeLookup's concept_types filter.
+            return ConceptType.ANATOMICAL_ENTITY
 
         # Procedure detection
         if any(term in semantic_types for term in ["procedure", "therapy", "treatment"]):
