@@ -24,6 +24,21 @@ name: Draft Release
 # If [Unreleased] is empty (nothing merged since the last release), this
 # workflow is a no-op.
 #
+# The CHANGELOG cut is committed on a new `release/vX.Y.Z` branch and landed
+# via its own auto-merged PR, NOT pushed straight to main — main has a
+# repository ruleset requiring every change go through a PR, which rejects
+# even an `actions/checkout` + `git push origin HEAD:main` from this
+# workflow's own token (confirmed: GH013, "Changes must be made through a
+# pull request"). The draft release is created targeting that release
+# branch's commit directly, in this same run, rather than waiting for the
+# release PR to merge and re-trigger this workflow — by the time that
+# second run happened, [Unreleased] would already be empty (this run just
+# cut it) and it would see nothing to release. Targeting the branch works
+# because a git ref only needs to exist *once*, at draft-creation time, for
+# `gh release create`'s target commit to resolve — whether or not the
+# branch itself still exists (or has since merged into main) by the time
+# someone actually publishes the draft is irrelevant.
+#
 # `workflow_dispatch` is a manual fallback: GitHub only starts honoring a
 # *newly added* trigger once the workflow file that defines it exists on the
 # default branch — the very first PR that adds the `pull_request: closed`
@@ -42,6 +57,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}
@@ -81,14 +97,30 @@ jobs:
           exit "$STATUS"
         fi
 
-    - name: Commit the cut CHANGELOG.md to main
+    - name: Commit the cut CHANGELOG.md on a release branch, open a PR
       if: steps.cut.outputs.skip != 'true'
+      id: branch
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        set -euo pipefail
+        BRANCH="release/v${{ steps.cut.outputs.version }}"
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git checkout -b "$BRANCH"
         git add CHANGELOG.md
         git commit -m "chore(release): cut CHANGELOG for v${{ steps.cut.outputs.version }}"
-        git push origin HEAD:main
+        git push origin "$BRANCH"
+        echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+        PR_NUMBER=$(gh pr list --base main --head "$BRANCH" --json number --jq '.[0].number // empty')
+        if [[ -z "$PR_NUMBER" ]]; then
+          gh pr create --base main --head "$BRANCH" \
+            --title "chore(release): v${{ steps.cut.outputs.version }}" \
+            --body "Lands the CHANGELOG cut for v${{ steps.cut.outputs.version }} on main. Separate from actually publishing the release — see the draft release this same workflow run creates, targeting this branch's commit directly."
+          PR_NUMBER=$(gh pr list --base main --head "$BRANCH" --json number --jq '.[0].number')
+        fi
+        gh pr merge "$PR_NUMBER" --auto --merge || echo "::warning::Could not enable auto-merge on the release PR #$PR_NUMBER (branch $BRANCH) — merge it manually so main matches the draft release's CHANGELOG."
 
     - name: Create draft release
       if: steps.cut.outputs.skip != 'true'
@@ -99,7 +131,7 @@ jobs:
           --draft \
           --title "v${{ steps.cut.outputs.version }}" \
           --notes-file release_notes.md \
-          --target main
+          --target "${{ steps.branch.outputs.branch }}"
 
     - name: Summary
       if: steps.cut.outputs.skip != 'true'

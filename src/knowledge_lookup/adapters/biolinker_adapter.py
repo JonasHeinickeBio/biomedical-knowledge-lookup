@@ -7,6 +7,7 @@ Integrates with TIB BioLinker AI API for entity and relation extraction.
 import asyncio
 import json
 import logging
+import re
 from typing import Any
 
 from ..base import KnowledgeSourceAdapter
@@ -450,14 +451,22 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
             return ConceptType.PROTEIN
         elif any("pathway" in t for t in types_lower):
             return ConceptType.PATHWAY
-        elif any("anatomy" in t or "body part" in t or "organ" in t for t in types_lower):
-            return ConceptType.ANATOMY
+        elif any("organism" in t or "species" in t for t in types_lower):
+            return ConceptType.ORGANISM
+        elif any(
+            "anatomy" in t or "body part" in t or re.search(r"\borgans?\b", t) for t in types_lower
+        ):
+            # \borgans?\b, not a plain "organ" in t substring check: that
+            # matched "organism" and "organic" too (both contain "organ"),
+            # shadowing the ORGANISM and CHEMICAL branches for those inputs.
+            # ANATOMICAL_ENTITY, not the separate ConceptType.ANATOMY member
+            # — see the identical fix in ols_adapter.py for why this matters
+            # to CentralKnowledgeLookup's concept_types filter.
+            return ConceptType.ANATOMICAL_ENTITY
         elif any("phenotype" in t for t in types_lower):
             return ConceptType.PHENOTYPE
         elif any("chemical" in t or "compound" in t or "organic" in t for t in types_lower):
             return ConceptType.CHEMICAL
-        elif any("organism" in t or "species" in t for t in types_lower):
-            return ConceptType.ORGANISM
         elif any("procedure" in t or "therapeutic" in t for t in types_lower):
             return ConceptType.PROCEDURE
         else:

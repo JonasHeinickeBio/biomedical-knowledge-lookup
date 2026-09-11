@@ -8,6 +8,8 @@ import pytest
 from knowledge_lookup.adapters.pubchem_adapter import PubChemAdapter
 from knowledge_lookup.models import KnowledgeSource
 
+from .conftest import search_with_retry
+
 pytestmark = [pytest.mark.functional, pytest.mark.network, pytest.mark.asyncio]
 
 
@@ -24,7 +26,7 @@ async def test_pubchem_search_aspirin(adapter, response_validator, warning_manag
     adapter = PubChemAdapter(adapter.config)
 
     # Search for aspirin
-    results = await adapter.search_concepts("aspirin", limit=5)
+    results = await search_with_retry(adapter, "aspirin", limit=5)
 
     # Validate results
     assert isinstance(results, list), "Expected list of results"
@@ -64,7 +66,7 @@ async def test_pubchem_search_metformin(adapter, response_validator, warning_man
     """Test PubChem search for metformin."""
     adapter = PubChemAdapter(adapter.config)
 
-    results = await adapter.search_concepts("metformin", limit=3)
+    results = await search_with_retry(adapter, "metformin", limit=3)
 
     assert isinstance(results, list)
     assert len(results) >= 1
@@ -75,7 +77,7 @@ async def test_pubchem_search_ibuprofen(adapter, response_validator, warning_man
     """Test PubChem search for ibuprofen."""
     adapter = PubChemAdapter(adapter.config)
 
-    results = await adapter.search_concepts("ibuprofen", limit=3)
+    results = await search_with_retry(adapter, "ibuprofen", limit=3)
 
     assert isinstance(results, list)
     assert len(results) >= 1

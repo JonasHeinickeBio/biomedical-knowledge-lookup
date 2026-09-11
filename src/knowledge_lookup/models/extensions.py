@@ -31,6 +31,9 @@ from .biomedical_knowledge_models import (
     LookupResult as _LookupResult,
 )
 from .biomedical_knowledge_models import (
+    SourceHealth as _SourceHealth,
+)
+from .biomedical_knowledge_models import (
     UnifiedConcept as _UnifiedConcept,
 )
 
@@ -212,6 +215,32 @@ class UnifiedConcept(_UnifiedConcept):
         if name == "labels":
             return object.__getattribute__(self, "_labels_dict")
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def model_dump(self, **kwargs: Any) -> dict:
+        """Include ``source_data``/``labels`` — see :class:`LookupResult`'s
+        override of the same methods for why this is needed: both are dict-
+        backed side-channel attributes (the generated model's real fields
+        are ``Optional[str]``), so pydantic's own dump never sees them and
+        silently emits ``null``, losing every adapter's raw API response
+        data on the first model_dump()/model_validate() round trip."""
+        dumped = super().model_dump(**kwargs)
+        source_data = object.__getattribute__(self, "_source_data_dict") or {}
+        dumped["source_data"] = {
+            (k.value if isinstance(k, _KnowledgeSource) else str(k)): v
+            for k, v in source_data.items()
+        }
+        dumped["labels"] = dict(object.__getattribute__(self, "_labels_dict") or {})
+        return dumped
+
+    def model_dump_json(self, **kwargs: Any) -> str:
+        dumped = json.loads(super().model_dump_json(**kwargs))
+        source_data = object.__getattribute__(self, "_source_data_dict") or {}
+        dumped["source_data"] = {
+            (k.value if isinstance(k, _KnowledgeSource) else str(k)): v
+            for k, v in source_data.items()
+        }
+        dumped["labels"] = dict(object.__getattribute__(self, "_labels_dict") or {})
+        return json.dumps(dumped, default=str)
 
     def add_identifier(
         self,
@@ -437,7 +466,22 @@ class LookupResult(_LookupResult):
         elif raw_errors is None:
             object.__setattr__(self, "_errors_dict", {})
         if isinstance(raw_sh, dict):
-            object.__setattr__(self, "_source_health_dict", raw_sh)
+            # Round-tripping through model_dump()/model_validate() (e.g. the
+            # LangGraph agent workflow's per-node state serialization) turns
+            # each SourceHealth value into a plain dict and each
+            # KnowledgeSource key into a plain string — re-hydrate both so
+            # attribute access (``health.is_open``, ``health.circuit_state``)
+            # keeps working the same regardless of whether this object was
+            # just built by CentralKnowledgeLookup or deserialized.
+            rehydrated: dict[Any, Any] = {}
+            for key, value in raw_sh.items():
+                if isinstance(value, dict):
+                    try:
+                        value = _SourceHealth(**value)
+                    except Exception:  # noqa: BLE001 - keep the raw dict if it doesn't validate
+                        pass
+                rehydrated[key] = value
+            object.__setattr__(self, "_source_health_dict", rehydrated)
         elif raw_sh is None:
             object.__setattr__(self, "_source_health_dict", {})
 
@@ -470,6 +514,43 @@ class LookupResult(_LookupResult):
         if name == "source_health":
             return {}
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def _dump_side_channel_fields(self, *, as_json: bool) -> tuple[dict, dict]:
+        """Serialize ``errors``/``source_health`` for model_dump()/model_dump_json().
+
+        Both fields live in private dict attributes rather than the
+        generated model's real ``Optional[str]`` fields (see the class
+        docstring), so pydantic's own dump never sees them and silently
+        emits ``null`` for both — every consumer that round-trips a
+        LookupResult through model_dump()/model_validate() (notably the
+        LangGraph agent workflow's per-node state serialization) used to
+        lose all error and source-health data on the first node transition.
+        """
+        errors_dict: dict = object.__getattribute__(self, "_errors_dict") or {}
+        sh_dict: dict = object.__getattribute__(self, "_source_health_dict") or {}
+        sh_out: dict = {}
+        for key, value in sh_dict.items():
+            key_str = key.value if isinstance(key, _KnowledgeSource) else str(key)
+            if isinstance(value, _SourceHealth):
+                value = value.model_dump(mode="json") if as_json else value.model_dump()
+            sh_out[key_str] = value
+        return dict(errors_dict), sh_out
+
+    def model_dump(self, **kwargs: Any) -> dict:
+        dumped = super().model_dump(**kwargs)
+        errors, source_health = self._dump_side_channel_fields(
+            as_json=kwargs.get("mode") == "json"
+        )
+        dumped["errors"] = errors
+        dumped["source_health"] = source_health
+        return dumped
+
+    def model_dump_json(self, **kwargs: Any) -> str:
+        errors, source_health = self._dump_side_channel_fields(as_json=True)
+        dumped = json.loads(super().model_dump_json(**kwargs))
+        dumped["errors"] = errors
+        dumped["source_health"] = source_health
+        return json.dumps(dumped)
 
     def add_error(self, source: str | _KnowledgeSource, message: str) -> None:
         """Add an error message for *source*."""

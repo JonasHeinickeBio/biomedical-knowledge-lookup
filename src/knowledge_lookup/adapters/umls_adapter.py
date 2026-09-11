@@ -704,7 +704,12 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         if any("phar" in cat for cat in categories_lower):
             return ConceptType.DRUG
         if any("anat" in cat for cat in categories_lower):
-            return ConceptType.ANATOMY
+            # ANATOMICAL_ENTITY, matching SEMANTIC_TYPE_NAME_MAP above (the
+            # higher-priority path) — not the separate ConceptType.ANATOMY
+            # member, which CentralKnowledgeLookup's concept_types filter
+            # would never match against a caller filtering by
+            # ANATOMICAL_ENTITY (see the identical fix in ols_adapter.py).
+            return ConceptType.ANATOMICAL_ENTITY
         return ConceptType.UNKNOWN
 
     def _determine_concept_type_from_semantic_type_names(
