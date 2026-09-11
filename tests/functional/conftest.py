@@ -96,6 +96,26 @@ def requires_api(func):
     return pytest.mark.network(pytest.mark.api(func))
 
 
+async def search_with_retry(adapter, query: str, limit: int = 5, min_results: int = 1) -> list:
+    """`adapter.search_concepts()` with retry-with-backoff on an empty result.
+
+    Live external APIs occasionally rate-limit burst traffic from CI with a
+    bare 404/empty-body response instead of a proper 429/503 (observed from
+    both PubChem's PUG-REST and EBI's OLS4 under the full functional suite's
+    load) — confirmed transient by a delayed retry succeeding. A real
+    regression fails the same way on every attempt, so this doesn't mask one.
+    """
+    import asyncio
+
+    results = await adapter.search_concepts(query, limit=limit)
+    for delay in (2.0, 5.0):
+        if len(results) >= min_results:
+            break
+        await asyncio.sleep(delay)
+        results = await adapter.search_concepts(query, limit=limit)
+    return results
+
+
 @pytest.fixture(scope="module")
 def api_responses_cache():
     """Shared cache for API responses within a test module."""

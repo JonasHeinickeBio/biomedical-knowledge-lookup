@@ -12,7 +12,7 @@ import pytest
 from knowledge_lookup.adapters import ADAPTER_CLASSES
 from knowledge_lookup.models import KnowledgeSource
 
-from .conftest import skip_wikidata_in_ci
+from .conftest import search_with_retry, skip_wikidata_in_ci
 
 # Sources that require API keys
 API_KEY_REQUIRED_SOURCES = {
@@ -46,7 +46,7 @@ async def test_uniprot_search(adapter, response_validator, warning_manager, api_
 
     adapter = UniProtAdapter(adapter.config)
 
-    results, response_data = await adapter.search_concepts("insulin", limit=5), {}
+    results, response_data = await search_with_retry(adapter, "insulin"), {}
 
     # Validate results
     assert isinstance(results, list), "Expected list of results"
@@ -82,7 +82,7 @@ async def test_ols_search(adapter, response_validator, warning_manager):
 
     adapter = OLSAdapter(adapter.config)
 
-    results = await adapter.search_concepts("diabetes", limit=5)
+    results = await search_with_retry(adapter, "diabetes")
 
     # Validate results
     assert isinstance(results, list), "Expected list of results"
@@ -116,7 +116,7 @@ async def test_wikidata_search(adapter, response_validator, warning_manager):
 
     adapter = WikidataAdapter(adapter.config)
 
-    results = await adapter.search_concepts("diabetes", limit=5)
+    results = await search_with_retry(adapter, "diabetes")
 
     # Validate results
     assert isinstance(results, list), "Expected list of results"
@@ -137,7 +137,7 @@ async def test_pubchem_search(adapter, response_validator, warning_manager):
 
     adapter = PubChemAdapter(adapter.config)
 
-    results = await adapter.search_concepts("aspirin", limit=5)
+    results = await search_with_retry(adapter, "aspirin")
 
     # Validate results
     assert isinstance(results, list), "Expected list of results"
