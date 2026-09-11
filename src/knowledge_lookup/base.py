@@ -32,9 +32,8 @@ def _skip_retry_sleep() -> bool:
     """True while running under pytest (so error-path tests don't sleep for
     seconds through the retry backoff). Set ``BKL_RETRY_SLEEP=1`` to force real
     sleeps in a test."""
-    return bool(os.environ.get("PYTEST_CURRENT_TEST")) and not os.environ.get(
-        "BKL_RETRY_SLEEP"
-    )
+    return bool(os.environ.get("PYTEST_CURRENT_TEST")) and not os.environ.get("BKL_RETRY_SLEEP")
+
 
 # Default per-category retry strategies shared by all adapter HTTP calls
 DEFAULT_RETRY_STRATEGIES: dict[ErrorCategory, tuple[int, float, float]] = {

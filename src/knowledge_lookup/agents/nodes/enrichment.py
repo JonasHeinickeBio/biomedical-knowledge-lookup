@@ -21,9 +21,7 @@ async def enrichment_node(state: LookupWorkflowState) -> dict:
     if result is None or not result.concepts:
         return {
             "status": state.get("status", "reviewing"),
-            "steps": [
-                make_step("EnrichAgent", "skip", "No concepts to enrich")
-            ],
+            "steps": [make_step("EnrichAgent", "skip", "No concepts to enrich")],
         }
 
     enriched_count = 0
@@ -44,8 +42,7 @@ async def enrichment_node(state: LookupWorkflowState) -> dict:
 
             # Skip if already has a UMLS identifier
             already_has_umls = any(
-                ident.source == KnowledgeSource.UMLS
-                for ident in (concept.identifiers or [])
+                ident.source == KnowledgeSource.UMLS for ident in (concept.identifiers or [])
             )
             if already_has_umls:
                 already_had_count += 1
@@ -94,9 +91,7 @@ async def enrichment_node(state: LookupWorkflowState) -> dict:
         return {
             "status": state.get("status", "reviewing"),
             "errors": [f"UMLS enrichment failed: {e}"],
-            "steps": [
-                make_step("EnrichAgent", "error", f"UMLS enrichment failed: {e}")
-            ],
+            "steps": [make_step("EnrichAgent", "error", f"UMLS enrichment failed: {e}")],
         }
     finally:
         await lookup.close()

@@ -4,12 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import tempfile
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
-from langgraph.graph import END
 
 from knowledge_lookup.agents.graph import build_workflow_graph
 from knowledge_lookup.agents.nodes import approval_node, export_node, review_node
@@ -25,7 +20,7 @@ from knowledge_lookup.agents.state import (
     make_step,
 )
 from knowledge_lookup.models import KnowledgeSource, LookupResult, UnifiedConcept
-
+from langgraph.graph import END
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -77,9 +72,13 @@ def _make_state(**overrides) -> LookupWorkflowState:
         "review_strengths": [],
         "review_weaknesses": [],
         "review_suggestions": [],
+        "review_concept_map": [],
+        "review_llm_explanation": None,
+        "aggregated_context": None,
         "refinement_notes": [],
         "iteration": 0,
         "max_iterations": 3,
+        "retry_count": 0,
         "auto_approve_threshold": 0.8,
         "status": "pending",
         "errors": [],
@@ -163,7 +162,11 @@ class TestReviewNode:
         ]
         lookup_result = _make_lookup_result(
             concepts=concepts,
-            sources_succeeded=[KnowledgeSource.OLS, KnowledgeSource.UMLS, KnowledgeSource.WIKIDATA],
+            sources_succeeded=[
+                KnowledgeSource.OLS,
+                KnowledgeSource.UMLS,
+                KnowledgeSource.WIKIDATA,
+            ],
         )
         state = _make_state(lookup_result=lookup_result_to_dict(lookup_result))
         result = asyncio.run(review_node(state))
@@ -180,7 +183,7 @@ class TestReviewNode:
 class TestRouting:
     def test_route_after_review_auto_approve(self):
         state = _make_state(review_score=0.9, auto_approve_threshold=0.8, iteration=1)
-        assert route_after_review(state) == "export"
+        assert route_after_review(state) == "prune"
 
     def test_route_after_review_needs_approval(self):
         state = _make_state(review_score=0.5, auto_approve_threshold=0.8, iteration=1)
@@ -188,11 +191,11 @@ class TestRouting:
 
     def test_route_after_review_max_iterations(self):
         state = _make_state(review_score=0.3, iteration=3, max_iterations=3)
-        assert route_after_review(state) == "export"
+        assert route_after_review(state) == "prune"
 
     def test_route_after_approval_approved(self):
         state = _make_state(status="exporting")
-        assert route_after_approval(state) == "export"
+        assert route_after_approval(state) == "prune"
 
     def test_route_after_approval_refine(self):
         state = _make_state(status="refining")
@@ -208,7 +211,7 @@ class TestRouting:
 
     def test_route_after_refine_max_iterations(self):
         state = _make_state(status="searching", iteration=3, max_iterations=3)
-        assert route_after_refine(state) == "export"
+        assert route_after_refine(state) == "prune"
 
 
 # ---------------------------------------------------------------------------

@@ -44,15 +44,12 @@ def load_llm_config() -> dict[str, str | None]:
     # Try OpenAI
     openai_key = os.getenv("OPENAI_API_KEY")
     if openai_key:
-        base_url = os.getenv("OPENAI_API_BASE")
-        if base_url:
-            base_url = base_url.rstrip("/")
-            if not base_url.endswith("/chat/completions"):
-                base_url = base_url + "/chat/completions"
+        openai_base = os.getenv("OPENAI_API_BASE")
+        # base_url is Optional[str], pass through directly
         return {
             "backend": "openai",
             "api_key": openai_key,
-            "base_url": base_url,
+            "base_url": openai_base,
             "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
         }
 
@@ -69,9 +66,7 @@ def load_llm_config() -> dict[str, str | None]:
     return {"backend": None, "api_key": None, "base_url": None, "model": None}
 
 
-async def call_llm(
-    prompt: str, *, max_tokens: int = 1024, temperature: float = 0.2
-) -> str | None:
+async def call_llm(prompt: str, *, max_tokens: int = 1024, temperature: float = 0.2) -> str | None:
     """Call the configured LLM backend.
 
     Returns the completion text, or None if no LLM is configured or call fails.
@@ -99,9 +94,7 @@ async def call_llm(
         else:
             return None
 
-        result = await backend.complete(
-            prompt, max_tokens=max_tokens, temperature=temperature
-        )
+        result = await backend.complete(prompt, max_tokens=max_tokens, temperature=temperature)
         await backend.close()
         return result
 

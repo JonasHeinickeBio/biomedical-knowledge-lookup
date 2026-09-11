@@ -50,7 +50,7 @@ class _SourceList(list):
 
 
 class ConceptIdentifier(_ConceptIdentifier):
-    """Backward-compatible wrapper with a human-friendly ``__str__``."""
+    """Backward-compatible wrapper with a human-friendly ``__str__`` and curies support."""
 
     def __str__(self) -> str:
         src = self.source
@@ -61,6 +61,39 @@ class ConceptIdentifier(_ConceptIdentifier):
         else:
             src_str = str(src).lower()
         return f"{src_str}:{self.identifier}"
+
+    def to_curies_reference(self) -> object | None:
+        """Convert to curies Reference model for normalized CURIE handling."""
+        try:
+            from curies import Reference
+
+            source = self.source
+            if isinstance(source, _KnowledgeSource):
+                source_str = source.value.lower()
+            elif isinstance(source, str):
+                source_str = source.lower()
+            else:
+                source_str = str(source).lower()
+            return Reference(prefix=source_str, identifier=self.identifier)
+        except Exception:
+            return None
+
+    @classmethod
+    def from_curies_reference(cls, reference: object) -> ConceptIdentifier | None:
+        """Create ConceptIdentifier from curies Reference."""
+        try:
+            prefix = getattr(reference, "prefix", None)
+            identifier = getattr(reference, "identifier", None)
+            if prefix and identifier:
+                return cls(
+                    source=prefix.upper(),
+                    identifier=identifier,
+                    label=None,
+                    url=None,
+                )
+        except Exception:
+            pass
+        return None
 
 
 class ConceptMapping(_ConceptMapping):

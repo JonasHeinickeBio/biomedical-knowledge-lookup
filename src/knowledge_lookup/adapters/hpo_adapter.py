@@ -142,8 +142,6 @@ class HPOAdapter(KnowledgeSourceAdapter):
         for xref in xrefs:
             if isinstance(xref, str) and xref.startswith("UMLS:"):
                 try:
-                    concept.add_identifier(
-                        KnowledgeSource.UMLS, xref, concept.primary_label, None
-                    )
+                    concept.add_identifier(KnowledgeSource.UMLS, xref, concept.primary_label, None)
                 except Exception:  # noqa: BLE001 - best-effort identifier bookkeeping
                     pass

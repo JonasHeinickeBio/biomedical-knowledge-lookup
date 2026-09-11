@@ -28,6 +28,7 @@ class TestBioOntologyAdapter:
         # Cleanup: close the aiohttp session to prevent "Unclosed client session" warnings
         if adapter.session and not adapter.session.closed:
             import asyncio
+
             asyncio.run(adapter.close())
 
     @pytest.fixture
@@ -39,6 +40,7 @@ class TestBioOntologyAdapter:
         # Cleanup: close the aiohttp session to prevent "Unclosed client session" warnings
         if adapter.session and not adapter.session.closed:
             import asyncio
+
             asyncio.run(adapter.close())
 
     def test_adapter_initialization(self, lookup_config):

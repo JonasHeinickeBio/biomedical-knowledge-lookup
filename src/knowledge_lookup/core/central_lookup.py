@@ -635,17 +635,9 @@ class CentralKnowledgeLookup:
         return await adapter.search_concepts(query, limit)
 
     def _deduplicate_concepts(self, concepts: list[UnifiedConcept]) -> list[UnifiedConcept]:
-        """Remove duplicate concepts and merge similar ones using pyobo/curies normalization."""
+        """Remove duplicate concepts and merge those with the same normalized label."""
         if not concepts:
             return concepts
-
-        # Import normalization utilities
-        try:
-            from ..curie_utils import get_bioregistry_converter
-
-            get_bioregistry_converter()
-        except Exception:
-            pass
 
         # Group concepts by normalized label for exact matches
         label_groups: dict[str, list[UnifiedConcept]] = {}

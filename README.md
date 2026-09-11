@@ -16,6 +16,7 @@ A unified Python library for biological concept lookup across **29+ biomedical k
 ## ✨ Features
 
 - **🔍 29+ Knowledge Sources**: Comprehensive coverage of biomedical ontologies and databases
+- **✅ CURIE Validation**: Built-in CURIE/URI validation and normalization using bioregistry
 - **⚡ Unified API**: Single interface for all sources with consistent results
 - **🔄 Multi-source Annotation**: Cross-reference concepts across multiple databases
 - **📊 RDF Export**: Convert results to RDF format for knowledge graphs
@@ -29,20 +30,35 @@ A unified Python library for biological concept lookup across **29+ biomedical k
 ### Installation
 
 ```bash
+# core — all HTTP-only adapters (OLS, BioPortal, MONDO, HPO, UniProt, DrugBank,
+# OxO, Zooma, PubChem, Ensembl, …), CURIE parsing, RDF export
 pip install biomedical-knowledge-lookup
-# optional UMLS support
-pip install "biomedical-knowledge-lookup[umls]"
-# or
-poetry add biomedical-knowledge-lookup
-# optional UMLS support
-poetry add biomedical-knowledge-lookup -E umls
-# or from source
+
+# optional feature groups (add one or more)
+pip install "biomedical-knowledge-lookup[curie]"        # bioregistry/curies/pyobo CURIE normalization
+pip install "biomedical-knowledge-lookup[umls]"         # UMLS adapter (needs a UMLS API key)
+pip install "biomedical-knowledge-lookup[chembl]"       # ChEMBL adapter
+pip install "biomedical-knowledge-lookup[bioservices]"  # EUtils / QuickGO / UniChem adapters
+pip install "biomedical-knowledge-lookup[tyto]"         # Tyto adapter (owlready2)
+pip install "biomedical-knowledge-lookup[agents]"       # LangGraph LLM agent workflow
+pip install "biomedical-knowledge-lookup[export]"       # pandas DataFrame / Excel export
+pip install "biomedical-knowledge-lookup[all]"          # everything
+
+# from source
 git clone https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup.git
 cd biomedical-knowledge-lookup
-poetry install
+poetry install                          # core + dev
+poetry install --all-extras             # everything
+poetry install --extras "curie umls"    # selected groups
 ```
 
-UMLS support is optional and requires installing the `umls` extra plus a valid UMLS API key.
+The **core install pulls no heavy dependencies** — every optional dependency
+guards its own import, so `import knowledge_lookup` and all HTTP-only adapters
+work without any extra, and an adapter/feature that needs a missing extra is
+simply disabled (a clear `ImportError` if you instantiate it directly). CURIE
+validation via the `curie` extra enables bioregistry-based CURIE/URI parsing,
+validation, and normalization using the [bioregistry](https://github.com/bioregistry/bioregistry),
+[curies](https://github.com/cthoyt/curies), and [pyobo](https://github.com/pyobo/pyobo) libraries.
 
 ### Basic Usage
 
@@ -60,9 +76,6 @@ results = await lookup.search_concepts(
 
 # Get detailed information about a specific concept
 concept_details = await lookup.get_concept_details("DOID:9351")
-
-# Export results to RDF
-rdf_graph = lookup.export_to_rdf(results)
 ```
 
 ### Advanced Usage with Multi-source Annotation
@@ -120,6 +133,7 @@ knowledge_lookup/
 
 - **[Getting Started Guide](docs/getting_started.md)**
 - **[API Reference](docs/api_reference.md)**
+- **[CURIE Management](docs/curie-management.md)** - CURIE/URI parsing, validation, and normalization
 - **[Adapter Documentation](docs/adapters/)**
 - **[Examples](examples/)**
 - **[Contributing Guide](CONTRIBUTING.md)**
@@ -138,6 +152,27 @@ Explore interactive examples in the `examples/` directory:
 - Performance benchmarking
 
 ## 🔧 Configuration
+
+### CURIE Validation
+
+The `curie` extra adds a standalone `curie_utils` toolkit built on
+[bioregistry](https://bioregistry.io/) for validating and normalizing CURIEs
+and URIs. It is not yet wired into `CentralKnowledgeLookup`'s query
+parsing or deduplication — see [CURIE Management](docs/curie-management.md)
+for the full picture and for cross-ontology mapping via
+`find_mappings()`/OxO.
+
+```python
+from knowledge_lookup.curie_utils import normalize_curie, validate_prefix
+
+# Validate prefixes
+is_valid = validate_prefix("doid")  # True
+is_valid = validate_prefix("invalid_prefix")  # False
+
+# Normalize a CURIE's prefix to bioregistry's canonical form (same ontology,
+# not a cross-ontology mapping)
+normalized = normalize_curie("DOID:9351")  # "doid:9351"
+```
 
 ### API Keys
 
@@ -196,9 +231,30 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 1. Extend `KnowledgeSourceAdapter` in `base.py`
 2. Implement required methods: `search_concepts()`, `get_concept_details()`
-3. Add to `adapters/__init__.py`
-4. Add tests in `tests/unit/test_adapters/`
-5. Update documentation
+3. Add CURIE validation using `curie_utils` module
+4. Add to `adapters/__init__.py`
+5. Add tests in `tests/unit/test_adapters/`
+6. Update documentation
+
+### CURIE Validation in Adapters
+
+When implementing adapters, use the `curie_utils` module for CURIE validation:
+
+```python
+from ..curie_utils import validate_prefix, normalize_curie, parse_curie_or_uri
+
+# Validate prefix before queries
+if validate_prefix("doid"):
+    logger.debug("doid is a known bioregistry prefix")
+
+# Parse query as CURIE/URI
+parsed = parse_curie_or_uri(query)
+if parsed:
+    prefix, identifier = parsed
+
+# Normalize a CURIE's prefix to its canonical bioregistry form
+normalized = normalize_curie("DOID:9351")  # "doid:9351"
+```
 
 ### Development Setup
 
