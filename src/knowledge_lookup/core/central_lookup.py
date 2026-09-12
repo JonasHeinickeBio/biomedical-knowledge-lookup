@@ -11,7 +11,10 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from .term_expansion import AbbreviationSource
 
 # Keep these imports at top for E402 compliance
 from ..adapters import ADAPTER_CLASSES
@@ -354,6 +357,63 @@ class CentralKnowledgeLookup:
             f"Found {result.total_found} concepts from {len(sources_succeeded)} sources."
         )
 
+        return result
+
+    async def search_concepts_expanded(
+        self,
+        query: str,
+        concept_types: list[ConceptType] | None = None,
+        sources: list[KnowledgeSource] | None = None,
+        max_results: int = 50,
+        max_rounds: int = 3,
+        max_terms_per_round: int = 10,
+        abbreviation_sources: "list[AbbreviationSource] | None" = None,
+        persist: bool = True,
+    ) -> LookupResult:
+        """
+        Search for concepts, then iteratively widen the search using
+        synonyms and abbreviation/long-form variants discovered along the
+        way (e.g. a search for "COPD" also picks up and searches "chronic
+        obstructive pulmonary disease", found via UMLS Metathesaurus
+        atom term-types, if the ``[umls]`` extra and an API key are
+        available — degrades to synonym-only expansion otherwise).
+
+        Stops when a round discovers no genuinely new terms, or
+        *max_rounds* is reached. Every term tried is recorded durably (not
+        just cached) via :class:`~knowledge_lookup.core.expansion_store.ExpansionStore`
+        — see :func:`knowledge_lookup.core.term_expansion.expand_and_search`
+        for the full iteration/persistence design.
+
+        Args:
+            query: Search term or phrase
+            concept_types: Filter by specific concept types
+            sources: Specific sources to query (if None, uses all available)
+            max_results: Maximum total results to return
+            max_rounds: Maximum number of expansion rounds (round 0 is the
+                original query itself)
+            max_terms_per_round: Cap on how many newly-discovered terms are
+                searched in each subsequent round
+            abbreviation_sources: Override the default abbreviation/long-form
+                source(s) (defaults to a single UMLS-backed source)
+            persist: Whether to record the expansion trail durably (default
+                on); set False to skip persistence for a one-off call
+
+        Returns:
+            LookupResult merged across every term searched in every round
+        """
+        from .term_expansion import expand_and_search
+
+        result, _trace = await expand_and_search(
+            self,
+            query,
+            concept_types=concept_types,
+            sources=sources,
+            max_results=max_results,
+            max_rounds=max_rounds,
+            max_terms_per_round=max_terms_per_round,
+            abbreviation_sources=abbreviation_sources,
+            persist=persist,
+        )
         return result
 
     async def get_concept_details(
