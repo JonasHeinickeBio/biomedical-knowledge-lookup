@@ -11,6 +11,7 @@ import logging
 from typing import Any
 
 from ...core.central_lookup import CentralKnowledgeLookup
+from ...core.term_expansion import merge_concept_results
 from ...models import KnowledgeSource, LookupConfig, LookupResult
 from ..state import LookupWorkflowState, lookup_result_to_dict, make_step
 
@@ -102,8 +103,6 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
 
         # Merge results across all terms
         all_concepts: list[Any] = []
-        seen_labels: set[str] = set()
-        seen_ids: set[str] = set()
         exec_time_total = 0.0
         sources_succeeded_union: set[str] = set()
         sources_failed_union: set[str] = set()
@@ -135,32 +134,12 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
                 for err_src, err_msg in term_errors.items():
                     errors_combined[str(err_src)] = str(err_msg)
 
-            # Add concepts with deduplication by normalized label
-            n_new = 0
-            for c in result.concepts or []:
-                label = (c.primary_label or "").lower().strip()
-                cid = c.primary_id or ""
-
-                if label and label not in seen_labels:
-                    seen_labels.add(label)
-                    all_concepts.append(c)
-                    n_new += 1
-                elif not label and cid and cid not in seen_ids:
-                    seen_ids.add(cid)
-                    all_concepts.append(c)
-                    n_new += 1
-                elif label in seen_labels:
-                    # Duplicate by label — still merge identifiers, definitions
-                    existing = next(
-                        (
-                            ec
-                            for ec in all_concepts
-                            if (ec.primary_label or "").lower().strip() == label
-                        ),
-                        None,
-                    )
-                    if existing:
-                        _merge_concept_data(existing, c)
+            # Add concepts, deduplicating by normalized label (shared with
+            # core.term_expansion.expand_and_search's parallel-search-and-merge
+            # path so both maintain one dedupe implementation, not two).
+            n_before = len(all_concepts)
+            merge_concept_results(all_concepts, result.concepts or [])
+            n_new = len(all_concepts) - n_before
 
             n_total = len(result.concepts or [])
             term_report.append(f"{term_label}={n_new}/{n_total}")
@@ -213,45 +192,3 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
         }
     finally:
         await lookup.close()
-
-
-def _merge_concept_data(target: Any, source: Any) -> None:
-    """Merge identifiers, definitions, synonyms from source into target."""
-    # Merge identifiers
-    for ident in source.identifiers or []:
-        if target.identifiers is None:
-            target.identifiers = []
-        exists = any(
-            hasattr(i, "identifier") and i.identifier == ident.identifier
-            for i in target.identifiers
-        )
-        if not exists:
-            target.identifiers.append(ident)
-
-    # Merge definitions
-    for d in source.definitions or []:
-        if target.definitions is None:
-            target.definitions = []
-        if d not in target.definitions:
-            target.definitions.append(d)
-
-    # Merge synonyms
-    for s in source.synonyms or []:
-        if target.synonyms is None:
-            target.synonyms = []
-        if s.lower() not in [x.lower() for x in target.synonyms]:
-            target.synonyms.append(s)
-
-    # Merge semantic types
-    for st in source.semantic_types or []:
-        if target.semantic_types is None:
-            target.semantic_types = []
-        if str(st) not in [str(x) for x in target.semantic_types]:
-            target.semantic_types.append(st)
-
-    # Track sources
-    for src in source.sources or []:
-        if target.sources is None:
-            target.sources = []
-        if str(src) not in [str(x) for x in target.sources]:
-            target.sources.append(src)

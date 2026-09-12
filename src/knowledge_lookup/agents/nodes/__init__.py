@@ -7,6 +7,7 @@ from .aggregate import aggregate_node
 from .approval import approval_node
 from .detail_gather import detail_gather_node
 from .enrichment import enrichment_node
+from .expand import expand_node
 from .export import export_node
 from .filter import filter_node
 from .lookup import lookup_node
@@ -21,6 +22,7 @@ __all__ = [
     "approval_node",
     "detail_gather_node",
     "enrichment_node",
+    "expand_node",
     "export_node",
     "filter_node",
     "lookup_node",
