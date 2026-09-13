@@ -2,7 +2,7 @@
 
 Flow::
 
-    START → preprocess → lookup → filter → quality_gate → detail_gather
+    START → preprocess → expand → lookup → filter → quality_gate → detail_gather
     → enrichment → aggregate → review
     → {approval | prune}
     → {prune | refine | END}
@@ -11,6 +11,10 @@ Flow::
 Key design:
 - **preprocess** generates expanded search terms (direct, umlaut-expanded,
   normalized, German compound splits) — searched in parallel
+- **expand** iteratively discovers synonym and abbreviation/long-form
+  variants from real search results (not just string transforms) and adds
+  them to the same search-term list; the full discovery trail is durably
+  persisted regardless of what happens downstream
 - **filter** removes non-clinical concepts (questionnaires, measurement
   scales, geographic locations) and boosts clinical types
 - **quality_gate** scores the filtered results
@@ -29,6 +33,7 @@ from .nodes import (
     approval_node,
     detail_gather_node,
     enrichment_node,
+    expand_node,
     export_node,
     filter_node,
     lookup_node,
@@ -59,6 +64,7 @@ def build_workflow_graph(checkpointer: InMemorySaver | None = None) -> Any:
 
     # Add nodes
     builder.add_node("preprocess", preprocess_node)
+    builder.add_node("expand", expand_node)
     builder.add_node("lookup", lookup_node)
     builder.add_node("filter", filter_node)
     builder.add_node("quality_gate", quality_gate_node)
@@ -71,9 +77,10 @@ def build_workflow_graph(checkpointer: InMemorySaver | None = None) -> Any:
     builder.add_node("prune", prune_node)
     builder.add_node("export", export_node)
 
-    # Sequential: preprocess → lookup → filter → quality_gate → detail_gather
+    # Sequential: preprocess → expand → lookup → filter → quality_gate → detail_gather
     builder.add_edge(START, "preprocess")
-    builder.add_edge("preprocess", "lookup")
+    builder.add_edge("preprocess", "expand")
+    builder.add_edge("expand", "lookup")
     builder.add_edge("lookup", "filter")
     builder.add_edge("filter", "quality_gate")
     builder.add_edge("quality_gate", "detail_gather")
