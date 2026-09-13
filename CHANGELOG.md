@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Iterative term expansion** (`CentralKnowledgeLookup.search_concepts_expanded()`,
+  `knowledge_lookup.core.term_expansion`): instead of searching a term once,
+  searches it, harvests synonyms and long-form variants from what it finds
+  (e.g. "COPD" also picks up "chronic obstructive pulmonary disease"),
+  searches those too, and repeats until a round finds nothing genuinely new
+  or a round cap is hit. Abbreviation candidates (via a UMLS Metathesaurus
+  atom-term-type source when the `[umls]` extra and an API key are
+  available) are recorded but never searched — a bare abbreviation is prone
+  to colliding with unrelated concepts (e.g. "PEM" matching "pemphigoid"
+  instead of "post-exertional malaise"). Every term tried, and every
+  abbreviation found but not searched, is recorded durably via the new
+  `knowledge_lookup.core.expansion_store.ExpansionStore` (SQLite-backed,
+  never evicts). Core-level capability, usable without the `[agents]`
+  extra; also wired into the LangGraph agent workflow as a new `expand`
+  node between `preprocess` and `lookup`.
+- `scripts/demo_expanded_lookup_mecfs.py`: live demo of iterative term
+  expansion over 10 ME/CFS-related terms.
 
 ## [1.2.0] - 2026-09-11
 
