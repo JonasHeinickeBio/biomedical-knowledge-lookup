@@ -326,3 +326,114 @@ class TestApprovalNode:
             result = approval_node(state)
             assert result["status"] == "completed"
             assert result["final_result"] is None
+
+
+# ---------------------------------------------------------------------------
+# Expand node tests (term expansion is mocked — see test_term_expansion.py
+# for the core expand_and_search logic itself)
+# ---------------------------------------------------------------------------
+
+
+class TestExpandNode:
+    def test_expand_node_adds_discovered_terms(self):
+        from unittest.mock import AsyncMock, patch
+
+        from knowledge_lookup.agents.nodes.expand import expand_node
+        from knowledge_lookup.core.term_expansion import ExpansionTrace
+
+        state = _make_state(query="copd", expanded_search_terms=["copd"])
+        trace = ExpansionTrace(
+            run_id=1,
+            rounds_run=2,
+            stop_reason="fixed_point",
+            terms_by_round=[["copd"], ["chronic obstructive pulmonary disease"]],
+        )
+
+        with (
+            patch(
+                "knowledge_lookup.agents.nodes.expand.expand_and_search",
+                new=AsyncMock(return_value=(_make_lookup_result(), trace)),
+            ),
+            patch("knowledge_lookup.agents.nodes.expand.CentralKnowledgeLookup") as mock_ckl,
+        ):
+            mock_ckl.return_value.close = AsyncMock()
+            result = asyncio.run(expand_node(state))
+
+        assert result["expanded_search_terms"] == [
+            "copd",
+            "chronic obstructive pulmonary disease",
+        ]
+        assert len(result["steps"]) == 1
+        assert result["steps"][0]["agent"] == "ExpandAgent"
+        assert "1 new term" in result["steps"][0]["detail"]
+
+    def test_expand_node_does_not_duplicate_existing_terms(self):
+        from unittest.mock import AsyncMock, patch
+
+        from knowledge_lookup.agents.nodes.expand import expand_node
+        from knowledge_lookup.core.term_expansion import ExpansionTrace
+
+        state = _make_state(
+            query="diabetes",
+            expanded_search_terms=["diabetes", "Diabetes"],  # preprocess variant, same term
+        )
+        trace = ExpansionTrace(
+            run_id=1, rounds_run=1, stop_reason="fixed_point", terms_by_round=[["diabetes"]]
+        )
+
+        with (
+            patch(
+                "knowledge_lookup.agents.nodes.expand.expand_and_search",
+                new=AsyncMock(return_value=(_make_lookup_result(), trace)),
+            ),
+            patch("knowledge_lookup.agents.nodes.expand.CentralKnowledgeLookup") as mock_ckl,
+        ):
+            mock_ckl.return_value.close = AsyncMock()
+            result = asyncio.run(expand_node(state))
+
+        assert result["expanded_search_terms"] == ["diabetes", "Diabetes"]
+        assert "0 new term" in result["steps"][0]["detail"]
+
+    def test_expand_node_falls_back_to_query_when_no_expanded_terms(self):
+        from unittest.mock import AsyncMock, patch
+
+        from knowledge_lookup.agents.nodes.expand import expand_node
+        from knowledge_lookup.core.term_expansion import ExpansionTrace
+
+        state = _make_state(query="aspirin", expanded_search_terms=[])
+        trace = ExpansionTrace(
+            run_id=None, rounds_run=1, stop_reason="fixed_point", terms_by_round=[["aspirin"]]
+        )
+
+        with (
+            patch(
+                "knowledge_lookup.agents.nodes.expand.expand_and_search",
+                new=AsyncMock(return_value=(_make_lookup_result(), trace)),
+            ),
+            patch("knowledge_lookup.agents.nodes.expand.CentralKnowledgeLookup") as mock_ckl,
+        ):
+            mock_ckl.return_value.close = AsyncMock()
+            result = asyncio.run(expand_node(state))
+
+        assert result["expanded_search_terms"] == ["aspirin"]
+
+    def test_expand_node_reports_error_without_raising(self):
+        from unittest.mock import AsyncMock, patch
+
+        from knowledge_lookup.agents.nodes.expand import expand_node
+
+        state = _make_state(query="x", expanded_search_terms=["x"])
+
+        with (
+            patch(
+                "knowledge_lookup.agents.nodes.expand.expand_and_search",
+                new=AsyncMock(side_effect=RuntimeError("network down")),
+            ),
+            patch("knowledge_lookup.agents.nodes.expand.CentralKnowledgeLookup") as mock_ckl,
+        ):
+            mock_ckl.return_value.close = AsyncMock()
+            result = asyncio.run(expand_node(state))
+
+        assert "expanded_search_terms" not in result
+        assert result["steps"][0]["action"] == "error"
+        assert "network down" in result["steps"][0]["detail"]
