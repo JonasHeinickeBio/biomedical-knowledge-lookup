@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from knowledge_lookup.core.expansion_store import (
+    ORIGIN_ABBREVIATION,
     ORIGIN_LONG_FORM,
     ORIGIN_ORIGINAL,
     ORIGIN_SYNONYM,
@@ -198,6 +199,66 @@ class TestExpandAndSearch:
         )
 
         assert trace.terms_by_round[1] == ["chronic obstructive pulmonary disease"]
+
+    @pytest.mark.asyncio
+    async def test_abbreviation_candidates_are_stored_but_never_searched(self):
+        """A discovered abbreviation (origin=ORIGIN_ABBREVIATION) must never
+        be fed back into a search — short abbreviations are prone to
+        colliding with unrelated concepts (e.g. "PEM" -> pemphigoid instead
+        of post-exertional malaise) — but it must still be recorded for the
+        durable audit trail."""
+
+        class StubAbbreviationSource:
+            async def expand(self, term: str) -> list[tuple[str, str]]:
+                if term == "Post-Exertional Malaise":
+                    return [("PEM", ORIGIN_ABBREVIATION)]
+                return []
+
+        lookup = _mock_lookup(
+            lambda query, **kw: _result(query, [_concept("Post-Exertional Malaise")])
+        )
+
+        result, trace = await expand_and_search(
+            lookup,
+            "post-exertional malaise",
+            abbreviation_sources=[StubAbbreviationSource()],
+            persist=False,
+        )
+
+        # Only round 0 (the original query) is ever searched — "PEM" is
+        # never turned into a search.
+        assert lookup.search_concepts.await_count == 1
+        assert trace.rounds_run == 1
+        assert trace.stop_reason == STOP_FIXED_POINT
+        assert "pem" not in [t.lower() for t in trace.all_terms_tried]
+        assert len(result.concepts or []) == 1
+
+    @pytest.mark.asyncio
+    async def test_abbreviation_candidates_are_persisted_despite_not_searched(self, tmp_path):
+        store = ExpansionStore(tmp_path / "history.db")
+
+        class StubAbbreviationSource:
+            async def expand(self, term: str) -> list[tuple[str, str]]:
+                if term == "Post-Exertional Malaise":
+                    return [("PEM", ORIGIN_ABBREVIATION)]
+                return []
+
+        lookup = _mock_lookup(
+            lambda query, **kw: _result(query, [_concept("Post-Exertional Malaise")])
+        )
+
+        _, trace = await expand_and_search(
+            lookup,
+            "post-exertional malaise",
+            abbreviation_sources=[StubAbbreviationSource()],
+            store=store,
+        )
+
+        terms = store.get_terms(trace.run_id)
+        assert [(t["term"], t["origin"]) for t in terms] == [
+            ("post-exertional malaise", ORIGIN_ORIGINAL),
+            ("PEM", ORIGIN_ABBREVIATION),
+        ]
 
     @pytest.mark.asyncio
     async def test_a_failing_search_does_not_abort_the_round(self):

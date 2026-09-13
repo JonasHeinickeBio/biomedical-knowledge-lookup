@@ -4,9 +4,15 @@ Iterative term expansion: synonyms + abbreviation/long-form discovery.
 ``expand_and_search`` takes a single search term and, instead of searching
 it once, searches it, harvests synonyms and abbreviation/long-form variants
 from what it finds (e.g. "COPD" -> "chronic obstructive pulmonary disease"),
-searches those too, and repeats — stopping when a round finds no genuinely
-new terms, or a round cap is hit. Every term tried is recorded durably via
-:class:`~knowledge_lookup.core.expansion_store.ExpansionStore`.
+searches the long-form/synonym variants too, and repeats — stopping when a
+round finds no genuinely new *searchable* terms, or a round cap is hit.
+Discovered abbreviations (e.g. "chronic obstructive pulmonary disease" ->
+"COPD") are recorded but deliberately never searched: a bare abbreviation is
+short and often overloaded across unrelated domains (searching "PEM" is as
+likely to surface "pemphigoid" as "post-exertional malaise"), so feeding one
+back into a search risks dragging the whole expansion off-topic. Every term
+tried — and every abbreviation found but not searched — is recorded durably
+via :class:`~knowledge_lookup.core.expansion_store.ExpansionStore`.
 
 This is a core-level capability, usable directly through
 ``CentralKnowledgeLookup`` without the optional ``[agents]`` (LangGraph)
@@ -265,21 +271,27 @@ async def expand_and_search(
     persist: bool = True,
 ) -> tuple[LookupResult, ExpansionTrace]:
     """Search *query*, then iteratively expand via synonyms and
-    abbreviation/long-form matches discovered in the results so far.
+    long-form matches discovered in the results so far.
 
     Round 0 searches *query* itself. Each subsequent round searches every
-    new term discovered from the previous round's concepts (synonyms
-    already on the concept, plus whatever *abbreviation_sources* offer for
-    its label) that hasn't been tried yet, capped at *max_terms_per_round*.
-    Stops when a round discovers no new terms (a fixed point — the
+    new synonym/long-form term discovered from the previous round's concepts
+    that hasn't been tried yet, capped at *max_terms_per_round*. Stops when
+    a round discovers no new searchable terms (a fixed point — the
     expansion has converged) or *max_rounds* is reached, whichever first.
 
-    Every term tried, which round it was tried in, and why (original /
-    synonym / abbreviation / long-form, plus which concept produced it) is
-    recorded via *store* (an :class:`ExpansionStore`, created automatically
-    unless one is passed in) when *persist* is true — this is the durable
-    record; the returned :class:`ExpansionTrace` is a lightweight summary
-    of the same run for callers that don't want to query the store.
+    Abbreviations offered by *abbreviation_sources* (candidates with origin
+    ``ORIGIN_ABBREVIATION``) are recorded but never searched — see the
+    module docstring for why. Only long-form candidates
+    (``ORIGIN_LONG_FORM``) from an abbreviation source feed back into
+    searching, the same as harvested synonyms.
+
+    Every term tried — plus every abbreviation found but not searched —
+    which round it was found in, and why (original / synonym / abbreviation
+    / long-form, plus which concept produced it) is recorded via *store*
+    (an :class:`ExpansionStore`, created automatically unless one is passed
+    in) when *persist* is true — this is the durable record; the returned
+    :class:`ExpansionTrace` is a lightweight summary of the same run for
+    callers that don't want to query the store.
 
     Parameters mirror :meth:`CentralKnowledgeLookup.search_concepts` where
     they overlap (*concept_types*, *sources*, *max_results*).
@@ -347,7 +359,14 @@ async def expand_and_search(
             merge_concept_results(all_concepts, result.concepts or [])
 
         # Harvest next round's candidate terms from everything found so far.
+        # Abbreviations are recorded but never searched: a bare abbreviation
+        # is short and often overloaded across unrelated domains (e.g. "PEM"
+        # matches "pemphigoid" just as readily as "post-exertional malaise"),
+        # so feeding one back into a search risks dragging the whole
+        # expansion off-topic. Long-form/synonym candidates don't carry that
+        # risk to nearly the same degree and are searched as before.
         next_terms: dict[str, tuple[str, str, str | None]] = {}
+        abbreviations_found: dict[str, tuple[str, str, str | None]] = {}
         for concept in all_concepts:
             concept_id = getattr(concept, "primary_id", None)
             for syn in concept.synonyms or []:
@@ -370,8 +389,19 @@ async def expand_and_search(
                 for candidate, origin in pairs:
                     candidate = candidate.strip()
                     key = candidate.lower()
-                    if candidate and key not in tried and key not in next_terms:
+                    if not candidate or key in tried:
+                        continue
+                    if origin == ORIGIN_ABBREVIATION:
+                        if key not in abbreviations_found:
+                            abbreviations_found[key] = (candidate, origin, concept_id)
+                    elif key not in next_terms:
                         next_terms[key] = (candidate, origin, concept_id)
+
+        if abbreviations_found:
+            for key in abbreviations_found:
+                tried.add(key)
+            if store and run_id is not None:
+                store.record_terms(run_id, round_num + 1, list(abbreviations_found.values()))
 
         if not next_terms:
             stop_reason = STOP_FIXED_POINT

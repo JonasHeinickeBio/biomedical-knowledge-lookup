@@ -372,15 +372,23 @@ class CentralKnowledgeLookup:
     ) -> LookupResult:
         """
         Search for concepts, then iteratively widen the search using
-        synonyms and abbreviation/long-form variants discovered along the
-        way (e.g. a search for "COPD" also picks up and searches "chronic
-        obstructive pulmonary disease", found via UMLS Metathesaurus
-        atom term-types, if the ``[umls]`` extra and an API key are
-        available — degrades to synonym-only expansion otherwise).
+        synonyms and long-form variants discovered along the way (e.g. a
+        search for "COPD" also picks up and searches "chronic obstructive
+        pulmonary disease", found via UMLS Metathesaurus atom term-types,
+        if the ``[umls]`` extra and an API key are available — degrades to
+        synonym-only expansion otherwise).
 
-        Stops when a round discovers no genuinely new terms, or
-        *max_rounds* is reached. Every term tried is recorded durably (not
-        just cached) via :class:`~knowledge_lookup.core.expansion_store.ExpansionStore`
+        Abbreviations discovered along the way (e.g. the reverse direction —
+        "chronic obstructive pulmonary disease" -> "COPD") are recorded but
+        deliberately never searched: a bare abbreviation is short and often
+        overloaded across unrelated domains (searching "PEM" is as likely to
+        surface "pemphigoid" as "post-exertional malaise"), so feeding one
+        back into a search risks dragging the whole expansion off-topic.
+
+        Stops when a round discovers no genuinely new *searchable* terms, or
+        *max_rounds* is reached. Every term tried — plus every abbreviation
+        found but not searched — is recorded durably (not just cached) via
+        :class:`~knowledge_lookup.core.expansion_store.ExpansionStore`
         — see :func:`knowledge_lookup.core.term_expansion.expand_and_search`
         for the full iteration/persistence design.
 
