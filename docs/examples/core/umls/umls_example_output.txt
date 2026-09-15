@@ -1,63 +1,61 @@
-✓ UMLS adapter initialised
+The UMLS adapter is available.
 
-══════════════════════════════════════════════════
-1. BASIC SEARCH  (via CentralKnowledgeLookup)
-══════════════════════════════════════════════════
-   Query: 'diabetes' → 50 results
+============================================================
+1. Search through CentralKnowledgeLookup
+============================================================
+'diabetes' -> 5 concept(s)
+  C0011847: Diabetes [DISEASE]
+  C0011849: Diabetes Mellitus [DISEASE]
+  C0011860: Diabetes Mellitus, Non-Insulin-Dependent [DISEASE]
 
-   • C0011847: Diabetes  [disease]
-   • C0011849: Diabetes Mellitus  [disease]
-   • C0011860: Diabetes Mellitus, Non-Insulin-Dependent  [disease]
+============================================================
+2. Concept details
+============================================================
+C0011849: Diabetes Mellitus [DISEASE]
+  85 synonyms, 12 definitions
+  Semantic types: Disease or Syndrome
 
-══════════════════════════════════════════════════
-2. SOURCE-RESTRICTED SEARCH  (sabs='SNOMEDCT_US')
-══════════════════════════════════════════════════
-   Query: 'hypertension' (SNOMEDCT_US only) → 5 results
+============================================================
+3. Source-restricted search (sabs='SNOMEDCT_US')
+============================================================
+  C0020538: Hypertensive disease
+  C0020541: Portal Hypertension
+  C0085580: Essential Hypertension
+  C0020542: Pulmonary Hypertension
+  C0020545: Hypertension, Renovascular
 
-   • C0020538: Hypertensive disease
-   • C0020541: Portal Hypertension
-   • C0085580: Essential Hypertension
-   • C0020542: Pulmonary Hypertension
-   • C0020545: Hypertension, Renovascular
+============================================================
+4. Semantic-type filter (semantic_types='T047', Disease or Syndrome)
+============================================================
+  C0011849: Diabetes Mellitus [DISEASE]
+  C0011860: Diabetes Mellitus, Non-Insulin-Dependent [DISEASE]
+  C0011847: Diabetes [DISEASE]
 
-══════════════════════════════════════════════════
-3. SEMANTIC-TYPE FILTER  (semantic_types='T047' = Disease)
-══════════════════════════════════════════════════
-   Filtered to disease type → 3 results
+============================================================
+5. Bulk search
+============================================================
+  'metformin' -> ['metformin', 'metformin hydrochloride']
+  'atorvastatin' -> ['atorvastatin', 'atorvastatin calcium']
+  'lisinopril' -> ['lisinopril', 'hydrochlorothiazide / lisinopril']
 
-   • C0011849: Diabetes Mellitus  [disease]
-   • C0011860: Diabetes Mellitus, Non-Insulin-Dependent  [disease]
-   • C0011847: Diabetes  [disease]
+============================================================
+6. Mappings: C0025598 (metformin) -> RXNORM
+============================================================
+  RXNORM: 6809 - metformin
 
-══════════════════════════════════════════════════
-4. BULK SEARCH
-══════════════════════════════════════════════════
-   'metformin' → ['metformin', 'metformin hydrochloride']
-   'atorvastatin' → ['atorvastatin', 'atorvastatin calcium']
-   'lisinopril' → ['lisinopril', 'hydrochlorothiazide / lisinopril']
+============================================================
+7. Parent relationships of metformin
+============================================================
+  PAR -> producto con metformina y repaglinida (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SCTSPA/438340003)
+  PAR -> Metformin- and repaglinide-containing product (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SNOMEDCT_US/438340003)
+  PAR -> producto con metformina y sitagliptina (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SCTSPA/427522005)
+  PAR -> Metformin- and sitagliptin-containing product (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SNOMEDCT_US/427522005)
+  PAR -> producto con metformina y rosiglitazona (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SCTSPA/409120009)
 
-══════════════════════════════════════════════════
-5. MAPPINGS  (CUI → source-specific identifiers)
-══════════════════════════════════════════════════
-   RXNORM mappings for C0025598 (metformin):
+============================================================
+8. Streaming iterators
+============================================================
+  Metformin definitions: 8
+  Metformin relations:   1473
 
-   • RXNORM: 6809  —  metformin
-
-══════════════════════════════════════════════════
-6. RELATIONSHIPS  (parent / child relations)
-══════════════════════════════════════════════════
-   Parent relations for metformin:
-
-   • PAR → producto con metformina y repaglinida     (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SCTSPA/438340003)
-   • PAR → Metformin- and repaglinide-containing product  (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SNOMEDCT_US/438340003)
-   • PAR → producto con metformina y sitagliptina    (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SCTSPA/427522005)
-   • PAR → Metformin- and sitagliptin-containing product  (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SNOMEDCT_US/427522005)
-   • PAR → producto con metformina y rosiglitazona   (https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/SCTSPA/409120009)
-
-══════════════════════════════════════════════════
-7. STREAMING ITERATORS
-══════════════════════════════════════════════════
-   Definitions for metformin: 8
-   Relations for metformin:   1473
-
-✓ Adapter closed — done.
+Summary: search=5 details=found

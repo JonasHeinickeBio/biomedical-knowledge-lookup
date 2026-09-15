@@ -1,36 +1,37 @@
-Checking if PDB adapter is available...
-  ✓ PDB adapter is available
+The PDB adapter is available.
 
-Searching for '6vxx' concepts in PDB...
+Searching PDB for 'hemoglobin' ...
+Found 5 concept(s) in 2.2s
 
-Found 25 results from PDB:
+  1. STRUCTURE DETERMINATION OF AQUOMET PORCINE HEMOGLOBIN AT 2.8 ANGSTROM RESOLUTION
+     ID:         PDB:2PGH
+     Type:       PROTEIN
+     Confidence: 0.85
 
-  Concept 1:
-    Label: Structure of the SARS-CoV-2 spike glycoprotein (closed state)
-    ID: PDB:6VXX
-    Type: ConceptType.PROTEIN
-    Confidence: 0.85
+  2. Structure of Greyhound Hemoglobin: Origin of High Oxygen Affinity
+     ID:         PDB:3PEL
+     Type:       PROTEIN
+     Confidence: 0.85
 
-  Concept 2:
-    Label: Spike Protein of RaTG13 Bat Coronavirus in Closed Conformation
-    ID: PDB:6ZGF
-    Type: ConceptType.PROTEIN
-    Confidence: 0.85
+  3. Crystal structure of dog (Canis familiaris) hemoglobin
+     ID:         PDB:3GOU
+     Type:       PROTEIN
+     Confidence: 0.85
 
-  Concept 3:
-    Label: Furin Cleaved Spike Protein of SARS-CoV-2 with One RBD Erect
-    ID: PDB:6ZGG
-    Type: ConceptType.PROTEIN
-    Confidence: 0.85
+  4. Crystal Structure Analysis of bovine Hemoglobin modified by SNP
+     ID:         PDB:6IHX
+     Type:       PROTEIN
+     Confidence: 0.85
 
-  Concept 4:
-    Label: Furin Cleaved Spike Protein of SARS-CoV-2 in Intermediate Conformation
-    ID: PDB:6ZGH
-    Type: ConceptType.PROTEIN
-    Confidence: 0.85
+  5. CARBONMONOXY LIGANDED BOVINE HEMOGLOBIN PH 5.0
+     ID:         PDB:1G08
+     Type:       PROTEIN
+     Confidence: 0.85
 
-  Concept 5:
-    Label: Cryo-EM structure of a biotinylated SARS-CoV-2 spike probe in the prefusion state (RBDs down)
-    ID: PDB:6XF5
-    Type: ConceptType.PROTEIN
-    Confidence: 0.85
+Fetching details for '4HHB' ...
+  Label:      THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN AT 1.74 ANGSTROMS RESOLUTION
+  ID:         PDB:4HHB
+  Type:       PROTEIN
+  Identifier: PDB:4HHB (PDB)
+
+Summary: search=5 details=found

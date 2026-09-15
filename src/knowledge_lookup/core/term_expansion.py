@@ -257,6 +257,55 @@ def merge_concept_fields(target: Any, source: Any) -> None:
             target.sources.append(src)
 
 
+#: Default number of concept labels the abbreviation sources are asked about in
+#: one expansion round. Labels are taken in result order; the rest wait for a
+#: later round.
+DEFAULT_MAX_ABBREVIATION_LOOKUPS = 10
+
+#: Abbreviation-source calls running at the same time.
+ABBREVIATION_LOOKUP_CONCURRENCY = 3
+
+
+def _unasked_labels(concepts: list[Any], answers: dict[str, list[tuple[str, str]]]) -> list[str]:
+    """Distinct non-empty labels of *concepts*, in order, that have no entry in *answers*."""
+    labels: list[str] = []
+    for concept in concepts:
+        label = (concept.primary_label or "").strip()
+        if label and label not in answers and label not in labels:
+            labels.append(label)
+    return labels
+
+
+async def _ask_abbreviation_sources(
+    sources: list[AbbreviationSource],
+    labels: list[str],
+    answers: dict[str, list[tuple[str, str]]],
+) -> None:
+    """Ask every source about each of *labels* and store the pairs in *answers*.
+
+    At most :data:`ABBREVIATION_LOOKUP_CONCURRENCY` calls run at a time. Pairs
+    keep label and source order; a failing source contributes no pairs.
+    """
+    semaphore = asyncio.Semaphore(ABBREVIATION_LOOKUP_CONCURRENCY)
+
+    async def _ask(source: AbbreviationSource, label: str) -> list[tuple[str, str]]:
+        async with semaphore:
+            try:
+                return list(await source.expand(label))
+            except Exception as exc:  # noqa: BLE001 - one bad source shouldn't stop expansion
+                logger.debug(
+                    "expand_and_search: abbreviation source failed for %r: %s", label, exc
+                )
+                return []
+
+    calls = [(label, source) for label in labels for source in sources]
+    results = await asyncio.gather(*(_ask(source, label) for label, source in calls))
+    for label in labels:
+        answers.setdefault(label, [])
+    for (label, _source), pairs in zip(calls, results, strict=True):
+        answers[label].extend(pairs)
+
+
 async def expand_and_search(
     lookup: CentralKnowledgeLookup,
     query: str,
@@ -267,6 +316,7 @@ async def expand_and_search(
     max_rounds: int = 3,
     max_terms_per_round: int = 10,
     abbreviation_sources: list[AbbreviationSource] | None = None,
+    max_abbreviation_lookups: int = DEFAULT_MAX_ABBREVIATION_LOOKUPS,
     store: ExpansionStore | None = None,
     persist: bool = True,
 ) -> tuple[LookupResult, ExpansionTrace]:
@@ -295,8 +345,16 @@ async def expand_and_search(
 
     Parameters mirror :meth:`CentralKnowledgeLookup.search_concepts` where
     they overlap (*concept_types*, *sources*, *max_results*).
+
+    Abbreviation sources are asked about each concept label at most once per
+    call, and about at most *max_abbreviation_lookups* not-yet-asked labels per
+    round (in result order), with up to :data:`ABBREVIATION_LOOKUP_CONCURRENCY`
+    calls at a time. Answers are reused in later rounds.
     """
     from ..models import LookupResult
+
+    # label -> (candidate, origin) pairs from the abbreviation sources
+    abbreviation_answers: dict[str, list[tuple[str, str]]] = {}
 
     if abbreviation_sources is None:
         abbreviation_sources = [UMLSAbbreviationSource(lookup.config)]
@@ -367,6 +425,18 @@ async def expand_and_search(
         # risk to nearly the same degree and are searched as before.
         next_terms: dict[str, tuple[str, str, str | None]] = {}
         abbreviations_found: dict[str, tuple[str, str, str | None]] = {}
+
+        # Ask the abbreviation sources about concept labels not asked yet in this
+        # run: at most max_abbreviation_lookups labels per round (in result
+        # order), a few at a time. Answers are kept for later rounds.
+        if abbreviation_sources:
+            labels_to_ask = _unasked_labels(all_concepts, abbreviation_answers)
+            await _ask_abbreviation_sources(
+                abbreviation_sources,
+                labels_to_ask[: max(0, max_abbreviation_lookups)],
+                abbreviation_answers,
+            )
+
         for concept in all_concepts:
             concept_id = getattr(concept, "primary_id", None)
             for syn in concept.synonyms or []:
@@ -378,24 +448,16 @@ async def expand_and_search(
             label = (concept.primary_label or "").strip()
             if not label:
                 continue
-            for source in abbreviation_sources:
-                try:
-                    pairs = await source.expand(label)
-                except Exception as exc:  # noqa: BLE001 - one bad source shouldn't stop expansion
-                    logger.debug(
-                        "expand_and_search: abbreviation source failed for %r: %s", label, exc
-                    )
-                    pairs = []
-                for candidate, origin in pairs:
-                    candidate = candidate.strip()
-                    key = candidate.lower()
-                    if not candidate or key in tried:
-                        continue
-                    if origin == ORIGIN_ABBREVIATION:
-                        if key not in abbreviations_found:
-                            abbreviations_found[key] = (candidate, origin, concept_id)
-                    elif key not in next_terms:
-                        next_terms[key] = (candidate, origin, concept_id)
+            for candidate, origin in abbreviation_answers.get(label, []):
+                candidate = candidate.strip()
+                key = candidate.lower()
+                if not candidate or key in tried:
+                    continue
+                if origin == ORIGIN_ABBREVIATION:
+                    if key not in abbreviations_found:
+                        abbreviations_found[key] = (candidate, origin, concept_id)
+                elif key not in next_terms:
+                    next_terms[key] = (candidate, origin, concept_id)
 
         if abbreviations_found:
             for key in abbreviations_found:

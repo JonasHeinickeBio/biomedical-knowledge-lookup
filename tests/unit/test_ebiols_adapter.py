@@ -94,6 +94,91 @@ class TestEBIOLSAdapter:
         assert len(results) == 0
 
     @pytest.mark.asyncio
+    async def test_search_records_identifiers_under_ebiols(self, adapter):
+        """Regression: identifiers and source_data are recorded under EBIOLS, not OLS."""
+        # Shaped like a real OLS4 /api/search response
+        ols4_search = {
+            "response": {
+                "numFound": 1,
+                "docs": [
+                    {
+                        "iri": "http://purl.obolibrary.org/obo/MONDO_0004992",
+                        "label": "cancer",
+                        "ontology_name": "mondo",
+                        "ontology_prefix": "MONDO",
+                        "short_form": "MONDO_0004992",
+                        "obo_id": "MONDO:0004992",
+                        "description": ["A tumor composed of atypical neoplastic cells."],
+                        "type": "class",
+                    }
+                ],
+            }
+        }
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = ols4_search
+            results = await adapter.search_concepts("cancer", limit=1)
+
+        assert len(results) == 1
+        concept = results[0]
+        assert [i.source for i in concept.identifiers] == [
+            KnowledgeSource.EBIOLS,
+            KnowledgeSource.EBIOLS,
+        ]
+        assert KnowledgeSource.EBIOLS in concept.source_data
+        assert KnowledgeSource.OLS not in concept.source_data
+
+    @pytest.mark.asyncio
+    async def test_details_records_identifiers_under_ebiols(self, adapter):
+        """Regression: concept details are recorded under EBIOLS, not OLS."""
+        ols4_terms = {
+            "_embedded": {
+                "terms": [
+                    {
+                        "iri": "http://purl.obolibrary.org/obo/HP_0001250",
+                        "label": "Seizure",
+                        "synonyms": ["Epileptic seizure"],
+                        "description": ["A seizure is an intermittent abnormality."],
+                        "obo_xref": [{"database": "UMLS", "id": "C0036572"}],
+                    }
+                ]
+            }
+        }
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = ols4_terms
+            concept = await adapter.get_concept_details(
+                "http://purl.obolibrary.org/obo/HP_0001250"
+            )
+
+        assert concept is not None
+        assert {i.source for i in concept.identifiers} == {KnowledgeSource.EBIOLS}
+        assert KnowledgeSource.EBIOLS in concept.source_data
+        assert KnowledgeSource.OLS not in concept.source_data
+
+    def test_plain_ols_adapter_still_uses_ols(self, lookup_config):
+        """The re-tagging must not leak into the parent OLS adapter."""
+        from knowledge_lookup.adapters.ols_adapter import OLSAdapter
+
+        concept = OLSAdapter(lookup_config)._convert_ols_result_to_concept(
+            {"iri": "http://purl.obolibrary.org/obo/DOID_162", "label": "cancer"}
+        )
+        assert concept is not None
+        assert concept.identifiers[0].source == KnowledgeSource.OLS
+
+    def test_tagging_is_inherited_not_overridden(self):
+        """Regression: the OLS converters tag with get_source(), so EBIOLS needs no override."""
+        from knowledge_lookup.adapters.ols_adapter import OLSAdapter
+
+        assert (
+            EBIOLSAdapter._convert_ols_result_to_concept
+            is OLSAdapter._convert_ols_result_to_concept
+        )
+        assert (
+            EBIOLSAdapter._convert_ols_concept_to_unified
+            is OLSAdapter._convert_ols_concept_to_unified
+        )
+        assert not hasattr(EBIOLSAdapter, "_retag_as_ebiols")
+
+    @pytest.mark.asyncio
     async def test_get_mappings_default(self, adapter):
         """Test get_mappings returns empty list by default."""
         mappings = await adapter.get_mappings("TEST:001")

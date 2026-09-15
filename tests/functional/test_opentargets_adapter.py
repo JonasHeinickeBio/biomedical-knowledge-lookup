@@ -6,6 +6,7 @@ OpenTargets API is now free to use without authentication.
 """
 
 import pytest
+
 from knowledge_lookup.adapters.opentargets_adapter import OpenTargetsAdapter
 from knowledge_lookup.models import KnowledgeSource
 

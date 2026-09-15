@@ -192,7 +192,7 @@ Tests are automatically run in CI/CD on:
 
 - Every push to `main` and `develop` branches
 - Every pull request
-- Multiple Python versions (3.10, 3.11, 3.12)
+- Multiple Python versions (3.11, 3.12, 3.13)
 - Multiple operating systems (Ubuntu, macOS, Windows)
 
 See `.github/workflows/tests.yml` for CI configuration.

@@ -2,7 +2,6 @@
 Unit tests for BioLinkerAdapter.
 """
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -66,7 +65,7 @@ class TestBioLinkerAdapter:
     async def test_search_concepts_timeout_error(self, adapter):
         """Test search when TimeoutError occurs - retries then returns []."""
         mock_session = self._make_mock_session({})
-        mock_session.post = MagicMock(side_effect=asyncio.TimeoutError())
+        mock_session.post = MagicMock(side_effect=TimeoutError())
         adapter.session = mock_session
         with patch("asyncio.sleep", new_callable=AsyncMock):
             results = await adapter.search_concepts("test query")

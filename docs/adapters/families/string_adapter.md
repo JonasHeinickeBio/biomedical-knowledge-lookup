@@ -1,187 +1,66 @@
-# STRING Adapter
+---
+description: STRING human protein identifiers and their top interaction partners.
+---
 
-## Overview
+# STRING adapter
 
-The STRING Adapter provides access to STRING (Search Tool for the Retrieval of Interacting Genes/Proteins), a database of known and predicted protein-protein interactions. It includes direct (physical) and indirect (functional) associations derived from experiments, databases, and text mining.
+Resolves human protein names to STRING identifiers and lists their top interaction partners from the STRING database.
 
-### Purpose
-- Search for protein-protein interactions
-- Retrieve interaction partners and confidence scores
-- Access functional association data
-- Support pathway analysis and network biology
+| | |
+|---|---|
+| Source | `KnowledgeSource.STRING` |
+| Class | `knowledge_lookup.adapters.STRINGAdapter` |
+| Requires | none |
+| Identifiers | protein name `TP53` or STRING ID `9606.ENSP00000269305` |
+| Upstream API | `https://string-db.org/api` |
 
-### Scope
-- Protein-protein interactions (physical and functional)
-- Interaction confidence scores
-- Functional enrichment and pathway associations
-- Protein complexes and modules
-- Cross-species interaction predictions
-- Text-mining derived interactions
-
-## Key Features
-
-- **Protein Search**: Search for proteins by identifier or name
-- **Interaction Partners**: Retrieve interaction network for a protein
-- **Confidence Scores**: Access interaction confidence metrics
-- **Functional Associations**: Get functional enrichment data
-- **Taxon Information**: Retrieve species information
-- **Network Visualization**: Support for interaction network analysis
-
-## API Information
-
-### Endpoint
-- **Base URL**: `https://string-db.org/api`
-
-### Authentication
-- **Required**: No
-- **API Key**: Not required (public service)
-
-### Environment Variables
-- None required
-
-## Key Methods
-
-### `search_concepts(query, limit=20) -> list[UnifiedConcept]`
-
-Search STRING for proteins and protein-protein interactions matching the query.
-
-**Parameters:**
-- `query` (str): Search term (protein name, gene name, identifier)
-- `limit` (int): Maximum number of results (default: 20, max: 5)
-
-**Returns:**
-- List of `UnifiedConcept` objects representing proteins
-
-**Example:**
-```python
-concepts = await adapter.search_concepts("TP53")
-```
-
-### `get_concept_details(concept_id) -> UnifiedConcept | None`
-
-Get protein details and interaction partners from STRING.
-
-**Parameters:**
-- `concept_id` (str): STRING protein ID (e.g., "STRING:9606.ENSP00000269305")
-
-**Returns:**
-- `UnifiedConcept` with protein details and interaction partners, or `None` if not found
-
-**Example:**
-```python
-protein = await adapter.get_concept_details("STRING:9606.ENSP00000269305")
-```
-
-## Configuration
-
-The adapter requires no special configuration beyond the base `LookupConfig`.
+## Quick example
 
 ```python
-from knowledge_lookup.adapters.string_adapter import STRINGAdapter
+import asyncio
+
+from knowledge_lookup.adapters import STRINGAdapter
 from knowledge_lookup.models import LookupConfig
 
-config = LookupConfig()
-adapter = STRINGAdapter(config)
+
+async def main():
+    async with STRINGAdapter(LookupConfig()) as adapter:
+        for concept in await adapter.search_concepts("TP53", limit=3):
+            print(concept.primary_id, concept.primary_label, concept.categories)
+
+        tp53 = await adapter.get_concept_details("TP53")
+        print(tp53.primary_id, tp53.related)
+
+
+asyncio.run(main())
 ```
 
-## Usage Examples
+Output:
 
-### Basic Search
-```python
-from knowledge_lookup.adapters.string_adapter import STRINGAdapter
-
-adapter = STRINGAdapter(config)
-
-# Search for TP53 protein
-results = await adapter.search_concepts("TP53", limit=5)
-
-for concept in results:
-    print(f"Protein: {concept.primary_label}")
-    print(f"ID: {concept.primary_id}")
-    print(f"Taxon: {concept.categories}")
+```
+STRING:9606.ENSP00000269305 TP53 ['taxon:9606']
+STRING:9606.ENSP00000269305 ['SFN(score=0.999)', 'EP300(score=0.999)', 'HIF1A(score=0.999)', 'HDAC1(score=0.999)', 'HSP90AA1(score=0.999)']
 ```
 
-### Get Protein Details
-```python
-# Get protein details and interaction partners
-protein = await adapter.get_concept_details("STRING:9606.ENSP00000269305")
+## Searching
 
-if protein:
-    print(f"Protein: {protein.primary_label}")
-    print(f"Annotation: {protein.definitions}")
-    print(f"Interactions: {protein.related}")
-    print(f"Taxon: {[c for c in protein.categories if c.startswith('taxon:')}])")
-```
+`search_concepts(query, limit)` calls `/json/resolve` with `species=9606` (human only) and `limit=min(limit, 5)`, so it returns at most five results. Each match becomes a `PROTEIN` concept:
 
-### Search by Identifier
-```python
-# Search using Ensembl protein ID
-results = await adapter.search_concepts("ENSP00000269305")
-```
+- `primary_id`: `STRING:<stringId>`
+- `primary_label`: preferred name
+- `definitions`: STRING annotation, cut to 500 characters
+- `categories`: `taxon:<ncbiTaxonId>`
+- `confidence_score`: `0.8`
 
-### Network Analysis
-```python
-# Get interaction partners for a protein
-protein = await adapter.get_concept_details("STRING:9606.ENSP00000269305")
+## Concept details
 
-if protein and protein.related:
-    for interaction in protein.related:
-        print(f"Interaction: {interaction}")
-```
+`get_concept_details(concept_id)` strips a `STRING:` prefix and resolves the identifier (limit 1). It then calls `/json/interaction_partners` (human, limit 5) and appends each partner once to `related` as `NAME(score=0.999)`.
 
-## Error Handling
+## Rate limits and errors
 
-The adapter implements comprehensive error handling:
+STRING serves JSON with the content type `text/json`, so the adapter overrides `_make_request` to decode the body regardless of content type (GET only). Requests still use the shared HTTP retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). Errors are logged; search returns `[]` and details return `None`. A failed partner request is logged as a warning and leaves `related` empty.
 
-- **Search Failures**: Returns empty list on error with logging
-- **Invalid IDs**: Returns `None` for non-existent protein IDs
-- **Network Errors**: Caught and logged, returns appropriate fallback
-- **Data Parsing Errors**: Graceful handling with `logger.error` logging
-- **Interaction Fetch Failures**: Non-critical, logged as warning
+## See also
 
-```python
-try:
-    results = await adapter.search_concepts("TP53")
-    if not results:
-        logger.info("No STRING entries found for 'TP53'")
-except Exception as e:
-    logger.error(f"STRING search failed: {e}")
-```
-
-## Rate Limiting
-
-**STRING API Rate Limits:**
-- Free tier: No strict limits published
-- Recommended: 10 requests per second
-
-The adapter includes built-in rate limiting via the base class `KnowledgeSourceAdapter`. Implementations should:
-- Respect STRING's rate limits
-- Implement request throttling for bulk operations
-- Cache interaction networks for frequently accessed proteins
-
-```python
-# The adapter automatically handles rate limiting through the base class
-```
-
-## Data Model Mapping
-
-| STRING Field | UnifiedConcept Mapping |
-|-------------|----------------------|
-| `stringId` | `primary_id` (as `STRING:{id}`) |
-| `preferredName` | `primary_label` |
-| `annotation` | `definitions.append(annotation[:500])` |
-| `taxonId` | `categories.append("taxon:{id}")` |
-| `interaction伙伴` | `related.append("{partner}(score={score})")` |
-
-## Related Adapters
-
-- **Uniprot Adapter**: For protein sequence and functional data
-- **GeneOntology Adapter**: For functional annotations
-- **KEGG Adapter**: For pathway data
-- **Reactome Adapter**: For detailed pathway information
-
-## References
-
-- [STRING API Documentation](https://string-db.org/cgi/help?sessionId=)
-- [STRING Website](https://string-db.org/)
-- [STRING Help](https://string-db.org/help/)
+- [UniProt adapter](../core/uniprot_adapter.md), [HGNC adapter](../proteins/hgnc_adapter.md)
+- [All adapters](../README.md)

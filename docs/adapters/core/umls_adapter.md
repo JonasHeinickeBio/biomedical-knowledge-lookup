@@ -1,113 +1,128 @@
-# UMLS Adapter Documentation
+---
+description: UMLS Metathesaurus concepts (CUIs) with definitions, relations and crosswalks to SNOMED CT, MeSH, ICD and more.
+---
 
-## Overview
-The UMLS adapter provides access to the Unified Medical Language System, a comprehensive biomedical terminology resource integrating multiple controlled vocabularies and classification systems.
+# UMLS adapter
 
-## Key Functions
+Gives full access to the UMLS Metathesaurus through the async client of `umls-python-client`. You can search with vocabulary and semantic-type filters, fetch complete concept profiles (definitions, atoms, relations) and crosswalk a CUI to source vocabularies such as SNOMED CT, MeSH, ICD-10-CM and RxNorm.
 
-### Core Search Methods
+| | |
+|---|---|
+| Source | `KnowledgeSource.UMLS` |
+| Class | `knowledge_lookup.adapters.UMLSAdapter` |
+| Requires | `[umls]` extra and `UMLS_API_KEY` |
+| Identifiers | CUI, e.g. `C0011849` |
+| Upstream API | UTS REST API `https://uts-ws.nlm.nih.gov/rest` (via `umls-python-client`) |
 
-#### `search_concepts(query, limit=20)` [async]
-Search for concepts across UMLS vocabularies.
+{% hint style="warning" %}
+**Two requirements.** Without the `[umls]` extra, `UMLSAdapter` is `None` and `KnowledgeSource.UMLS` is missing from `ADAPTER_CLASSES`. Without a key, `is_available()` is `False`. The key comes from `LookupConfig(api_keys={"umls": "..."})` or the `UMLS_API_KEY` environment variable (a `.env` file is loaded). You need a free UTS account to get one.
+{% endhint %}
 
-**Parameters:**
-- `query`: Search term for biomedical concepts
-- `limit`: Maximum results (default: 20, max: 100)
-
-**Returns:** `List[UnifiedConcept]` - UMLS concepts matching the query
-
-**Example Data Structure:**
-```python
-{
-    'primary_id': 'C0006826',
-    'primary_label': 'Malignant Neoplasms',
-    'concept_type': ConceptType.DISEASE,
-    'definitions': ['A term for diseases in which abnormal cells...'],
-    'categories': ['Neoplasms'],
-    'identifiers': [ConceptIdentifier(
-        source='UMLS',
-        identifier='C0006826',
-        label='Malignant Neoplasms',
-        url='https://uts.nlm.nih.gov/uts/umls/concept/C0006826'
-    )]
-}
-```
-
-#### `get_concept_details(concept_id)` [async]
-Get detailed information about a specific UMLS concept.
-
-**Parameters:**
-- `concept_id`: UMLS CUI (e.g., 'C0006826')
-
-**Returns:** `UnifiedConcept` or `None` - Detailed concept information
-
-## Data Types and Structures
-
-### UnifiedConcept Fields for UMLS
-- `primary_id`: UMLS CUI (e.g., 'C0006826')
-- `primary_label`: Preferred term name
-- `concept_type`: DISEASE, PROCEDURE, ANATOMY, etc. (auto-detected)
-- `definitions`: Concept definitions from source vocabularies
-- `categories`: Semantic types and categories
-- `identifiers`: UMLS identifiers with NLM URLs
-- `synonyms`: Alternative terms from different vocabularies
-
-### UMLS-Specific Data Fields
-- `cui`: Concept Unique Identifier
-- `preferred_name`: Preferred term
-- `definitions`: List of definitions from source vocabularies
-- `semantic_types`: UMLS semantic type assignments
-- `source_vocabularies`: Original source vocabularies (SNOMED, ICD-10, etc.)
-- `atoms`: Individual terms from different vocabularies
-
-## Supported Vocabularies
-UMLS integrates 200+ biomedical vocabularies including:
-- **SNOMED CT**: Systematized Nomenclature of Medicine
-- **ICD-10**: International Classification of Diseases
-- **MeSH**: Medical Subject Headings
-- **RxNorm**: Clinical drugs and drug delivery devices
-- **LOINC**: Logical Observation Identifiers Names and Codes
-- **CPT**: Current Procedural Terminology
-- **HCPCS**: Healthcare Common Procedure Coding System
-
-## Error Handling
-- API key validation and client initialization
-- UMLS client error handling
-- Graceful degradation when service unavailable
-- Comprehensive logging of search operations
-
-## Usage Examples
+## Quick example
 
 ```python
-# Initialize adapter
-config = LookupConfig()
-config.api_keys['umls'] = 'your_umls_api_key'
-adapter = UMLSAdapter(config)
+import asyncio
 
-# Search for disease concepts
-diseases = await adapter.search_concepts('diabetes', limit=10)
+from knowledge_lookup.adapters import UMLSAdapter
+from knowledge_lookup.models import LookupConfig
 
-# Get detailed concept information
-concept = await adapter.get_concept_details('C0006826')
 
-# Check availability
-if adapter.is_available():
-    results = await adapter.search_concepts('cancer')
+async def main():
+    if UMLSAdapter is None:
+        raise SystemExit("Install the [umls] extra to use UMLS")
+
+    async with UMLSAdapter(LookupConfig()) as adapter:
+        if not adapter.is_available():
+            raise SystemExit("Set UMLS_API_KEY to use UMLS")
+
+        hits = await adapter.search_concepts("diabetes", limit=3, semantic_types="T047")
+        for concept in hits:
+            print(concept.primary_id, concept.primary_label, concept.concept_type)
+
+        dm = await adapter.get_concept_details("C0011849")
+        print(dm.primary_label, dm.semantic_types, len(dm.synonyms), len(dm.definitions))
+
+        for m in await adapter.get_mappings("C0011849", target_source="SNOMEDCT_US", limit=2):
+            print(m["source"], m["source_id"], m["source_name"])
+
+
+asyncio.run(main())
 ```
 
-## Configuration
-Requires UMLS API key in configuration:
+Output:
+
+```
+C0011849 Diabetes Mellitus DISEASE
+C0011860 Diabetes Mellitus, Non-Insulin-Dependent DISEASE
+C0011847 Diabetes DISEASE
+Diabetes Mellitus ['Disease or Syndrome'] 85 12
+SNOMEDCT_US 267467004 Diabetes mellitus
+SNOMEDCT_US 154671004 Diabetes mellitus
+```
+
+## Searching
+
 ```python
-config = LookupConfig()
-config.api_keys['umls'] = 'your_api_key_here'
-# or
-config.api_keys['UMLS_API_KEY_TU'] = 'your_api_key_here'
+async def search_concepts(
+    query: str,
+    limit: int = 20,
+    *,
+    sabs: str | None = None,             # e.g. "SNOMEDCT_US,RXNORM"
+    semantic_groups: str | None = None,  # e.g. "DISO"
+    semantic_types: str | None = None,   # TUIs, e.g. "T047,T191"
+    search_type: str = "words",          # "exact", "leftTruncation", "normalizedString", ...
+    partial_search: bool = False,
+) -> list[UnifiedConcept]
 ```
 
-## Features
-- **Comprehensive Coverage**: 200+ integrated vocabularies
-- **Semantic Types**: Rich categorization system
-- **Cross-References**: Links between equivalent concepts
-- **Multilingual Support**: Terms in multiple languages
-- **Historical Data**: Versioned concept information
-- **Advanced Search**: Boolean queries and filters
+Requests `min(limit, 100)` results with `returnIdType=concept`. For each result:
+
+| Field | Value |
+|---|---|
+| `primary_id` | CUI |
+| `identifiers` | one `UMLS` identifier, URL `https://uts.nlm.nih.gov/uts/umls/concept/<CUI>` |
+| `categories` | `[root_source]`, e.g. `['MTH']` |
+| `concept_type` | from the root source (SNOMED CT and ICD → `DISEASE`, RxNorm → `DRUG`, MeSH → `CHEMICAL`, HPO → `PHENOTYPE`, ...); for `MTH` or unknown sources, from the semantic type names in the response |
+| `confidence_score` | `0.95` exact label match, `0.85` if one contains the other, else `0.75` |
+| `source_data[UMLS]` | `{"root_source", "uri"}` |
+
+Search results have no synonyms or definitions; use `get_concept_details` for those.
+
+{% hint style="info" %}
+As of the 2026AA release `semantic_groups` may return zero results. Filter with `semantic_types` TUIs instead.
+{% endhint %}
+
+## Concept details
+
+`get_concept_details("C0011849")` fetches the CUI record and the concept profile (definitions, relations and atoms) and returns:
+
+- `semantic_types`: semantic type names, e.g. `['Disease or Syndrome']`
+- `concept_type`: from the semantic type names, falling back to the semantic type TUIs (e.g. `T047` → `DISEASE`)
+- `definitions`: from every source vocabulary
+- `synonyms`: the preferred atom name plus all other atom names, in every language
+- `categories`: the root sources of the atoms, unordered
+- `parents` / `children` / `related`: relation targets as returned by UTS (URIs), sorted by relation label (`PAR`/`isa` → parents, `CHD` → children, everything else → related)
+- `source_data[UMLS]`: semantic types, atoms and relations as dicts
+- `confidence_score`: `0.95`
+
+## Source-specific methods
+
+| Method | Returns |
+|---|---|
+| `get_mappings(concept_id, *, target_source=None, limit=50)` | crosswalk from a CUI's atoms: dicts with `source`, `source_id`, `source_name`, `term_type`, `language`, `cui`, de-duplicated by source and code |
+| `get_relationships(concept_id, *, relation_labels=None, limit=100)` | dicts with `relation_label`, `additional_label`, `related_id`, `related_name`, `related_id_name`, `source`, `uri`; filter with e.g. `relation_labels="PAR,CHD"` |
+| `bulk_search(queries, limit=5, *, sabs=None, semantic_groups=None)` | `dict[str, list[UnifiedConcept]]`, one entry per query |
+| `iter_definitions(concept_id, page_size=25)` | async iterator of `{value, root_source, source_originated}` |
+| `iter_relations(concept_id, page_size=200, *, relation_labels=None)` | async iterator of the same dicts as `get_relationships` |
+
+## Rate limits and errors
+
+This adapter does not use the shared HTTP retry. Retries and throttling are left to `umls-python-client`, and a circuit breaker attached by `CentralKnowledgeLookup` is never notified. Every method logs failures and returns an empty result (`[]`, `{}` or `None`). `close()` closes the client session.
+
+## See also
+
+- [BioLinker adapter](../other/biolinker_adapter.md): links free text to CUIs
+- [BioPortal adapter](../ontologies/bioportal_adapter.md): SNOMED CT, MeSH and ICD as separate ontologies
+- [All adapters](../README.md)
+- [Configuration](../../getting-started/configuration.md): API keys and extras
+- [Searching concepts](../../guides/searching-concepts.md)

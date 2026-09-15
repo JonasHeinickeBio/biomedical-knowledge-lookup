@@ -6,6 +6,7 @@ Uses generated Pydantic models for strict validation with
 conversion methods to existing dataclass models.
 """
 
+import json
 
 from .biomedical_knowledge_models import (
     ConceptAgreement as GeneratedConceptAgreement,
@@ -117,7 +118,6 @@ def _convert_generated_unified_concept(
             _convert_generated_concept_identifier(id) for id in gen_concept.identifiers or []
         ],
         mappings=[_convert_generated_concept_mapping(m) for m in gen_concept.mappings or []],
-        labels={},
         synonyms=gen_concept.synonyms or [],
         definitions=gen_concept.definitions or [],
         semantic_types=gen_concept.semantic_types or [],
@@ -125,10 +125,8 @@ def _convert_generated_unified_concept(
         parents=gen_concept.parents or [],
         children=gen_concept.children or [],
         related=gen_concept.related or [],
-        sources=converted_sources,
-        confidence_score=gen_concept.confidence_score
-        if gen_concept.confidence_score is not None
-        else None,
+        sources=list(converted_sources),
+        confidence_score=gen_concept.confidence_score,
         last_updated=gen_concept.last_updated,
     )
 
@@ -153,7 +151,7 @@ def _convert_generated_lookup_result(
         sources_succeeded=[_normalize_source(s) for s in (gen_result.sources_succeeded or [])],
         sources_failed=[_normalize_source(s) for s in (gen_result.sources_failed or [])],
         execution_time=gen_result.execution_time or 0.0,
-        errors={},
+        errors=gen_result.errors,
     )
 
 
@@ -174,6 +172,14 @@ def _convert_generated_lookup_config(
             type_value = type_value.upper()
         return ConceptType(type_value)
 
+    # `rate_limits` is a dict here but a JSON string in the schema; accept either form.
+    rate_limits = gen_config.rate_limits
+    if isinstance(rate_limits, str):
+        try:
+            rate_limits = json.loads(rate_limits)
+        except json.JSONDecodeError:
+            rate_limits = {}
+
     return LookupConfig(
         enabled_sources=[_normalize_source(s) for s in (gen_config.enabled_sources or [])],
         max_results_per_source=gen_config.max_results_per_source or 20,
@@ -184,12 +190,13 @@ def _convert_generated_lookup_config(
         concept_types=[_normalize_concept_type(t) for t in (gen_config.concept_types or [])]
         if gen_config.concept_types
         else None,
-        rate_limits={},
+        rate_limits=rate_limits if rate_limits is not None else {},
         enable_deduplication=gen_config.enable_deduplication or True,
         similarity_threshold=gen_config.similarity_threshold or 0.8,
         merge_similar_concepts=gen_config.merge_similar_concepts or True,
         enable_ontology_mapping=gen_config.enable_ontology_mapping or True,
-        api_keys={},
+        # a JSON-serialized dict (schema range json_string); pass it through unchanged
+        api_keys=gen_config.api_keys,
     )
 
 

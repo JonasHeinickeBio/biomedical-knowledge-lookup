@@ -8,6 +8,7 @@ Requires UMLS_API_KEY environment variable.
 import os
 
 import pytest
+
 from knowledge_lookup.adapters.umls_adapter import UMLSAdapter
 from knowledge_lookup.models import KnowledgeSource
 

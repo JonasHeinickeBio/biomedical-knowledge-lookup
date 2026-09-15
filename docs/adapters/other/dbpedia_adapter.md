@@ -1,148 +1,94 @@
-# DBPedia Adapter Documentation
+---
+description: DBpedia resources via the public SPARQL endpoint - general knowledge from Wikipedia.
+---
 
-## Overview
-The DBPedia adapter provides access to DBpedia, a community-driven effort to extract structured data from Wikipedia and make it available on the web. It enables querying of structured Wikipedia data through SPARQL endpoints.
+# DBpedia adapter
 
-## Key Functions
+Searches DBpedia, the structured data extracted from Wikipedia, by English label and fetches resource labels, abstracts and types. It also lets you run your own SPARQL queries. Coverage is general-purpose rather than curated biomedical data.
 
-### Core Search Methods
+| | |
+|---|---|
+| Source | `KnowledgeSource.DBPEDIA` |
+| Class | `knowledge_lookup.adapters.DBpediaAdapter` |
+| Requires | none |
+| Identifiers | resource name `Metformin` or `http://dbpedia.org/resource/Metformin` |
+| Upstream API | `https://dbpedia.org/sparql` |
 
-#### `search_concepts(query, limit=20)` [async]
-Search DBpedia for concepts matching the query string.
-
-**Parameters:**
-- `query`: Search term for concepts (e.g., 'London', 'Albert Einstein')
-- `limit`: Maximum results (default: 20)
-
-**Returns:** `List[UnifiedConcept]` - DBpedia concepts
-
-**Example Data Structure:**
-```python
-{
-    'primary_id': 'London',
-    'primary_label': 'London',
-    'concept_type': ConceptType.UNKNOWN,
-    'definitions': ['London is the capital and largest city of England and the United Kingdom'],
-    'categories': ['City', 'Populated place'],
-    'identifiers': [ConceptIdentifier(
-        source='DBPEDIA',
-        identifier='London',
-        label='London',
-        url='http://dbpedia.org/resource/London'
-    )],
-    'confidence_score': 0.6
-}
-```
-
-#### `get_concept_details(concept_id)` [async]
-Get details for a specific DBpedia concept/entity.
-
-**Parameters:**
-- `concept_id`: DBpedia resource ID or full URI
-
-**Returns:** `UnifiedConcept` or `None` - Detailed entity information
-
-#### `run_sparql_query(sparql_query, limit=None)` [async]
-Run a generic SPARQL query against DBpedia.
-
-**Parameters:**
-- `sparql_query`: SPARQL query string
-- `limit`: Optional result limit
-
-**Returns:** Raw SPARQL JSON results
-
-## Data Types and Structures
-
-### UnifiedConcept Fields for DBPedia
-- `primary_id`: DBpedia resource ID (e.g., 'London')
-- `primary_label`: Entity label
-- `concept_type`: UNKNOWN (inferred from context)
-- `definitions`: Abstract/description text
-- `categories`: RDF types
-- `identifiers`: DBpedia identifiers with URLs
-- `confidence_score`: 0.6-0.65
-- `source_data`: Raw SPARQL results
-
-### DBPedia-Specific Data Fields
-- `resource`: Resource URI
-- `label`: Entity label
-- `abstract`: Text abstract
-- `types`: RDF type URIs
-- `properties`: Entity properties
-
-## API Information
-
-**SPARQL Endpoint:** `https://dbpedia.org/sparql`
-
-**Base URL:** `https://dbpedia.org`
-
-**Authentication:** Not required (public SPARQL endpoint)
-
-**Rate Limits:** No explicit public rate limits documented
-
-**SPARQL Example:**
-```sparql
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX dbo: <http://dbpedia.org/ontology/>
-SELECT DISTINCT ?resource ?label ?abstract ?type WHERE {
-  ?resource rdfs:label ?label .
-  ?label bif:contains "'query'" .
-  FILTER (lang(?label) = 'en')
-  OPTIONAL { ?resource dbo:abstract ?abstract . }
-  OPTIONAL { ?resource rdf:type ?type }
-}
-```
-
-## Error Handling
-- SPARQL query execution validation
-- Response structure validation
-- URI parsing errors
-- Abstract truncation for long texts
-- Comprehensive logging
-
-## Usage Examples
+## Quick example
 
 ```python
-# Initialize adapter
-config = LookupConfig()
-adapter = DBpediaAdapter(config)
+import asyncio
 
-# Search for concepts
-concepts = await adapter.search_concepts('Paris', limit=10)
+from knowledge_lookup.adapters import DBpediaAdapter
+from knowledge_lookup.models import LookupConfig
 
-# Get detailed entity information
-concept = await adapter.get_concept_details('Paris')
 
-# Run custom SPARQL query
-query = """
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT ?label WHERE {
-  <http://dbpedia.org/resource/Paris> rdfs:label ?label .
-}
-"""
-results = await adapter.run_sparql_query(query)
+async def main():
+    async with DBpediaAdapter(LookupConfig()) as adapter:
+        for concept in await adapter.search_concepts("Metformin", limit=3):
+            print(concept.primary_id, concept.primary_label, concept.categories)
 
-# Check availability
-if adapter.is_available():
-    results = await adapter.search_concepts('London')
+        entity = await adapter.get_concept_details("Metformin")
+        print(entity.primary_id, entity.primary_label, entity.categories[:3])
+
+        raw = await adapter.run_sparql_query(
+            "SELECT ?drug WHERE { ?drug a <http://dbpedia.org/ontology/Drug> }", limit=2
+        )
+        print([b["drug"]["value"] for b in raw["results"]["bindings"]])
+
+
+asyncio.run(main())
 ```
 
-## Configuration
-No special configuration required. The adapter is publicly available.
+Output:
 
-```python
-config = LookupConfig()
-adapter = DBpediaAdapter(config)
+```
+Metformin Metformin ['owl#Thing', 'DUL.owl#ChemicalObject', 'Q8386', 'ChemicalSubstance', 'Drug', 'DrugProduct']
+metformin Sitagliptin/metformin ['owl#Thing', 'DUL.owl#ChemicalObject', 'Q8386', 'ChemicalSubstance', 'CombinationDrug', 'Drug']
+metformin Empagliflozin/metformin ['owl#Thing', 'DUL.owl#ChemicalObject', 'Q8386', 'ChemicalSubstance', 'CombinationDrug', 'Drug']
+Metformin Metformin ['owl#Thing', 'DUL.owl#ChemicalObject', 'Q8386']
+['http://dbpedia.org/resource/Lipiodol', 'http://dbpedia.org/resource/RAD140']
 ```
 
-## Features
-- **Structured Wikipedia Data**: Access to 5 million+ entities
-- **SPARQL Support**: Full SPARQL query capability
-- **Multilingual Labels**: Support for multiple languages
-- **Rich Metadata**: Abstracts, types, and properties
-- **Entity Disambiguation**: Best match selection
-- **Flexible Queries**: Custom SPARQL support
-- **Moderate Confidence**: Scores based on match quality
+## Searching
 
-## Architecture
-The adapter uses DBpedia's SPARQL endpoint for querying. It provides specialized search methods for common use cases while also supporting arbitrary SPARQL queries for advanced users. Responses are normalized to the unified concept model.
+`search_concepts(query, limit)` runs a SPARQL query that matches English `rdfs:label` values with Virtuoso's `bif:contains`. A subquery sorts exact label matches first and takes the first `min(limit, 50)` resources; the outer query joins their optional `dbo:abstract` and `rdf:type`.
+
+The type join returns one row per (resource, type) pair. The adapter merges those rows, so each resource is returned once, with all of its types in `categories`.
+
+| Field | Value |
+|---|---|
+| `primary_id` | last path segment of the resource IRI, so `Sitagliptin/metformin` becomes `metformin` |
+| `identifiers` | one `DBPEDIA` identifier; the URL is the resource IRI |
+| `definitions` | English abstract, cut to 500 characters, when DBpedia has one |
+| `categories` | last segment of each `rdf:type` IRI, each once |
+| `concept_type` | `UNKNOWN` |
+| `confidence_score` | `0.6` |
+
+User input never reaches the query unescaped. `bif:contains` receives only the words of the query (letters, digits and underscores; quotes and other punctuation are dropped), and the exact-match comparison uses an escaped string literal. A query without any word characters returns `[]` without a request.
+
+## Concept details
+
+`get_concept_details(name_or_iri)` prefixes bare names with `http://dbpedia.org/resource/` (spaces become underscores) and percent-encodes characters that are not allowed in an IRI. It selects `rdfs:label`, `dbo:abstract`, `rdf:type` and `dbo:icd10`, restricted to English or language-less values (up to 100). The result has:
+
+| Field | Value |
+|---|---|
+| `primary_label` | English `rdfs:label`; falls back to the resource name with underscores replaced by spaces |
+| `definitions` | English `dbo:abstract`, cut to 1000 characters |
+| `categories` | type names (each once) and `ICD-10: <code>` entries |
+| `confidence_score` | `0.65` |
+
+A resource without any values returns `None`. When we checked, the public endpoint returned no `dbo:abstract` values for the resources we tried (for example `Metformin`, `Aspirin`, `Type_2_diabetes`), so `definitions` is often empty.
+
+## Source-specific methods
+
+`run_sparql_query(sparql_query: str, limit: int | None = None)` sends any SPARQL query to the endpoint and returns the JSON result (`head`, `results.bindings`). It appends `LIMIT` if `limit` is given and the query has none. The query is sent as written, so escape any user input yourself.
+
+## Rate limits and errors
+
+`_make_request` is overridden: requests go through the shared retry (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)), but any error is logged and turned into `{}`. Search then returns `[]`, details return `None`, and `run_sparql_query` returns `{}`. Request URLs, parameters and headers are logged at `DEBUG` level.
+
+## See also
+
+- [Wikidata adapter](wikidata_adapter.md)
+- [All adapters](../README.md)

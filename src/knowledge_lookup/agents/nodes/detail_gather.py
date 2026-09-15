@@ -14,16 +14,18 @@ This gives the LLM rich, multi-perspective data about every concept.
 from __future__ import annotations
 
 import asyncio
+import functools
 import logging
 from typing import Any
 
 from ...core.central_lookup import CentralKnowledgeLookup
 from ...models import ConceptIdentifier, KnowledgeSource, LookupConfig
 from ..state import LookupWorkflowState, dict_to_lookup_result, lookup_result_to_dict, make_step
+from . import _limits
 
 logger = logging.getLogger(__name__)
 
-_PER_LABEL_TIMEOUT = 20.0
+_PER_LABEL_TIMEOUT = _limits.CALL_TIMEOUT
 
 # Sources to query per label for cross-referencing
 # Ordered by likely relevance for biomedical concept lookup
@@ -58,7 +60,7 @@ async def _search_label(
             timeout=timeout,
         )
         return result.concepts or []
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.debug("Timeout searching '%s' in %s", label, source)
         return []
     except Exception as exc:
@@ -134,6 +136,7 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
         }
 
     config = LookupConfig(
+        enabled_sources=list(_CROSS_SOURCES),
         max_results_per_source=5,
         parallel_queries=True,
         enable_deduplication=False,
@@ -161,18 +164,28 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
         total_cross_refs = 0
         total_defs = 0
 
-        # For each unique label, search across all sources independently
-        for label_text, concept_idx in unique_labels:
-            if not label_text:
-                continue
+        labels = [(text, idx) for text, idx in unique_labels if text and available_cross_sources]
+
+        async def _search_all_sources(label_text: str) -> list[list[Any]]:
+            # Independent searches for this label against all cross-sources
+            return list(
+                await asyncio.gather(
+                    *[_search_label(lookup, label_text, src) for src in available_cross_sources]
+                )
+            )
+
+        # Labels are searched concurrently, within the node's time budget
+        gathered, unfinished = await _limits.gather_bounded(
+            [functools.partial(_search_all_sources, text) for text, _ in labels],
+            timeout=_limits.DETAIL_GATHER_TIMEOUT,
+        )
+
+        # For each unique label, merge what the cross-sources returned
+        for (label_text, concept_idx), per_source_results in zip(labels, gathered, strict=True):
+            if not isinstance(per_source_results, list):
+                continue  # not finished within the budget, or failed
 
             concept = concepts[concept_idx]
-
-            # Run independent searches for this label against all cross-sources
-            search_tasks = [
-                _search_label(lookup, label_text, src) for src in available_cross_sources
-            ]
-            per_source_results: list[list[Any]] = await asyncio.gather(*search_tasks)
 
             # Collect all cross-source findings
             all_found: list[Any] = []
@@ -272,6 +285,11 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
             if step_parts
             else "Processed concepts"
         )
+        if unfinished:
+            step_detail += (
+                f" ({unfinished} label(s) not finished within "
+                f"{_limits.DETAIL_GATHER_TIMEOUT:.0f}s)"
+            )
 
         return {
             "lookup_result": enriched_dict,

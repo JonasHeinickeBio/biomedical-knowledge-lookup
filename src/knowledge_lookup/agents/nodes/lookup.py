@@ -7,6 +7,7 @@ and deduplicated in a single pass.
 
 from __future__ import annotations
 
+import functools
 import logging
 from typing import Any
 
@@ -14,6 +15,7 @@ from ...core.central_lookup import CentralKnowledgeLookup
 from ...core.term_expansion import merge_concept_results
 from ...models import KnowledgeSource, LookupConfig, LookupResult
 from ..state import LookupWorkflowState, lookup_result_to_dict, make_step
+from . import _limits
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +48,11 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
     # Get all search terms (expanded from preprocess or comma-split)
     search_terms = _get_search_terms(state)
 
-    # Build config
+    source_filter = _limits.resolve_sources(state.get("source_filter"))
+
+    # Build config; only the selected sources' adapters are instantiated
     config = LookupConfig(
+        enabled_sources=source_filter,
         max_results_per_source=state["max_results"],
         parallel_queries=True,
         enable_deduplication=True,
@@ -58,17 +63,14 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
     try:
         # Resolve sources
         sources: list[KnowledgeSource] | None = None
-        source_filter = state.get("source_filter")
-        if source_filter:
-            resolved_sources: list[KnowledgeSource] = []
-            for name in source_filter:
-                try:
-                    src = KnowledgeSource(name.upper())
-                    if src in lookup.adapters:
-                        resolved_sources.append(src)
-                except ValueError:
-                    pass
-            sources = resolved_sources if resolved_sources else None
+        unavailable_error: list[str] = []
+        if source_filter is not None:
+            sources = [s for s in source_filter if s in lookup.adapters]
+            if not sources:
+                requested = ", ".join(state.get("source_filter") or [])
+                unavailable_error.append(
+                    f"None of the requested sources are available: {requested}"
+                )
 
         # Resolve concept types
         concept_types = None
@@ -84,9 +86,7 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
                     pass
             concept_types = resolved_types if resolved_types else None
 
-        # Search ALL expanded terms in parallel
-        import asyncio
-
+        # Search the expanded terms concurrently, within the node's time budget
         async def _search_term(term: str) -> LookupResult:
             return await lookup.search_concepts(
                 query=term,
@@ -96,9 +96,11 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
                 parallel=True,
             )
 
-        gather_results: list[LookupResult | BaseException] = await asyncio.gather(
-            *[_search_term(t) for t in search_terms],
-            return_exceptions=True,
+        gather_results, _ = await _limits.gather_bounded(
+            []
+            if unavailable_error
+            else [functools.partial(_search_term, t) for t in search_terms],
+            timeout=_limits.LOOKUP_TIMEOUT,
         )
 
         # Merge results across all terms
@@ -114,6 +116,12 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
                 search_terms[term_idx] if term_idx < len(search_terms) else f"term_{term_idx}"
             )
 
+            if term_result is None:
+                errors_combined[f"lookup_{term_label}"] = (
+                    f"Search not finished within {_limits.LOOKUP_TIMEOUT:.0f}s"
+                )
+                term_report.append(f"{term_label}=TIMEOUT")
+                continue
             if isinstance(term_result, BaseException):
                 errors_combined[f"lookup_{term_label}"] = str(term_result)
                 term_report.append(f"{term_label}=FAIL")
@@ -157,8 +165,14 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
         for src_name in sources_failed_union:
             merged.add_error(src_name, "Source failed for some terms")
 
+        # add_error records its key as a failed *source*, so only per-source
+        # errors go there; per-term errors ("lookup_<term>") are reported
+        # through the state's errors list (an unknown key would make the
+        # serialized result fail validation in the next node).
+        source_names = {s.value for s in KnowledgeSource}
         for err_src, err_msg in errors_combined.items():
-            merged.add_error(err_src, err_msg)
+            if err_src.upper() in source_names:
+                merged.add_error(err_src, err_msg)
 
         n_terms = len(search_terms)
         n_concepts = len(all_concepts)
@@ -180,7 +194,7 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
             "lookup_result": result_dict,
             "status": "searching",  # Will be evaluated by quality_gate
             "iteration": iteration + 1,
-            "errors": list(errors_combined.values()),
+            "errors": unavailable_error + list(errors_combined.values()),
             "steps": [make_step("LookupAgent", "search", step_detail)],
         }
 

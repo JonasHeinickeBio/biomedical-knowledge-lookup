@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
+
 from knowledge_lookup.adapters.omim_adapter import OMIMAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

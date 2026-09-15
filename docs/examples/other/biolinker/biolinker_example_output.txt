@@ -1,12 +1,12 @@
-╔══════════════════════════════════════════════════════╗
-║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
-║  The adapter does not return valid search results.  ║
-╚══════════════════════════════════════════════════════╝
+The BIOLINKER adapter is available.
 
-Checking if BioLinker adapter is available...
-  ✓ BioLinker adapter is available
+Searching BIOLINKER for 'cancer' ...
+Found 1 concept(s) in 4.2s
 
-Searching for 'cancer' concepts in BioLinker...
+  1. cancer
+     ID:         C0006826
+     Type:       UNKNOWN
+     Confidence: 1.0
+     Definition: new abnormal tissue that grows by excessive cellular division and proliferation more rapidly [...]
 
-Found 0 results from BioLinker:
-  No results found for 'cancer'
+Summary: search=1

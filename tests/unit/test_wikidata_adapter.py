@@ -2,12 +2,13 @@
 Unit tests for WikidataAdapter.
 """
 
+import re
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 pytestmark = pytest.mark.unit
-from knowledge_lookup.adapters.wikidata_adapter import WikidataAdapter
+from knowledge_lookup.adapters.wikidata_adapter import WikidataAdapter, _sparql_string_literal
 from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig
 
 
@@ -281,6 +282,96 @@ class TestWikidataAdapter:
         """Test _determine_concept_type_from_instance_of with empty string."""
         assert adapter._determine_concept_type_from_instance_of("") == ConceptType.UNKNOWN
 
+    # --- regression tests: SPARQL injection, ranking, MeSH ---
+
+    @staticmethod
+    def _strip_literals(sparql: str) -> str:
+        """Remove SPARQL string literals (honouring escapes) to compare query structure."""
+        return re.sub(r'"(?:[^"\\\n\r]|\\.)*"', '""', sparql)
+
+    def test_sparql_string_literal_escapes(self):
+        """_sparql_string_literal escapes backslashes, quotes and line breaks."""
+        assert _sparql_string_literal("plain") == '"plain"'
+        assert _sparql_string_literal("Crohn's") == '"Crohn\'s"'
+        assert _sparql_string_literal('a"b') == '"a\\"b"'
+        assert _sparql_string_literal("a\\b") == '"a\\\\b"'
+        assert _sparql_string_literal("a\nb\rc\td") == '"a\\nb\\rc\\td"'
+
+    @pytest.mark.asyncio
+    async def test_search_query_injection_is_escaped(self, adapter):
+        """Regression: search text cannot change the structure of the SPARQL query."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"results": {"bindings": []}}
+            await adapter.search_concepts("aspirin", limit=5)
+            benign = mock_req.call_args.args[1]["query"]
+            malicious = 'x" . } } SELECT * WHERE { ?s ?p ?o } #\\'
+            await adapter.search_concepts(malicious, limit=5)
+            injected = mock_req.call_args.args[1]["query"]
+
+        assert _sparql_string_literal(malicious) in injected
+        assert self._strip_literals(injected) == self._strip_literals(benign)
+
+    @pytest.mark.asyncio
+    async def test_search_keeps_entity_search_ranking(self, adapter):
+        """Results are ordered by the EntitySearch rank (apiOrdinal)."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"results": {"bindings": []}}
+            await adapter.search_concepts("aspirin", limit=5)
+            sparql = mock_req.call_args.args[1]["query"]
+        assert "?ordinal wikibase:apiOrdinal true" in sparql
+        assert "ORDER BY ?ordinal" in sparql
+        assert "LIMIT 5" in sparql
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_rejects_non_qid_injection(self, adapter):
+        """Regression: IDs that merely start with Q are not inserted into SPARQL."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            result = await adapter.get_concept_details("Q1 AS ?item) } SELECT * WHERE { ?s ?p ?o")
+        assert result is None
+        mock_req.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_mesh_is_not_umls(self, adapter):
+        """Regression: MeSH IDs are kept as a category, not as a UMLS identifier."""
+        # Shaped like the live bindings for Q18216 (aspirin); OPTIONAL joins repeat rows
+        base = {
+            "item": {"type": "uri", "value": "http://www.wikidata.org/entity/Q18216"},
+            "itemLabel": {"xml:lang": "en", "type": "literal", "value": "aspirin"},
+            "itemDescription": {
+                "xml:lang": "en",
+                "type": "literal",
+                "value": "medication used to treat pain",
+            },
+            "umlsCui": {"type": "literal", "value": "C0004057"},
+            "meshId": {"type": "literal", "value": "D001241"},
+        }
+        bindings = [
+            {
+                **base,
+                "instanceOfLabel": {
+                    "xml:lang": "en",
+                    "type": "literal",
+                    "value": "type of chemical entity",
+                },
+            },  # noqa: E501
+            {
+                **base,
+                "instanceOfLabel": {"xml:lang": "en", "type": "literal", "value": "medication"},
+            },  # noqa: E501
+        ]
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"head": {"vars": []}, "results": {"bindings": bindings}}
+            concept = await adapter.get_concept_details("Q18216")
+
+        assert concept is not None
+        assert [(i.source, i.identifier) for i in concept.identifiers] == [
+            (KnowledgeSource.WIKIDATA, "Q18216"),
+            (KnowledgeSource.UMLS, "C0004057"),
+        ]
+        assert concept.categories.count("MeSH: D001241") == 1
+        assert "type of chemical entity" in concept.categories
+        assert "medication" in concept.categories
+
     @pytest.mark.asyncio
     async def test_get_mappings_default(self, adapter):
         """Test get_mappings returns empty list by default."""
@@ -300,3 +391,57 @@ class TestWikidataAdapter:
         """Test async context manager."""
         async with adapter:
             pass
+
+    @staticmethod
+    def _search_row(qid: str, label: str, instance_of: str | None = None) -> dict:
+        row = {
+            "item": {"value": f"http://www.wikidata.org/entity/{qid}"},
+            "itemLabel": {"value": label},
+        }
+        if instance_of is not None:
+            row["instanceOfLabel"] = {"value": instance_of}
+        return row
+
+    @pytest.mark.asyncio
+    async def test_search_returns_each_item_once_with_merged_instance_of(self, adapter):
+        """Regression: an item repeated once per P31 value and the repeats used up `limit`."""
+        rows = [
+            self._search_row("Q18216", "aspirin", "type of chemical entity"),
+            self._search_row("Q18216", "aspirin", "medication"),
+            self._search_row("Q10420388", "aspirin tablet", "pharmaceutical product"),
+            self._search_row("Q10420388", "aspirin tablet", "pharmaceutical product"),
+            self._search_row("Q2039267", "Aspirin", "family name"),
+        ]
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"results": {"bindings": rows}}
+            results = await adapter.search_concepts("aspirin", limit=2)
+
+        assert [c.primary_id for c in results] == ["Q18216", "Q10420388"]
+        assert results[0].categories == ["type of chemical entity", "medication"]
+        assert results[1].categories == ["pharmaceutical product"]
+
+    @pytest.mark.asyncio
+    async def test_search_merge_types_an_unknown_item_from_a_later_row(self, adapter):
+        rows = [
+            self._search_row("Q12136", "diabetes mellitus"),
+            self._search_row("Q12136", "diabetes mellitus", "disease"),
+        ]
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"results": {"bindings": rows}}
+            results = await adapter.search_concepts("diabetes", limit=5)
+
+        assert len(results) == 1
+        assert results[0].concept_type == ConceptType.DISEASE
+        assert results[0].categories == ["disease"]
+
+    @pytest.mark.asyncio
+    async def test_search_limits_items_in_a_subquery(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"results": {"bindings": []}}
+            await adapter.search_concepts("aspirin", limit=5)
+            sparql = mock_req.call_args.args[1]["query"]
+
+        # LIMIT closes the item subquery, before the P31 join multiplies the rows
+        assert re.search(
+            r"SELECT \?item \?ordinal WHERE \{.*LIMIT 5\s*\}\s*OPTIONAL", sparql, re.S
+        )

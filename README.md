@@ -1,307 +1,374 @@
-# 🧬 Biomedical Knowledge Lookup
+# Biomedical Knowledge Lookup
 
-[![PyPI version](https://badge.fury.io/py/biomedical-knowledge-lookup.svg)](https://pypi.org/project/biomedical-knowledge-lookup/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+**One async Python API for 36 biomedical knowledge sources** (ontologies, clinical terminologies,
+and gene, protein, chemical, pathway and disease databases). Results come back as deduplicated,
+cross-referenced concepts you can export, load into a knowledge graph or hand to an AI agent.
+
+[![PyPI](https://img.shields.io/pypi/v/biomedical-knowledge-lookup)](https://pypi.org/project/biomedical-knowledge-lookup/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![Tests](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/actions/workflows/tests.yml/badge.svg)](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/actions/workflows/tests.yml)
-[![Coverage](https://img.shields.io/codecov/c/github/JonasHeinickeBio/biomedical-knowledge-lookup)](https://codecov.io/gh/JonasHeinickeBio/biomedical-knowledge-lookup)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://opensource.org/licenses/MIT)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://jonasheinickeBio.github.io/biomedical-knowledge-lookup/)
-[![PyPI downloads](https://img.shields.io/pypi/dm/biomedical-knowledge-lookup?color=blue)](https://pypi.org/project/biomedical-knowledge-lookup/)
-[![GitHub last commit](https://img.shields.io/github/last-commit/JonasHeinickeBio/biomedical-knowledge-lookup)](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/commits/main)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1234567.svg)](https://doi.org/10.5281/zenodo.1234567)
 
-A unified Python library for biological concept lookup across **29+ biomedical knowledge sources** including BioPortal, OLS, UMLS, ChEMBL, DisGeNET, and more. Built for bioinformatics researchers, knowledge graph developers, and biomedical data scientists.
+## Highlights
 
-## ✨ Features
+- **One API, 36 sources.** `search_concepts` queries OLS, UMLS, BioPortal, MONDO, HPO, UniProt,
+  ChEMBL, Reactome and many more in parallel. It merges the hits into deduplicated,
+  confidence-ranked `UnifiedConcept` records with IDs, labels, synonyms, definitions and
+  cross-references.
+- **Identifier-aware.** Fetch a concept by CURIE and collect cross-references with
+  `find_mappings` (the concept's own identifiers plus EBI OxO). You can also validate and
+  normalize CURIEs and URIs against [bioregistry](https://bioregistry.io/) (`[curie]` extra).
+- **Term expansion.** `search_concepts_expanded` follows synonyms and long forms over several
+  rounds ("COPD" → "chronic obstructive pulmonary disease"). Every term it tries is recorded in
+  a local SQLite store.
+- **Multi-source annotation.** `MultiSourceAnnotator` compares what several sources return for
+  the same text and scores how far they agree.
+- **Exports.** JSON, CSV, RDF/Turtle, a plain-text summary report, pandas DataFrame and Excel.
+- **Resilient by default.** The library uses per-source timeouts, retries with exponential
+  backoff, circuit breakers with per-source health tracking, and in-memory plus optional on-disk
+  caching. Sources that lack an API key or optional extra are skipped rather than failing.
+- **Agent workflow.** An optional LangGraph pipeline (`[agents]` extra) searches, filters,
+  enriches and LLM-reviews results, then pauses for human approval before exporting.
+- **MCP server.** `knowledge-lookup-mcp` (`[mcp]` extra) gives Claude, Cursor and other MCP
+  clients read-only tools to search concepts, resolve identifiers, find mappings and validate
+  CURIEs.
+- **Lean core.** The base install needs only aiohttp, pydantic, rdflib, rich, typer, backoff
+  and python-dotenv. Heavier dependencies are opt-in extras.
 
-- **🔍 29+ Knowledge Sources**: Comprehensive coverage of biomedical ontologies and databases
-- **✅ CURIE Validation**: Built-in CURIE/URI validation and normalization using bioregistry
-- **⚡ Unified API**: Single interface for all sources with consistent results
-- **🔄 Multi-source Annotation**: Cross-reference concepts across multiple databases
-- **📊 RDF Export**: Convert results to RDF format for knowledge graphs
-- **💾 Intelligent Caching**: Built-in caching system for performance optimization
-- **🔄 Async Support**: Asynchronous operations for scalable applications
-- **🧪 Comprehensive Testing**: Full test suite with unit and integration tests
-- **📚 Rich Documentation**: Extensive examples and API documentation
-
-## 🚀 Quick Start
-
-### Installation
+## Installation
 
 ```bash
-# core — all HTTP-only adapters (OLS, BioPortal, MONDO, HPO, UniProt, DrugBank,
-# OxO, Zooma, PubChem, Ensembl, …), CURIE parsing, RDF export
-pip install biomedical-knowledge-lookup
-
-# optional feature groups (add one or more)
-pip install "biomedical-knowledge-lookup[curie]"        # bioregistry/curies/pyobo CURIE normalization
-pip install "biomedical-knowledge-lookup[umls]"         # UMLS adapter (needs a UMLS API key)
-pip install "biomedical-knowledge-lookup[chembl]"       # ChEMBL adapter
-pip install "biomedical-knowledge-lookup[bioservices]"  # EUtils / QuickGO / UniChem adapters
-pip install "biomedical-knowledge-lookup[tyto]"         # Tyto adapter (owlready2)
-pip install "biomedical-knowledge-lookup[agents]"       # LangGraph LLM agent workflow
-pip install "biomedical-knowledge-lookup[export]"       # pandas DataFrame / Excel export
+pip install biomedical-knowledge-lookup                 # core: every HTTP-only adapter
+pip install "biomedical-knowledge-lookup[curie,export]" # add extras as needed
 pip install "biomedical-knowledge-lookup[all]"          # everything
-
-# from source
-git clone https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup.git
-cd biomedical-knowledge-lookup
-poetry install                          # core + dev
-poetry install --all-extras             # everything
-poetry install --extras "curie umls"    # selected groups
 ```
 
-The **core install pulls no heavy dependencies** — every optional dependency
-guards its own import, so `import knowledge_lookup` and all HTTP-only adapters
-work without any extra, and an adapter/feature that needs a missing extra is
-simply disabled (a clear `ImportError` if you instantiate it directly). CURIE
-validation via the `curie` extra enables bioregistry-based CURIE/URI parsing,
-validation, and normalization using the [bioregistry](https://github.com/bioregistry/bioregistry),
-[curies](https://github.com/cthoyt/curies), and [pyobo](https://github.com/pyobo/pyobo) libraries.
+Requires Python 3.11 or newer. Coming from 1.x? Read [Upgrading to 2.0](docs/getting-started/upgrading-to-2.0.md)
+for the breaking changes.
 
-### Basic Usage
+| Extra | Enables | Installs |
+|-------|---------|----------|
+| `curie` | CURIE/URI validation and normalization (`knowledge_lookup.curie_utils`) | bioregistry, curies |
+| `umls` | UMLS adapter and UMLS-backed abbreviation expansion | umls-python-client |
+| `chembl` | ChEMBL adapter | chembl-webresource-client |
+| `bioservices` | NCBI E-utilities, QuickGO and UniChem adapters | bioservices |
+| `tyto` | Tyto adapter | tyto |
+| `export` | `export_to_dataframe()` and `export_to_excel()` | pandas 3, openpyxl |
+| `agents` | LangGraph agent workflow (`knowledge_lookup.agents`, `knowledge-lookup workflow`) | langgraph |
+| `mcp` | MCP server for AI agents (`knowledge-lookup-mcp`) | mcp |
+| `all` | All of the above | |
+
+Every optional dependency guards its own import. `import knowledge_lookup` always works, and a
+feature whose extra is missing is simply unavailable.
+
+## Quick start
+
+### Search concepts
 
 ```python
+import asyncio
+
 from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource
 
-# Initialize the lookup system
-lookup = CentralKnowledgeLookup()
 
-# Search for concepts across multiple sources
-results = await lookup.search_concepts(
-    "diabetes mellitus",
-    sources=[KnowledgeSource.BIOPORTAL, KnowledgeSource.OLS, KnowledgeSource.UMLS]
-)
+async def main() -> None:
+    lookup = CentralKnowledgeLookup()
+    try:
+        result = await lookup.search_concepts(
+            "type 2 diabetes",
+            sources=[KnowledgeSource.OLS, KnowledgeSource.MONDO, KnowledgeSource.HPO],
+            max_results=5,
+        )
+        for concept in result.concepts:
+            print(concept.primary_id, concept.primary_label, concept.sources)
+    finally:
+        await lookup.close()
 
-# Get detailed information about a specific concept
-concept_details = await lookup.get_concept_details("DOID:9351")
+
+asyncio.run(main())
 ```
 
-### Advanced Usage with Multi-source Annotation
+Leave out `sources` to query every available adapter.
+
+### Concept details, mappings and exports
 
 ```python
-from knowledge_lookup import MultiSourceAnnotator
+import asyncio
 
-# Annotate text with concepts from multiple sources
-annotator = MultiSourceAnnotator()
-annotations = await annotator.annotate_text(
-    "Type 2 diabetes is associated with insulin resistance",
-    confidence_threshold=0.7
-)
+from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource, LookupConfig
 
-# Get consensus annotations across sources
-consensus = annotator.get_consensus_annotations(annotations)
+
+async def main() -> None:
+    # Initialise only the adapters you need. Start-up is faster, and calls that ask every
+    # adapter (find_mappings, get_concept_details without a source) stay quick.
+    config = LookupConfig(
+        enabled_sources=[
+            KnowledgeSource.OLS,
+            KnowledgeSource.HPO,
+            KnowledgeSource.MONDO,
+            KnowledgeSource.OXO,
+        ],
+        timeout_per_source=20,
+    )
+    lookup = CentralKnowledgeLookup(config)
+    try:
+        seizure = await lookup.get_concept_details("HP:0001250", source=KnowledgeSource.HPO)
+        print(seizure.primary_label, seizure.synonyms[:3])
+        # e.g. Seizure ['Epileptic seizure', 'Seizures', 'Epilepsy']
+
+        mappings = await lookup.find_mappings("MONDO:0005148")
+        print([m.identifier for m in mappings[:3]])
+        # e.g. ['DOID:9352', 'ICD10CM:E11', 'ICD10WHO:E11']
+
+        result = await lookup.search_concepts("asthma", sources=[KnowledgeSource.OLS])
+        lookup.export_to_json(result, "asthma.json")
+        lookup.export_to_csv(result, "asthma.csv")
+        lookup.export_to_ttl(result, "asthma.ttl")  # RDF / Turtle
+        df = lookup.export_to_dataframe(result)  # needs the [export] extra
+        print(df.shape)
+    finally:
+        await lookup.close()
+
+
+asyncio.run(main())
 ```
 
-## 📋 Supported Knowledge Sources
-
-| Source | Description | API Key Required |
-|--------|-------------|------------------|
-| **BioPortal** | NCBI BioPortal ontology repository | Yes |
-| **OLS** | Ontology Lookup Service | No |
-| **UMLS** | Unified Medical Language System | Yes |
-| **ChEMBL** | Chemical database | No |
-| **DisGeNET** | Disease-gene associations | No |
-| **DrugBank** | Drug information database | No |
-| **Ensembl** | Genome annotation database | No |
-| **Gene Ontology** | Molecular function/process/component | No |
-| **HPO** | Human Phenotype Ontology | No |
-| **Mondo** | Mondo Disease Ontology | No |
-| **OpenTargets** | Target-disease associations | No |
-| **PubChem** | Chemical information | No |
-| **Reactome** | Pathway database | No |
-| **UniProt** | Protein sequence database | No |
-| **WikiData** | Structured knowledge base | No |
-| **ZOOMA** | Ontology mapping service | No |
-| **And 13+ more...** | See full list in documentation | Varies |
-
-## 🏗️ Architecture
-
-```
-knowledge_lookup/
-├── adapters/           # Individual source adapters
-├── models.py          # Data models and enums
-├── central_lookup.py  # Main lookup coordinator
-├── multi_source_annotator.py  # Cross-source annotation
-├── rdf_converter.py   # RDF export utilities
-├── cache.py          # Caching system
-└── base.py           # Abstract base classes
-```
-
-## 📖 Documentation
-
-- **[Getting Started Guide](docs/getting_started.md)**
-- **[API Reference](docs/api_reference.md)**
-- **[CURIE Management](docs/curie-management.md)** - CURIE/URI parsing, validation, and normalization
-- **[Adapter Documentation](docs/adapters/)**
-- **[Examples](examples/)**
-- **[Contributing Guide](CONTRIBUTING.md)**
-
-### Additional Resources
-
-- **[Documentation Improvement Summary](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/wiki/Documentation-Improvement-Summary)**
-- **[Project Overview](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/wiki/Project-Overview)**
-
-### Example Notebooks
-
-Explore interactive examples in the `examples/` directory:
-- Basic concept lookup
-- Multi-source annotation
-- RDF export and knowledge graph construction
-- Performance benchmarking
-
-## 🔧 Configuration
-
-### CURIE Validation
-
-The `curie` extra adds a standalone `curie_utils` toolkit built on
-[bioregistry](https://bioregistry.io/) for validating and normalizing CURIEs
-and URIs. It is not yet wired into `CentralKnowledgeLookup`'s query
-parsing or deduplication — see [CURIE Management](docs/curie-management.md)
-for the full picture and for cross-ontology mapping via
-`find_mappings()`/OxO.
+### Term expansion and CURIE utilities
 
 ```python
-from knowledge_lookup.curie_utils import normalize_curie, validate_prefix
-
-# Validate prefixes
-is_valid = validate_prefix("doid")  # True
-is_valid = validate_prefix("invalid_prefix")  # False
-
-# Normalize a CURIE's prefix to bioregistry's canonical form (same ontology,
-# not a cross-ontology mapping)
-normalized = normalize_curie("DOID:9351")  # "doid:9351"
+# inside an async function, with `lookup` as above
+result = await lookup.search_concepts_expanded(
+    "COPD", sources=[KnowledgeSource.OLS], max_rounds=2
+)
 ```
 
-### API Keys
+Expansion is slower than a single search because it runs one search per discovered term. With
+the `[umls]` extra and a `UMLS_API_KEY` it also expands abbreviations through the UMLS
+Metathesaurus.
 
-Some sources require API keys. Set them as environment variables:
+```python
+# needs the [curie] extra
+from knowledge_lookup.curie_utils import normalize_curie, parse_curie_or_uri, validate_prefix
+
+validate_prefix("mondo")                                         # True
+normalize_curie("MONDO:0005148")                                 # 'mondo:0005148'
+parse_curie_or_uri("http://purl.obolibrary.org/obo/HP_0001250")  # ('hp', '0001250')
+```
+
+### Command line
 
 ```bash
-export BIOPORTAL_API_KEY="your_key_here"
-export UMLS_API_KEY="your_key_here"
-# ... etc
+knowledge-lookup search "type 2 diabetes" --source OLS --limit 5
+knowledge-lookup search "BRCA1" --source HGNC --output json   # table (default), json or csv
+knowledge-lookup --help                                       # also: workflow, info, benchmark, explore
 ```
 
-Or create a `.env` file:
+### MCP server for AI agents
 
-```env
-BIOPORTAL_API_KEY=your_key_here
-UMLS_API_KEY=your_key_here
+Register the server with Claude Code in one line:
+
+```bash
+claude mcp add biomedical-knowledge-lookup -- uvx --from "biomedical-knowledge-lookup[mcp,curie]" knowledge-lookup-mcp
 ```
 
-### Advanced Configuration
+Or run it yourself:
+
+```bash
+pip install "biomedical-knowledge-lookup[mcp,curie]"
+knowledge-lookup-mcp                                         # stdio (Claude Desktop, Cursor, ...)
+knowledge-lookup-mcp --transport streamable-http --port 8000 # serves http://127.0.0.1:8000/mcp
+```
+
+The server has five read-only tools: `biomed_search_concepts`, `biomed_get_concept`,
+`biomed_find_mappings`, `biomed_list_sources` and `biomed_validate_curie`. Pass API keys to it
+as environment variables, for example with `claude mcp add ... -e UMLS_API_KEY=...`. See the
+[MCP server guide](docs/guides/mcp-server.md) for configuration and client setup.
+
+## Knowledge sources
+
+36 adapters, grouped by domain. Pass the name as `KnowledgeSource.<NAME>` in Python or as
+`--source <NAME>` on the CLI. A source marked **—** works without an API key or extra.
+
+<details>
+<summary><strong>Show all 36 sources and their requirements</strong></summary>
+
+**Diseases and phenotypes**
+
+| Name | Description | Requires |
+|------|-------------|----------|
+| `MONDO` | Mondo Disease Ontology, e.g. `MONDO:0005148` | — |
+| `HPO` | Human Phenotype Ontology, e.g. `HP:0001250` | — |
+| `OMIM` | OMIM Mendelian disorders and genes | `OMIM_API_KEY` |
+| `DISGENET` | DisGeNET gene–disease associations | `DISGENET_API_KEY` |
+| `OPENTARGETS` | Open Targets target–disease evidence | — |
+| `CLINVAR` | ClinVar variants and clinical significance | — |
+| `COSMIC` | COSMIC somatic cancer mutations | — (optional `COSMIC_API_KEY`) |
+
+**Genes, proteins and structures**
+
+| Name | Description | Requires |
+|------|-------------|----------|
+| `HGNC` | HGNC human gene nomenclature, e.g. `HGNC:1100` (BRCA1) | — |
+| `UNIPROT` | UniProtKB proteins, e.g. `P38398` | — |
+| `ENSEMBL` | Ensembl genes and transcripts, e.g. `ENSG00000012048` | — |
+| `GENEONTOLOGY` | Gene Ontology terms, e.g. `GO:0008150` | — |
+| `QUICKGO` | EBI QuickGO annotations | `[bioservices]` |
+| `INTERPRO` | InterPro protein families and domains, e.g. `IPR000719` | — |
+| `PFAM` | Pfam protein families, e.g. `PF00069` | — |
+| `PDB` | RCSB Protein Data Bank structures | — |
+| `STRING` | STRING protein–protein interactions | — |
+
+**Chemicals and drugs**
+
+| Name | Description | Requires |
+|------|-------------|----------|
+| `PUBCHEM` | PubChem compounds (CIDs) | — |
+| `CHEMBL` | ChEMBL bioactive molecules and drugs, e.g. `CHEMBL25` | `[chembl]` |
+| `DRUGBANK` | DrugBank drugs, e.g. `DB00945` | — |
+| `UNICHEM` | UniChem chemical cross-references | `[bioservices]` |
+
+**Pathways**
+
+| Name | Description | Requires |
+|------|-------------|----------|
+| `REACTOME` | Reactome pathways, e.g. `R-HSA-1640170` | — |
+| `KEGG` | KEGG diseases, drugs and pathways | — |
+
+**Ontologies, terminologies and mappings**
+
+| Name | Description | Requires |
+|------|-------------|----------|
+| `OLS` | EBI Ontology Lookup Service: 250+ ontologies (DOID, EFO, NCIT, UBERON, ChEBI, ...) | — |
+| `EBIOLS` | EMBL-EBI OLS (variant of the OLS adapter) | — |
+| `BIOPORTAL` | NCBO BioPortal: 1000+ ontologies (SNOMED CT, MeSH, ICD, ...) | `BIOPORTAL_API_KEY` |
+| `BIOONTOLOGY` | NCBO BioOntology search API | `BIOPORTAL_API_KEY` |
+| `UMLS` | UMLS Metathesaurus concepts (CUIs, e.g. `C0011849`) spanning SNOMED CT, MeSH, ICD, ... | `[umls]` + `UMLS_API_KEY` |
+| `OXO` | EBI OxO ontology cross-reference mappings | — |
+| `ZOOMA` | EBI ZOOMA text-to-ontology annotation | — |
+| `OBOFOUNDRY` | OBO Foundry ontology registry | — |
+| `TYTO` | Tyto ontology term lookup | `[tyto]` |
+
+**Literature and general knowledge**
+
+| Name | Description | Requires |
+|------|-------------|----------|
+| `EUROPEPMC` | Europe PMC literature | — |
+| `EUTILS` | NCBI E-utilities (PubMed, Gene, MeSH) | `[bioservices]` |
+| `WIKIDATA` | Wikidata items, e.g. `Q12136` | — |
+| `DBPEDIA` | DBpedia resources (general knowledge) | — |
+| `BIOLINKER` | BioLinker entity linking | — |
+
+</details>
+
+Per-source details are in the [adapter documentation](docs/adapters/README.md). The
+[`example_notebooks/`](example_notebooks/) folder has a notebook for most adapters.
+
+## Configuration
+
+### API keys
+
+Keys are optional. Set them as environment variables:
+
+```bash
+export BIOPORTAL_API_KEY=...   # BioPortal and BioOntology — https://bioportal.bioontology.org/
+export UMLS_API_KEY=...        # UMLS and abbreviation expansion — https://uts.nlm.nih.gov/
+export DISGENET_API_KEY=...    # DisGeNET — https://www.disgenet.com/
+export OMIM_API_KEY=...        # OMIM — https://www.omim.org/api
+```
+
+Without a key, the matching source is reported as unavailable and skipped.
+
+A `.env` file with the same variables is also read, but it is searched for upward from the
+installed package, not from your script's working directory. That works in a source checkout
+and in Jupyter or the REPL. For an installed package, export the variables or call
+`dotenv.load_dotenv()` yourself before creating the lookup.
+
+The agent workflow's LLM review uses `BLABLADOR_API_KEY`, `OPENAI_API_KEY` or
+`ANTHROPIC_API_KEY`, whichever is set first. With none of them set, it falls back to rule-based
+review.
+
+### `LookupConfig`
 
 ```python
-from knowledge_lookup import LookupConfig
+from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource, LookupConfig
 
 config = LookupConfig(
-    rate_limits={
-        KnowledgeSource.BIOPORTAL: 10,  # requests per second
-        KnowledgeSource.OLS: 20,
-    },
-    cache_enabled=True,
-    cache_dir="./cache"
+    enabled_sources=[KnowledgeSource.OLS, KnowledgeSource.MONDO, KnowledgeSource.BIOPORTAL],
+    max_results_per_source=20,
+    timeout_per_source=15,  # seconds
+    circuit_breaker_threshold=5,  # failures before a source is skipped (default 5)
+    circuit_breaker_cooldown=30,  # seconds before it is probed again (default 30)
+    api_keys={"bioportal": "your-key"},  # instead of environment variables
 )
-
 lookup = CentralKnowledgeLookup(config)
 ```
 
-## 🧪 Testing
+See the [configuration guide](docs/getting-started/configuration.md) for every option, and the
+[caching guide](docs/guides/caching.md) for the memory and disk caches.
 
-```bash
-# Run all tests
-poetry run pytest
+## Documentation
 
-# Run specific test categories
-poetry run pytest -m "unit"        # Unit tests only
-poetry run pytest -m "integration" # Integration tests
-poetry run pytest -m "not slow"    # Skip slow tests
+| | |
+|---|---|
+| **Getting started** | [Installation](docs/getting-started/installation.md) · [Quick start](docs/getting-started/quickstart.md) · [Configuration](docs/getting-started/configuration.md) |
+| **Guides** | [Searching concepts](docs/guides/searching-concepts.md) · [Term expansion](docs/guides/term-expansion.md) · [Multi-source annotation](docs/guides/multi-source-annotation.md) · [CURIE management](docs/guides/curie-management.md) · [Caching](docs/guides/caching.md) · [Exporting results](docs/guides/exporting-results.md) · [CLI](docs/guides/cli.md) · [Agent workflow](docs/guides/agent-workflow.md) · [MCP server](docs/guides/mcp-server.md) |
+| **Reference** | [API reference](docs/reference/api-reference.md) · [Architecture](docs/reference/architecture.md) · [Knowledge-source adapters](docs/adapters/README.md) |
+| **More** | [Examples](docs/examples/README.md) · [Example notebooks](example_notebooks/) · [Contributing](docs/contributing/README.md) · [Changelog](CHANGELOG.md) |
 
-# Run with coverage
-poetry run pytest --cov=knowledge_lookup
+Start at the [documentation home](docs/README.md).
+
+### Package layout
+
+```text
+src/knowledge_lookup/
+├── core/          CentralKnowledgeLookup, term expansion, MultiSourceAnnotator
+├── adapters/      one adapter per knowledge source (ADAPTER_CLASSES)
+├── models/        Pydantic models generated from the LinkML schema in linkml/
+├── curie_utils/   CURIE/URI parsing, validation and normalization   [curie]
+├── cache/         in-memory and on-disk cache
+├── export/        JSON and CSV export helpers
+├── agents/        LangGraph agent workflow                          [agents]
+├── mcp_server/    Model Context Protocol server                     [mcp]
+└── __main__.py    knowledge-lookup CLI
 ```
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Adding New Adapters
-
-1. Extend `KnowledgeSourceAdapter` in `base.py`
-2. Implement required methods: `search_concepts()`, `get_concept_details()`
-3. Add CURIE validation using `curie_utils` module
-4. Add to `adapters/__init__.py`
-5. Add tests in `tests/unit/test_adapters/`
-6. Update documentation
-
-### CURIE Validation in Adapters
-
-When implementing adapters, use the `curie_utils` module for CURIE validation:
-
-```python
-from ..curie_utils import validate_prefix, normalize_curie, parse_curie_or_uri
-
-# Validate prefix before queries
-if validate_prefix("doid"):
-    logger.debug("doid is a known bioregistry prefix")
-
-# Parse query as CURIE/URI
-parsed = parse_curie_or_uri(query)
-if parsed:
-    prefix, identifier = parsed
-
-# Normalize a CURIE's prefix to its canonical bioregistry form
-normalized = normalize_curie("DOID:9351")  # "doid:9351"
-```
-
-### Development Setup
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and [TESTING.md](TESTING.md).
 
 ```bash
 git clone https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup.git
 cd biomedical-knowledge-lookup
-poetry install
-poetry run pre-commit install
+poetry install --all-extras      # library, every extra and the dev tools
+poetry run pre-commit install    # ruff, ruff-format and mypy on every commit
+poetry run pytest tests/unit     # unit tests
+poetry run pytest -m "not slow"  # broader run; functional tests call live APIs
 ```
 
-## 📄 License
+Report bugs and request features on
+[GitHub Issues](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/issues).
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Citation
 
-## 🙏 Acknowledgments
-
-- Built upon the AID-PAIS Knowledge Graph project
-- Thanks to all contributors and the biomedical research community
-- Special thanks to the maintainers of the various knowledge sources
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/discussions)
-- **Email**: jonas.heinicke@helmholtz-hzi.de
-
-## 🔬 Citation
-
-If you use this library in your research, please cite:
+If you use this library in your research, please cite the repository:
 
 ```bibtex
-@software{heinicke_biomedical_knowledge_lookup_2025,
-  author = {Heinicke, Jonas},
-  title = {Biomedical Knowledge Lookup: Unified biological concept lookup across 29+ biomedical knowledge sources},
-  url = {https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup},
-  version = {1.0.0},
-  year = {2025}
+@software{heinicke_biomedical_knowledge_lookup,
+  author  = {Heinicke, Jonas},
+  title   = {Biomedical Knowledge Lookup: unified concept lookup across biomedical knowledge sources},
+  url     = {https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup},
+  license = {MIT},
+  year    = {2026}
 }
 ```
 
----
+## License
 
-<p align="center">
-  <img src="https://img.shields.io/github/stars/JonasHeinickeBio/biomedical-knowledge-lookup?style=social" alt="GitHub stars">
-  <img src="https://img.shields.io/github/forks/JonasHeinickeBio/biomedical-knowledge-lookup?style=social" alt="GitHub forks">
-</p>
+Released under the [MIT License](LICENSE).
 
-<p align="center">
-  <em>⭐ Star this repository if you find it useful!</em>
-</p>
+## Acknowledgments
+
+- Built as part of the AID-PAIS knowledge graph project.
+- Thanks to the teams who build and maintain the knowledge sources this library connects to,
+  and to everyone who has contributed.

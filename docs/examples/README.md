@@ -1,214 +1,254 @@
-# Biomedical Knowledge Lookup - Examples
+---
+description: A runnable example for each of the 36 knowledge sources, plus Jupyter notebooks and end-to-end use cases.
+---
 
-This directory contains examples for using the various adapters in the biomedical-knowledge-lookup package.
+# Examples
 
-## Directory Structure
+- **Per-source examples:** one short script for each of the 36 knowledge sources. It
+  searches the source and, where the adapter supports it, looks up a concept by
+  identifier. Each script has its recorded output next to it.
+- **[Notebooks](notebooks/README.md):** getting started, API keys, rate limits and error
+  handling, step by step.
+- **[Use cases](use-cases.md):** complete tasks that combine several sources.
+- **[Availability status](availability-status.md):** which examples returned data in the
+  last recorded run.
+
+## Run an example
+
+Run the scripts from the repository root.
+
+{% tabs %}
+{% tab title="pip" %}
+```bash
+pip install "biomedical-knowledge-lookup[all]"
+git clone https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup.git
+cd biomedical-knowledge-lookup
+python docs/examples/phenotypes/hpo/hpo_example.py
+```
+{% endtab %}
+
+{% tab title="Development install" %}
+```bash
+git clone https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup.git
+cd biomedical-knowledge-lookup
+pip install -e ".[all]"
+python docs/examples/phenotypes/hpo/hpo_example.py
+```
+{% endtab %}
+{% endtabs %}
+
+Every example prints three parts:
+
+1. whether the adapter is available;
+2. the top five search results, with ID, type, confidence, and definitions or mappings
+   when the source provides them;
+3. the details of one concept, for sources whose adapter can look one up by identifier.
+
+It ends with a `Summary:` line. The recorded output is in `<source>_example_output.txt`
+next to each script.
+
+{% hint style="info" %}
+An example whose source needs an API key or an optional extra prints `SKIPPED` and
+explains what is missing instead of failing. See [API keys and extras](#api-keys-and-extras).
+{% endhint %}
+
+## The pattern every example follows
+
+```python
+import asyncio
+
+from knowledge_lookup import KnowledgeSource, create_knowledge_lookup
+
+
+async def main() -> None:
+    lookup = create_knowledge_lookup(enabled_sources=[KnowledgeSource.HPO])
+    try:
+        if KnowledgeSource.HPO not in lookup.adapters:  # key or extra missing
+            print("HPO is not available")
+            return
+
+        result = await lookup.search_concepts("seizure", max_results=5)
+        for concept in result.concepts:
+            print(concept.primary_id, concept.primary_label)
+        print("Errors:", result.errors)
+
+        details = await lookup.get_concept_details("HP:0001250", source=KnowledgeSource.HPO)
+        print(details.primary_label if details else "not found")
+    finally:
+        await lookup.close()
+
+
+asyncio.run(main())
+```
+
+Identifier formats differ between sources: HPO and Mondo take CURIEs (`HP:0001250`), OLS
+takes the full term IRI, UniProt a bare accession. The tables below list an identifier
+that works for each source.
+
+## Per-source examples
+
+In the tables, "Query / identifier" is the search term and the `get_concept_details`
+identifier used by the example. A dash in "Needs" means the source is a public API.
+
+### Core sources
+
+| Source | What it shows | Query / identifier | Needs |
+| --- | --- | --- | --- |
+| [ChEMBL](core/chembl/chembl_example.py) | Bioactive molecules, drugs and targets | `aspirin` / `CHEMBL25` | `[chembl]` extra |
+| [DisGeNET](core/disgenet/disgenet_example.py) | Gene-disease associations | `asthma` | `DISGENET_API_KEY` |
+| [Mondo](core/mondo/mondo_example.py) | Mondo Disease Ontology | `diabetes` / `MONDO:0005148` | - |
+| [OLS](core/ols/ols_example.py) | EBI Ontology Lookup Service: 250+ ontologies (DOID, EFO, NCIT, UBERON, CHEBI, ...) | `cancer` / `http://purl.obolibrary.org/obo/DOID_162` | - |
+| [Open Targets](core/opentargets/opentargets_example.py) | Open Targets Platform targets, diseases and drugs | `BRCA1` / `ENSG00000012048` | - |
+| [UMLS](core/umls/umls_example.py) | UMLS Metathesaurus: filtered search, bulk search, mappings, relationships and streaming iterators (hand-written example) | `diabetes` / `C0011849` | `[umls]` extra and `UMLS_API_KEY` |
+
+### Chemicals and drugs
+
+| Source | What it shows | Query / identifier | Needs |
+| --- | --- | --- | --- |
+| [DrugBank](chemicals/drugbank/drugbank_example.py) | DrugBank drugs, looked up through OLS | `aspirin` | - |
+| [PubChem](chemicals/pubchem/pubchem_example.py) | PubChem compounds (CIDs) | `aspirin` / `2244` | - |
+| [UniChem](chemicals/unichem/unichem_example.py) | Chemical cross-references; search by InChIKey, details by UniChem compound ID | `BSYNRYMUTXBXSQ-UHFFFAOYSA-N` / `161671` | `[bioservices]` extra |
+
+### Phenotypes, variants and gene function
+
+| Source | What it shows | Query / identifier | Needs |
+| --- | --- | --- | --- |
+| [ClinVar](phenotypes/clinvar/clinvar_example.py) | Variants and their clinical significance | `BRCA1` / `17661` | - |
+| [Gene Ontology](phenotypes/geneontology/geneontology_example.py) | Gene Ontology terms | `apoptosis` / `GO:0006915` | - |
+| [HPO](phenotypes/hpo/hpo_example.py) | Human Phenotype Ontology | `seizure` / `HP:0001250` | - |
+| [OMIM](phenotypes/omim/omim_example.py) | Mendelian disorders and genes | `cystic fibrosis` / `219700` | `OMIM_API_KEY` |
+| [QuickGO](phenotypes/quickgo/quickgo_example.py) | EBI QuickGO Gene Ontology terms and annotations | `apoptosis` / `GO:0006915` | `[bioservices]` extra |
+
+### Genes and proteins
+
+| Source | What it shows | Query / identifier | Needs |
+| --- | --- | --- | --- |
+| [Ensembl](proteins/ensembl/ensembl_example.py) | Human genes, searched by gene symbol | `TP53` / `ENSG00000141510` | - |
+| [HGNC](proteins/hgnc/hgnc_example.py) | Human gene nomenclature | `BRCA1` / `HGNC:1100` | - |
+| [UniProt](proteins/uniprot/uniprot_example.py) | UniProtKB proteins | `insulin` / `P01308` | - |
+
+### Pathways
+
+| Source | What it shows | Query / identifier | Needs |
+| --- | --- | --- | --- |
+| [KEGG](pathways/kegg/kegg_example.py) | KEGG diseases and drugs | `diabetes` / `H00409` | - |
+| [Reactome](pathways/reactome/reactome_example.py) | Reactome pathways and reactions | `apoptosis` / `R-HSA-109581` | - |
+
+### Ontology services
+
+| Source | What it shows | Query / identifier | Needs |
+| --- | --- | --- | --- |
+| [BioOntology](ontologies/bioontology/bioontology_example.py) | NCBO BioOntology search API | `melanoma` | `BIOPORTAL_API_KEY` |
+| [BioPortal](ontologies/bioportal/bioportal_example.py) | NCBO BioPortal: 1000+ ontologies (SNOMED CT, MeSH, ICD, ...) | `melanoma` | `BIOPORTAL_API_KEY` |
+| [EBI OLS](ontologies/ebiols/ebiols_example.py) | EMBL-EBI OLS (a variant of the OLS adapter) | `cancer` / `http://purl.obolibrary.org/obo/MONDO_0004992` | - |
+| [OBO Foundry](ontologies/obofoundry/obofoundry_example.py) | OBO Foundry ontologies | `cancer` | - |
+| [ZOOMA](ontologies/zooma/zooma_example.py) | EBI ZOOMA text-to-ontology annotation | `breast cancer` | - |
+
+### Protein families, structures and interactions
+
+| Source | What it shows | Query / identifier | Needs |
+| --- | --- | --- | --- |
+| [InterPro](families/interpro/interpro_example.py) | Protein families and domains | `kinase` / `IPR000719` | - |
+| [PDB](families/pdb/pdb_example.py) | RCSB Protein Data Bank structures | `hemoglobin` / `4HHB` | - |
+| [Pfam](families/pfam/pfam_example.py) | Pfam protein families | `kinase` / `PF00069` | - |
+| [STRING](families/string/string_example.py) | STRING protein-protein interaction network proteins | `TP53` | - |
+
+### Literature
+
+| Source | What it shows | Query / identifier | Needs |
+| --- | --- | --- | --- |
+| [Europe PMC](literature/europepmc/europepmc_example.py) | Literature search; details by bare PubMed ID | `CRISPR` / `33203879` | - |
+| [NCBI E-utilities](literature/eutils/eutils_example.py) | PubMed and Gene | `BRCA1` / `GeneID:672` | `[bioservices]` extra |
+
+### Other sources
+
+| Source | What it shows | Query / identifier | Needs |
+| --- | --- | --- | --- |
+| [BioLinker](other/biolinker/biolinker_example.py) | BioLinker entity linking | `cancer` | - |
+| [COSMIC](other/cosmic/cosmic_example.py) | COSMIC somatic cancer mutations | `BRAF` | - (`COSMIC_API_KEY` optional) |
+| [DBpedia](other/dbpedia/dbpedia_example.py) | DBpedia resources (general knowledge) | `aspirin` / `Aspirin` | - |
+| [OxO](other/oxo/oxo_example.py) | EBI OxO cross-reference mappings; search with a CURIE | `MONDO:0005148` / `MONDO:0005148` | - |
+| [Tyto](other/tyto/tyto_example.py) | Ontology term lookup by IRI | `promoter` / `http://purl.obolibrary.org/obo/SO_0000167` | `[tyto]` extra |
+| [Wikidata](other/wikidata/wikidata_example.py) | Wikidata items | `aspirin` / `Q18216` | - |
+
+{% hint style="warning" %}
+Some adapters currently return no results, for example DrugBank, STRING, COSMIC and
+Tyto, and Reactome, QuickGO and E-utilities return details but no search results. The
+[availability status](availability-status.md) page lists what the last run returned and
+the known cause for each source.
+{% endhint %}
+
+## API keys and extras
+
+Keys are read from environment variables. A `.env` file in the working directory or one
+of its parents also works. You can pass keys in code instead:
+`create_knowledge_lookup(api_keys={"umls": "..."})`.
+
+| Variable | Sources |
+| --- | --- |
+| `UMLS_API_KEY` | UMLS |
+| `BIOPORTAL_API_KEY` | BioPortal, BioOntology |
+| `DISGENET_API_KEY` | DisGeNET |
+| `OMIM_API_KEY` | OMIM |
+| `COSMIC_API_KEY` | COSMIC (optional) |
+
+Some sources need an optional dependency group:
+
+| Extra | Sources |
+| --- | --- |
+| `[chembl]` | ChEMBL |
+| `[umls]` | UMLS |
+| `[bioservices]` | UniChem, QuickGO, NCBI E-utilities |
+| `[tyto]` | Tyto |
+| `[all]` | every optional dependency |
+
+```bash
+pip install "biomedical-knowledge-lookup[chembl,umls,bioservices,tyto]"
+export UMLS_API_KEY="your-umls-key"
+python docs/examples/core/umls/umls_example.py
+```
+
+{% hint style="warning" %}
+Adapters log failed requests, often with their URL. BioPortal and BioOntology send their
+key in a request header, and the BioPortal, BioOntology and OMIM adapters redact keys from
+logged errors. Other code that logs request URLs can still expose a key passed as a URL
+parameter (OMIM, UMLS), so check logs before you share them. The recorded example outputs
+in this folder are redacted.
+{% endhint %}
+
+## Regenerate the examples
+
+The per-source scripts are generated; only the UMLS example is hand-written.
+
+```bash
+# Rewrite the scripts from the SOURCES table in generate_all_examples.py
+python docs/examples/scripts/generate_all_examples.py
+
+# Run every example, refresh the *_example_output.txt files,
+# scripts/all_adapters_test_results.json and availability-status.md
+python docs/examples/scripts/generate_status.py
+
+# Re-run a few sources only
+python docs/examples/scripts/generate_status.py OLS HPO --timeout 180
+```
+
+To change a query or an identifier, edit the source's entry in
+[`scripts/generate_all_examples.py`](scripts/generate_all_examples.py) and run both
+commands. `generate_status.py` strips secrets from the outputs it records.
+
+## Layout
 
 ```
 docs/examples/
-├── README.md (this file)
-├── availability_status.md         # Adapter availability and API key requirements
-├── use_cases.md                   # Common use cases and patterns
-├── generate_status.py             # Generate availability status
-├── generate_all_examples.py       # Generate all example scripts
-├── all_adapters_test_results.json # Test results
-├── notebooks/                     # Jupyter notebooks
-│   ├── 01-getting-started.ipynb
-│   ├── 02-api-keys.ipynb
-│   ├── 03-rate-limiting.ipynb
-│   ├── 04-error-handling.ipynb
-│   └── README.md
-│
-├── core/                          # Core knowledge sources
-│   ├── ols/
-│   ├── umls/
-│   ├── opentargets/
-│   ├── chembl/
-│   ├── disgenet/
-│   └── mondo/
-│
-├── chemicals/                     # Drug and compound sources
-│   ├── drugbank/
-│   ├── pubchem/
-│   └── unichem/
-│
-├── phenotypes/                    # Phenotype and disease sources
-│   ├── hpo/
-│   ├── geneontology/
-│   ├── omim/
-│   ├── clinvar/
-│   └── quickgo/
-│
-├── proteins/                      # Protein and gene sources
-│   ├── uniprot/
-│   ├── ensembl/
-│   └── hgnc/
-│
-├── pathways/                      # Pathway databases
-│   ├── reactome/
-│   └── kegg/
-│
-├── ontologies/                    # Ontology services
-│   ├── bioontology/
-│   ├── bioportal/
-│   ├── ebiols/
-│   ├── obofoundry/
-│   └── zooma/
-│
-├── families/                      # Protein families
-│   ├── interpro/
-│   ├── pfam/
-│   ├── pdb/
-│   └── string/
-│
-├── literature/                    # Literature sources
-│   ├── europepmc/
-│   └── eutils/
-│
-└── other/                         # Other/specialized sources
-    ├── biolinker/
-    ├── cosmic/
-    ├── dbpedia/
-    ├── oxo/
-    ├── tyto/
-    └── wikidata/
-```
-
-## Quick Start
-
-```bash
-# Set up environment (optional, for adapters requiring API keys)
-export BIOPORTAL_API_KEY="your_api_key"
-export UMLS_API_KEY="your_api_key"
-export DISGENET_API_KEY="your_api_key"
-export COSMIC_API_KEY="your_api_key"
-export OMIM_API_KEY="your_api_key"
-
-# Run a specific example
-poetry run python docs/examples/core/ols/ols_example.py
-poetry run python docs/examples/phenotypes/hpo/hpo_example.py
-poetry run python docs/examples/chemicals/pubchem/pubchem_example.py
-```
-
-## Available Examples
-
-| Adapter | Description | Example |
-|---------|-------------|---------|
-| OLS | Ontology Lookup Service | `core/ols/ols_example.py` |
-| UMLS | Unified Medical Language System — search, source/semantic filters, bulk, mappings, relationships, streaming | `core/umls/umls_example.py` |
-| OpenTargets | Drug targets and disease associations | `core/opentargets/opentargets_example.py` |
-| ChEMBL | Bioactive drug-like molecules | `core/chembl/chembl_example.py` |
-| DisGeNET | Gene-disease associations | `core/disgenet/disgenet_example.py` |
-| Mondo | Disease ontology | `core/mondo/mondo_example.py` |
-| DrugBank | Drug information and targets | `chemicals/drugbank/drugbank_example.py` |
-| PubChem | Chemical compounds and structures | `chemicals/pubchem/pubchem_example.py` |
-| UniChem | Drug cross-references | `chemicals/unichem/unichem_example.py` |
-| HPO | Human phenotype ontology | `phenotypes/hpo/hpo_example.py` |
-| GeneOntology | Gene function annotations | `phenotypes/geneontology/geneontology_example.py` |
-| OMIM | Online Mendelian Inheritance in Man | `phenotypes/omim/omim_example.py` |
-| ClinVar | Genomic variations and clinical significance | `phenotypes/clinvar/clinvar_example.py` |
-| QuickGO | Gene Ontology browser | `phenotypes/quickgo/quickgo_example.py` |
-| UniProt | Protein sequences and functions | `proteins/uniprot/uniprot_example.py` |
-| Ensembl | Genome annotation | `proteins/ensembl/ensembl_example.py` |
-| HGNC | Human gene nomenclature | `proteins/hgnc/hgnc_example.py` |
-| Reactome | Biological pathways | `pathways/reactome/reactome_example.py` |
-| KEGG | Pathways and disease maps | `pathways/kegg/kegg_example.py` |
-| Bioontology | BioOntology API | `ontologies/bioontology/bioontology_example.py` |
-| BioPortal | NCBI BioPortal ontologies | `ontologies/bioportal/bioportal_example.py` |
-| EBIOLS | EBI Ontology Lookup Service | `ontologies/ebiols/ebiols_example.py` |
-| OBOFoundry | Interoperable ontologies | `ontologies/obofoundry/obofoundry_example.py` |
-| Zooma | Ontology annotation mapping | `ontologies/zooma/zooma_example.py` |
-| InterPro | Protein domain classification | `families/interpro/interpro_example.py` |
-| Pfam | Protein family database | `families/pfam/pfam_example.py` |
-| PDB | Protein 3D structures | `families/pdb/pdb_example.py` |
-| STRING | Protein-protein interactions | `families/string/string_example.py` |
-| EuropePMC | Europe PMC literature search | `literature/europepmc/europepmc_example.py` |
-| EUtils | NCBI E-utilities | `literature/eutils/eutils_example.py` |
-| Biolinker | Biomedical concept linking | `other/biolinker/biolinker_example.py` |
-| Cosmic | Cancer gene mutations | `other/cosmic/cosmic_example.py` |
-| DBpedia | Wikipedia structured data | `other/dbpedia/dbpedia_example.py` |
-| OxO | Ontology cross-references | `other/oxo/oxo_example.py` |
-| Tyto | Ontology terms lookup | `other/tyto/tyto_example.py` |
-| Wikidata | General knowledge from Wikidata | `other/wikidata/wikidata_example.py` |
-
-## Adapter Status
-
-See [availability_status.md](availability_status.md) for:
-- Current adapter availability
-- API key requirements
-- Test results summary
-
-### Summary Statistics
-- **36 total adapters** with example scripts
-- **29 successfully tested** without API keys
-- **6 require API keys** (BioPortal, UMLS, DisGeNET, COSMIC, OMIM, BioOntology)
-- **1 timeout** (ChEMBL - may be slow)
-
-## Testing All Adapters
-
-Run the comprehensive test script:
-
-```bash
-poetry run python test_all_adapters.py
-```
-
-This will:
-1. Test each adapter's availability
-2. Test `search_concepts(query, sources=[...])`
-3. Generate detailed results in `docs/examples/scripts/all_adapters_test_results.json`
-4. Create summary in `docs/examples/availability_status.md`
-
-## Common Patterns
-
-### Basic Search
-```python
-from knowledge_lookup import LookupConfig, create_knowledge_lookup
-from knowledge_lookup.models import KnowledgeSource
-
-lookup = create_knowledge_lookup(enabled_sources=[KnowledgeSource.OLS])
-results = await lookup.search_concepts("cancer", sources=[KnowledgeSource.OLS])
-
-for concept in results.concepts:
-    print(f"{concept.primary_label} ({concept.primary_id})")
-```
-
-### With API Key
-```python
-config = LookupConfig(api_keys={"umls": "your_api_key"})
-lookup = create_knowledge_lookup(enabled_sources=[KnowledgeSource.UMLS], api_keys=config.api_keys)
-```
-
-### Get Concept Details
-```python
-details = await lookup.get_concept_details("DOID:9351", source=KnowledgeSource.OLS)
-```
-
-## Examples Without API Keys
-
-The following adapters work without any API keys:
-OLS, UMLS, OpenTargets, ChEMBL, DisGeNET, Mondo, UniProt, DrugBank, PubChem, UniChem, HPO, GeneOntology, ClinVar, QuickGO, Ensembl, HGNC, Reactome, KEGG, Bioontology, BioPortal, EBIOLS, OBOFoundry, Zooma, InterPro, Pfam, PDB, STRING, EuropePMC, EUtils, Biolinker, DBpedia, OxO, Tyto, Wikidata
-
-## Examples Requiring API Keys
-
-Set environment variables before running these examples:
-
-| Adapter | Environment Variable |
-|---------|---------------------|
-| Bioontology | `BIOPORTAL_API_KEY` |
-| Bioportal | `BIOPORTAL_API_KEY` |
-| UMLS | `UMLS_API_KEY` (or `UMLS_API_KEY_TU`) |
-| DisGeNET | `DISGENET_API_KEY` |
-| Cosmic | `COSMIC_API_KEY` |
-| OMIM | `OMIM_API_KEY` |
-
-## Using the Generator Scripts
-
-### Generate All Examples
-```bash
-poetry run python docs/examples/scripts/generate_all_examples.py
-```
-
-### Generate Status Report
-```bash
-poetry run python docs/examples/scripts/generate_status.py
+├── README.md                  # this page
+├── use-cases.md               # end-to-end tasks
+├── availability-status.md     # generated: last run of every example
+├── notebooks/                 # Jupyter notebooks 01-04
+├── scripts/
+│   ├── generate_all_examples.py
+│   ├── generate_status.py
+│   └── all_adapters_test_results.json
+└── <category>/<source>/
+    ├── <source>_example.py
+    └── <source>_example_output.txt
 ```

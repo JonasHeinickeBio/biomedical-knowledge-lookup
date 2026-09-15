@@ -1,97 +1,80 @@
-# MONDO Adapter Documentation
+---
+description: Mondo Disease Ontology terms, served from the EBI Ontology Lookup Service.
+---
 
-## Overview
-The MONDO (Mondo Disease Ontology) adapter provides access to the Mondo Disease Ontology through the EBI OLS (Ontology Lookup Service) API. It focuses on disease concept identification and basic metadata retrieval.
+# Mondo adapter
 
-## Key Functions
+Looks up diseases in the Mondo Disease Ontology through EMBL-EBI OLS4. Every result is a `DISEASE` concept with a Mondo ID. Use it to normalise disease names to Mondo; term details carry cross-references to DOID, ICD-10, OMIM, UMLS and others.
 
-### `search_concepts(query: str, limit: int = 20) -> List[UnifiedConcept]`
-Searches for diseases in the Mondo Disease Ontology.
+| | |
+|---|---|
+| Source | `KnowledgeSource.MONDO` |
+| Class | `knowledge_lookup.adapters.MondoAdapter` |
+| Requires | none |
+| Identifiers | `MONDO:0005148` |
+| Upstream API | `https://www.ebi.ac.uk/ols4/api` (ontology `mondo`) |
 
-**Parameters:**
-- `query`: Disease name or term to search for
-- `limit`: Maximum number of results to return
-
-**Returns:** List of `UnifiedConcept` objects representing diseases
-
-**Example Data Structure:**
-```json
-[
-  {
-    "primary_id": "http://purl.obolibrary.org/obo/MONDO_0005148",
-    "primary_label": "type 2 diabetes mellitus",
-    "concept_type": "DISEASE",
-    "source_data": {
-      "MONDO": {
-        "iri": "http://purl.obolibrary.org/obo/MONDO_0005148",
-        "label": "type 2 diabetes mellitus",
-        "ontology_name": "mondo",
-        "ontology_prefix": "MONDO",
-        "type": "class"
-      }
-    }
-  },
-  {
-    "primary_id": "http://purl.obolibrary.org/obo/MONDO_0001252",
-    "primary_label": "diabetes mellitus",
-    "concept_type": "DISEASE",
-    "source_data": {
-      "MONDO": {
-        "iri": "http://purl.obolibrary.org/obo/MONDO_0001252",
-        "label": "diabetes mellitus",
-        "ontology_name": "mondo",
-        "ontology_prefix": "MONDO",
-        "type": "class"
-      }
-    }
-  }
-]
-```
-
-### `get_concept_details(concept_id: str) -> None`
-Currently not implemented - returns `None`.
-
-**Parameters:**
-- `concept_id`: MONDO IRI or identifier
-
-**Returns:** `None` (placeholder for future implementation)
-
-## Data Structures
-
-### Disease Concept Fields
-- `iri`: Full IRI identifier (e.g., "http://purl.obolibrary.org/obo/MONDO_0005148")
-- `label`: Human-readable disease name
-- `ontology_name`: Source ontology name ("mondo")
-- `ontology_prefix`: Ontology prefix ("MONDO")
-- `type`: Ontology term type ("class")
-- `short_form`: Short form identifier (e.g., "MONDO_0005148")
-- `obo_id`: OBO format identifier (e.g., "MONDO:0005148")
-
-### Additional Fields (in full OLS responses)
-- `description`: Disease description/definition
-- `synonyms`: Alternative names and synonyms
-- `annotations`: Additional annotations and properties
-- `parents`: Parent terms in hierarchy
-- `children`: Child terms in hierarchy
-- `relations`: Related terms and relationships
-
-## Usage Examples
+## Quick example
 
 ```python
-# Search for diabetes-related diseases
-diseases = await adapter.search_concepts("diabetes", limit=10)
+import asyncio
 
-# Search for specific disease
-diseases = await adapter.search_concepts("rheumatoid arthritis")
+from knowledge_lookup.adapters import MondoAdapter
+from knowledge_lookup.models import LookupConfig
 
-# Search for rare diseases
-diseases = await adapter.search_concepts("cystic fibrosis")
+
+async def main():
+    async with MondoAdapter(LookupConfig()) as adapter:
+        for concept in await adapter.search_concepts("type 2 diabetes", limit=3):
+            print(concept.primary_id, concept.primary_label)
+
+        t2d = await adapter.get_concept_details("MONDO:0005148")
+        print(t2d.primary_label, len(t2d.synonyms), t2d.categories[:3])
+
+
+asyncio.run(main())
 ```
 
-## Notes
-- Returns `UnifiedConcept` objects with disease type
-- Uses EBI OLS API for ontology queries
-- Limited to basic search functionality
-- `get_concept_details` is not yet implemented
-- No authentication required (public API)
-- Provides standardized disease identifiers and labels
+Output:
+
+```
+MONDO_0005148 type 2 diabetes mellitus
+MONDO_0007453 maturity-onset diabetes of the young type 2
+MONDO_1011605 type 2 diabetes mellitus, pig
+type 2 diabetes mellitus 25 ['Xref: DOID:9352', 'Xref: ICD10CM:E11', 'Xref: ICD10WHO:E11']
+```
+
+## Searching
+
+`search_concepts(query, limit)` calls `/search` with `ontology=mondo` and `rows=min(limit, 100)`. For each hit:
+
+| Field | Value |
+|---|---|
+| `primary_id` | OLS short form with an underscore, e.g. `MONDO_0005148` |
+| `primary_label` | term label |
+| `concept_type` | always `DISEASE` |
+| `identifiers` | one `MONDO` identifier; the URL is the term IRI |
+| `synonyms`, `definitions` | from the search document when present (search hits usually carry a definition but no synonyms) |
+| `confidence_score` | `0.95` |
+| `source_data[MONDO]` | raw OLS search document |
+
+## Concept details
+
+`get_concept_details(concept_id)` accepts `MONDO:0005148`, `MONDO_0005148` or bare digits (`5148` is zero-padded to `MONDO:0005148`). It fetches the term from `/ontologies/mondo/terms/{encoded IRI}` and returns:
+
+- all synonyms and definitions
+- `categories` entries `Xref: <CURIE>` for every `database_cross_reference` annotation (DOID, ICD-10-CM, MeSH, OMIM, UMLS, ...)
+- `confidence_score` `1.0`
+
+`primary_id` uses the underscore form (`MONDO_0005148`) whichever form you pass in. Parents and children are not populated.
+
+## Rate limits and errors
+
+Uses the shared HTTP retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). Errors left after retries are logged; `search_concepts` then returns `[]` and `get_concept_details` returns `None`.
+
+## See also
+
+- [OLS adapter](ols_adapter.md): the same service across all ontologies
+- [HPO adapter](../phenotypes/hpo_adapter.md), [OMIM adapter](../phenotypes/omim_adapter.md)
+- [OxO adapter](../other/oxo_adapter.md): mappings from Mondo IDs to other vocabularies
+- [All adapters](../README.md)

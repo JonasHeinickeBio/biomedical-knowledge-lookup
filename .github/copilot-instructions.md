@@ -1,7 +1,7 @@
 # AI Coding Agent Instructions for Biomedical Knowledge Lookup
 
 ## Project Overview
-This is a unified Python library for biological concept lookup across 29+ biomedical knowledge sources. It provides a single API to search and retrieve concepts from databases like BioPortal, OLS, UniProt, ChEMBL, DisGeNET, and more.
+This is a unified Python library for biological concept lookup across 36 biomedical knowledge sources. It provides a single API to search and retrieve concepts from databases like BioPortal, OLS, UniProt, ChEMBL, DisGeNET, and more.
 
 ## Architecture
 - **Central Coordinator**: `CentralKnowledgeLookup` in `central_lookup.py` orchestrates queries across multiple adapters

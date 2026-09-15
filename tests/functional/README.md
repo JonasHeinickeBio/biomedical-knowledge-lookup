@@ -86,20 +86,20 @@ When API changes are detected:
 async def test_adapter_search(adapter, response_validator, warning_manager):
     """Test adapter search with real API call."""
     adapter = MyAdapter(adapter.config)
-    
+
     results = await adapter.search_concepts("query", limit=5)
-    
+
     # Validate results
     assert isinstance(results, list)
     assert len(results) >= 1
-    
+
     # Check response structure
     if results:
         response_data = {
             "total_results": len(results),
-            "sample": [c.__dict__ for c in results[:2]]
+            "sample": [c.__dict__ for c in results[:2]],
         }
-        
+
         validator = response_validator(KnowledgeSource.MYSOURCE)
         changes = validator.validate_response("my_search", response_data)
         for change in changes:

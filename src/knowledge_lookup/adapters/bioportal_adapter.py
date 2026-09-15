@@ -6,12 +6,33 @@ Integrates with NCBI BioPortal for ontology-based concept lookup.
 
 import logging
 import os
+import re
 from typing import Any
+from urllib.parse import quote
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+from ..utils.redaction import redact
 
 logger = logging.getLogger(__name__)
+
+_BIOPORTAL_PURL = re.compile(r"^https?://purl\.bioontology\.org/ontology/([^/#]+)/")
+_OBO_PURL = re.compile(r"^https?://purl\.obolibrary\.org/obo/([A-Za-z][A-Za-z0-9]*)_")
+# purl.bioontology.org path segments that differ from the BioPortal ontology acronym
+_PURL_ACRONYM_ALIASES = {"LNC": "LOINC"}
+
+
+def infer_bioportal_ontology(concept_id: str) -> str | None:
+    """Best-effort BioPortal ontology acronym for a class IRI, or ``None``.
+
+    ``http://purl.bioontology.org/ontology/MESH/D003924`` -> ``MESH``;
+    ``http://purl.obolibrary.org/obo/DOID_9352`` -> ``DOID``.
+    """
+    match = _BIOPORTAL_PURL.match(concept_id)
+    if match:
+        return _PURL_ACRONYM_ALIASES.get(match.group(1), match.group(1))
+    match = _OBO_PURL.match(concept_id)
+    return match.group(1).upper() if match else None
 
 
 class BioPortalAdapter(KnowledgeSourceAdapter):
@@ -29,6 +50,11 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return self.api_key is not None
 
+    def _auth_headers(self) -> dict[str, str]:
+        # The key travels as a header: in the query string it would end up in every
+        # error message that includes the request URL, and from there in the logs.
+        return {"Authorization": f"apikey token={self.api_key}"}
+
     async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search BioPortal for concepts."""
         if not self.api_key:
@@ -40,11 +66,10 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
             params = {
                 "q": query,
                 "pagesize": min(limit, 50),
-                "apikey": self.api_key,
                 "format": "json",
             }
 
-            data = await self._make_request(url, params)
+            data = await self._make_request(url, params, headers=self._auth_headers())
 
             concepts = []
             if "collection" in data:
@@ -57,36 +82,55 @@ class BioPortalAdapter(KnowledgeSourceAdapter):
             return concepts
 
         except Exception as e:
-            logger.error(f"BioPortal search failed for '{query}': {e}")
+            logger.error("BioPortal search failed for '%s': %s", query, redact(e, self.api_key))
             return []
 
-    async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
-        """Get detailed concept information from BioPortal."""
+    async def get_concept_details(
+        self, concept_id: str, ontology: str | None = None
+    ) -> UnifiedConcept | None:
+        """Get detailed concept information from BioPortal.
+
+        Args:
+            concept_id: Class IRI as returned by :meth:`search_concepts` (e.g.
+                ``http://purl.bioontology.org/ontology/MESH/D003924``), or the
+                class's ``links.self`` URL.
+            ontology: BioPortal ontology acronym (e.g. ``MESH``). Inferred from
+                BioPortal and OBO PURLs when omitted.
+        """
         if not self.api_key:
             return None
 
-        try:
-            # Extract ontology and concept ID from full URI
-            if "/" in concept_id:
-                parts = concept_id.split("/")
-                if len(parts) >= 2:
-                    ontology = parts[-2]
-                    concept_uri = concept_id
-                else:
-                    return None
-            else:
-                return None
-
-            url = f"{self.base_url}/ontologies/{ontology}/classes/{concept_uri}"
-            params = {"apikey": self.api_key, "format": "json"}
-
-            data = await self._make_request(url, params)
-            concept = self._convert_bioportal_concept_to_unified(data)
-            return concept
-
-        except Exception as e:
-            logger.error(f"Failed to get BioPortal concept details for '{concept_id}': {e}")
+        url = self._class_url(concept_id, ontology)
+        if url is None:
+            logger.debug(
+                "BioPortal: cannot determine the ontology of '%s'; pass ontology=...", concept_id
+            )
             return None
+
+        try:
+            data = await self._make_request(url, {"format": "json"}, headers=self._auth_headers())
+            return self._convert_bioportal_concept_to_unified(data)
+        except Exception as e:
+            logger.error(
+                "Failed to get BioPortal concept details for '%s': %s",
+                concept_id,
+                redact(e, self.api_key),
+            )
+            return None
+
+    def _class_url(self, concept_id: str, ontology: str | None = None) -> str | None:
+        """``/ontologies/{acronym}/classes/{URL-encoded IRI}`` for a class, or ``None``."""
+        if concept_id.startswith(f"{self.base_url}/ontologies/"):
+            return concept_id  # already the canonical links.self URL
+        if "://" not in concept_id:
+            return None
+        acronym = ontology or infer_bioportal_ontology(concept_id)
+        if not acronym:
+            return None
+        return (
+            f"{self.base_url}/ontologies/{quote(acronym, safe='')}"
+            f"/classes/{quote(concept_id, safe='')}"
+        )
 
     def _convert_bioportal_result_to_concept(
         self, result: dict[str, Any]

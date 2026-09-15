@@ -152,6 +152,108 @@ class TestChEMBLAdapter:
         status = adapter.check_api_status()
         assert "status" in status["endpoints_tested"]
 
+    # --- check_api_status sends real requests (regression) ---
+
+    @staticmethod
+    def _lazy_endpoint(on_iterate):
+        """An endpoint whose QuerySet, like ChEMBL's, sends its request only when iterated."""
+
+        class LazyQuerySet:
+            def all(self):
+                return self
+
+            def __getitem__(self, _key):
+                return self  # slicing only narrows the query
+
+            def __iter__(self):
+                return iter(on_iterate())
+
+        return LazyQuerySet()
+
+    def test_check_api_status_reports_unreachable_api(self, adapter):
+        """Regression: `client.all()[:1]` sends nothing, so an unreachable API looked available."""
+
+        def unreachable():
+            raise ConnectionError("ChEMBL unreachable")
+
+        adapter.chembl_client = MagicMock()
+        for endpoint in ("status", "molecule", "activity"):
+            setattr(adapter.chembl_client, endpoint, self._lazy_endpoint(unreachable))
+
+        status = adapter.check_api_status(timeout=5)
+
+        assert status["available"] is False
+        assert status["endpoints_tested"] == [
+            "status(failed)",
+            "molecule(failed)",
+            "activity(failed)",
+        ]
+        assert "ChEMBL unreachable" in status["error"]
+
+    def test_check_api_status_fetches_one_record_per_endpoint(self, adapter):
+        fetched = []
+
+        def one_record():
+            fetched.append(True)
+            return [{"molecule_chembl_id": "CHEMBL25"}]
+
+        adapter.chembl_client = MagicMock()
+        for endpoint in ("status", "molecule", "activity"):
+            setattr(adapter.chembl_client, endpoint, self._lazy_endpoint(one_record))
+
+        status = adapter.check_api_status(timeout=5)
+
+        assert status["available"] is True
+        assert status["error"] is None
+        assert status["endpoints_tested"] == ["status", "molecule", "activity"]
+        assert len(fetched) == 3
+
+    def test_check_api_status_times_out_on_a_hanging_api(self, adapter):
+        import threading
+        import time
+
+        release = threading.Event()
+
+        def hang():
+            release.wait(10)
+            return []
+
+        adapter.chembl_client = MagicMock()
+        for endpoint in ("status", "molecule", "activity"):
+            setattr(adapter.chembl_client, endpoint, self._lazy_endpoint(hang))
+
+        start = time.monotonic()
+        try:
+            status = adapter.check_api_status(timeout=0.2)
+        finally:
+            release.set()
+
+        assert time.monotonic() - start < 5
+        assert status["available"] is False
+        assert status["endpoints_tested"] == [
+            "status(timed out)",
+            "molecule(timed out)",
+            "activity(timed out)",
+        ]
+        assert "did not answer" in status["error"]
+
+    def test_check_api_status_skips_single_object_endpoint(self, adapter):
+        """ChEMBL's `status` resource is not a list, so its QuerySet cannot be sliced."""
+        adapter.chembl_client = MagicMock()
+        adapter.chembl_client.status.query.allows_multiple = False
+        adapter.chembl_client.molecule = self._lazy_endpoint(lambda: [{}])
+        adapter.chembl_client.activity = self._lazy_endpoint(lambda: [{}])
+
+        status = adapter.check_api_status(timeout=5)
+
+        assert status["endpoints_tested"] == [
+            "status(not a list endpoint)",
+            "molecule",
+            "activity",
+        ]
+        assert status["available"] is True
+        adapter.chembl_client.status.all.assert_not_called()
+
     # --- query method (lines 175-189) ---
 
     def test_query_invalid_endpoint(self, adapter):
@@ -219,75 +321,129 @@ class TestChEMBLAdapter:
         results = adapter.query("molecule", limit=5)
         assert len(results) == 5
 
-    # --- lookup_molecule (lines 205-215) ---
+    def test_query_slices_lazy_queryset_before_materialising(self, adapter):
+        """Regression: query() slices the lazy QuerySet instead of downloading every record."""
 
-    def test_lookup_molecule_success(self, adapter):
-        """Test lookup_molecule returns parsed concepts."""
+        class LazyQuerySet:
+            def __init__(self):
+                self.slices = []
+
+            def __getitem__(self, key):
+                self.slices.append(key)
+                return [{"id": i} for i in range(key.stop)]
+
+            def __iter__(self):
+                raise AssertionError("query() iterated the full result set")
+
+        queryset = LazyQuerySet()
+        mock_client = MagicMock()
+        mock_client.filter.return_value = queryset
+        adapter.chembl_client.activity = mock_client
+        results = adapter.query("activity", filters={"molecule_chembl_id": "CHEMBL25"}, limit=3)
+        assert results == [{"id": 0}, {"id": 1}, {"id": 2}]
+        assert queryset.slices == [slice(None, 3, None)]
+
+    def test_query_non_positive_limit(self, adapter):
+        """limit <= 0 returns [] without querying."""
+        mock_client = MagicMock()
+        adapter.chembl_client.molecule = mock_client
+        assert adapter.query("molecule", limit=0) == []
+        mock_client.all.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_query_async_runs_client_in_worker_thread(self, adapter):
+        """Regression: the synchronous client does not run on the event loop thread."""
+        import threading
+
+        loop_thread = threading.get_ident()
+        seen = {}
+
+        def fake_filter(**kwargs):
+            seen["thread"] = threading.get_ident()
+            return [{"molecule_chembl_id": "CHEMBL25"}]
+
+        mock_client = MagicMock()
+        mock_client.filter.side_effect = fake_filter
+        adapter.chembl_client.molecule = mock_client
+        results = await adapter.query_async(
+            "molecule", filters={"pref_name__icontains": "aspirin"}, limit=1
+        )
+        assert results == [{"molecule_chembl_id": "CHEMBL25"}]
+        assert seen["thread"] != loop_thread
+
+    @pytest.mark.asyncio
+    async def test_query_async_invalid_endpoint(self, adapter):
+        """query_async raises ValueError for an unknown endpoint without a thread hop."""
+        adapter.chembl_client = MagicMock(spec=[])
+        with pytest.raises(ValueError, match="not found"):
+            await adapter.query_async("nonexistent_endpoint_xyz")
+
+    @pytest.mark.asyncio
+    async def test_query_async_errors_reach_circuit_breaker(self, adapter):
+        """Errors from the client propagate and are recorded by the circuit breaker."""
+        mock_client = MagicMock()
+        mock_client.filter.side_effect = Exception("HTTP 404 not found")
+        adapter.chembl_client.molecule = mock_client
+        breaker = MagicMock()
+        breaker.allow_request.return_value = True
+        adapter.set_circuit_breaker(breaker)
+        with pytest.raises(Exception, match="404"):
+            await adapter.query_async("molecule", filters={"pref_name": "x"})
+        breaker.record_failure.assert_called_once()
+
+    # --- lookup_molecule / lookup_drug / lookup_target ---
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "method, endpoint, parser",
+        [
+            ("lookup_molecule", "molecule", "_parse_molecule_results"),
+            ("lookup_drug", "drug", "_parse_drug_results"),
+            ("lookup_target", "target", "_parse_target_results"),
+        ],
+    )
+    async def test_lookup_returns_parsed_list_not_coroutine(
+        self, adapter, method, endpoint, parser
+    ):
+        """Regression: lookup_* are awaitable and return the parsed list, not a coroutine."""
         raw = [{"molecule_chembl_id": "CHEMBL25", "pref_name": "ASPIRIN"}]
-        parsed = ["parsed_concept"]
-        with patch.object(adapter, "query", return_value=raw):
+        with patch.object(
+            adapter, "query_async", new_callable=AsyncMock, return_value=raw
+        ) as mock_q:
             with patch.object(
-                adapter, "_parse_molecule_results", return_value=parsed, new_callable=MagicMock
-            ):
-                results = adapter.lookup_molecule()
-        assert results == parsed
+                adapter, parser, new_callable=AsyncMock, return_value=["parsed"]
+            ) as mock_parse:
+                results = await getattr(adapter, method)(filters={"pref_name": "test"}, limit=5)
+        assert results == ["parsed"]
+        mock_q.assert_awaited_once_with(
+            endpoint, filters={"pref_name": "test"}, fields=[], limit=5
+        )
+        mock_parse.assert_awaited_once_with(raw)
 
-    def test_lookup_molecule_exception(self, adapter):
-        """Test lookup_molecule returns empty on exception."""
-        with patch.object(adapter, "query", side_effect=Exception("fail")):
-            results = adapter.lookup_molecule()
-        assert results == []
-
-    def test_lookup_molecule_with_filters(self, adapter):
-        """Test lookup_molecule passes filters to query."""
-        with patch.object(adapter, "query", return_value=[]) as mock_q:
-            with patch.object(
-                adapter, "_parse_molecule_results", return_value=[], new_callable=MagicMock
-            ):
-                adapter.lookup_molecule(filters={"pref_name": "test"}, limit=5)
-                mock_q.assert_called_once_with(
-                    "molecule", filters={"pref_name": "test"}, fields=[], limit=5
-                )
-
-    # --- lookup_drug (lines 231-241) ---
-
-    def test_lookup_drug_success(self, adapter):
-        """Test lookup_drug returns parsed concepts."""
+    @pytest.mark.asyncio
+    async def test_lookup_molecule_with_real_parser(self, adapter):
+        """lookup_molecule returns UnifiedConcepts built by the molecule parser."""
+        adapter.config.enable_ontology_mapping = False
         raw = [
-            {"drug_chembl_id": "CHEMBL25", "pref_name": "ASPIRIN", "drug_type": "Small molecule"}
+            {
+                "molecule_chembl_id": "CHEMBL25",
+                "pref_name": "ASPIRIN",
+                "molecule_type": "Small molecule",
+            }
         ]
-        parsed = ["parsed_drug"]
-        with patch.object(adapter, "query", return_value=raw):
-            with patch.object(
-                adapter, "_parse_drug_results", return_value=parsed, new_callable=MagicMock
-            ):
-                results = adapter.lookup_drug()
-        assert results == parsed
+        with patch.object(adapter, "query_async", new_callable=AsyncMock, return_value=raw):
+            results = await adapter.lookup_molecule()
+        assert isinstance(results, list)
+        assert results[0].primary_id == "CHEMBL25"
 
-    def test_lookup_drug_exception(self, adapter):
-        """Test lookup_drug returns empty on exception."""
-        with patch.object(adapter, "query", side_effect=Exception("fail")):
-            results = adapter.lookup_drug()
-        assert results == []
-
-    # --- lookup_target (lines 257-267) ---
-
-    def test_lookup_target_success(self, adapter):
-        """Test lookup_target returns parsed concepts."""
-        raw = [{"target_chembl_id": "CHEMBL1806", "pref_name": "ACE2", "target_type": "PROTEIN"}]
-        parsed = ["parsed_target"]
-        with patch.object(adapter, "query", return_value=raw):
-            with patch.object(
-                adapter, "_parse_target_results", return_value=parsed, new_callable=MagicMock
-            ):
-                results = adapter.lookup_target()
-        assert results == parsed
-
-    def test_lookup_target_exception(self, adapter):
-        """Test lookup_target returns empty on exception."""
-        with patch.object(adapter, "query", side_effect=Exception("fail")):
-            results = adapter.lookup_target()
-        assert results == []
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("method", ["lookup_molecule", "lookup_drug", "lookup_target"])
+    async def test_lookup_exception_returns_empty(self, adapter, method):
+        """lookup_* return [] on error."""
+        with patch.object(
+            adapter, "query_async", new_callable=AsyncMock, side_effect=Exception("fail")
+        ):
+            assert await getattr(adapter, method)() == []
 
     # --- lookup_activity (lines 290-300) ---
 
@@ -626,6 +782,18 @@ class TestChEMBLAdapter:
             assert results[0].categories == []
 
     @pytest.mark.asyncio
+    async def test_parse_drug_results_integer_drug_type(self, adapter):
+        """Regression: the live drug endpoint returns drug_type as an int (e.g. 1)."""
+        with patch.object(
+            adapter, "map_category_to_ontology", new_callable=AsyncMock, return_value="1"
+        ) as mock_map:
+            raw = [{"molecule_chembl_id": "CHEMBL46", "pref_name": "ONDANSETRON", "drug_type": 1}]
+            results = await adapter._parse_drug_results(raw)
+        assert len(results) == 1
+        assert results[0].definitions == ["1"]
+        mock_map.assert_awaited_once_with("1")
+
+    @pytest.mark.asyncio
     async def test_parse_drug_results_empty(self, adapter):
         """Test _parse_drug_results with empty results."""
         results = await adapter._parse_drug_results([])
@@ -928,10 +1096,14 @@ class TestChEMBLAdapter:
         drug_results = []
         target_results = []
 
-        with patch.object(adapter, "query") as mock_query:
+        with patch.object(adapter, "query_async", new_callable=AsyncMock) as mock_query:
             mock_query.side_effect = [mol_results, drug_results, target_results]
-            results = await adapter.search_concepts("aspirin", limit=10)
-        assert isinstance(results, list)
+            with patch.object(adapter, "query", side_effect=AssertionError("blocking call")):
+                results = await adapter.search_concepts("aspirin", limit=10)
+        assert [c.primary_id for c in results] == ["CHEMBL25"]
+        # Regression: every endpoint goes through the non-blocking query_async
+        assert [c.args[0] for c in mock_query.await_args_list] == ["molecule", "drug", "target"]
+        assert mock_query.await_args_list[1].kwargs["limit"] == 9
 
     @pytest.mark.asyncio
     async def test_search_concepts_stops_at_limit(self, adapter):
@@ -940,21 +1112,27 @@ class TestChEMBLAdapter:
             {"molecule_chembl_id": f"CHEMBL{i}", "pref_name": f"Drug{i}"} for i in range(30)
         ]
 
-        with patch.object(adapter, "query", return_value=mol_results):
+        with patch.object(
+            adapter, "query_async", new_callable=AsyncMock, return_value=mol_results
+        ):
             results = await adapter.search_concepts("drug", limit=5)
         assert len(results) == 5
 
     @pytest.mark.asyncio
     async def test_search_concepts_endpoint_error(self, adapter):
         """Test search_concepts handles endpoint error gracefully."""
-        with patch.object(adapter, "query", side_effect=Exception("API error")):
+        with patch.object(
+            adapter, "query_async", new_callable=AsyncMock, side_effect=Exception("API error")
+        ):
             results = await adapter.search_concepts("test")
         assert results == []
 
     @pytest.mark.asyncio
     async def test_search_concepts_exception(self, adapter):
         """Test search_concepts handles top-level exception."""
-        with patch.object(adapter, "query", side_effect=Exception("Unexpected")):
+        with patch.object(
+            adapter, "query_async", new_callable=AsyncMock, side_effect=Exception("Unexpected")
+        ):
             results = await adapter.search_concepts("test")
         assert results == []
 
@@ -964,7 +1142,7 @@ class TestChEMBLAdapter:
     async def test_get_concept_details_molecule_found(self, adapter):
         """Test get_concept_details returns molecule when found."""
         mol_data = [{"molecule_chembl_id": "CHEMBL25", "pref_name": "ASPIRIN"}]
-        with patch.object(adapter, "query") as mock_query:
+        with patch.object(adapter, "query_async", new_callable=AsyncMock) as mock_query:
             mock_query.side_effect = [mol_data, [], []]
             result = await adapter.get_concept_details("CHEMBL25")
         assert result is not None
@@ -974,7 +1152,7 @@ class TestChEMBLAdapter:
     async def test_get_concept_details_drug_found(self, adapter):
         """Test get_concept_details returns drug when molecule not found."""
         drug_data = [{"drug_chembl_id": "CHEMBL25", "pref_name": "ASPIRIN"}]
-        with patch.object(adapter, "query") as mock_query:
+        with patch.object(adapter, "query_async", new_callable=AsyncMock) as mock_query:
             mock_query.side_effect = [[], drug_data, []]
             result = await adapter.get_concept_details("CHEMBL25")
         assert result is not None
@@ -985,21 +1163,39 @@ class TestChEMBLAdapter:
         target_data = [
             {"target_chembl_id": "CHEMBL1806", "pref_name": "ACE2", "target_type": "PROTEIN"}
         ]
-        with patch.object(adapter, "query") as mock_query:
+        with patch.object(adapter, "query_async", new_callable=AsyncMock) as mock_query:
             mock_query.side_effect = [[], [], target_data]
             result = await adapter.get_concept_details("CHEMBL1806")
         assert result is not None
 
     @pytest.mark.asyncio
+    async def test_get_concept_details_uses_existing_filter_fields(self, adapter):
+        """Regression: the drug lookup filters on molecule_chembl_id.
+
+        The drug resource has no drug_chembl_id field; ChEMBL ignores unknown
+        filters, so the old filter matched all ~16,000 drugs and returned an
+        unrelated one.
+        """
+        with patch.object(adapter, "query_async", new_callable=AsyncMock, return_value=[]) as mock:
+            assert await adapter.get_concept_details("CHEMBL221") is None
+        assert [(c.args[0], c.kwargs["filters"]) for c in mock.await_args_list] == [
+            ("molecule", {"molecule_chembl_id": "CHEMBL221"}),
+            ("drug", {"molecule_chembl_id": "CHEMBL221"}),
+            ("target", {"target_chembl_id": "CHEMBL221"}),
+        ]
+
+    @pytest.mark.asyncio
     async def test_get_concept_details_not_found(self, adapter):
         """Test get_concept_details returns None when not found."""
-        with patch.object(adapter, "query", return_value=[]):
+        with patch.object(adapter, "query_async", new_callable=AsyncMock, return_value=[]):
             result = await adapter.get_concept_details("NONEXISTENT")
         assert result is None
 
     @pytest.mark.asyncio
     async def test_get_concept_details_exception(self, adapter):
         """Test get_concept_details returns None on exception."""
-        with patch.object(adapter, "query", side_effect=Exception("fail")):
+        with patch.object(
+            adapter, "query_async", new_callable=AsyncMock, side_effect=Exception("fail")
+        ):
             result = await adapter.get_concept_details("CHEMBL25")
         assert result is None

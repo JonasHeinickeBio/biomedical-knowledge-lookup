@@ -1,187 +1,81 @@
-# EUtils Adapter Documentation
+---
+description: NCBI E-utilities (PubMed, Gene, Protein, Taxonomy) through bioservices.
+---
 
-## Overview
-The EUtils adapter provides access to NCBI's Entrez Programming Utilities (EUtils) for querying multiple NCBI databases including PubMed, Gene, Protein, and Taxonomy. It enables comprehensive literature mining and biological database access for ME/CFS and other biomedical research.
+# NCBI E-utilities adapter
 
-## Key Functions
+Searches several NCBI Entrez databases in one call (PubMed, Gene, Protein and Taxonomy) and fetches full records, using the `EUtils` client from `bioservices`.
 
-### `search_concepts(query, limit=20)` [async]
-Search multiple NCBI databases for biomedical concepts.
+| | |
+|---|---|
+| Source | `KnowledgeSource.EUTILS` |
+| Class | `knowledge_lookup.adapters.EUtilsAdapter` |
+| Requires | `[bioservices]` extra |
+| Identifiers | `PMID:23193287`, `GeneID:672`, `TaxID:9606`, `Protein:<uid>`, `NP_000483` |
+| Upstream API | `https://eutils.ncbi.nlm.nih.gov/entrez/eutils` (via `bioservices`) |
 
-**Parameters:**
-- `query`: Search term or phrase
-- `limit`: Maximum number of results per database (default: 20)
-
-**Returns:** `List[UnifiedConcept]` - Concepts from all queried databases
-
-**Supported Databases:**
-- `pubmed`: Literature citations
-- `gene`: Gene information
-- `protein`: Protein sequences
-- `taxonomy`: Organism classification
-
-**Example:**
-```python
-concepts = await adapter.search_concepts("myalgic encephalomyelitis", limit=20)
-```
-
-### `get_concept_details(concept_id)` [async]
-Get detailed information about an NCBI database entry.
-
-**Parameters:**
-- `concept_id`: Full concept ID with database prefix (e.g., 'PMID:123456', 'GeneID:7157')
-
-**Returns:** `UnifiedConcept` with full database record or `None`
-
-**Supported ID Formats:**
-- `PMID:{id}`: PubMed articles
-- `GeneID:{id}`: Gene entries
-- `TaxID:{id}`: Taxonomy entries
-- `{accession}`: Direct accessions (auto-detected)
-
-**Example:**
-```python
-details = await adapter.get_concept_details("PMID:12345678")
-```
-
-## API Information
-
-### Endpoints
-- **Base Service**: NCBI EUtils via bioservices library
-- **Email Required**: Required by NCBI policy (configure via `ncbi_email` API key)
-
-### Authentication
-- **API Key**: Optional (set `ncbi_email` API key for higher rate limits)
-- **Email**: Required by NCBI for all API access
-
-### Environment Variables
-- None required (email can be configured in config)
-
-### Rate Limits
-- Free tier: 3 requests per second
-- With API key: 10 requests per second
-
-## Data Types and Structures
-
-### UnifiedConcept Fields by Database
-
-#### PubMed (CITATION type)
-- `primary_id`: `PMID:{pmid}`
-- `primary_label`: Article title
-- `concept_type`: `CITATION`
-- `source_data`: Title, authors, database, description
-
-#### Gene (GENE type)
-- `primary_id`: `GeneID:{gene_id}`
-- `primary_label`: Gene name
-- `concept_type`: `GENE`
-- `source_data`: Name, description, summary, database
-
-#### Protein (PROTEIN type)
-- `primary_id`: `Protein:{protein_id}`
-- `primary_label`: Protein title
-- `concept_type`: `PROTEIN`
-- `source_data`: Title, accession, database
-
-#### Taxonomy (ORGANISM type)
-- `primary_id`: `TaxID:{tax_id}`
-- `primary_label`: Scientific name
-- `concept_type`: `ORGANISM`
-- `source_data`: Scientific name, common name, database
-
-### Source Data Fields
-- `database`: Name of NCBI database (pubmed, gene, protein, taxonomy)
-- `{db}_id`: NCBI identifier within that database
-- Full record: Complete database entry
-
-## Configuration
-No special configuration required beyond standard LookupConfig.
+## Quick example
 
 ```python
-from knowledge_lookup.adapters.eutils_adapter import EUtilsAdapter
+import asyncio
+
+from knowledge_lookup.adapters import EUtilsAdapter
 from knowledge_lookup.models import LookupConfig
 
-config = LookupConfig()
-config.api_keys['ncbi_email'] = 'your@email.com'  # Required by NCBI
-adapter = EUtilsAdapter(config)
+
+async def main():
+    config = LookupConfig(api_keys={"ncbi_email": "you@example.org"})
+    async with EUtilsAdapter(config) as adapter:
+        for concept in await adapter.search_concepts("BRCA1", limit=4):
+            print(concept.primary_id, concept.concept_type, concept.primary_label[:50])
+
+        article = await adapter.get_concept_details("PMID:23193287")
+        print(article.primary_label, article.concept_type)
+
+
+asyncio.run(main())
 ```
 
-## Features
-- **Multi-Database Search**: Query PubMed, Gene, Protein, Taxonomy simultaneously
-- **Automated ID Parsing**: Detect database type from ID format
-- **Comprehensive Results**: Full records with titles, descriptions, metadata
-- **Email Configuration**: Support for NCBI-required email address
-- **Batch Processing**: Efficient result limiting and distribution
-- **Error Resilient**: Continues on individual database failures
-- **Field Extraction**: Specialized extractors for each database type
+Output:
 
-## Error Handling
-- bioservices import validation
-- Email configuration check
-- Database type detection failures
-- ID parsing errors
-- Network connectivity validation
-- Comprehensive logging
-
-## Usage Examples
-
-### Basic Literature Search
-```python
-from knowledge_lookup.adapters.eutils_adapter import EUtilsAdapter
-
-adapter = EUtilsAdapter(config)
-
-# Search for ME/CFS literature
-concepts = await adapter.search_concepts("myalgic encephalomyelitis", limit=20)
-
-for concept in concepts:
-    print(f"{concept.primary_label} ({concept.primary_id})")
+```
+PMID:42741651 CITATION Overcoming Resistance to PARP Inhibitors in BRCA-M
+GeneID:148364138 GENE bap1
+Protein:3392429547 PROTEIN BRCT domain-containing protein [Streptococcus sp.]
+GenBank. CITATION
 ```
 
-### Gene Information
-```python
-# Search for gene information
-concepts = await adapter.search_concepts("TP53", limit=10)
+NCBI returns hits in its own order (newest first for PubMed), so results change over time and the best match is not necessarily included.
 
-for gene in concepts:
-    if gene.concept_type.value == 'gene':
-        print(f"Gene: {gene.primary_label}")
-        print(f"ID: {gene.primary_id}")
-```
+## Searching
 
-### Protein Details
-```python
-# Get detailed protein information
-protein = await adapter.get_concept_details("Protein:NP_000537")
+`search_concepts(query, limit)` sends the query unchanged to `ESearch` on four databases, then fetches the hits of each database with one batched `ESummary` request. Each database contributes up to `ceil(limit / 4)` hits (at least one). Results are returned in the order pubmed, gene, protein, taxonomy and cut to `limit`, so with a small `limit` the later databases can be cut off.
 
-if protein:
-    print(protein.primary_label)
-    print(protein.source_data.get('title', 'N/A'))
-```
+| Database | `primary_id` | `concept_type` | `primary_label` | `source_data[EUTILS]` |
+|---|---|---|---|---|
+| pubmed | `PMID:<id>` | `CITATION` | article title | `pmid`, `title`, `authors` (names), `journal`, `pubdate` |
+| gene | `GeneID:<id>` | `GENE` | gene symbol | `gene_id`, `name`, `description`, `organism` |
+| protein | `Protein:<id>` | `PROTEIN` | sequence title | `protein_id`, `name`, `accession` |
+| taxonomy | `TaxID:<id>` | `ORGANISM` | scientific name | `tax_id`, `scientific_name`, `common_name` |
 
-### Taxonomy Search
-```python
-# Search for organism/taxonomy
-concepts = await adapter.search_concepts("Homo sapiens", limit=5)
+Every entry in `source_data[EUTILS]` also has `database` and a one-line summary. Concepts have no identifiers, `sources` is `['EUTILS']` and `confidence_score` is `0.0`.
 
-for taxon in concepts:
-    print(f"{taxon.primary_label} - {taxon.primary_id}")
-```
+## Concept details
 
-### Literature with Email
-```python
-# Configure with NCBI email for better rate limits
-config.api_keys['ncbi_email'] = 'researcher@institution.edu'
-adapter = EUtilsAdapter(config)
+The ID prefix selects the database: `PMID:` → pubmed, `GeneID:` → gene, `TaxID:` → taxonomy, `Protein:` or `NP_`/`XP_` → protein, `NM_`/`XM_` → nuccore, anything else → pubmed. The adapter calls `EFetch` in text mode (`rettype` `abstract` for pubmed, `gp` for protein, `gb` for nuccore, `full` otherwise) and stores the record in `source_data[EUTILS]["full_record"]`. An empty record returns `None`.
 
-results = await adapter.search_concepts("chronic fatigue syndrome", limit=10)
-```
+The label comes from `ESummary`: the article title, gene symbol, sequence title or scientific name. If that request fails, the label is a placeholder such as `PubMed Article 23193287`. Types match search (`CITATION`, `GENE`, `PROTEIN`, `ORGANISM`); nuccore records are `MOLECULAR_ENTITY`.
 
-## Architecture
-The adapter uses the bioservices library to access NCBI EUtils. It queries multiple databases in parallel and processes results using database-specific extractors. Each result is converted to a UnifiedConcept with appropriate concept type based on the database source.
+The contact e-mail sent to NCBI comes from `config.get_api_key("ncbi_email")`: pass `api_keys={"ncbi_email": ...}` as in the example, or set `NCBI_EMAIL_API_KEY`. The default is `anonymous@example.com`.
 
-## Notes
-- bioservices library must be installed (`pip install bioservices`)
-- NCBI requires email for all API access
-- Results are distributed across 4 databases (5 per database with default limit of 20)
-- Accession number detection is based on common patterns (NP_, XP_, NM_, XM_, PMID_)
+## Rate limits and errors
+
+The `bioservices` calls run in a worker thread through `_thread_with_retry`, which applies the shared retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). If one database fails, a warning is logged and the other databases still return results. Only when all four fail is the error retried and reported to the circuit breaker; search then logs an error and returns `[]`. Details errors are logged and return `None`.
+
+`is_available()` is `False` when `bioservices` is not installed. No NCBI API key is sent, so NCBI's limit of 3 requests per second applies; a search makes up to eight requests (`ESearch` and `ESummary` per database) and a details lookup two.
+
+## See also
+
+- [Europe PMC adapter](../literature/europepmc_adapter.md), [ClinVar adapter](../phenotypes/clinvar_adapter.md)
+- [All adapters](../README.md)
+- [Configuration](../../getting-started/configuration.md): extras

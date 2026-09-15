@@ -1,12 +1,18 @@
-╔══════════════════════════════════════════════════════╗
-║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
-║  The adapter does not return valid search results.  ║
-╚══════════════════════════════════════════════════════╝
+The TYTO adapter is available.
 
-Checking if Tyto adapter is available...
-  ✓ Tyto adapter is available
+Searching TYTO for 'promoter' ...
+Found 1 concept(s) in 6.5s
 
-Searching for 'cancer' concepts in Tyto...
+  1. promoter
+     ID:         https://identifiers.org/SO:0000167
+     Type:       UNKNOWN
+     Confidence: 1.0
 
-Found 0 results from Tyto:
-  No results found for 'cancer'
+Fetching details for 'http://purl.obolibrary.org/obo/SO_0000167' ...
+  Label:      promoter
+  ID:         http://purl.obolibrary.org/obo/SO_0000167
+  Type:       UNKNOWN
+  Identifier: http://purl.obolibrary.org/obo/SO_0000167 (TYTO)
+
+Summary: search=1 details=found
+[ERROR] tyto.py 92: Ambiguous term promoter--found multiple URIs ['http://biomodels.net/SBO/SBO_0000598', 'http://biomodels.net/SBO/SBO_0000590']

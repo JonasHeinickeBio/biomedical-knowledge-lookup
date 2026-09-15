@@ -2,13 +2,15 @@
 Unit tests for ReactomeAdapter.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 import pytest
 
-pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.reactome_adapter import ReactomeAdapter
-from knowledge_lookup.models import KnowledgeSource, LookupConfig
+from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig
+
+pytestmark = pytest.mark.unit
 
 
 class TestReactomeAdapter:
@@ -46,52 +48,147 @@ class TestReactomeAdapter:
         adapter = ReactomeAdapter(config)
         assert adapter.get_rate_limit() == 5.0
 
+    @staticmethod
+    def _group(type_name, entries):
+        """One group of a /search/query response (the type is on each entry)."""
+        return {
+            "typeName": type_name,
+            "entriesCount": len(entries),
+            "rowCount": len(entries),
+            "entries": entries,
+        }
+
+    @staticmethod
+    def _entry(st_id, name, entry_type, **extra):
+        return {
+            "dbId": st_id.rsplit("-", 1)[-1],
+            "stId": st_id,
+            "id": st_id,
+            "name": name,
+            "type": entry_type,
+            "exactType": entry_type,
+            "species": ["Homo sapiens"],
+            **extra,
+        }
+
     @pytest.mark.asyncio
     async def test_search_concepts_with_pathway_results(self, adapter):
-        """Test search_concepts with pathway results."""
+        """Test search_concepts with pathway results in the grouped response."""
         reactome_data = {
             "results": [
-                {
-                    "stId": "R-HSA-1640170",
-                    "name": "Cell Cycle",
-                    "type": "Pathway",
-                    "summation": "The cell cycle.",
-                    "species": ["Homo sapiens"],
-                },
-                {
-                    "stId": "R-HSA-109581",
-                    "name": "Apoptosis",
-                    "type": "Pathway",
-                    "summation": "Programmed cell death.",
-                    "species": ["Homo sapiens"],
-                },
-            ]
+                self._group(
+                    "Pathway",
+                    [
+                        self._entry(
+                            "R-HSA-1640170", "Cell Cycle", "Pathway", summation="The cell cycle."
+                        ),
+                        self._entry(
+                            "R-HSA-109581",
+                            "Apoptosis",
+                            "Pathway",
+                            summation="Programmed cell death.",
+                        ),
+                    ],
+                )
+            ],
+            "rowCount": 2,
+            "numberOfGroups": 1,
+            "numberOfMatches": 2,
         }
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = reactome_data
             results = await adapter.search_concepts("cell cycle", limit=10)
             assert len(results) == 2
             assert results[0].primary_id == "R-HSA-1640170"
+            assert results[0].definitions == ["The cell cycle."]
 
     @pytest.mark.asyncio
     async def test_search_concepts_filters_non_pathway(self, adapter):
-        """Test search filters out non-Pathway/Reaction types."""
+        """Test search keeps only Pathway/Reaction entries across all groups."""
         reactome_data = {
             "results": [
-                {"stId": "R-HSA-1640170", "name": "Cell Cycle", "type": "Pathway"},
-                {"stId": "R-HSA-123456", "name": "Some other type", "type": "Other"},
-                {"stId": "R-HSA-109581", "name": "Apoptosis", "type": "Reaction"},
+                self._group("Pathway", [self._entry("R-HSA-1640170", "Cell Cycle", "Pathway")]),
+                self._group("Reaction", [self._entry("R-HSA-109582", "Hemostasis", "Reaction")]),
+                self._group("Interactor", [self._entry("O15392-1", "BIRC5", "Interactor")]),
+                self._group("Protein", [self._entry("R-HSA-50851", "BIRC5", "Protein")]),
             ]
         }
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = reactome_data
             results = await adapter.search_concepts("test", limit=10)
-            assert len(results) == 2
+            assert [r.primary_id for r in results] == ["R-HSA-1640170", "R-HSA-109582"]
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_reads_type_from_entries_not_groups(self, adapter):
+        """Regression: groups have no ``type`` key; search must not return [] for them."""
+        reactome_data = {
+            "results": [
+                {
+                    "typeName": "Pathway",
+                    "entriesCount": 288,
+                    "rowCount": 1,
+                    "entries": [self._entry("R-HSA-109581", "Apoptosis", "Pathway")],
+                }
+            ]
+        }
+        assert "type" not in reactome_data["results"][0]
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = reactome_data
+            results = await adapter.search_concepts("apoptosis", limit=5)
+        assert len(results) == 1
+        assert results[0].primary_id == "R-HSA-109581"
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_strips_highlighting_markup(self, adapter):
+        """Search hits wrap matches in <span class="highlighting"> and use <BR>."""
+        entry = self._entry(
+            "R-HSA-109581",
+            '<span class="highlighting" >Apoptosis</span>',
+            "Pathway",
+            summation='<span class="highlighting" >Apoptosis</span> is cell death.<BR>More text',
+        )
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"results": [self._group("Pathway", [entry])]}
+            results = await adapter.search_concepts("apoptosis", limit=5)
+        assert results[0].primary_label == "Apoptosis"
+        assert results[0].identifiers[0].label == "Apoptosis"
+        assert results[0].definitions[0].startswith("Apoptosis is cell death.")
+        assert "<" not in results[0].definitions[0]
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_respects_limit_across_groups(self, adapter):
+        """``rows`` applies per group, so the adapter caps the total at ``limit``."""
+        reactome_data = {
+            "results": [
+                self._group(
+                    "Pathway",
+                    [self._entry(f"R-HSA-10{i}", f"Pathway {i}", "Pathway") for i in range(3)],
+                ),
+                self._group(
+                    "Reaction",
+                    [self._entry(f"R-HSA-20{i}", f"Reaction {i}", "Reaction") for i in range(3)],
+                ),
+            ]
+        }
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = reactome_data
+            results = await adapter.search_concepts("test", limit=4)
+        assert len(results) == 4
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_404_no_matches(self, adapter):
+        """Reactome answers 404 when nothing matches; search returns []."""
+        error = aiohttp.ClientResponseError(
+            request_info=MagicMock(), history=(), status=404, message="Not Found"
+        )
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock, side_effect=error):
+            results = await adapter.search_concepts("xkjshdfkjsdhfkljhsdkfj")
+        assert results == []
 
     @pytest.mark.asyncio
     async def test_search_concepts_result_conversion_returns_none(self, adapter):
         """Test search when _convert_reactome_result returns None."""
-        reactome_data = {"results": [{"type": "Pathway"}]}
+        reactome_data = {"results": [{"typeName": "Pathway", "entries": [{"type": "Pathway"}]}]}
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = reactome_data
             with patch.object(adapter, "_convert_reactome_result_to_concept", return_value=None):
@@ -202,6 +299,28 @@ class TestReactomeAdapter:
         assert "The cell cycle describes the series of events." in concept.definitions
         assert concept.confidence_score == 1.0
 
+    @pytest.mark.parametrize(
+        ("schema_class", "expected"),
+        [
+            ("Pathway", ConceptType.PATHWAY),
+            ("TopLevelPathway", ConceptType.PATHWAY),
+            ("Reaction", ConceptType.BIOLOGICAL_PROCESS),
+            ("BlackBoxEvent", ConceptType.BIOLOGICAL_PROCESS),
+            ("Complex", ConceptType.UNKNOWN),
+            (None, ConceptType.UNKNOWN),
+        ],
+    )
+    def test_concept_type_from_schema_class(self, adapter, schema_class, expected):
+        """Search entries carry the class in "type", details in "schemaClass"."""
+        hit = adapter._convert_reactome_result_to_concept(
+            {"stId": "R-HSA-1", "name": "Event", "type": schema_class}
+        )
+        details = adapter._convert_reactome_details_to_concept(
+            {"stId": "R-HSA-1", "displayName": "Event", "schemaClass": schema_class}
+        )
+        assert hit.concept_type == expected
+        assert details.concept_type == expected
+
     def test_convert_reactome_details_no_stid(self, adapter):
         """Test _convert_reactome_details_to_concept with missing stId."""
         data = {"displayName": "Cell Cycle"}
@@ -251,3 +370,26 @@ class TestReactomeAdapter:
         """Test async context manager."""
         async with adapter:
             pass
+
+    @pytest.mark.asyncio
+    async def test_repeated_no_match_searches_keep_the_breaker_closed(self, adapter):
+        """Regression: Reactome's 404 "no match" answers opened the circuit breaker."""
+        from knowledge_lookup.utils.retry_utils import CircuitBreaker
+
+        breaker = CircuitBreaker(threshold=2, cooldown=60)
+        adapter.set_circuit_breaker(breaker)
+        response = MagicMock()
+        response.raise_for_status.side_effect = aiohttp.ClientResponseError(
+            request_info=MagicMock(), history=(), status=404, message="Not Found"
+        )
+        session = MagicMock()
+        session.get.return_value.__aenter__ = AsyncMock(return_value=response)
+        session.get.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        with patch.object(adapter, "_get_session", AsyncMock(return_value=session)):
+            for _ in range(5):
+                assert await adapter.search_concepts("xkjshdfkjsdhfkljhsdkfj") == []
+
+        assert session.get.call_count == 5  # every search reached Reactome
+        assert breaker.state.value == "closed"
+        assert breaker.failure_count == 0

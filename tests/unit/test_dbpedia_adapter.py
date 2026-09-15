@@ -320,7 +320,7 @@ class TestDBpediaAdapter:
                 "value": {"value": "Aspirin", "xml:lang": "en"},
             },
             {
-                "property": {"value": "dbo:abstract"},
+                "property": {"value": "http://dbpedia.org/ontology/abstract"},
                 "value": {"value": "A common drug", "xml:lang": "en"},
             },
         ]
@@ -337,7 +337,7 @@ class TestDBpediaAdapter:
                 "value": {"value": "Aspirin", "xml:lang": "en"},
             },
             {
-                "property": {"value": "dbo:abstract"},
+                "property": {"value": "http://dbpedia.org/ontology/abstract"},
                 "value": {"value": "A" * 1100, "xml:lang": "en"},
             },
         ]
@@ -389,7 +389,7 @@ class TestDBpediaAdapter:
                 "value": {"value": "Aspirin", "xml:lang": "en"},
             },
             {
-                "property": {"value": "dbo:abstract"},
+                "property": {"value": "http://dbpedia.org/ontology/abstract"},
                 "value": {"value": "Short abstract", "xml:lang": "en"},
             },
         ]
@@ -419,7 +419,7 @@ class TestDBpediaAdapter:
                 "value": {"value": "Aspirin", "xml:lang": "en"},
             },
             {
-                "property": {"value": "dbo:abstract"},
+                "property": {"value": "http://dbpedia.org/ontology/abstract"},
                 "value": {"value": "Un fármaco", "xml:lang": "es"},
             },
         ]
@@ -432,6 +432,145 @@ class TestDBpediaAdapter:
         """Test _convert_dbpedia_entity_to_unified returns None on exception."""
         concept = adapter._convert_dbpedia_entity_to_unified(None, None)
         assert concept is None
+
+    # --- regression tests: property IRIs, SPARQL injection, log level ---
+
+    @staticmethod
+    def _structure(sparql: str) -> str:
+        """Query text with string literals and IRIs blanked, to compare query structure."""
+        import re
+
+        without_literals = re.sub(r'"(?:[^"\\\n\r]|\\.)*"', '""', sparql)
+        return re.sub(r"<[^<>\s]*>", "<>", without_literals)
+
+    def test_convert_entity_real_bindings_extract_label_and_abstract(self, adapter):
+        """Regression: full property IRIs (as DBpedia returns them) match label and abstract."""
+        # Shaped like the live SPARQL JSON bindings for a DBpedia resource
+        properties = [
+            {
+                "property": {"type": "uri", "value": "http://www.w3.org/2000/01/rdf-schema#label"},
+                "value": {
+                    "type": "literal",
+                    "xml:lang": "en",
+                    "value": "Type 2 diabetes mellitus",
+                },
+            },
+            {
+                "property": {"type": "uri", "value": "http://dbpedia.org/ontology/abstract"},
+                "value": {"type": "literal", "xml:lang": "en", "value": "A metabolic disorder."},
+            },
+            {
+                "property": {
+                    "type": "uri",
+                    "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+                },
+                "value": {"type": "uri", "value": "http://dbpedia.org/ontology/Disease"},
+            },
+            {
+                "property": {"type": "uri", "value": "http://dbpedia.org/ontology/icd10"},
+                "value": {"type": "literal", "value": "E11"},
+            },
+        ]
+        concept = adapter._convert_dbpedia_entity_to_unified(
+            "http://dbpedia.org/resource/Type_2_diabetes", properties
+        )
+        assert concept.primary_label == "Type 2 diabetes mellitus"
+        assert concept.definitions == ["A metabolic disorder."]
+        assert "Disease" in concept.categories
+        assert "ICD-10: E11" in concept.categories
+
+    @pytest.mark.asyncio
+    async def test_search_query_injection_is_escaped(self, adapter):
+        """Regression: search text cannot change the structure of the SPARQL query."""
+        with patch.object(
+            adapter, "run_sparql_query", new_callable=AsyncMock, return_value={}
+        ) as mock:
+            await adapter.search_concepts("aspirin", limit=5)
+            benign = mock.call_args.args[0]
+            await adapter.search_concepts(
+                "aspirin' . } } SELECT * WHERE { ?s ?p ?o } #\"\\", limit=5
+            )
+            injected = mock.call_args.args[0]
+        assert self._structure(injected) == self._structure(benign)
+        assert "bif:contains \"'aspirin SELECT WHERE s p o'\"" in injected
+
+    @pytest.mark.asyncio
+    async def test_search_without_words_makes_no_request(self, adapter):
+        """A query with no word characters returns [] without querying DBpedia."""
+        with patch.object(adapter, "run_sparql_query", new_callable=AsyncMock) as mock:
+            assert await adapter.search_concepts("'\"{}") == []
+        mock.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_iri_injection_is_encoded(self, adapter):
+        """Regression: characters that would close the <IRI> are percent-encoded."""
+        with patch.object(
+            adapter, "run_sparql_query", new_callable=AsyncMock, return_value={}
+        ) as mock:
+            await adapter.get_concept_details("Aspirin")
+            benign = mock.call_args.args[0]
+            await adapter.get_concept_details("Aspirin> ?p ?o } SELECT * WHERE { <x")
+            injected = mock.call_args.args[0]
+        assert self._structure(injected) == self._structure(benign)
+        assert "<http://dbpedia.org/resource/Aspirin%3E_?p_?o_%7D_SELECT_*_WHERE_%7B_%3Cx>" in (
+            injected
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_unknown_resource_returns_none(self, adapter):
+        """A resource without any bindings does not exist; no fallback concept is built."""
+        with patch.object(
+            adapter,
+            "run_sparql_query",
+            new_callable=AsyncMock,
+            return_value={"head": {"vars": ["property", "value"]}, "results": {"bindings": []}},
+        ):
+            assert await adapter.get_concept_details("No_such_resource_xyz") is None
+
+    def test_convert_entity_deduplicates_types(self, adapter):
+        """DBpedia repeats rdf:type rows (one per graph); categories list each type once."""
+        type_row = {
+            "property": {"value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
+            "value": {"type": "uri", "value": "http://dbpedia.org/ontology/Disease"},
+        }
+        concept = adapter._convert_dbpedia_entity_to_unified(
+            "http://dbpedia.org/resource/Type_2_diabetes", [type_row, type_row, type_row]
+        )
+        assert concept.categories == ["Disease"]
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_filters_to_english(self, adapter):
+        """Labels in other languages are filtered out so they do not fill the LIMIT."""
+        with patch.object(
+            adapter, "run_sparql_query", new_callable=AsyncMock, return_value={}
+        ) as mock:
+            await adapter.get_concept_details("Aspirin")
+        assert 'langMatches(lang(?value), "en")' in mock.call_args.args[0]
+
+    @pytest.mark.asyncio
+    async def test_make_request_logs_params_only_at_debug(self, adapter, caplog):
+        """Regression: request params and headers are not logged at INFO."""
+        import logging
+
+        from knowledge_lookup.base import KnowledgeSourceAdapter
+
+        logger_name = "knowledge_lookup.adapters.dbpedia_adapter"
+        with patch.object(
+            KnowledgeSourceAdapter, "_make_request", new_callable=AsyncMock, return_value={}
+        ):
+            caplog.set_level(logging.INFO, logger=logger_name)
+            await adapter._make_request(
+                "https://dbpedia.org/sparql", params={"query": "q"}, headers={"X": "y"}
+            )
+            assert not [r for r in caplog.records if "Request" in r.getMessage()]
+
+            caplog.set_level(logging.DEBUG, logger=logger_name)
+            await adapter._make_request(
+                "https://dbpedia.org/sparql", params={"query": "q"}, headers={"X": "y"}
+            )
+            debug_records = [r for r in caplog.records if "Request" in r.getMessage()]
+        assert debug_records
+        assert all(r.levelno == logging.DEBUG for r in debug_records)
 
     # --- run_sparql_query ---
 
@@ -478,3 +617,55 @@ class TestDBpediaAdapter:
             )
             assert params is not None
             assert "LIMIT" not in params["query"]
+
+    @staticmethod
+    def _search_row(name: str, type_iri: str, abstract: str | None = None) -> dict:
+        row = {
+            "resource": {"value": f"http://dbpedia.org/resource/{name}"},
+            "label": {"value": name.replace("_", " ")},
+            "type": {"value": type_iri},
+        }
+        if abstract is not None:
+            row["abstract"] = {"value": abstract}
+        return row
+
+    @pytest.mark.asyncio
+    async def test_search_returns_each_resource_once_with_merged_types(self, adapter):
+        """Regression: one row per rdf:type repeated a resource and the repeats used up `limit`."""
+        thing = "http://www.w3.org/2002/07/owl#Thing"
+        drug = "http://dbpedia.org/ontology/Drug"
+        rows = [
+            self._search_row("Metformin", thing),
+            self._search_row("Metformin", drug, "An antidiabetic drug."),
+            self._search_row("Metformin", thing),
+            self._search_row("Metformin_hydrochloride", drug),
+            self._search_row("Buformin", drug),
+        ]
+        with patch.object(
+            adapter,
+            "run_sparql_query",
+            new_callable=AsyncMock,
+            return_value={"results": {"bindings": rows}},
+        ):
+            results = await adapter.search_concepts("metformin", limit=2)
+
+        assert [c.primary_id for c in results] == ["Metformin", "Metformin_hydrochloride"]
+        assert results[0].categories == ["owl#Thing", "Drug"]
+        assert results[0].definitions == ["An antidiabetic drug."]
+        assert results[1].categories == ["Drug"]
+
+    @pytest.mark.asyncio
+    async def test_search_limits_resources_in_a_subquery(self, adapter):
+        import re
+
+        with patch.object(
+            adapter, "run_sparql_query", new_callable=AsyncMock, return_value={}
+        ) as mock:
+            await adapter.search_concepts("metformin", limit=5)
+
+        sparql = mock.call_args.args[0]
+        # LIMIT closes the resource subquery, before the rdf:type join multiplies the rows
+        assert re.search(
+            r"SELECT DISTINCT \?resource \?label .*LIMIT 5\s*\}\s*OPTIONAL", sparql, re.S
+        )
+        assert "limit" not in mock.call_args.kwargs

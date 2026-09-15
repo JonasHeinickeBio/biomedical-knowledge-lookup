@@ -7,6 +7,223 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+This is a major release. The breaking changes and how to adapt code written
+for 1.x are collected in
+[Upgrading to 2.0](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/blob/main/docs/getting-started/upgrading-to-2.0.md).
+
+### Added
+- **Iterative term expansion** (`CentralKnowledgeLookup.search_concepts_expanded()`,
+  `knowledge_lookup.core.term_expansion`): instead of searching a term once,
+  searches it, harvests synonyms and long-form variants from what it finds
+  (e.g. "COPD" also picks up "chronic obstructive pulmonary disease"),
+  searches those too, and repeats until a round finds nothing genuinely new
+  or a round cap is hit. Abbreviation candidates (via a UMLS Metathesaurus
+  atom-term-type source when the `[umls]` extra and an API key are
+  available) are recorded but never searched — a bare abbreviation is prone
+  to colliding with unrelated concepts (e.g. "PEM" matching "pemphigoid"
+  instead of "post-exertional malaise"). Every term tried, and every
+  abbreviation found but not searched, is recorded durably via the new
+  `knowledge_lookup.core.expansion_store.ExpansionStore` (SQLite-backed,
+  never evicts). Core-level capability, usable without the `[agents]`
+  extra; also wired into the LangGraph agent workflow as a new `expand`
+  node between `preprocess` and `lookup`.
+- `scripts/demo_expanded_lookup_mecfs.py`: live demo of iterative term
+  expansion over 10 ME/CFS-related terms.
+- **MCP server** (`knowledge_lookup.mcp_server`, `[mcp]` extra,
+  `knowledge-lookup-mcp` console script). Exposes the lookup to LLM agents over
+  the Model Context Protocol using the official `mcp` 2.x SDK: five read-only,
+  annotated tools (`biomed_search_concepts`, `biomed_get_concept`,
+  `biomed_find_mappings`, `biomed_list_sources`, `biomed_validate_curie`) with
+  structured output, concise/detailed response formats, pagination and a
+  25,000-character result cap; `biomed://sources` and
+  `biomed://concept/{concept_id}` resources; and `normalize_terms` /
+  `annotate_text` prompts. Identifiers are routed to the source that owns them
+  (CURIE prefix, OBO PURL, accession shape) instead of asking every adapter, and
+  adapters built on synchronous clients (ChEMBL, Tyto, EUtils, QuickGO,
+  UniChem) run on their own event-loop threads so a slow query cannot stall the
+  server. Supports stdio and Streamable HTTP. See `docs/guides/mcp-server.md`.
+- `knowledge_lookup.cache.ensure_cache()` (creates the default cache only when
+  none is configured) and `delete_prefix()` on the memory and disk cache
+  backends.
+- Agent workflow: `get_default_checkpointer()`, an optional `checkpointer=`
+  argument on `run_workflow()` / `resume_workflow()`, and an
+  `approval_request` key in paused results.
+- `knowledge_lookup.utils.redaction.redact()` masks API keys and auth tokens in
+  log messages.
+- `expand_and_search(max_abbreviation_lookups=10)` caps UMLS abbreviation
+  lookups per expansion round; `SourceHealthTracker.record_failure()`;
+  `ChEMBLAdapter.check_api_status(timeout=...)`.
+- `py.typed` marker, so type checkers use the package's inline annotations.
+
+### Changed
+- **Breaking: Python >= 3.11 is now required** (was >= 3.10); CI tests 3.11,
+  3.12 and 3.13. This lets every dependency move to its newest release (the
+  newest pandas, bioregistry and curies need 3.11+). Ruff and mypy now target
+  Python 3.11: `asyncio.TimeoutError` aliases are replaced with `TimeoutError`,
+  and `UP042` is ignored because turning the generated `(str, Enum)` classes
+  into `StrEnum` would change their `str()` output.
+- **Dependencies upgraded to the newest resolvable releases** and re-locked
+  (`poetry.lock`, `uv.lock`, `requirements.txt`), with version floors raised
+  to match. Core: aiohttp 3.14, rdflib 7.6, pydantic 2.13, python-dotenv 1.2,
+  rich 15, typer 0.27. Extras: pandas 3.0, langgraph 1.2.11, bioregistry 0.14,
+  curies 0.15. Dev: pytest 9, pytest-asyncio 1.4, pytest-cov 7,
+  pytest-rerunfailures 16, ruff 0.16, mypy 2.3, ipykernel 7, linkml 1.11.
+  Build: poetry-core 2.4, poetry-dynamic-versioning 1.10.
+  Pre-commit hooks follow suit (pre-commit-hooks 6.0, ruff 0.16.7, mypy 2.3.1).
+- **Breaking:** `ChEMBLAdapter.lookup_molecule()`, `lookup_drug()` and
+  `lookup_target()` are now `async` (they returned un-awaited coroutines
+  before) and must be awaited. The new `query_async()` runs ChEMBL queries in a
+  worker thread.
+- pandas 3.0 for the `export` extra. It was held below 3.0 by pyobo, whose
+  `bioregistry[align]` dependency caps pandas, and pyobo is no longer a
+  dependency (see Removed).
+- Test tooling: removed the custom `event_loop` fixture (dropped in
+  pytest-asyncio 1.x) and marked the async functional-test fixtures with
+  `@pytest_asyncio.fixture`. Ruff now also ignores `UP045` (the `Optional[X]`
+  half of `UP007`) for the generated LinkML models, and `src/` is reformatted
+  with ruff 0.16.
+
+### Removed
+- **Breaking: legacy duplicate and demo modules.**
+  `knowledge_lookup.validation_models` and `knowledge_lookup.generated_models`
+  (duplicates of `knowledge_lookup.models`),
+  `knowledge_lookup.adapters.additional_adapters` (outdated copies of the
+  DBpedia, OxO and BioOntology adapters), and the demo modules
+  `knowledge_lookup.examples` (which loaded `.env` and changed `sys.path` on
+  import) and `knowledge_lookup.cache.cache_demo`. The LinkML `make
+  generate-python` target now writes to `knowledge_lookup/models/`.
+- `MANIFEST.in`, which the Poetry build backend never read.
+- **`tenacity` dependency.** Nothing in the package imports it, but 1.2.0 still
+  pinned `tenacity<9.0.0`, so it could not be installed alongside packages that
+  need tenacity 9 (e.g. `pyeuropepmc` 2.2.1).
+- **Other dependencies nothing used**: `requests` (core), `pyobo` (`curie`
+  extra; CURIE handling only uses `bioregistry` and `curies`), and from the dev
+  tooling `setuptools`, `linkml-runtime` (already required by `linkml`) and the
+  whole `docs` group (`sphinx`, `sphinx-rtd-theme`; the repo has no Sphinx
+  configuration). The pre-commit mypy hook no longer installs `types-requests`
+  and `types-setuptools`.
+
+### Fixed
+- **BioPortal details**: `get_concept_details` built an invalid URL and never
+  returned data. It now requests
+  `/ontologies/{ACRONYM}/classes/{IRI}`, inferring the ontology from BioPortal
+  and OBO PURLs (or taking an explicit `ontology=`), and skips the request when
+  the ontology can't be determined. BioOntology details infer the ontology the
+  same way.
+- **BioOntology**: `batch_annotate` now annotates each text concurrently and
+  returns one list per text; `get_analytics` applies its `ontology`, `month` and
+  `year` filters.
+- **UMLS**: the `UMLS_API_KEY_TU` fallback key is honoured, and concept details
+  fall back to semantic-type TUIs when the type name is unmapped
+  (`ConceptType.UNKNOWN` is truthy, so the old `or` fallback never ran).
+- **`LookupConfig.get_api_key`** returned a plain-string `api_keys` value for
+  every service. Only a JSON object is now read per service, then the
+  `{SERVICE}_API_KEY` environment variables.
+- **`CentralKnowledgeLookup`**:
+  - `lookup_and_convert_to_rdf` raised `ModuleNotFoundError`.
+  - `get_statistics` crashed on the string circuit state and never counted open
+    breakers; `MultiSourceAnnotator` stats had the same crash.
+  - Open circuit breakers never skipped a source. Searches now skip open sources
+    (recorded in `errors`), and health snapshots report `HALF_OPEN` once the
+    cooldown has passed.
+  - `timeout_per_source` applied only to parallel searches, and later sources
+    got extra time; every search path now times each source from the start.
+  - Creating a lookup replaced a cache configured earlier with `init_cache()`.
+  - `export_to_excel` wrote the Errors sheet after the workbook was closed, so it
+    was silently missing.
+  - An explicit `circuit_breaker_threshold` or `circuit_breaker_cooldown` of 0
+    was replaced by the default.
+  - Error summaries printed `KnowledgeSource.X` instead of the source name.
+  - A source that hung until `timeout_per_source` never opened its circuit
+    breaker; such timeouts now count as failures. `get_concept_details` also
+    skips sources whose breaker is open.
+  - An HTTP 404 counted as a breaker failure, so repeated no-match queries
+    (Reactome, PubChem) opened the breaker. A 404 now counts as an answer.
+- **Cache**: `clear(namespace)` only logged a warning; it now deletes that
+  namespace from the memory and disk tiers.
+- **Agent workflow**:
+  - `resume_workflow` could never resume a paused run (each call used a fresh
+    checkpointer), and a pause was reported as `reviewing`. Runs now share one
+    checkpointer, pauses return `awaiting_approval` with `approval_request`,
+    and the CLI keeps prompting until the run finishes.
+  - Runs could hang for many minutes: term expansion ignored the selected
+    sources and nodes fanned out without limits. Each network node now has a
+    time budget and a concurrency cap and queries only the selected sources.
+  - A failed per-term lookup crashed the next node's state validation.
+  - `max_iterations=0` was treated as 3.
+  - A refinement kept searching the first pass's terms, and review
+    suggestions were appended to the query text.
+- **Term expansion** asked the UMLS abbreviation source about every concept,
+  one at a time and again in every round. Each label is now asked once per
+  run, at most `max_abbreviation_lookups` new labels per round, three at a
+  time.
+- **CLI**: `sources` and `info` list all 36 sources; `search --cache-dir` now
+  configures the disk cache, closes the lookup, and reports only the queried
+  sources in JSON output.
+- **Adapters**:
+  - Reactome search read the grouped response incorrectly and returned nothing;
+    pathways and reactions are now typed `PATHWAY` and `BIOLOGICAL_PROCESS`
+    instead of `UNKNOWN`.
+  - STRING rejected its `text/json` responses.
+  - DrugBank used an OLS ontology that no longer exists; it now uses
+    MyChem.info (keyless).
+  - Open Targets search hits lacked names and types, and disease details used
+    fields the API no longer has.
+  - DisGeNET read outdated fields and sent disease names to an ID-only
+    parameter; details raised instead of returning `None`.
+  - Europe PMC details rejected `PMID:` identifiers and returned no abstracts.
+  - ClinVar ignored the current `germline_classification` fields.
+  - COSMIC has no query API: the adapter is now unavailable without
+    credentials instead of silently returning nothing.
+  - NCBI E-utilities returned nothing: it parsed an outdated bioservices
+    response shape, swallowed per-database errors, and PubMed details requested
+    an empty format. Search and details (PubMed, Gene, Protein, Taxonomy) work.
+  - QuickGO search sent free text to an ID-only endpoint; it now uses the
+    QuickGO term search, and annotations are requested only for gene products.
+  - Tyto called functions the `tyto` package doesn't have. Details resolve SO,
+    SBO and NCIT term IRIs, and search is an exact-label lookup.
+  - ChEMBL: `search_concepts` downloaded every matching record and ran the
+    synchronous client on the event loop; results are now sliced lazily and
+    fetched in a worker thread. Target details matched an unrelated drug
+    through a filter field the drug endpoint doesn't have.
+  - OxO called the removed `/api/datasources` endpoint and added each
+    identifier twice.
+  - Wikidata and DBpedia put search text into SPARQL queries unescaped;
+    Wikidata recorded MeSH IDs as UMLS identifiers, and DBpedia never found
+    labels or abstracts (it compared prefixed names with full IRIs).
+  - EBI OLS recorded its identifiers under `OLS` instead of `EBIOLS`; every
+    `OLSAdapter` subclass now tags results with its own source.
+  - Wikidata and DBpedia returned a resource once per type or instance-of
+    value, and the repeats counted toward `limit`; each resource now appears
+    once with all its types in `categories`.
+  - `ChEMBLAdapter.check_api_status()` never sent a request and always
+    reported the API as available.
+- The root `example_notebooks/clinical_symptom_validation.ipynb` was not valid
+  JSON and checked semantic-type TUIs against type names; it is rebuilt and
+  runs against live UMLS.
+- `knowledge_lookup.models.convert_generated_unified_concept()`,
+  `convert_generated_lookup_result()` and `convert_generated_lookup_config()`
+  raised a validation error on every call (they passed dicts into the
+  generated models' JSON-string fields); they work now.
+- `knowledge_lookup.__version__` was hard-coded to `"1.0.0"` in source
+  checkouts and editable installs; it now reports the installed version.
+- Packaging: `openpyxl` is part of the `export` extra (needed by
+  `export_to_excel`), and the package ships `py.typed`.
+
+### Security
+- **API keys no longer leak into logs.** BioPortal and BioOntology sent the key
+  as an `apikey` query parameter, and failed requests logged the full URL
+  (aiohttp includes it in the exception message). Both now authenticate with
+  the `Authorization: apikey token=...` header. OMIM still needs the key in the
+  URL, so its error messages are masked with the new
+  `knowledge_lookup.utils.redaction.redact()` helper, which the BioPortal and
+  BioOntology error logs use as well.
+- Removed a BioPortal API key from the stored cell outputs of
+  `example_notebooks/bioontology_adapter_example.ipynb`,
+  `bioportal_adapter_example.ipynb` and `rdf_converter_demo.ipynb`, where it
+  appeared in logged request URLs. The key remains in earlier commits, so it
+  must be revoked and replaced.
+
 
 ## [1.2.0] - 2026-09-11
 

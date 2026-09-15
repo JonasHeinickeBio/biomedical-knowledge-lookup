@@ -1,169 +1,85 @@
-# OxO (Ontology Cross-reference Service) Adapter Documentation
+---
+description: EBI OxO cross-references between ontology and vocabulary identifiers (CURIEs).
+---
 
-## Overview
-The OxO adapter provides access to EBI's Ontology Cross-reference Service, enabling mapping and cross-referencing between terms across different ontologies, vocabularies, and coding standards.
+# OxO adapter
 
-## Key Functions
+Looks up cross-references for an ontology identifier in EBI OxO. For example, it maps `MONDO:0005148` to DOID, ICD-10-CM, MedGen, MeSH, UMLS and others, following mappings up to a configurable distance. The input is a CURIE, not free text.
 
-### Core Search Methods
+| | |
+|---|---|
+| Source | `KnowledgeSource.OXO` |
+| Class | `knowledge_lookup.adapters.OxOAdapter` |
+| Requires | none |
+| Identifiers | CURIE, e.g. `MONDO:0005148`, `DOID:162` |
+| Upstream API | `https://www.ebi.ac.uk/spot/oxo/api` |
 
-#### `search_concepts(query, limit=10)` [async]
-Search for concepts with cross-references.
-
-**Parameters:**
-- `query`: Search term or concept ID (e.g., 'DOID:162', 'MONDO:0004992')
-- `limit`: Maximum results (default: 10)
-
-**Returns:** `List[UnifiedConcept]` - Concepts with cross-references
-
-**Example Data Structure:**
-```python
-{
-    'primary_id': 'DOID:162',
-    'primary_label': 'Alzheimer disease',
-    'concept_type': ConceptType.DISEASE,
-    'identifiers': [ConceptIdentifier(
-        source='OXO',
-        identifier='DOID:162',
-        label='Alzheimer disease',
-        url='https://www.ebi.ac.uk/spot/oxo/diseasome/Disease_162'
-    )],
-    'mappings': [
-        {
-            'target_source': KnowledgeSource.MONDO,
-            'target_id': 'MONDO:0004992',
-            'confidence': 0.9
-        }
-    ],
-    'confidence_score': 0.9
-}
-```
-
-#### `get_concept_details(concept_id)` [async]
-Get detailed information about a concept including all its mappings.
-
-**Parameters:**
-- `concept_id`: Concept identifier
-
-**Returns:** `UnifiedConcept` or `None` - Concept with complete mappings
-
-#### `get_concept_by_id(concept_id, **kwargs)` [async]
-Get cross-references for a specific concept ID.
-
-**Parameters:**
-- `concept_id`: Concept identifier
-- `distance`: Maximum mapping distance (default: 1)
-- `mapping_target`: List of target ontologies
-- `mapping_source`: List of source ontologies
-
-**Returns:** `UnifiedConcept` or `None`
-
-#### `get_mappings_for_concepts(concept_ids, **kwargs)` [async]
-Get cross-reference mappings for multiple concepts.
-
-**Parameters:**
-- `concept_ids`: List of concept identifiers
-- `distance`: Maximum mapping distance (default: 1)
-- `mapping_target`: Target ontologies
-- `mapping_source`: Source ontologies
-
-**Returns:** `Dict[str, List[Dict]]` - Concept ID to mappings mapping
-
-#### `get_datasources()` [async]
-Get available data sources in OxO.
-
-**Returns:** `List[Dict]` - Available data sources with metadata
-
-## Data Types and Structures
-
-### UnifiedConcept Fields for OxO
-- `primary_id`: Concept CURIE (e.g., 'DOID:162')
-- `primary_label`: Concept label
-- `concept_type`: Varies by source ontology
-- `identifiers`: OxO identifiers with URLs
-- `mappings`: List of cross-reference mappings
-- `confidence_score`: Based on mapping distance and sources
-- `source_data`: Raw OxO API response
-
-### OxO-Specific Data Fields
-- `mappingResponseList`: List of mapping responses
-- `curie`: Concept CURIE
-- `label`: Concept label
-- `targetPrefix`: Target ontology prefix
-- `sourcePrefixes`: Source ontology prefixes
-- `distance`: Mapping distance (1=direct, 2=one hop, etc.)
-
-## API Information
-
-**Base URL:** `https://www.ebi.ac.uk/spot/oxo`
-
-**API URL:** `https://www.ebi.ac.uk/spot/oxo/api`
-
-**Endpoints:**
-- Search: `/api/search` (POST)
-- Datasources: `/api/datasources`
-
-**Authentication:** Not required (public API)
-
-**Rate Limits:** No explicit public rate limits documented
-
-**POST Parameters:**
-- `ids`: List of concept IDs
-- `distance`: Maximum mapping distance
-- `mappingTarget`: Target ontologies
-- `mappingSource`: Source ontologies
-
-## Error Handling
-- API connectivity validation
-- POST request handling
-- Response structure validation
-- CURIE parsing errors
-- Mapping distance calculation
-- Comprehensive logging
-
-## Usage Examples
+## Quick example
 
 ```python
-# Initialize adapter
-config = LookupConfig()
-adapter = OxOAdapter(config)
+import asyncio
 
-# Search for concept with cross-references
-concepts = await adapter.search_concepts('DOID:162', limit=5)
+from knowledge_lookup import KnowledgeSource
+from knowledge_lookup.adapters import OxOAdapter
+from knowledge_lookup.models import LookupConfig
 
-# Get detailed mappings for a concept
-concept = await adapter.get_concept_details('DOID:162')
 
-# Get mappings for multiple concepts
-mappings = await adapter.get_mappings_for_concepts(
-    ['DOID:162', 'MONDO:0004992'],
-    distance=2
-)
+async def main():
+    async with OxOAdapter(LookupConfig()) as adapter:
+        concept = await adapter.get_concept_by_id("MONDO:0005148", distance=1)
+        print(concept.primary_id, concept.primary_label)
 
-# Check available data sources
-sources = await adapter.get_datasources()
+        raw = concept.source_data[KnowledgeSource.OXO]["mappingResponseList"]
+        print(len(raw), [m["curie"] for m in raw[:4]])
 
-# Check availability
-if adapter.is_available():
-    results = await adapter.search_concepts('MONDO:0005015')
+
+asyncio.run(main())
 ```
 
-## Configuration
-No special configuration required. The adapter is publicly available.
+Output:
 
-```python
-config = LookupConfig()
-adapter = OxOAdapter(config)
+```
+MONDO:0005148 type 2 diabetes mellitus
+11 ['DOID:9352', 'ICD10CM:E11', 'ICD10WHO:E11', 'MEDGEN:41523']
 ```
 
-## Features
-- **Cross-Reference Mapping**: Maps between ontology terms
-- **Multiple Distance Levels**: Direct (1) and indirect (2+) mappings
-- **Source Tracking**: Identifies mapping sources
-- **Confidence Scoring**: Based on distance and source count
-- **Batch Processing**: Support for multiple concept lookups
-- **Data Source Listing**: Available ontologies query
-- **Flexible Configuration**: Distance and ontology filtering
+## Searching
 
-## Architecture
-The adapter uses OxO's search API with POST requests to submit concept IDs and retrieve cross-references. It calculates confidence scores based on mapping distance and source information, and converts mappings to the unified concept model.
+`search_concepts(query, limit=10)` (note the default of 10) POSTs `{"ids": [query], "distance": 2}` to `/search`. The query must be a CURIE; free text returns nothing.
+
+| Field | Value |
+|---|---|
+| `primary_id` | the CURIE |
+| `primary_label` | OxO label (falls back to the CURIE) |
+| `concept_type` | `UNKNOWN` |
+| `identifiers` | the CURIE, once, under `OXO` |
+| `sources` | `['OXO']` |
+| `mappings` | `ConceptMapping` entries only for targets whose prefix matches a `KnowledgeSource` name (`UMLS`, `OLS`, `BIOPORTAL`, `BIOONTOLOGY`, `WIKIDATA`, `DBPEDIA`, `NCBI`, `UNIPROT`, `ENSEMBL`, `PUBCHEM`, `CHEMBL`) |
+| `confidence_score` | `0.8` |
+| `source_data[OXO]` | raw OxO result, including `mappingResponseList` |
+
+Most real targets (DOID, ICD10CM, MeSH, MedGen, ...) do not match those names, so they are missing from `mappings`. Read them from `source_data[KnowledgeSource.OXO]["mappingResponseList"]`: each entry has `curie`, `label`, `sourcePrefixes`, `targetPrefix` and `distance`.
+
+## Concept details
+
+`get_concept_details(curie)` is `get_concept_by_id(curie, distance=3)`, so it follows mappings up to three hops.
+
+## Source-specific methods
+
+| Method | Returns |
+|---|---|
+| `get_concept_by_id(concept_id, **kwargs)` | concept as above; kwargs `distance` (default 1), `mapping_target` and `mapping_source` (lists of prefixes to restrict mappings) |
+| `get_mappings_for_concepts(concept_ids, **kwargs)` | `dict[str, list[dict]]` keyed by query ID; each dict has `curie`, `label`, `targetPrefix`, `sourcePrefixes`, `distance`; same kwargs |
+| `get_datasources()` | always `[]` and logs a warning: the current OxO service no longer has a datasources endpoint (it answers HTTP 400). Kept for backward compatibility |
+| `validate_connection()` | `bool` from `GET /api/search`, which answers with an empty result page |
+
+The base-class `get_mappings()` is not overridden and returns `[]`.
+
+## Rate limits and errors
+
+Requests go through the shared HTTP retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)); searches are JSON POSTs. Errors are logged; search returns `[]`, details return `None` and `get_mappings_for_concepts` returns `{}`.
+
+## See also
+
+- [Mondo adapter](../core/mondo_adapter.md), [OLS adapter](../core/ols_adapter.md)
+- [All adapters](../README.md)

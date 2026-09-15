@@ -10,6 +10,8 @@ from unittest.mock import patch
 
 import pytest
 
+from knowledge_lookup.cache import cache as cache_module
+
 pytestmark = pytest.mark.unit
 from knowledge_lookup.cache import (
     CacheEntry,
@@ -17,6 +19,7 @@ from knowledge_lookup.cache import (
     DiskCacheBackend,
     KnowledgeLookupCache,
     MemoryCacheBackend,
+    ensure_cache,
     get_cache,
     init_cache,
 )
@@ -157,6 +160,16 @@ class TestMemoryCacheBackend:
         backend._evict_lru()
         assert backend.size() == 0
 
+    def test_delete_prefix(self):
+        backend = MemoryCacheBackend(max_size=10)
+        backend.set("ns:k1", "v1")
+        backend.set("ns:k2", "v2")
+        backend.set("nsx:k3", "v3")
+        assert backend.delete_prefix("ns:") == 2
+        assert backend.get("ns:k1") is None
+        assert backend.get("nsx:k3") == "v3"
+        assert backend.size() == 1
+
 
 class TestDiskCacheBackend:
     """Tests for DiskCacheBackend."""
@@ -233,6 +246,20 @@ class TestDiskCacheBackend:
             backend = DiskCacheBackend(cache_dir=tmp, max_size=2)
             backend._evict_lru()
 
+    def test_delete_prefix(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            backend = DiskCacheBackend(cache_dir=tmp, max_size=100)
+            backend.set("ns:k1", "v1")
+            backend.set("ns:k2", "v2")
+            backend.set("nsx:k3", "v3")
+            assert backend.delete_prefix("ns:") == 2
+            assert not backend._get_cache_file("ns:k1").exists()
+            assert backend.get("nsx:k3") == "v3"
+            # the removal is persisted in the index
+            reloaded = DiskCacheBackend(cache_dir=tmp, max_size=100)
+            assert reloaded.size() == 1
+            assert reloaded.get("ns:k2") is None
+
     def test_load_index_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             cache_dir = Path(tmp)
@@ -307,10 +334,25 @@ class TestKnowledgeLookupCache:
         cache.clear()
         assert cache.get("k1") is None
 
-    def test_clear_namespace(self):
+    def test_clear_namespace(self, cache_dir):
+        """clear(namespace) removes only that namespace, from memory and disk."""
+        cache = KnowledgeLookupCache(disk_cache_dir=cache_dir)
+        cache.set("k1", "v1", namespace="HP")
+        cache.set("k2", "v2", namespace="HPO")
+        cache.set("k3", "v3")
+        cache.clear(namespace="HP")
+        assert cache.get("k1", namespace="HP") is None
+        assert cache._disk_cache.get("HP:k1") is None
+        assert cache.get("k2", namespace="HPO") == "v2"
+        assert cache.get("k3") == "v3"
+
+    def test_clear_namespace_no_disk(self):
         cache = KnowledgeLookupCache()
-        cache.set("k1", "v1")
+        cache.set("k1", "v1", namespace="ns1")
+        cache.set("k2", "v2", namespace="ns2")
         cache.clear(namespace="ns1")
+        assert cache.get("k1", namespace="ns1") is None
+        assert cache.get("k2", namespace="ns2") == "v2"
 
     def test_cleanup(self, cache_dir):
         cache = KnowledgeLookupCache(disk_cache_dir=cache_dir)
@@ -357,8 +399,23 @@ class TestModuleFunctions:
         cache = get_cache()
         assert isinstance(cache, KnowledgeLookupCache)
 
-    def test_init_cache(self):
+    def test_init_cache(self, monkeypatch):
+        # monkeypatch restores the global, so a cache on a deleted temp dir doesn't leak
+        monkeypatch.setattr(cache_module, "_cache_instance", None)
         with tempfile.TemporaryDirectory() as tmp:
             cache = init_cache(disk_cache_dir=tmp, default_ttl=3600)
             assert isinstance(cache, KnowledgeLookupCache)
             assert get_cache() is cache
+
+    def test_ensure_cache_keeps_existing(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(cache_module, "_cache_instance", None)
+        configured = init_cache(disk_cache_dir=tmp_path)
+        assert ensure_cache() is configured
+        assert get_cache() is configured
+
+    def test_ensure_cache_creates_default(self, monkeypatch):
+        monkeypatch.setattr(cache_module, "_cache_instance", None)
+        cache = ensure_cache()
+        assert get_cache() is cache
+        assert cache._default_ttl == 3600
+        assert cache._disk_cache is None

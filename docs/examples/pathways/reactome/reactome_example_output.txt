@@ -1,12 +1,19 @@
-╔══════════════════════════════════════════════════════╗
-║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
-║  The adapter does not return valid search results.  ║
-╚══════════════════════════════════════════════════════╝
+The REACTOME adapter is available.
 
-Checking if Reactome adapter is available...
-  ✓ Reactome adapter is available
+Searching REACTOME for 'apoptosis' ...
+Found 1 concept(s) in 1.3s
 
-Searching for 'signaling' concepts in Reactome...
+  1. Apoptosis
+     ID:         R-HSA-109581
+     Type:       PATHWAY
+     Confidence: 0.9
+     Definition: Apoptosis is a distinct form of cell death that is functionally and morphologically different [...]
 
-Found 0 results from Reactome:
-  No results found for 'signaling'
+Fetching details for 'R-HSA-109581' ...
+  Label:      Apoptosis
+  ID:         R-HSA-109581
+  Type:       PATHWAY
+  Definition: Apoptosis is a distinct form of cell death that is functionally and morphologically different from necrosis. Nuclear chromatin condensation, cytoplasmic shrinking, dilated endoplasmic reticulum, [...]
+  Identifier: R-HSA-109581 (REACTOME)
+
+Summary: search=1 details=found

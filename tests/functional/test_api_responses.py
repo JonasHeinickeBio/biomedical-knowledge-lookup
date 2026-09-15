@@ -7,8 +7,8 @@ API responses and warn if API response structures change.
 Run with: poetry run pytest -m functional -m network
 """
 
-
 import pytest
+
 from knowledge_lookup.adapters import ADAPTER_CLASSES
 from knowledge_lookup.models import KnowledgeSource
 

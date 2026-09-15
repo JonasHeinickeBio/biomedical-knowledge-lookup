@@ -1,29 +1,19 @@
-Checking if UniChem adapter is available...
-  ✓ UniChem adapter is available
+The UNICHEM adapter is available.
 
-Searching for 'CHEMBL1201' concepts in UniChem...
+Searching UNICHEM for 'BSYNRYMUTXBXSQ-UHFFFAOYSA-N' ...
+Found 1 concept(s) in 3.0s
 
-Found 1 results from UniChem:
+  1. UCI_161671
+     ID:         161671
+     Type:       CHEMICAL
+     Confidence: 0.9
 
-  Concept: UCI_36258
-  Primary ID: 36258
-  Type: ConceptType.CHEMICAL
-  Confidence: 0.9
-  Cross-references (17):
-    - 36258 (UNICHEM)
-    - CHEMBL1201 (UNICHEM)
-    - DB01623 (UNICHEM)
-    - CHEBI:9571 (UNICHEM)
-    - 7318FJ13YJ (UNICHEM)
-    - 29373233 (UNICHEM)
-    - 29391417 (UNICHEM)
-    - 34305 (UNICHEM)
-    - 149701 (UNICHEM)
-    - 144076 (UNICHEM)
-    - SCHEMBL27326 (UNICHEM)
-    - ZINC7236093 (UNICHEM)
-    - 45213681 (UNICHEM)
-    - DB01623 (UNICHEM)
-    - 444669 (UNICHEM)
-    - 179644 (UNICHEM)
-    - 76365973 (UNICHEM)
+Fetching details for '161671' ...
+  Label:      UCI_161671
+  ID:         161671
+  Type:       CHEMICAL
+  Identifier: 161671 (UNICHEM)
+  Identifier: CHEMBL25 (UNICHEM)
+  Identifier: DB00945 (UNICHEM)
+
+Summary: search=1 details=found

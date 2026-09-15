@@ -2,13 +2,16 @@
 Unit tests for CentralKnowledgeLookup.
 """
 
+import asyncio
 import tempfile
+import time
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-pytestmark = pytest.mark.unit
+from knowledge_lookup.cache import cache as cache_module
+from knowledge_lookup.cache import get_cache, init_cache
 from knowledge_lookup.core.central_lookup import CentralKnowledgeLookup
 from knowledge_lookup.models import (
     ConceptType,
@@ -17,6 +20,8 @@ from knowledge_lookup.models import (
     LookupResult,
     UnifiedConcept,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestCentralKnowledgeLookup:
@@ -708,13 +713,15 @@ class TestCentralKnowledgeLookup:
             errors={KnowledgeSource.BIOPORTAL: "timeout"},
             total_found=1,
         )
+        openpyxl = pytest.importorskip("openpyxl")
+        pytest.importorskip("pandas")
         with tempfile.TemporaryDirectory() as tmp:
             filepath = Path(tmp) / "out.xlsx"
-            try:
-                lookup.export_to_excel(result, filepath)
-                assert filepath.exists()
-            except ImportError:
-                pytest.skip("pandas/openpyxl not installed")
+            lookup.export_to_excel(result, filepath)
+            workbook = openpyxl.load_workbook(filepath)
+            assert workbook.sheetnames == ["Summary", "Results", "Source Stats", "Errors"]
+            rows = list(workbook["Errors"].iter_rows(values_only=True))
+            assert rows == [("Source", "Error"), ("BIOPORTAL", "timeout")]
 
     def test_export_summary_report(self):
         """Test export_summary_report."""
@@ -855,3 +862,336 @@ class TestCentralKnowledgeLookup:
 
         result = await lookup.search_concepts("test")
         assert result.total_found == 1
+
+
+# ---------------------------------------------------------------------------
+# Regression tests
+# ---------------------------------------------------------------------------
+
+HPO = KnowledgeSource.HPO
+MONDO = KnowledgeSource.MONDO
+
+
+def _adapter(delay: float = 0.0, concepts=None, error: Exception | None = None):
+    """Mock adapter whose search sleeps *delay* seconds, then returns *concepts* or raises."""
+    adapter = MagicMock()
+    adapter.get_rate_limit.return_value = 0
+
+    async def _search(query, limit):
+        await asyncio.sleep(delay)
+        if error is not None:
+            raise error
+        return list(concepts or [])
+
+    adapter.search_concepts = AsyncMock(side_effect=_search)
+    return adapter
+
+
+def _concept(primary_id: str) -> UnifiedConcept:
+    return UnifiedConcept(primary_id=primary_id, primary_label=f"label {primary_id}")
+
+
+def _tracked_lookup() -> CentralKnowledgeLookup:
+    config = LookupConfig(enable_source_health_tracking=True)
+    return CentralKnowledgeLookup(config=config, auto_initialize=False)
+
+
+def _add(lookup: CentralKnowledgeLookup, source: KnowledgeSource, adapter) -> None:
+    lookup.health_tracker.wire_adapter(source, adapter)
+    lookup.adapters[source] = adapter
+
+
+def _open_breaker(lookup: CentralKnowledgeLookup, source: KnowledgeSource):
+    breaker = lookup.health_tracker.get_or_create(source)
+    for _ in range(breaker.threshold):
+        breaker.record_failure()
+    return breaker
+
+
+class TestLookupAndConvertToRdf:
+    @pytest.mark.asyncio
+    async def test_lookup_and_convert_to_rdf_builds_and_saves_graph(self, tmp_path):
+        """The converter is imported from knowledge_lookup.services (was ModuleNotFoundError)."""
+        lookup = CentralKnowledgeLookup(auto_initialize=False)
+        lookup.adapters[HPO] = _adapter(concepts=[_concept("HP:0001250")])
+        out = tmp_path / "rdf" / "result.ttl"
+
+        graph = await lookup.lookup_and_convert_to_rdf("seizure", output_path=out)
+
+        assert len(graph) > 0
+        assert out.exists()
+        assert "label HP:0001250" in out.read_text(encoding="utf-8")
+
+
+class TestSourceHealthRegressions:
+    def test_zero_breaker_settings_are_not_replaced_by_defaults(self):
+        config = LookupConfig(circuit_breaker_threshold=1, circuit_breaker_cooldown=0.0)
+        lookup = CentralKnowledgeLookup(config=config, auto_initialize=False)
+
+        breaker = lookup.health_tracker.get_or_create(HPO)
+
+        assert breaker.threshold == 1
+        assert breaker.cooldown == 0.0
+
+    def test_unset_breaker_settings_use_defaults(self):
+        breaker = _tracked_lookup().health_tracker.get_or_create(HPO)
+
+        assert breaker.threshold == 5
+        assert breaker.cooldown == 30.0
+
+    def test_get_health_sets_is_open(self):
+        lookup = _tracked_lookup()
+        lookup.health_tracker.get_or_create(MONDO)
+        _open_breaker(lookup, HPO)
+
+        hpo = lookup.health_tracker.get_health(HPO)
+        mondo = lookup.health_tracker.get_health(MONDO)
+
+        assert hpo.is_open is True and hpo.circuit_state == "OPEN"
+        assert mondo.is_open is False and mondo.circuit_state == "CLOSED"
+        assert lookup.health_tracker.open_sources() == {HPO}
+
+    def test_get_health_open_breaker_past_cooldown_is_half_open(self):
+        lookup = _tracked_lookup()
+        breaker = _open_breaker(lookup, HPO)
+        breaker.last_failure_time = breaker._now() - breaker.cooldown - 1
+
+        health = lookup.health_tracker.get_health(HPO)
+
+        assert health.is_open is False and health.circuit_state == "HALF_OPEN"
+        assert lookup.health_tracker.open_sources() == set()
+
+    @pytest.mark.asyncio
+    async def test_get_statistics_with_tracked_sources(self):
+        """circuit_state is a plain string after model regeneration (was AttributeError)."""
+        lookup = _tracked_lookup()
+        _add(lookup, HPO, _adapter())
+        _add(lookup, MONDO, _adapter())
+        _open_breaker(lookup, HPO)
+
+        stats = await lookup.get_statistics()
+
+        assert stats["source_health"]["HPO"]["state"] == "OPEN"
+        assert stats["source_health"]["MONDO"]["state"] == "CLOSED"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("parallel", [True, False])
+    async def test_search_skips_source_with_open_breaker(self, parallel):
+        lookup = _tracked_lookup()
+        hpo = _adapter(concepts=[_concept("HP:1")])
+        mondo = _adapter(concepts=[_concept("MONDO:1")])
+        _add(lookup, HPO, hpo)
+        _add(lookup, MONDO, mondo)
+        _open_breaker(lookup, HPO)
+
+        result = await lookup.search_concepts("q", parallel=parallel)
+
+        hpo.search_concepts.assert_not_awaited()
+        assert "Circuit breaker open" in result.errors["HPO"]
+        assert [c.primary_id for c in result.concepts] == ["MONDO:1"]
+
+    @pytest.mark.asyncio
+    async def test_open_breaker_is_probed_after_cooldown(self):
+        lookup = _tracked_lookup()
+        hpo = _adapter(concepts=[_concept("HP:1")])
+        _add(lookup, HPO, hpo)
+        breaker = _open_breaker(lookup, HPO)
+        breaker.last_failure_time = breaker._now() - breaker.cooldown - 1
+
+        result = await lookup.search_concepts("q")
+
+        hpo.search_concepts.assert_awaited_once()
+        assert result.errors == {}
+
+    def test_format_results_table_lists_open_circuits(self):
+        lookup = _tracked_lookup()
+        lookup.health_tracker.get_or_create(MONDO)
+        _open_breaker(lookup, HPO)
+        result = LookupResult(query="q", concepts=[_concept("HP:1")])
+        result.source_health = lookup.health_tracker.all_health()
+
+        table = lookup.format_results_table(result)
+
+        assert "CIRCUIT OPEN: HPO" in table
+
+
+class TestCacheInitialisation:
+    def test_init_keeps_preconfigured_cache(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(cache_module, "_cache_instance", None)
+        configured = init_cache(disk_cache_dir=tmp_path)
+
+        CentralKnowledgeLookup(auto_initialize=False)
+
+        assert get_cache() is configured
+
+    def test_init_creates_default_cache_when_missing(self, monkeypatch):
+        monkeypatch.setattr(cache_module, "_cache_instance", None)
+
+        CentralKnowledgeLookup(auto_initialize=False)
+
+        assert cache_module._cache_instance is not None
+        assert get_cache()._default_ttl == 3600  # init_cache() defaults
+
+
+class TestPerSourceTimeout:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("parallel", [True, False])
+    async def test_single_source_search_applies_timeout(self, parallel):
+        lookup = CentralKnowledgeLookup(
+            LookupConfig(timeout_per_source=0.1), auto_initialize=False
+        )
+        lookup.adapters[HPO] = _adapter(delay=5)
+
+        start = time.monotonic()
+        result = await lookup.search_concepts("q", parallel=parallel)
+
+        assert time.monotonic() - start < 2
+        assert result.errors == {"HPO": "Timed out after 0.1s"}
+
+    @pytest.mark.asyncio
+    async def test_sequential_search_applies_timeout_per_source(self):
+        lookup = CentralKnowledgeLookup(
+            LookupConfig(timeout_per_source=0.1), auto_initialize=False
+        )
+        lookup.adapters[HPO] = _adapter(delay=5)
+        lookup.adapters[MONDO] = _adapter(concepts=[_concept("MONDO:1")])
+
+        start = time.monotonic()
+        result = await lookup.search_concepts("q", parallel=False)
+
+        assert time.monotonic() - start < 2
+        assert result.errors == {"HPO": "Timed out after 0.1s"}
+        assert [c.primary_id for c in result.concepts] == ["MONDO:1"]
+
+    @pytest.mark.asyncio
+    async def test_parallel_timeout_counts_from_start_for_every_source(self):
+        """A later source must not inherit the time spent waiting on earlier ones."""
+        lookup = CentralKnowledgeLookup(
+            LookupConfig(timeout_per_source=0.75), auto_initialize=False
+        )
+        lookup.adapters[HPO] = _adapter(delay=0.5, concepts=[_concept("HP:1")])
+        lookup.adapters[MONDO] = _adapter(delay=1.0, concepts=[_concept("MONDO:1")])
+
+        result = await lookup.search_concepts("q", parallel=True)
+
+        assert result.errors == {"MONDO": "Timed out after 0.75s"}
+        assert [c.primary_id for c in result.concepts] == ["HP:1"]
+
+    @pytest.mark.asyncio
+    async def test_adapter_timeout_error_keeps_its_message(self):
+        lookup = CentralKnowledgeLookup(LookupConfig(timeout_per_source=5), auto_initialize=False)
+        lookup.adapters[HPO] = _adapter(error=TimeoutError("upstream read timeout"))
+
+        result = await lookup.search_concepts("q")
+
+        assert result.errors == {"HPO": "upstream read timeout"}
+
+
+def _tracked_lookup_with_timeout(threshold: int = 2, timeout: float = 0.05):
+    config = LookupConfig(
+        enable_source_health_tracking=True,
+        timeout_per_source=timeout,
+        circuit_breaker_threshold=threshold,
+        circuit_breaker_cooldown=60,
+    )
+    return CentralKnowledgeLookup(config=config, auto_initialize=False)
+
+
+def _details_adapter(delay: float = 0.0, concept=None):
+    """Mock adapter whose get_concept_details sleeps *delay* seconds, then returns *concept*."""
+    adapter = MagicMock()
+    adapter.get_rate_limit.return_value = 0
+
+    async def _details(concept_id):
+        await asyncio.sleep(delay)
+        return concept
+
+    adapter.get_concept_details = AsyncMock(side_effect=_details)
+    return adapter
+
+
+class TestTimeoutsAndOpenBreakers:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("parallel", [True, False])
+    async def test_search_timeouts_open_the_breaker(self, parallel):
+        """Regression: a source cut off by timeout_per_source never opened its breaker."""
+        lookup = _tracked_lookup_with_timeout(threshold=2)
+        hpo = _adapter(delay=5)
+        _add(lookup, HPO, hpo)
+        _add(lookup, MONDO, _adapter(concepts=[_concept("MONDO:1")]))
+
+        for _ in range(2):
+            result = await lookup.search_concepts("q", parallel=parallel)
+            assert result.errors["HPO"] == "Timed out after 0.05s"
+        assert lookup.health_tracker.get_health(HPO).is_open is True
+
+        result = await lookup.search_concepts("q", parallel=parallel)
+
+        assert hpo.search_concepts.await_count == 2  # the third search skipped HPO
+        assert "Circuit breaker open" in result.errors["HPO"]
+        assert lookup.health_tracker.get_health(MONDO).failure_count == 0
+
+    @pytest.mark.asyncio
+    async def test_timeout_raised_by_the_adapter_is_not_recorded_by_the_lookup(self):
+        lookup = _tracked_lookup_with_timeout(threshold=2, timeout=5)
+        _add(lookup, HPO, _adapter(error=TimeoutError("upstream read timeout")))
+
+        await lookup.search_concepts("q")
+
+        assert lookup.health_tracker.get_health(HPO).failure_count == 0
+
+    @pytest.mark.asyncio
+    async def test_timeouts_are_not_recorded_without_health_tracking(self):
+        lookup = CentralKnowledgeLookup(
+            LookupConfig(timeout_per_source=0.05), auto_initialize=False
+        )
+        lookup.adapters[HPO] = _adapter(delay=5)
+        breaker = lookup.health_tracker.get_or_create(HPO)
+
+        await lookup.search_concepts("q")
+
+        assert breaker.failure_count == 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("with_source", [True, False])
+    async def test_get_concept_details_skips_open_breaker(self, with_source):
+        """Regression: get_concept_details still called sources whose breaker was open."""
+        lookup = _tracked_lookup_with_timeout()
+        hpo = _details_adapter(concept=_concept("HP:1"))
+        mondo = _details_adapter(concept=_concept("MONDO:1"))
+        _add(lookup, HPO, hpo)
+        _add(lookup, MONDO, mondo)
+        _open_breaker(lookup, HPO)
+
+        concept = await lookup.get_concept_details("X:1", source=HPO if with_source else None)
+
+        hpo.get_concept_details.assert_not_awaited()
+        if with_source:
+            assert concept is None
+        else:
+            assert concept.primary_id == "MONDO:1"
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_timeouts_open_the_breaker(self):
+        lookup = _tracked_lookup_with_timeout(threshold=2)
+        hpo = _details_adapter(delay=5, concept=_concept("HP:1"))
+        _add(lookup, HPO, hpo)
+
+        for _ in range(2):
+            assert await lookup.get_concept_details("HP:1", source=HPO) is None
+        assert lookup.health_tracker.get_health(HPO).is_open is True
+
+        assert await lookup.get_concept_details("HP:1", source=HPO) is None
+        assert hpo.get_concept_details.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_probes_after_cooldown(self):
+        lookup = _tracked_lookup_with_timeout()
+        hpo = _details_adapter(concept=_concept("HP:1"))
+        _add(lookup, HPO, hpo)
+        breaker = _open_breaker(lookup, HPO)
+        breaker.last_failure_time = breaker._now() - breaker.cooldown - 1
+
+        concept = await lookup.get_concept_details("HP:1", source=HPO)
+
+        assert concept.primary_id == "HP:1"

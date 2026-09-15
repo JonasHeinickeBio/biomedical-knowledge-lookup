@@ -7,6 +7,7 @@ poetry install                     # Setup dev environment
 poetry run pytest                  # Run tests
 poetry run pre-commit run --all-files  # Lint/format
 poetry run knowledge-lookup search "query"  # CLI
+poetry run knowledge-lookup-mcp            # MCP server (stdio)
 ```
 
 ## Architecture
@@ -14,6 +15,7 @@ poetry run knowledge-lookup search "query"  # CLI
 - **Core**: `src/knowledge_lookup/` contains adapters, `CentralKnowledgeLookup`, `MultiSourceAnnotator`
 - **Testing**: `tests/unit/`, `tests/integration/`, `tests/fixtures/mock_responses.py` has all mock API responses
 - **CLI**: `src/knowledge_lookup/__main__.py` via `knowledge-lookup` command
+- **MCP server**: `src/knowledge_lookup/mcp_server/` via `knowledge-lookup-mcp` (`[mcp]` extra, `mcp` 2.x `MCPServer`); `tests/unit/test_mcp_server.py` drives it through the SDK's in-memory `mcp.Client` with a fake lookup injected via `create_server(lookup_factory=...)`. See `docs/guides/mcp-server.md`
 
 ## Critical Patterns
 
@@ -46,7 +48,7 @@ poetry run pytest tests/unit/test_all_adapters.py  # Test all adapters
 
 ## Environment
 
-- **Python**: 3.10+ (pyproject.toml: `python = "^3.10"`)
+- **Python**: 3.11+ (pyproject.toml: `requires-python = ">=3.11,<4.0"`; CI tests 3.11, 3.12 and 3.13)
 - **Package manager**: Poetry only (no pip)
 - **API keys**: Set as env vars (`{SOURCE}_API_KEY` or `{source}_api_key`), or in `.env`
   - `BIOPORTAL_API_KEY`, `UMLS_API_KEY` required for their adapters

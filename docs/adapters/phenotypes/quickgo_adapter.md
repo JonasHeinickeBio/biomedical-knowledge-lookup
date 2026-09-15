@@ -1,194 +1,91 @@
-# QuickGO Adapter
+---
+description: Gene Ontology terms and gene-product annotations from EBI QuickGO through bioservices.
+---
 
-## Overview
+# QuickGO adapter
 
-The QuickGO Adapter provides access to QuickGO, the Gene Ontology annotation service. QuickGO provides comprehensive Gene Ontology (GO) annotations for genes and gene products, including evidence codes, annotation sources, and cross-references.
+Uses the `bioservices` QuickGO client to search Gene Ontology terms by free text, fetch GO terms by ID (typed by GO aspect) and look up the GO annotations of gene products such as UniProt proteins.
 
-### Purpose
-- Search for GO terms and annotations
-- Retrieve gene-GO term associations
-- Access evidence codes and annotation sources
-- Support functional annotation analysis
+| | |
+|---|---|
+| Source | `KnowledgeSource.QUICKGO` |
+| Class | `knowledge_lookup.adapters.QuickGOAdapter` |
+| Requires | `[bioservices]` extra |
+| Identifiers | `GO:0006915`; gene products such as `UniProtKB:P04637` or `P04637` |
+| Upstream API | `https://www.ebi.ac.uk/QuickGO` (via `bioservices`) |
 
-### Scope
-- GO terms and their annotations
-- Gene and protein annotations to GO terms
-- Evidence codes (IDA, IEA, IMP, etc.)
-- Annotation sources and references
-- Taxon information for annotations
-- Annotation extensions
-
-## Key Features
-
-- **GO Term Search**: Search QuickGO for GO terms by name
-- **Annotation Search**: Find annotations for specific genes/proteins
-- **Evidence Code Access**: Retrieve evidence codes for annotations
-- **Reference Information**: Get publication references
-- **Annotation Extensions**: Access annotation extension data
-- **Taxon Support**: Get species information for annotations
-
-## API Information
-
-### Endpoint
-- **Base URL**: Uses `bioservices.QuickGO` client (not REST API)
-
-### Authentication
-- **Required**: No
-- **API Key**: Not required
-
-### Environment Variables
-- None required
-
-## Prerequisites
-
-The QuickGO adapter requires the `bioservices` package:
-
-```bash
-pip install bioservices
-```
-
-## Key Methods
-
-### `search_concepts(query, limit=20) -> list[UnifiedConcept]`
-
-Search QuickGO for GO terms and annotations matching the query.
-
-**Parameters:**
-- `query` (str): Search term (gene ID, protein ID, GO term keyword)
-- `limit` (int): Maximum number of results (default: 20)
-
-**Returns:**
-- List of `UnifiedConcept` objects representing GO terms or annotations
-
-**Example:**
-```python
-concepts = await adapter.search_concepts("TP53")
-```
-
-### `get_concept_details(concept_id) -> UnifiedConcept | None`
-
-Get detailed information about a GO term or annotation.
-
-**Parameters:**
-- `concept_id` (str): GO ID (e.g., "GO:0008150") or gene-GO association
-
-**Returns:**
-- `UnifiedConcept` with term details or annotation details, or `None` if not found
-
-**Example:**
-```python
-term = await adapter.get_concept_details("GO:0008150")
-```
-
-## Configuration
-
-Configure the adapter with required `LookupConfig`:
+## Quick example
 
 ```python
-from knowledge_lookup.adapters.quickgo_adapter import QuickGOAdapter
+import asyncio
+
+from knowledge_lookup import KnowledgeSource
+from knowledge_lookup.adapters import QuickGOAdapter
 from knowledge_lookup.models import LookupConfig
 
-config = LookupConfig()
-adapter = QuickGOAdapter(config)
 
-# Ensure bioservices is installed
-# pip install bioservices
+async def main():
+    async with QuickGOAdapter(LookupConfig()) as adapter:
+        for concept in await adapter.search_concepts("apoptosis", limit=3):
+            print(concept.primary_id, concept.primary_label, concept.concept_type)
+
+        term = await adapter.get_concept_details("GO:0006915")
+        print(term.primary_label, term.synonyms[:2], term.definitions[0][:40])
+
+        for annotation in await adapter.search_concepts("UniProtKB:P04637", limit=2):
+            raw = annotation.source_data[KnowledgeSource.QUICKGO]
+            print(annotation.primary_id, raw["symbol"], raw["qualifier"], raw["go_evidence"])
+
+
+asyncio.run(main())
 ```
 
-## Usage Examples
+Output:
 
-### Basic Search
-```python
-from knowledge_lookup.adapters.quickgo_adapter import QuickGOAdapter
-
-adapter = QuickGOAdapter(config)
-
-# Search for TP53 annotations
-results = await adapter.search_concepts("TP53", limit=20)
-
-for concept in results:
-    print(f"Primary Label: {concept.primary_label}")
-    print(f"Type: {concept.concept_type}")
-    print(f"Source: {concept.sources}")
+```
+GO:0097194 execution phase of apoptosis BIOLOGICAL_PROCESS
+GO:0070227 lymphocyte apoptotic process BIOLOGICAL_PROCESS
+GO:1902489 hepatoblast apoptotic process BIOLOGICAL_PROCESS
+apoptotic process ['activation of apoptosis', 'apoptosis'] A programmed cell death process which be
+UniProtKB:P04637_GO:0008285 TP53 acts_upstream_of ISS
+UniProtKB:P04637_GO:0051726 TP53 acts_upstream_of ISS
 ```
 
-### Get Term Details
-```python
-# Get detailed information for a specific GO term
-term = await adapter.get_concept_details("GO:0008150")
+## Searching
 
-if term:
-    print(f"Name: {term.primary_label}")
-    print(f"Aspect: {term.source_data[QUICKGO]['go_aspect']}")
-    print(f"Definition: {term.source_data[QUICKGO]['definition']}")
-```
+`search_concepts(query, limit)` combines two lookups and cuts the result to `limit`:
 
-### Search by Protein
-```python
-# Search for annotations of a specific protein
-results = await adapter.search_concepts("P04637")
-```
+- GO terms from QuickGO's free-text term search (`/ontology/go/search`, via `go_search`), in QuickGO's order. The closest term does not necessarily come first: in the example, `GO:0006915` (apoptotic process) is not among the first three results for `apoptosis`.
+- If the query looks like a gene product ID (`UniProtKB:P04637`, or a bare UniProt accession such as `P04637`), also its annotations from `Annotation(geneProductId=...)`. Each annotation becomes a concept `<gene product>_<GO ID>` typed `GENE_DISEASE_ASSOCIATION`. Free text is never sent to the annotation endpoint, which rejects it.
 
-### Search by GO Term
-```python
-# Search for specific GO term
-results = await adapter.search_concepts("apoptosis")
-```
+GO term concepts look like this:
 
-## Error Handling
+| Field | Value |
+|---|---|
+| `primary_id`, `primary_label` | GO ID and term name |
+| `concept_type` | by aspect: `BIOLOGICAL_PROCESS`, `MOLECULAR_FUNCTION`, `CELLULAR_COMPONENT` |
+| `identifiers` | one `QUICKGO` identifier |
+| `definitions` | the definition text |
+| `sources` | `['QUICKGO']` |
+| `confidence_score` | `0.0` |
+| `source_data[QUICKGO]` | `go_aspect`, `definition` (dict with `text`), `obsolete`, `description` |
 
-The adapter implements comprehensive error handling:
+Annotation concepts have no identifiers. Their `source_data[QUICKGO]` holds `gene_id`, `symbol`, `go_id`, `qualifier`, `evidence_code` (an ECO ID), `go_evidence` (a GO evidence code such as `ISS`) and `aspect`.
 
-- **Missing Dependency**: Logs error and returns empty list if `bioservices` not available
-- **Search Failures**: Returns empty list on error with logging
-- **Invalid IDs**: Returns `None` for non-existent terms
-- **Network Errors**: Caught and logged, returns appropriate fallback
-- **Data Parsing Errors**: Graceful handling with `logger.error` logging
+## Concept details
 
-```python
-try:
-    results = await adapter.search_concepts("TP53")
-    if not results:
-        logger.info("No QuickGO entries found for 'TP53'")
-except Exception as e:
-    logger.error(f"QuickGO search failed: {e}")
-```
+For IDs starting with `GO:`, `get_concept_details` calls `get_go_terms(<id>)` and returns a GO term concept as above. It also fills `synonyms` with the synonym names and adds `synonyms` (with synonym types), `comment`, `usage` and `full_details` to `source_data[QUICKGO]`.
 
-## Rate Limiting
+For a gene product ID it returns the first of up to 10 annotations, with the extra `source_data` keys `reference`, `withFrom`, `taxonId`, `date`, `assignedBy`, `extensions` and `full_annotation`. Any other ID returns `None` without a request.
 
-**QuickGO API Rate Limits:**
-- Free tier: 15 requests per second
-- No API key required for public data
+## Rate limits and errors
 
-The adapter includes built-in rate limiting via the base class `KnowledgeSourceAdapter`. Implementations should:
-- Respect QuickGO's rate limits
-- Implement request batching for bulk operations
-- Consider caching for frequently accessed terms
+The `bioservices` calls run in a worker thread through `_thread_with_retry`, which applies the shared retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). `bioservices` returns HTTP errors as an `HTTPResponseError` value instead of raising; the adapter treats those as failures. If one of the two search lookups fails, a warning is logged and the other's results are returned. If every lookup fails, the error is retried, reported to the circuit breaker and logged, and search returns `[]`. Details errors are logged and return `None`.
 
-```python
-# The adapter automatically handles rate limiting through the base class
-```
+`is_available()` is `False` when `bioservices` is not installed.
 
-## Data Model Mapping
+## See also
 
-| QuickGO Field | UnifiedConcept Mapping |
-|--------------|----------------------|
-| `id` | `primary_id` |
-| `name` | `primary_label` |
-| `aspect` | `categories.append("Aspect: {aspect}")` |
-| `definition.text` | `definitions.append(definition)` |
-| `synonyms.name` | `synonyms.extend(synonyms)` |
-| `geneProductId` + `goId` | `primary_id` (association format) |
-
-## Related Adapters
-
-- **GeneOntology Adapter**: For GO term definitions
-- **Uniprot Adapter**: For protein annotations
-- **HGNC Adapter**: For gene annotations
-- **InterPro Adapter**: For domain annotations
-
-## References
-
-- [QuickGO Website](https://www.ebi.ac.uk/QuickGO/)
-- [QuickGO API](https://www.ebi.ac.uk/QuickGO/api/index.html)
-- [QuickGO Documentation](https://www.ebi.ac.uk/QuickGO/docs/)
+- [Gene Ontology adapter](geneontology_adapter.md)
+- [All adapters](../README.md)
+- [Configuration](../../getting-started/configuration.md): extras

@@ -1,0 +1,6 @@
+# GitBook Git Sync configuration: the documentation site is built from docs/.
+root: ./docs/
+
+structure:
+  readme: README.md
+  summary: SUMMARY.md

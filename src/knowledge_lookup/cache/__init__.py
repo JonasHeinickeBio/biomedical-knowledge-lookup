@@ -9,6 +9,7 @@ from .cache import (
     DiskCacheBackend,
     KnowledgeLookupCache,
     MemoryCacheBackend,
+    ensure_cache,
     get_cache,
     init_cache,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "DiskCacheBackend",
     "KnowledgeLookupCache",
     "MemoryCacheBackend",
+    "ensure_cache",
     "get_cache",
     "init_cache",
 ]
