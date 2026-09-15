@@ -1,182 +1,75 @@
-# InterPro Adapter
+---
+description: InterPro protein families, domains and repeats.
+---
 
-## Overview
+# InterPro adapter
 
-The InterPro Adapter provides access to InterPro, a database of protein families, domains, and functional sites that integrates multiple protein signature databases including Pfam, PROSITE, PRINTS, ProDom, SMART, TIGRFAMs, PIRSF, SUPERFAMILY, GenomeProperties, and PANTHER.
+Searches InterPro entries (families, domains, repeats, homologous superfamilies) and fetches entry descriptions. Use it to find the InterPro accession for a protein family or domain name.
 
-### Purpose
-- Search for protein families and domains
-- Retrieve functional site information
-- Access integrated protein signature data
-- Support protein annotation and functional prediction
+| | |
+|---|---|
+| Source | `KnowledgeSource.INTERPRO` |
+| Class | `knowledge_lookup.adapters.InterProAdapter` |
+| Requires | none |
+| Identifiers | `IPR000719` |
+| Upstream API | `https://www.ebi.ac.uk/interpro/api` |
 
-### Scope
-- Protein families and domains
-- Functional sites and binding regions
-- Conserved signature motifs
-- Structural domain predictions
-- Cross-database protein signature integration
-
-## Key Features
-
-- **Protein Family Search**: Search InterPro for protein families and domains
-- **Domain Architecture**: Retrieve domain organization information
-- **Functional Annotations**: Access functional site data
-- **Database Integration**: Single interface to multiple signature databases
-- **Entry Type Classification**: Differentiate between families, domains, repeats
-- **Integrated Databases**: Access Pfam, PROSITE, and other database entries
-
-## API Information
-
-### Endpoint
-- **Base URL**: `https://www.ebi.ac.uk/interpro/api`
-
-### Authentication
-- **Required**: No
-- **API Key**: Not required (public EMBL-EBI service)
-
-### Environment Variables
-- None required
-
-## Key Methods
-
-### `search_concepts(query, limit=20) -> list[UnifiedConcept]`
-
-Search InterPro for protein families and domains matching the query.
-
-**Parameters:**
-- `query` (str): Search term (protein name, domain name, keyword)
-- `limit` (int): Maximum number of results (default: 20, max: 20)
-
-**Returns:**
-- List of `UnifiedConcept` objects representing protein entries
-
-**Example:**
-```python
-concepts = await adapter.search_concepts("kinase")
-```
-
-### `get_concept_details(concept_id) -> UnifiedConcept | None`
-
-Get detailed information about a specific InterPro entry.
-
-**Parameters:**
-- `concept_id` (str): InterPro ID (e.g., "InterPro:IPR000001" or "IPR000001")
-
-**Returns:**
-- `UnifiedConcept` with full entry details, or `None` if not found
-
-**Example:**
-```python
-entry = await adapter.get_concept_details("InterPro:IPR000001")
-```
-
-## Configuration
-
-The adapter requires no special configuration beyond the base `LookupConfig`.
+## Quick example
 
 ```python
-from knowledge_lookup.adapters.interpro_adapter import InterProAdapter
+import asyncio
+
+from knowledge_lookup.adapters import InterProAdapter
 from knowledge_lookup.models import LookupConfig
 
-config = LookupConfig()
-adapter = InterProAdapter(config)
+
+async def main():
+    async with InterProAdapter(LookupConfig()) as adapter:
+        for concept in await adapter.search_concepts("protein kinase", limit=3):
+            print(concept.primary_id, concept.primary_label, concept.semantic_types)
+
+        entry = await adapter.get_concept_details("IPR000719")
+        print(entry.primary_label, entry.concept_type, entry.definitions[0][:60])
+
+
+asyncio.run(main())
 ```
 
-## Usage Examples
+Output:
 
-### Basic Search
-```python
-from knowledge_lookup.adapters.interpro_adapter import InterProAdapter
-
-adapter = InterProAdapter(config)
-
-# Search for kinase domains
-results = await adapter.search_concepts("kinase", limit=10)
-
-for concept in results:
-    print(f"Entry: {concept.primary_label}")
-    print(f"ID: {concept.primary_id}")
-    print(f"Type: {concept.semantic_types}")
+```
+InterPro:IPR000333 Ser/Thr protein kinase, TGFB receptor ['family']
+InterPro:IPR000719 Protein kinase domain ['domain']
+InterPro:IPR001245 Serine-threonine/tyrosine-protein kinase, catalytic domain ['domain']
+Protein kinase domain MOLECULAR_ENTITY <p>This entry represents the protein kinase domain containin
 ```
 
-### Get Entry Details
-```python
-# Get detailed information for a specific InterPro entry
-entry = await adapter.get_concept_details("InterPro:IPR000719")
+## Searching
 
-if entry:
-    print(f"Name: {entry.primary_label}")
-    print(f"Type: {entry.semantic_types}")
-    print(f"Description: {entry.definitions}")
-    print(f"Categories: {entry.categories}")  # Integrated databases
-```
+`search_concepts(query, limit)` calls `/entry/interpro/?search=...&page_size=min(limit, 20)`, so a search returns at most 20 entries.
 
-### Search by Protein
-```python
-# Search for domains in a specific protein
-results = await adapter.search_concepts("EGFR")
-```
+| Field | Value |
+|---|---|
+| `primary_id` | `InterPro:<accession>` |
+| `primary_label` | entry name |
+| `semantic_types` | `[entry type]`, e.g. `['domain']` |
+| `concept_type` | `family` → `PROTEIN`; `domain`, `repeat`, `homologous_superfamily` → `MOLECULAR_ENTITY`; other types → `PROTEIN` |
+| `categories` | accessions listed under `metadata.integrated`, if any |
+| `sources` | `['INTERPRO']` |
+| `confidence_score` | `0.85` |
 
-### Search by Function
-```python
-# Search for DNA-binding domains
-results = await adapter.search_concepts("DNA binding")
-```
+Search results carry no description.
 
-## Error Handling
+## Concept details
 
-The adapter implements comprehensive error handling:
+`get_concept_details` accepts `IPR000719`, `InterPro:IPR000719` or bare digits (`000719` gets the `IPR` prefix) and calls `/entry/interpro/{accession}`. `definitions` holds the description paragraphs, each cut to 500 characters, with the HTML markup InterPro uses (`<p>`, citations) left in place.
 
-- **Search Failures**: Returns empty list on error with logging
-- **Invalid IDs**: Returns `None` for non-existent entry IDs
-- **Network Errors**: Caught and logged, returns appropriate fallback
-- **Data Parsing Errors**: Graceful handling with `logger.error` logging
+## Rate limits and errors
 
-```python
-try:
-    results = await adapter.search_concepts("kinase")
-    if not results:
-        logger.info("No InterPro entries found for 'kinase'")
-except Exception as e:
-    logger.error(f"InterPro search failed: {e}")
-```
+Uses the shared HTTP retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). Errors are logged; search returns `[]` and details return `None`.
 
-## Rate Limiting
+## See also
 
-**InterPro API Rate Limits:**
-- Free tier: 15 requests per second
-- No API key required for public data
-
-The adapter includes built-in rate limiting via the base class `KnowledgeSourceAdapter`. Implementations should:
-- Respect InterPro's rate limits
-- Implement request batching for bulk operations
-- Consider caching for frequently accessed entries
-
-```python
-# The adapter automatically handles rate limiting through the base class
-# Rate limiting is minimal for public EMBL-EBI services
-```
-
-## Data Model Mapping
-
-| InterPro Field | UnifiedConcept Mapping |
-|---------------|----------------------|
-| `metadata.accession` | `primary_id` (as `InterPro:{accession}`) |
-| `metadata.name.name` / `metadata.name.short` | `primary_label` |
-| `metadata.type` | `semantic_types.append(type)` |
-| `metadata.description` | `definitions.extend(descriptions)` |
-| `metadata.integrated` | `categories.append(integrated_db_accession)` |
-
-## Related Adapters
-
-- **Pfam Adapter**: For Pfam-specific protein families (via InterPro)
-- **Uniprot Adapter**: For protein sequence and functional data
-- **GeneOntology Adapter**: For functional annotations
-- **PDB Adapter**: For 3D structural data
-
-## References
-
-- [InterPro Documentation](https://www.ebi.ac.uk/interpro/result/download/)
-- [InterPro API](https://www.ebi.ac.uk/interpro/api/)
-- [InterPro Entry Types](https://interpro-docs.readthedocs.io/en/latest/entrytypes.html)
+- [Pfam adapter](pfam_adapter.md): Pfam families from the same API
+- [UniProt adapter](../core/uniprot_adapter.md)
+- [All adapters](../README.md)

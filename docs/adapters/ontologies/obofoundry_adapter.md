@@ -1,117 +1,70 @@
-# OBOFoundry Adapter Documentation
+---
+description: Lightweight term search over the ontologies in OLS4, labelled as OBO Foundry.
+---
 
-## Overview
-The OBOFoundry adapter provides access to OBO Foundry ontologies through the EBI Ontology Lookup Service. It enables querying of standardized biomedical ontologies following the OBO Foundry principles.
+# OBO Foundry adapter
 
-## Key Functions
+Runs a free-text search against EMBL-EBI OLS4 and returns a lightweight concept per hit: short-form ID, label and ontology name. Despite the name, results are **not** restricted to OBO Foundry ontologies. MeSH, SNOMED and other non-OBO vocabularies show up too, because the search has no ontology filter.
 
-### Core Search Methods
+| | |
+|---|---|
+| Source | `KnowledgeSource.OBOFOUNDRY` |
+| Class | `knowledge_lookup.adapters.OBOFoundryAdapter` |
+| Requires | none |
+| Identifiers | OLS short form, e.g. `NCIT_C17557` |
+| Upstream API | `https://www.ebi.ac.uk/ols4/api` |
 
-#### `search_concepts(query, limit=20)` [async]
-Search OBO Foundry ontologies for concepts.
-
-**Parameters:**
-- `query`: Search term for ontology concepts
-- `limit`: Maximum results (default: 20, max: 100)
-
-**Returns:** `List[UnifiedConcept]` - OBO ontology concepts
-
-**Example Data Structure:**
-```python
-{
-    'primary_id': 'GO:0008150',
-    'primary_label': 'biological_process',
-    'concept_type': ConceptType.UNKNOWN,
-    'definitions': ['A process that leads to change an organism'],
-    'categories': ['Ontology: go'],
-    'identifiers': [ConceptIdentifier(
-        source='OBOFOUNDRY',
-        identifier='GO:0008150',
-        label='biological_process',
-        url='http://purl.obolibrary.org/obo/GO_0008150'
-    )]
-}
-```
-
-#### `get_concept_details(concept_id)` [async]
-Get detailed information for OBO concepts.
-
-**Parameters:**
-- `concept_id`: OBO term ID (e.g., 'GO:0008150')
-
-**Returns:** `UnifiedConcept` or `None` - Currently returns None (limited detail support)
-
-## Data Types and Structures
-
-### UnifiedConcept Fields for OBOFoundry
-- `primary_id`: OBO term ID (e.g., 'GO:0008150')
-- `primary_label`: Term label
-- `concept_type`: UNKNOWN (varies by ontology)
-- `categories`: Ontology source (e.g., 'Ontology: go')
-- `identifiers`: OBO identifiers with IRI URLs
-- `source_data`: Raw OLS API response
-
-### OBOFoundry-Specific Data Fields
-- `short_form`: Ontology term short form
-- `label`: Term label
-- `iri`: Full IRI of the term
-- `ontology_name`: Source ontology name
-- `is_obsolete`: Status flag
-- `definition`: Term definition (if available)
-
-## API Information
-
-**Base URL:** `https://www.ebi.ac.uk/ols4/api`
-
-**Endpoints:**
-- Search: `/search`
-
-**Authentication:** Not required (public API)
-
-**Rate Limits:** No explicit public rate limits documented
-
-**Parameters:**
-- `q`: Search query
-- `rows`: Number of results
-- `format`: Response format (json)
-
-## Error Handling
-- API connectivity validation
-- Response structure validation
-- IRI parsing errors
-- Short form extraction failures
-- Comprehensive logging
-
-## Usage Examples
+## Quick example
 
 ```python
-# Initialize adapter
-config = LookupConfig()
-adapter = OBOFoundryAdapter(config)
+import asyncio
 
-# Search for ontology concepts
-concepts = await adapter.search_concepts('cell death', limit=10)
+from knowledge_lookup.adapters import OBOFoundryAdapter
+from knowledge_lookup.models import LookupConfig
 
-# Check availability
-if adapter.is_available():
-    results = await adapter.search_concepts('metabolism')
+
+async def main():
+    async with OBOFoundryAdapter(LookupConfig()) as adapter:
+        for concept in await adapter.search_concepts("apoptosis", limit=3):
+            print(concept.primary_id, concept.primary_label, concept.categories)
+
+
+asyncio.run(main())
 ```
 
-## Configuration
-No special configuration required. The adapter is publicly available.
+Output:
 
-```python
-config = LookupConfig()
-adapter = OBOFoundryAdapter(config)
+```
+mesh_D017209 Apoptosis ['Ontology: mesh']
+NCIT_C17557 Apoptosis ['Ontology: ncit']
+SNOMED_20663007 Apoptosis ['Ontology: snomed']
 ```
 
-## Features
-- **OBO Foundry Compliance**: Access to ontologies following OBO principles
-- **Multiple Ontologies**: Access to GO, HP, SO, CL, and 100+ others
-- **Structured Search**: Semantic search across ontologies
-- **Ontology Filtering**: Can identify source ontology from results
-- **Cross-References**: Links to ontology IRIs
-- **Moderate Confidence**: 0.8 confidence score for matches
+## Searching
 
-## Architecture
-The adapter queries EBI OLS which indexes OBO Foundry ontologies. It searches across all OBO ontologies and identifies the source ontology from results. Due to OLS API limitations, detailed term information is not always available.
+`search_concepts(query, limit)` calls `/search?q=...&rows=min(limit, 100)`.
+
+| Field | Value |
+|---|---|
+| `primary_id` | OLS short form, e.g. `NCIT_C17557` |
+| `primary_label` | label |
+| `concept_type` | `UNKNOWN` |
+| `identifiers` | one `OBOFOUNDRY` identifier; the URL is the term IRI |
+| `categories` | `Ontology: <ontology name>` |
+| `confidence_score` | `0.8` |
+
+No synonyms or definitions are copied.
+
+## Concept details
+
+Not supported: `get_concept_details` always returns `None`. Fetch the term with the [OLS adapter](../core/ols_adapter.md) using its IRI (the identifier URL).
+
+## Rate limits and errors
+
+Uses the shared HTTP retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). Errors are logged and search returns `[]`.
+
+## See also
+
+- [OLS adapter](../core/ols_adapter.md): richer results from the same search
+- [HPO adapter](../phenotypes/hpo_adapter.md), [Gene Ontology adapter](../phenotypes/geneontology_adapter.md), [Mondo adapter](../core/mondo_adapter.md): single OBO ontologies
+- [All adapters](../README.md)

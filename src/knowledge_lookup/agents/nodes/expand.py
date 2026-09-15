@@ -19,6 +19,11 @@ discover terms; a full expansion trail is durably persisted regardless of
 what the rest of the workflow does with them (see
 :class:`~knowledge_lookup.core.expansion_store.ExpansionStore`).
 
+The expansion searches only the workflow's selected sources (``source_filter``)
+and asks UMLS for abbreviation/long-form pairs only when UMLS is among them.
+The whole pass is capped at ``EXPAND_TIMEOUT`` seconds; on timeout the
+workflow continues with the preprocessed terms.
+
 This runs as a single summarized workflow step (one ``steps`` entry), not
 one step per expansion round — see the core module's docstring for the
 per-round vs summarized-step tradeoff.
@@ -26,10 +31,13 @@ per-round vs summarized-step tradeoff.
 
 from __future__ import annotations
 
+import asyncio
+
 from ...core.central_lookup import CentralKnowledgeLookup
-from ...core.term_expansion import expand_and_search
-from ...models import LookupConfig
+from ...core.term_expansion import AbbreviationSource, expand_and_search
+from ...models import KnowledgeSource, LookupConfig
 from ..state import LookupWorkflowState, make_step
+from . import _limits
 
 # Kept intentionally small: this is a bounded quality-improvement pass, not
 # the workflow's main search — lookup_node still searches every term found
@@ -43,20 +51,44 @@ async def expand_node(state: LookupWorkflowState) -> dict:
     ``expanded_search_terms`` for ``lookup_node`` to search."""
     query = state["query"]
     existing_terms = state.get("expanded_search_terms") or [query]
+    source_filter = _limits.resolve_sources(state.get("source_filter"))
 
+    # Only build the adapters the workflow searches; with no filter, all of them.
     config = LookupConfig(
+        enabled_sources=source_filter,
         max_results_per_source=state["max_results"],
         parallel_queries=True,
         enable_deduplication=True,
     )
+    # UMLS abbreviation lookups cost several UMLS calls per concept found, so
+    # use them only when UMLS is one of the selected sources (None = default).
+    abbreviation_sources: list[AbbreviationSource] | None = (
+        None if source_filter is None or KnowledgeSource.UMLS in source_filter else []
+    )
     lookup = CentralKnowledgeLookup(config=config, auto_initialize=True)
     try:
-        _, trace = await expand_and_search(
-            lookup,
-            query,
-            max_rounds=_MAX_ROUNDS,
-            max_terms_per_round=_MAX_TERMS_PER_ROUND,
+        _, trace = await asyncio.wait_for(
+            expand_and_search(
+                lookup,
+                query,
+                max_results=state["max_results"],
+                max_rounds=_MAX_ROUNDS,
+                max_terms_per_round=_MAX_TERMS_PER_ROUND,
+                abbreviation_sources=abbreviation_sources,
+            ),
+            timeout=_limits.EXPAND_TIMEOUT,
         )
+    except TimeoutError:
+        return {
+            "steps": [
+                make_step(
+                    "ExpandAgent",
+                    "timeout",
+                    f"Term expansion stopped after {_limits.EXPAND_TIMEOUT:.0f}s; "
+                    "continuing with the preprocessed terms",
+                )
+            ],
+        }
     except Exception as e:
         return {
             "steps": [make_step("ExpandAgent", "error", f"Term expansion failed: {e}")],

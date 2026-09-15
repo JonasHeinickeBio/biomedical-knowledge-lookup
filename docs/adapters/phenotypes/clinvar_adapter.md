@@ -1,177 +1,80 @@
-# ClinVar Adapter
+---
+description: ClinVar variant records from NCBI, searched with Entrez query syntax.
+---
 
-## Overview
+# ClinVar adapter
 
-The ClinVar Adapter provides access to ClinVar, NCBI's database of genomic variation and its relationship to human health. It enables searching for clinical variants and retrieving detailed information about specific variants including their clinical significance, associated genes, and conditions.
+Searches ClinVar through NCBI E-utilities and returns variant summaries: HGVS title, gene, variant type, clinical significance and conditions. Queries use Entrez syntax, so you can filter by gene, clinical significance and more.
 
-### Purpose
-- Search for clinical variants (SNPs, insertions, deletions, CNVs)
-- Retrieve clinical significance classifications
-- Access gene-variant-disease relationships
-- Support precision medicine and genetic research applications
+| | |
+|---|---|
+| Source | `KnowledgeSource.CLINVAR` |
+| Class | `knowledge_lookup.adapters.ClinVarAdapter` |
+| Requires | none |
+| Identifiers | ClinVar variation ID, e.g. `17661` (also `ClinVar:17661`, `VCV000017661`) |
+| Upstream API | `https://eutils.ncbi.nlm.nih.gov/entrez/eutils` (`db=clinvar`) |
 
-### Scope
-- Variant-level data from ClinVar
-- Clinical interpretations and assertions
-- Gene and condition associations
-- Support for NCBI EUtils API integration
-
-## Key Features
-
-- **Variant Search**: Search ClinVar by gene name, condition, or variant description
-- **Detailed Variant Information**: Get comprehensive variant details including clinical significance
-- **Clinical Significance Classification**: Access ACMG-classified pathogenicity assessments
-- **Gene-Condition Links**: Retrieve associated genes and medical conditions
-- **Variant Type Classification**: Support for various variant types (SNV, insertion, deletion, etc.)
-
-## API Information
-
-### Endpoint
-- **Base URL**: `https://eutils.ncbi.nlm.nih.gov/entrez/eutils`
-- **ClinVar REST API**: `https://clinvar.ncbi.nlm.nih.gov/api/rest`
-
-### Authentication
-- **Required**: No
-- **API Key**: Not required (public NCBI service)
-
-### Environment Variables
-- None required
-
-## Key Methods
-
-### `search_concepts(query, limit=20) -> list[UnifiedConcept]`
-
-Search ClinVar for clinical variants matching the query.
-
-**Parameters:**
-- `query` (str): Search term (gene name, condition, variant description)
-- `limit` (int): Maximum number of results (default: 20, max: 20)
-
-**Returns:**
-- List of `UnifiedConcept` objects representing variants
-
-**Example:**
-```python
-concepts = await adapter.search_concepts("BRCA1")
-```
-
-### `get_concept_details(concept_id) -> UnifiedConcept | None`
-
-Get detailed information about a specific ClinVar variant.
-
-**Parameters:**
-- `concept_id` (str): ClinVar variant ID (e.g., "ClinVar:143100" or just "143100")
-
-**Returns:**
-- `UnifiedConcept` with full variant details, or `None` if not found
-
-**Example:**
-```python
-variant = await adapter.get_concept_details("ClinVar:143100")
-```
-
-## Configuration
-
-The adapter requires no special configuration beyond the base `LookupConfig`.
+## Quick example
 
 ```python
-from knowledge_lookup.adapters.clinvar_adapter import ClinVarAdapter
+import asyncio
+
+from knowledge_lookup.adapters import ClinVarAdapter
 from knowledge_lookup.models import LookupConfig
 
-config = LookupConfig()
-adapter = ClinVarAdapter(config)
+
+async def main():
+    async with ClinVarAdapter(LookupConfig()) as adapter:
+        # Entrez query syntax is passed through unchanged
+        for concept in await adapter.search_concepts("BRCA1[gene] AND pathogenic[clinsig]", limit=3):
+            print(concept.primary_id, concept.primary_label, concept.categories)
+
+        variant = await adapter.get_concept_details("17661")
+        print(variant.primary_label, variant.semantic_types)
+        print(variant.categories)
+
+
+asyncio.run(main())
 ```
 
-## Usage Examples
+Output:
 
-### Basic Search
-```python
-from knowledge_lookup.adapters.clinvar_adapter import ClinVarAdapter
-
-adapter = ClinVarAdapter(config)
-
-# Search for BRCA1 variants
-results = await adapter.search_concepts("BRCA1", limit=10)
-
-for concept in results:
-    print(f"Variant: {concept.primary_label}")
-    print(f"ID: {concept.primary_id}")
-    print(f"Categories: {concept.categories}")
+```
+ClinVar:4887763 NC_000017.10:g.(41234593_41242960)_(41243050_41243451)del ['clinical_significance:Pathogenic', 'review_status:criteria provided, single submitter', 'gene:BRCA1', 'condition:Hereditary breast ovarian cancer syndrome']
+ClinVar:4887537 NC_000017.10:g.(41243050_41243451)_(41251898_41256138)del ['clinical_significance:Pathogenic', 'review_status:criteria provided, single submitter', 'gene:BRCA1', 'condition:Hereditary breast ovarian cancer syndrome']
+ClinVar:4886868 GRCh38/hg38 17q21.31(chr17:43057598-43068066)x1 ['clinical_significance:Likely pathogenic', 'review_status:no assertion criteria provided', 'gene:BRCA1', 'condition:Breast-ovarian cancer, familial, susceptibility to, 1']
+NM_007294.4(BRCA1):c.181T>G (p.Cys61Gly) ['single nucleotide variant', 'missense variant', 'non-coding transcript variant']
+['clinical_significance:Pathogenic', 'review_status:reviewed by expert panel', 'gene:BRCA1', 'condition:Breast-ovarian cancer, familial, susceptibility to, 1']
 ```
 
-### Get Variant Details
-```python
-# Get detailed information for a specific variant
-variant = await adapter.get_concept_details("ClinVar:VCV000143100")
+## Searching
 
-if variant:
-    print(f"Title: {variant.primary_label}")
-    print(f"Clinical Significance: {variant.categories}")
-    print(f"Genes: {[c for c in variant.categories if c.startswith('gene:')]}")
-    print(f"Conditions: {[c for c in variant.categories if c.startswith('condition:')]}")
-```
+`search_concepts(query, limit)` runs `esearch.fcgi` with `retmax=min(limit, 20)`, then a single `esummary.fcgi` call for all IDs. A search returns at most 20 variants, newest IDs first. A plain term such as `BRCA1` matches all fields (other genes' variants can appear); use `BRCA1[gene]` to restrict to the gene.
 
-### Search by Condition
-```python
-# Search for variants associated with breast cancer
-results = await adapter.search_concepts("breast cancer")
-```
+| Field | Value |
+|---|---|
+| `primary_id` | `ClinVar:<uid>` |
+| `primary_label` | summary title (HGVS expression) |
+| `concept_type` | `MOLECULAR_ENTITY` |
+| `semantic_types` | `obj_type` followed by the molecular consequences, e.g. `single nucleotide variant`, `missense variant` |
+| `categories` | `clinical_significance:<classification>`, `review_status:<status>`, `gene:<symbol>`, `condition:<trait name>` (when present) |
+| `identifiers` | one `CLINVAR` identifier (no URL) |
+| `sources` | `['CLINVAR']` |
+| `confidence_score` | `0.85` |
+| `source_data[CLINVAR]` | full esummary record |
 
-## Error Handling
+Classifications and conditions are read from `germline_classification`, the current esummary format. Somatic records add `oncogenicity:<classification>` and `clinical_impact:<classification>` categories when those classifications are filled. The legacy `clinical_significance` and top-level `trait_set` fields are still read for older payloads.
 
-The adapter implements comprehensive error handling:
+## Concept details
 
-- **Search Failures**: Returns empty list on error with logging
-- **Invalid IDs**: Returns `None` for non-existent concept IDs
-- **Network Errors**: Caught and logged, returns appropriate fallback
-- **Data Parsing Errors**: Graceful handling with `logger.error` logging
+`get_concept_details(concept_id)` strips `ClinVar:` and `VCV` from the ID and calls `esummary.fcgi`, returning the same fields as search. Unknown IDs return `None`.
 
-```python
-try:
-    results = await adapter.search_concepts("BRCA1")
-    if not results:
-        logger.info("No variants found for BRCA1")
-except Exception as e:
-    logger.error(f"ClinVar search failed: {e}")
-```
+## Rate limits and errors
 
-## Rate Limiting
+Uses the shared HTTP retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). No NCBI API key is sent, so NCBI's limit of 3 requests per second applies; a search uses two requests. Errors are logged; search returns `[]` and details return `None`.
 
-**NCBI EUtils Rate Limits:**
-- Free tier: 3 requests per second
-- With API key: 10 requests per second
+## See also
 
-The adapter includes built-in rate limiting via the base class `KnowledgeSourceAdapter`. Implementations should:
-- Respect NCBI's rate limits
-- Implement exponential backoff for retry logic
-- Consider using EUtils with an API key for higher limits
-
-```python
-# The adapter automatically handles rate limiting through the base class
-# Additional rate limiting can be configured in LookupConfig
-```
-
-## Data Model Mapping
-
-| ClinVar Field | UnifiedConcept Mapping |
-|--------------|----------------------|
-| `uid` | `primary_id` (as `ClinVar:{uid}`) |
-| `title` | `primary_label` |
-| `clinical_significance.description` | `categories.append("clinical_significance:{sig}")` |
-| `gene_sort` | `categories.append("gene:{gene}")` |
-| `obj_type` | `semantic_types.append(variation_type)` |
-| `trait_set.trait_name` | `categories.append("condition:{condition}")` |
-| `variation_name` | Included in `primary_label` |
-
-## Related Adapters
-
-- **HGNC Adapter**: For gene nomenclature and identifiers
-- **OMIM Adapter**: For Mendelian disease associations
-- **GeneOntology Adapter**: For functional annotations
-- **Uniprot Adapter**: For protein-level variant impact
-
-## References
-
-- [ClinVar Documentation](https://www.ncbi.nlm.nih.gov/clinvar/docs/api_http/)
-- [NCBI EUtils API](https://www.ncbi.nlm.nih.gov/books/NBK25501/)
-- [ClinVar REST API](https://clinvar.ncbi.nlm.nih.gov/api/)
+- [OMIM adapter](omim_adapter.md), [HPO adapter](hpo_adapter.md)
+- [COSMIC adapter](../other/cosmic_adapter.md)
+- [All adapters](../README.md)

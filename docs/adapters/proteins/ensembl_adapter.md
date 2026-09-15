@@ -1,123 +1,80 @@
-# Ensembl Adapter Documentation
+---
+description: Ensembl gene records by stable ID or human gene symbol.
+---
 
-## Overview
-The Ensembl adapter provides access to the Ensembl genome database, offering gene annotation, genomic feature lookup, and comparative genomics data for multiple species.
+# Ensembl adapter
 
-## Key Functions
+Fetches gene records from the Ensembl REST API (display name, description, biotype, species) and resolves human gene symbols to Ensembl gene IDs.
 
-### Core Search Methods
+| | |
+|---|---|
+| Source | `KnowledgeSource.ENSEMBL` |
+| Class | `knowledge_lookup.adapters.EnsemblAdapter` |
+| Requires | none |
+| Identifiers | stable ID, e.g. `ENSG00000139618` |
+| Upstream API | `https://rest.ensembl.org` |
 
-#### `search_concepts(query, limit=20)` [async]
-Search Ensembl for genes by symbol or name.
-
-**Parameters:**
-- `query`: Gene symbol or name (e.g., 'BRCA1', 'TP53')
-- `limit`: Maximum results (default: 20)
-
-**Returns:** `List[UnifiedConcept]` - Ensembl gene concepts
-
-**Example Data Structure:**
-```python
-{
-    'primary_id': 'ENSG00000012048',
-    'primary_label': 'BRCA1',
-    'concept_type': ConceptType.GENE,
-    'definitions': ['BRCA1 DNA repair associated gene'],
-    'categories': ['Biotype: protein_coding', 'Species: homo_sapiens'],
-    'identifiers': [ConceptIdentifier(
-        source='ENSEMBL',
-        identifier='ENSG00000012048',
-        label='BRCA1',
-        url='https://www.ensembl.org/id/ENSG00000012048'
-    )]
-}
-```
-
-#### `get_concept_details(concept_id)` [async]
-Get detailed gene information from Ensembl.
-
-**Parameters:**
-- `concept_id`: Ensembl Gene ID (e.g., 'ENSG00000012048')
-
-**Returns:** `UnifiedConcept` or `None` - Detailed gene information
-
-## Data Types and Structures
-
-### UnifiedConcept Fields for Ensembl
-- `primary_id`: Ensembl Gene ID (e.g., 'ENSG00000012048')
-- `primary_label`: Gene symbol
-- `concept_type`: GENE
-- `definitions`: Gene descriptions
-- `categories`: Biotype and species information
-- `identifiers`: Ensembl identifiers with URL
-- `source_data`: Raw Ensembl API response
-
-### Ensembl-Specific Data Fields
-- `id`: Ensembl stable ID
-- `display_name`: Gene symbol
-- `description`: Gene description
-- `biotype`: Gene type (protein_coding, miRNA, etc.)
-- `species`: Species name
-- `seq_region_name`: Chromosome
-- `start`: Genomic start position
-- `end`: Genomic end position
-- `strand`: Strand orientation
-
-## API Information
-
-**Base URL:** `https://rest.ensembl.org`
-
-**Endpoints:**
-- XRef Lookup: `/xrefs/symbol/{species}/{symbol}`
-- ID Lookup: `/lookup/id/{ensembl_id}`
-
-**Authentication:** Not required (public API)
-
-**Rate Limits:** 15 requests per second (public policy)
-
-**Content-Type Header:** Must include `application/json`
-
-## Error Handling
-- Species validation for gene lookups
-- Ensembl ID format validation
-- Rate limit awareness (15 req/s)
-- Connection timeout handling
-- Invalid response parsing
-- Comprehensive logging
-
-## Usage Examples
+## Quick example
 
 ```python
-# Initialize adapter
-config = LookupConfig()
-adapter = EnsemblAdapter(config)
+import asyncio
 
-# Search for genes by symbol
-genes = await adapter.search_concepts('BRCA1', limit=5)
+from knowledge_lookup.adapters import EnsemblAdapter
+from knowledge_lookup.models import LookupConfig
 
-# Get detailed gene information
-concept = await adapter.get_concept_details('ENSG00000012048')
 
-# Check availability
-if adapter.is_available():
-    results = await adapter.search_concepts('TP53')
+async def main():
+    async with EnsemblAdapter(LookupConfig()) as adapter:
+        brca2 = await adapter.get_concept_details("ENSG00000139618")
+        print(brca2.primary_id, brca2.primary_label, brca2.categories)
+        print(brca2.definitions[0])
+
+        for concept in await adapter.search_concepts("TP53", limit=2):
+            print(concept.primary_id, concept.primary_label)
+
+
+asyncio.run(main())
 ```
 
-## Configuration
-No special configuration required. The adapter is publicly available.
+Output (this run took about 50 seconds, mostly the symbol lookup):
 
-```python
-config = LookupConfig()
-adapter = EnsemblAdapter(config)
+```
+ENSG00000139618 BRCA2 ['Biotype: protein_coding', 'Species: homo_sapiens']
+BRCA2 DNA repair associated [Source:HGNC Symbol;Acc:HGNC:1101]
+ENSG00000141510 TP53
+LRG_321 TP53
 ```
 
-## Features
-- **Genome Annotation**: Gene coordinates, biotypes, and descriptions
-- **Multiple Species**: Support for 300+ vertebrate and major model organisms
-- **Coordinate Mapping**: Genomic position information
-- **Cross-References**: Links to NCBI, UniProt, and other databases
-- **Strand Information**: Forward/reverse strand orientation
-- **High Confidence**: 1.0 confidence score for matches
+## Searching
 
-## Architecture
-The adapter uses the Ensembl REST API. It performs gene symbol lookups via xrefs endpoint and retrieves detailed information via the lookup endpoint. Responses are normalized to the unified concept model.
+`search_concepts(query, limit)` is a **human gene symbol lookup**, not free-text search:
+
+1. `/xrefs/symbol/homo_sapiens/{query}` returns matching Ensembl and LRG IDs.
+2. `get_concept_details` is called for each of the first `limit` IDs.
+
+The query must be a symbol or synonym known to Ensembl; other species are not searched. Each search costs one request plus one per result, and the xrefs endpoint can take ten seconds or more.
+
+## Concept details
+
+`get_concept_details(stable_id)` calls `/lookup/id/{id}?expand=1`.
+
+| Field | Value |
+|---|---|
+| `primary_id` | stable ID |
+| `primary_label` | `display_name` |
+| `concept_type` | `GENE` (also for transcript or LRG IDs) |
+| `definitions` | `[description]` |
+| `categories` | `Biotype: <biotype>`, `Species: <species>` |
+| `identifiers` | one `ENSEMBL` identifier, URL `https://www.ensembl.org/id/<id>` |
+| `confidence_score` | `1.0` |
+| `source_data[ENSEMBL]` | full lookup response (with `expand=1`, including transcripts) |
+
+## Rate limits and errors
+
+Uses the shared HTTP retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). Errors are logged; search returns `[]` and details return `None`. Through `CentralKnowledgeLookup` the whole search must finish within `timeout_per_source` (default 30 s), which a slow symbol lookup can exceed. Raise the timeout, or call `get_concept_details` when you already have the ID.
+
+## See also
+
+- [HGNC adapter](hgnc_adapter.md): symbol → HGNC record with the Ensembl ID
+- [Open Targets adapter](../core/opentargets_adapter.md): uses Ensembl gene IDs for targets
+- [All adapters](../README.md)

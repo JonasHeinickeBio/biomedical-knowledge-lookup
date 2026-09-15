@@ -3,6 +3,7 @@ Adapter for ChEMBL drug/compound database using chembl_webresource_client.
 """
 
 import logging
+from concurrent.futures import Future, ThreadPoolExecutor, wait
 from typing import Any
 
 from chembl_webresource_client.new_client import new_client
@@ -10,6 +11,19 @@ from chembl_webresource_client.new_client import new_client
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptIdentifier, ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 from ..utils.retry_utils import create_chembl_retry_decorator
+
+# Endpoints check_api_status() probes, each with a one-record request.
+_STATUS_PROBE_ENDPOINTS = ("status", "molecule", "activity")
+
+
+def _is_list_endpoint(client: Any) -> bool:
+    """False for single-object resources such as ``status``, whose QuerySet cannot be sliced."""
+    return getattr(getattr(client, "query", None), "allows_multiple", True) is not False
+
+
+def _fetch_one_record(client: Any) -> list[Any]:
+    """Fetch one record. ``list()`` is what makes the lazy QuerySet send its request."""
+    return list(client.all()[:1])
 
 
 class ChEMBLAdapter(KnowledgeSourceAdapter):
@@ -42,9 +56,21 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
         """
         return KnowledgeSource.CHEMBL
 
-    def check_api_status(self) -> dict:
+    def check_api_status(self, timeout: float | None = None) -> dict:
         """
         Check the current status of the ChEMBL API service.
+
+        Fetches one record from each of the ``status``, ``molecule`` and
+        ``activity`` endpoints. ``status`` is a single-object resource in the
+        ChEMBL client and is reported as ``status(not a list endpoint)``. The
+        synchronous client runs in worker threads; a probe without an answer
+        after *timeout* seconds is reported as ``<endpoint>(timed out)`` and its
+        thread is left to finish on its own. ``available`` is ``True`` when at
+        least one probe returned a response.
+
+        Args:
+            timeout: seconds to wait for the probes, together. Defaults to
+                ``LookupConfig.timeout_per_source``.
         Returns:
             dict: Status information with keys:
                 - 'available': bool, whether API is responding
@@ -108,48 +134,54 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
 
         status["available_endpoints"] = sorted(available_endpoints)
 
-        # Test a few key endpoints for actual API availability
-        test_endpoints = ["status", "molecule", "activity"]
-        valid_endpoints: list[str] = status.get("available_endpoints", [])
-        tested: list[str] = []
-
-        for endpoint in test_endpoints:
-            if endpoint not in valid_endpoints:
-                tested.append(f"{endpoint}(not available)")
-                continue
-
-            try:
-                client = getattr(self.chembl_client, endpoint, None)
+        # Probe a few list endpoints by fetching one record each. QuerySets are
+        # lazy (slicing only builds the query), so the slice is materialised to
+        # send the request. The client is synchronous: the probes run in worker
+        # threads and are given up on after `timeout` seconds.
+        probe_timeout = (
+            timeout if timeout is not None else (self.config.timeout_per_source or 30.0)
+        )
+        valid_endpoints: list[str] = status["available_endpoints"]
+        outcomes: dict[str, str] = {}
+        probes: dict[str, Future[list[Any]]] = {}
+        executor = ThreadPoolExecutor(
+            max_workers=len(_STATUS_PROBE_ENDPOINTS), thread_name_prefix="chembl-status"
+        )
+        try:
+            for endpoint in _STATUS_PROBE_ENDPOINTS:
+                client = (
+                    getattr(self.chembl_client, endpoint, None)
+                    if endpoint in valid_endpoints
+                    else None
+                )
                 if client is None:
-                    tested.append(f"{endpoint}(not available)")
-                    continue
-
-                # Quick test - just get first result
-                if endpoint == "status":
-                    # Status endpoint might be different
-                    try:
-                        client.all()[:1]
-                    except Exception:
-                        pass  # Assume OK if no exception
+                    outcomes[endpoint] = f"{endpoint}(not available)"
+                elif not _is_list_endpoint(client):
+                    outcomes[endpoint] = f"{endpoint}(not a list endpoint)"
                 else:
-                    client.all()[:1]
+                    probes[endpoint] = executor.submit(_fetch_one_record, client)
+            if probes:
+                wait(list(probes.values()), timeout=probe_timeout)
+        finally:
+            # Don't wait for a hung request; its thread ends with the client's own timeout.
+            executor.shutdown(wait=False, cancel_futures=True)
 
-                tested.append(endpoint)
+        for endpoint, future in probes.items():
+            if not future.done() or future.cancelled():
+                outcomes[endpoint] = f"{endpoint}(timed out)"
+                status["error"] = f"Endpoint '{endpoint}' did not answer within {probe_timeout}s"
+                continue
+            error = future.exception()
+            if error is not None:
+                outcomes[endpoint] = f"{endpoint}(failed)"
+                status["error"] = f"Endpoint '{endpoint}' failed: {str(error)[:100]}..."
+            else:
+                outcomes[endpoint] = endpoint
                 status["available"] = True
 
-            except Exception as e:
-                error_msg = str(e)
-                status["error"] = f"Endpoint '{endpoint}' failed: {error_msg[:100]}..."
-                tested.append(f"{endpoint}(failed)")
-                continue
-
-        status["endpoints_tested"] = tested
+        status["endpoints_tested"] = [outcomes[e] for e in _STATUS_PROBE_ENDPOINTS]
         return status
 
-    @create_chembl_retry_decorator(
-        max_tries=4,
-        logger_name=__name__,
-    )
     def query(
         self,
         endpoint: str,
@@ -159,40 +191,98 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
     ):
         """
         Generic, reusable query interface for ChEMBL endpoints with retry logic.
+
+        This method is synchronous and blocks while the ChEMBL client downloads.
+        From async code use ``await query_async(...)``, which runs the client in a
+        worker thread.
+
         Args:
             endpoint (str): ChEMBL endpoint name (e.g., 'molecule', 'drug', 'target').
             filters (dict, optional): Query filters for endpoint.
             fields (list, optional): Fields to include in results.
-            limit (int): Max number of results to return.
-            max_retries (int): Maximum number of retry attempts for API failures.
-            retry_delay (float): Base delay between retries in seconds (exponential backoff).
+            limit (int): Max number of results to return; only this many are fetched.
         Returns:
             List[dict]: List of result dicts from ChEMBL endpoint.
         Error Handling:
-            Logs and returns empty list on error or invalid endpoint.
-            Implements exponential backoff retry for transient API failures.
+            Raises ValueError for an unknown endpoint. Transient API failures
+            (5xx, connection errors) are retried with exponential backoff; other
+            errors are logged and an empty list is returned.
         """
-        client = getattr(self.chembl_client, endpoint, None)
-        if client is None:
-            raise ValueError(f"Endpoint '{endpoint}' not found in ChEMBL client.")
-
         try:
-            if filters is not None:
-                results = client.filter(**filters)
-            else:
-                results = client.all()
-            if fields is not None and fields:
-                results = results.only(fields)
-            return list(results)[:limit]
+            return self._query_with_retry(endpoint, filters, fields, limit)
+        except ValueError:
+            raise
         except Exception as e:
             self.logger.error(f"ChEMBL query error for endpoint '{endpoint}': {e}")
             return []
 
-    def lookup_molecule(
+    @create_chembl_retry_decorator(
+        max_tries=4,
+        logger_name=__name__,
+    )
+    def _query_with_retry(
+        self, endpoint: str, filters: dict | None, fields: list | None, limit: int
+    ) -> list[dict]:
+        # Separate from query() so the decorator sees the exceptions it retries
+        return self._run_query(endpoint, filters, fields, limit)
+
+    def _run_query(
+        self,
+        endpoint: str,
+        filters: dict | None = None,
+        fields: list | None = None,
+        limit: int = 100,
+    ) -> list[dict]:
+        """Run one ChEMBL query and return at most ``limit`` records. Raises on errors."""
+        client = getattr(self.chembl_client, endpoint, None)
+        if client is None:
+            raise ValueError(f"Endpoint '{endpoint}' not found in ChEMBL client.")
+        if limit <= 0:
+            return []
+
+        if filters is not None:
+            results = client.filter(**filters)
+        else:
+            results = client.all()
+        if fields:
+            results = results.only(fields)
+        # Slice the lazy QuerySet before materialising it, so the client fetches
+        # only `limit` records instead of paging through every match.
+        return list(results[:limit])
+
+    async def query_async(
+        self,
+        endpoint: str,
+        filters: dict | None = None,
+        fields: list | None = None,
+        limit: int = 100,
+    ) -> list[dict]:
+        """
+        Async version of :meth:`query` that does not block the event loop.
+
+        The synchronous ChEMBL client runs in a worker thread through the shared
+        retry and circuit breaker (``_thread_with_retry``).
+
+        Raises:
+            ValueError: unknown endpoint.
+            Exception: the last API error once retries are exhausted.
+        """
+        if getattr(self.chembl_client, endpoint, None) is None:
+            raise ValueError(f"Endpoint '{endpoint}' not found in ChEMBL client.")
+        return await self._thread_with_retry(
+            f"chembl_{endpoint}", self._run_query, endpoint, filters, fields, limit
+        )
+
+    async def lookup_molecule(
         self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup molecules in ChEMBL and parse results to UnifiedConcepts.
+
+        Async: ``await adapter.lookup_molecule(...)``. The parsers are async
+        (ontology mapping), so the synchronous version returned an un-awaited
+        coroutine.
+
         Args:
             filters (dict, optional): Query filters for molecules.
             fields (list, optional): Fields to include in results.
@@ -203,22 +293,25 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             Logs and returns empty list on error.
         """
         try:
-            raw_results = self.query(
+            raw_results = await self.query_async(
                 "molecule",
                 filters=filters if filters is not None else {},
                 fields=fields if fields is not None else [],
                 limit=limit,
             )
-            return self._parse_molecule_results(raw_results)
+            return await self._parse_molecule_results(raw_results)
         except Exception as e:
             self.logger.error(f"lookup_molecule error: {e}")
             return []
 
-    def lookup_drug(
+    async def lookup_drug(
         self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup drugs in ChEMBL and parse results to UnifiedConcepts.
+
+        Async: ``await adapter.lookup_drug(...)``.
+
         Args:
             filters (dict, optional): Query filters for drugs.
             fields (list, optional): Fields to include in results.
@@ -229,22 +322,25 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             Logs and returns empty list on error.
         """
         try:
-            raw_results = self.query(
+            raw_results = await self.query_async(
                 "drug",
                 filters=filters if filters is not None else {},
                 fields=fields if fields is not None else [],
                 limit=limit,
             )
-            return self._parse_drug_results(raw_results)
+            return await self._parse_drug_results(raw_results)
         except Exception as e:
             self.logger.error(f"lookup_drug error: {e}")
             return []
 
-    def lookup_target(
+    async def lookup_target(
         self, filters: dict | None = None, fields: list | None = None, limit: int = 100
     ):
         """
         Lookup targets in ChEMBL and parse results to UnifiedConcepts.
+
+        Async: ``await adapter.lookup_target(...)``.
+
         Args:
             filters (dict, optional): Query filters for targets.
             fields (list, optional): Fields to include in results.
@@ -255,13 +351,13 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             Logs and returns empty list on error.
         """
         try:
-            raw_results = self.query(
+            raw_results = await self.query_async(
                 "target",
                 filters=filters if filters is not None else {},
                 fields=fields if fields is not None else [],
                 limit=limit,
             )
-            return self._parse_target_results(raw_results)
+            return await self._parse_target_results(raw_results)
         except Exception as e:
             self.logger.error(f"lookup_target error: {e}")
             return []
@@ -574,7 +670,10 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 chembl_id = r.get("drug_chembl_id") or r.get("molecule_chembl_id")
                 label = r.get("pref_name") or r.get("drug_name") or chembl_id
                 synonyms = r.get("synonyms", [])
-                definition = r.get("description") or r.get("drug_type")
+                # ChEMBL's drug endpoint returns drug_type as an integer code
+                drug_type = r.get("drug_type")
+                drug_type = str(drug_type) if drug_type is not None else None
+                definition = r.get("description") or drug_type
                 concept_type = ConceptType.DRUG
                 identifier = ConceptIdentifier(
                     source=KnowledgeSource.CHEMBL,
@@ -582,7 +681,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                     label=label,
                     url=f"https://www.ebi.ac.uk/chembl/drug/{chembl_id}/" if chembl_id else None,
                 )
-                raw_category = r.get("drug_type")
+                raw_category = drug_type
                 try:
                     mapped_category = (
                         await self.map_category_to_ontology(raw_category) if raw_category else None
@@ -757,7 +856,8 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             for endpoint, parser in endpoints:
                 filters = {"pref_name__icontains": query}
                 try:
-                    raw_results = self.query(
+                    # Runs the blocking client in a worker thread (retry + circuit breaker)
+                    raw_results = await self.query_async(
                         endpoint, filters=filters, limit=limit - len(concepts)
                     )
                     parsed = await parser(raw_results)
@@ -784,19 +884,21 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
         try:
             # Molecule
             filters = {"molecule_chembl_id": concept_id}
-            raw_results = self.query("molecule", filters=filters, limit=1)
+            raw_results = await self.query_async("molecule", filters=filters, limit=1)
             concepts = await self._parse_molecule_results(raw_results)
             if concepts:
                 return concepts[0]
-            # Drug
-            filters = {"drug_chembl_id": concept_id}
-            raw_results = self.query("drug", filters=filters, limit=1)
+            # Drug. The drug resource is keyed by molecule_chembl_id and has no
+            # drug_chembl_id field; ChEMBL ignores unknown filters and would
+            # return an unrelated drug from the whole table.
+            filters = {"molecule_chembl_id": concept_id}
+            raw_results = await self.query_async("drug", filters=filters, limit=1)
             concepts = await self._parse_drug_results(raw_results)
             if concepts:
                 return concepts[0]
             # Target
             filters = {"target_chembl_id": concept_id}
-            raw_results = self.query("target", filters=filters, limit=1)
+            raw_results = await self.query_async("target", filters=filters, limit=1)
             concepts = await self._parse_target_results(raw_results)
             if concepts:
                 return concepts[0]

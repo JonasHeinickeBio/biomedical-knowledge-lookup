@@ -3,6 +3,7 @@ Integration tests for CURIE utilities.
 """
 
 import pytest
+
 from knowledge_lookup.curie_utils import (
     create_local_converter,
     get_bioregistry_converter,

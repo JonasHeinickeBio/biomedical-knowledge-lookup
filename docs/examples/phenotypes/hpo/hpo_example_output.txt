@@ -1,12 +1,46 @@
-╔══════════════════════════════════════════════════════╗
-║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
-║  The adapter does not return valid search results.  ║
-╚══════════════════════════════════════════════════════╝
+The HPO adapter is available.
 
-Checking if HPO adapter is available...
-  ✓ HPO adapter is available
+Searching HPO for 'seizure' ...
+Found 5 concept(s) in 1.5s
 
-Searching for 'fever' concepts in HPO...
+  1. Seizure
+     ID:         HP:0001250
+     Type:       PHENOTYPE
+     Confidence: 0.95
+     Definition: A seizure is an intermittent abnormality of nervous system physiology characterized by a [...]
 
-Found 0 results from HPO:
-  No results found for 'fever'
+  2. Seizure cluster
+     ID:         HP:0033349
+     Type:       PHENOTYPE
+     Confidence: 0.95
+     Definition: A fourfold or greater increase of usual seizure frequency within a 3-day period, where the [...]
+
+  3. Febrile seizure (within the age range of 3 months to 6 years)
+     ID:         HP:0002373
+     Type:       PHENOTYPE
+     Confidence: 0.95
+     Definition: A febrile seizure is any type of seizure (most often a generalized tonic-clonic seizure) [...]
+
+  4. Photosensitive tonic-clonic seizure
+     ID:         HP:0007207
+     Type:       PHENOTYPE
+     Confidence: 0.95
+     Definition: Generalized-onset tonic-clonic seizures that are provoked by flashing or flickering light.
+
+  5. Focal hemiclonic seizure
+     ID:         HP:0006813
+     Type:       PHENOTYPE
+     Confidence: 0.95
+     Definition: A type of focal clonic seizure characterized by sustained rhythmic jerking rapidly involves [...]
+
+Fetching details for 'HP:0001250' ...
+  Label:      Seizure
+  ID:         HP:0001250
+  Type:       PHENOTYPE
+  Synonyms:   Epileptic seizure, Seizures, Epilepsy
+  Definition: A seizure is an intermittent abnormality of nervous system physiology characterized by a transient occurrence of signs and/or symptoms due to abnormal excessive or synchronous neuronal activity [...]
+  Identifier: HP:0001250 (HPO)
+  Identifier: UMLS:C0014544 (UMLS)
+  Identifier: UMLS:C0036572 (UMLS)
+
+Summary: search=5 details=found

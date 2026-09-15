@@ -5,8 +5,8 @@ These tests make real API calls to validate that adapters work with actual
 API responses and warn if API response structures change.
 """
 
-
 import pytest
+
 from knowledge_lookup.adapters import ADAPTER_CLASSES
 from knowledge_lookup.models import KnowledgeSource
 
@@ -86,9 +86,9 @@ async def _test_search_concepts(
 
     # Validate results
     assert isinstance(results, list), f"Expected list, got {type(results)}"
-    assert (
-        len(results) >= min_results
-    ), f"Expected at least {min_results} results, got {len(results)}"
+    assert len(results) >= min_results, (
+        f"Expected at least {min_results} results, got {len(results)}"
+    )
 
     # Check response structure
     if warning_manager and response_data:

@@ -1,36 +1,11 @@
-Checking if OBOFoundry adapter is available...
-  ✓ OBOFoundry adapter is available
+The OBOFOUNDRY adapter is available.
 
-Searching for 'cancer' concepts in OBOFoundry...
+Searching OBOFOUNDRY for 'cancer' ...
+Found 1 concept(s) in 1.6s
 
-Found 23 results from OBOFoundry:
+  1. cancer
+     ID:         MONDO_0004992
+     Type:       UNKNOWN
+     Confidence: 0.8
 
-  Concept 1:
-    Label: cancer
-    ID: DOID_162
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.8
-
-  Concept 2:
-    Label: Prostatic Neoplasms, Castration-Resistant
-    ID: mesh_D064129
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.8
-
-  Concept 3:
-    Label: Neoplasms, Second Primary
-    ID: mesh_D016609
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.8
-
-  Concept 4:
-    Label: Cancer Pain
-    ID: mesh_D000072716
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.8
-
-  Concept 5:
-    Label: The Barbara Ann Karmanos Cancer Institute
-    ID: ror_00ee40h97
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.8
+Summary: search=1

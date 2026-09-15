@@ -1,758 +1,398 @@
 [
   {
-    "adapter": "opentargets",
-    "timestamp": "2026-06-12T15:51:42.079797",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "MONDO_0004992",
-          "label": "MONDO_0004992",
-          "type": "gene"
-        },
-        {
-          "id": "Orphanet_145",
-          "label": "Orphanet_145",
-          "type": "gene"
-        }
-      ]
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "CHEMBL",
+    "category": "core",
+    "script": "core/chembl/chembl_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 4.5,
+    "checked_at": "2026-09-15T18:12:38Z"
   },
   {
-    "adapter": "ols",
-    "timestamp": "2026-06-12T15:51:42.157738",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "http://purl.obolibrary.org/obo/DOID_162",
-          "label": "cancer",
-          "type": "disease"
-        },
-        {
-          "id": "http://purl.obolibrary.org/obo/MONDO_0004992",
-          "label": "cancer",
-          "type": "disease"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "http://purl.obolibrary.org/obo/DOID_162",
-      "found": true,
-      "label": "cancer",
-      "type": "unknown"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "DISGENET",
+    "category": "core",
+    "script": "core/disgenet/disgenet_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": null,
+    "exit_code": 0,
+    "duration_s": 5.0,
+    "checked_at": "2026-09-15T18:12:38Z"
   },
   {
-    "adapter": "bioportal",
-    "timestamp": "2026-06-12T15:51:43.363250",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "http://purl.bioontology.org/ontology/MEDDRA/10007050",
-          "label": "Cancer",
-          "type": "unknown"
-        },
-        {
-          "id": "http://purl.bioontology.org/ontology/LNC/LA10524-9",
-          "label": "Cancer",
-          "type": "unknown"
-        }
-      ]
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "MONDO",
+    "category": "core",
+    "script": "core/mondo/mondo_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 5.1,
+    "checked_at": "2026-09-15T18:12:38Z"
   },
   {
-    "adapter": "umls",
-    "timestamp": "2026-06-12T15:51:45.258479",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "C0006826",
-          "label": "Malignant Neoplasms",
-          "type": "unknown"
-        },
-        {
-          "id": "C0027651",
-          "label": "Neoplasms",
-          "type": "unknown"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "C0006826",
-      "found": true,
-      "label": "Malignant Neoplasms",
-      "type": "unknown"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "OLS",
+    "category": "core",
+    "script": "core/ols/ols_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 8.9,
+    "checked_at": "2026-09-15T18:12:42Z"
   },
   {
-    "adapter": "drugbank",
-    "timestamp": "2026-06-12T15:51:50.743382",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "OPENTARGETS",
+    "category": "core",
+    "script": "core/opentargets/opentargets_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 3.9,
+    "checked_at": "2026-09-15T18:12:41Z"
   },
   {
-    "adapter": "chembl",
-    "timestamp": "2026-06-12T15:51:51.355220",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "http://purl.bioontology.org/ontology/MEDDRA/10007050",
-          "label": "Cancer",
-          "type": "unknown"
-        },
-        {
-          "id": "http://purl.bioontology.org/ontology/LNC/LA10524-9",
-          "label": "Cancer",
-          "type": "unknown"
-        }
-      ]
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "UMLS",
+    "category": "core",
+    "script": "core/umls/umls_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 9.0,
+    "checked_at": "2026-09-15T18:12:47Z"
   },
   {
-    "adapter": "reactome",
-    "timestamp": "2026-06-12T15:51:52.719268",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "DRUGBANK",
+    "category": "chemicals",
+    "script": "chemicals/drugbank/drugbank_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": null,
+    "exit_code": 0,
+    "duration_s": 4.5,
+    "checked_at": "2026-09-15T18:12:43Z"
   },
   {
-    "adapter": "uniprot",
-    "timestamp": "2026-06-12T15:51:53.297546",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "Q9Y238",
-          "label": "DLEC1",
-          "type": "protein"
-        },
-        {
-          "id": "P51587",
-          "label": "BRCA2",
-          "type": "protein"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "Q9Y238",
-      "found": true,
-      "label": "DLEC1",
-      "type": "protein"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "PUBCHEM",
+    "category": "chemicals",
+    "script": "chemicals/pubchem/pubchem_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 6.1,
+    "checked_at": "2026-09-15T18:12:48Z"
   },
   {
-    "adapter": "ensembl",
-    "timestamp": "2026-06-12T15:51:54.929420",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "UNICHEM",
+    "category": "chemicals",
+    "script": "chemicals/unichem/unichem_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 6.8,
+    "checked_at": "2026-09-15T18:12:49Z"
   },
   {
-    "adapter": "pubchem",
-    "timestamp": "2026-06-12T15:51:57.319586",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "CLINVAR",
+    "category": "phenotypes",
+    "script": "phenotypes/clinvar/clinvar_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 3.9,
+    "checked_at": "2026-09-15T18:12:47Z"
   },
   {
-    "adapter": "disgenet",
-    "timestamp": "2026-06-12T15:51:58.016265",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "GENEONTOLOGY",
+    "category": "phenotypes",
+    "script": "phenotypes/geneontology/geneontology_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 3.7,
+    "checked_at": "2026-09-15T18:12:50Z"
   },
   {
-    "adapter": "kegg",
-    "timestamp": "2026-06-12T15:51:58.895163",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "H00013",
-          "label": "Small cell lung cancer",
-          "type": "disease"
-        },
-        {
-          "id": "H00014",
-          "label": "Non-small cell lung cancer",
-          "type": "disease"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "H00013",
-      "found": true,
-      "label": "Small cell lung cancer",
-      "type": "disease"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "HPO",
+    "category": "phenotypes",
+    "script": "phenotypes/hpo/hpo_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 4.4,
+    "checked_at": "2026-09-15T18:12:52Z"
   },
   {
-    "adapter": "geneontology",
-    "timestamp": "2026-06-12T15:52:00.849928",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "OMIM",
+    "category": "phenotypes",
+    "script": "phenotypes/omim/omim_example.py",
+    "status": "skipped",
+    "search_results": null,
+    "details": null,
+    "exit_code": 0,
+    "duration_s": 2.5,
+    "checked_at": "2026-09-15T18:12:50Z"
   },
   {
-    "adapter": "hgnc",
-    "timestamp": "2026-06-12T15:52:01.406321",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "HGNC:51526",
-          "label": "AATBC",
-          "type": "gene"
-        },
-        {
-          "id": "HGNC:51844",
-          "label": "FRGCA",
-          "type": "gene"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "HGNC:51526",
-      "found": true,
-      "label": "apoptosis associated transcript in bladder cancer",
-      "type": "gene"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "QUICKGO",
+    "category": "phenotypes",
+    "script": "phenotypes/quickgo/quickgo_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 5.0,
+    "checked_at": "2026-09-15T18:12:54Z"
   },
   {
-    "adapter": "hpo",
-    "timestamp": "2026-06-12T15:52:01.573165",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "ENSEMBL",
+    "category": "proteins",
+    "script": "proteins/ensembl/ensembl_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 12.3,
+    "checked_at": "2026-09-15T18:13:02Z"
   },
   {
-    "adapter": "mondo",
-    "timestamp": "2026-06-12T15:52:01.652383",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "MONDO_0004992",
-          "label": "cancer",
-          "type": "disease"
-        },
-        {
-          "id": "MONDO_0005575",
-          "label": "colorectal cancer",
-          "type": "disease"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "MONDO_0004992",
-      "found": true,
-      "label": "cancer",
-      "type": "disease"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "HGNC",
+    "category": "proteins",
+    "script": "proteins/hgnc/hgnc_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 3.9,
+    "checked_at": "2026-09-15T18:12:54Z"
   },
   {
-    "adapter": "ebiols",
-    "timestamp": "2026-06-12T15:52:03.492322",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "http://purl.obolibrary.org/obo/DOID_162",
-          "label": "cancer",
-          "type": "disease"
-        },
-        {
-          "id": "http://purl.obolibrary.org/obo/MONDO_0004992",
-          "label": "cancer",
-          "type": "disease"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "http://purl.obolibrary.org/obo/DOID_162",
-      "found": true,
-      "label": "cancer",
-      "type": "unknown"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "UNIPROT",
+    "category": "proteins",
+    "script": "proteins/uniprot/uniprot_example.py",
+    "status": "working",
+    "search_results": 3,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 4.6,
+    "checked_at": "2026-09-15T18:12:56Z"
   },
   {
-    "adapter": "quickgo",
-    "timestamp": "2026-06-12T15:52:07.165222",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "KEGG",
+    "category": "pathways",
+    "script": "pathways/kegg/kegg_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 5.6,
+    "checked_at": "2026-09-15T18:12:59Z"
   },
   {
-    "adapter": "eutils",
-    "timestamp": "2026-06-12T15:52:07.166351",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "REACTOME",
+    "category": "pathways",
+    "script": "pathways/reactome/reactome_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 3.8,
+    "checked_at": "2026-09-15T18:12:58Z"
   },
   {
-    "adapter": "wikidata",
-    "timestamp": "2026-06-12T15:52:07.167034",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "Q326097",
-          "label": "Cancer Research",
-          "type": "unknown"
-        },
-        {
-          "id": "Q326097",
-          "label": "Cancer Research",
-          "type": "unknown"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "Q326097",
-      "found": true,
-      "label": "Cancer Research",
-      "type": "unknown"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "BIOONTOLOGY",
+    "category": "ontologies",
+    "script": "ontologies/bioontology/bioontology_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": null,
+    "exit_code": 0,
+    "duration_s": 4.0,
+    "checked_at": "2026-09-15T18:13:00Z"
   },
   {
-    "adapter": "dbpedia",
-    "timestamp": "2026-06-12T15:52:07.253481",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "Cancer",
-          "label": "Cancer",
-          "type": "unknown"
-        },
-        {
-          "id": "Cancer",
-          "label": "Cancer",
-          "type": "unknown"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "Cancer",
-      "found": true,
-      "label": "Cancer",
-      "type": "unknown"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "BIOPORTAL",
+    "category": "ontologies",
+    "script": "ontologies/bioportal/bioportal_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": null,
+    "exit_code": 0,
+    "duration_s": 4.9,
+    "checked_at": "2026-09-15T18:13:03Z"
   },
   {
-    "adapter": "biolinker",
-    "timestamp": "2026-06-12T15:52:07.360225",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "EBIOLS",
+    "category": "ontologies",
+    "script": "ontologies/ebiols/ebiols_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 5.9,
+    "checked_at": "2026-09-15T18:13:05Z"
   },
   {
-    "adapter": "zooma",
-    "timestamp": "2026-06-12T15:52:15.948126",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "http://purl.obolibrary.org/obo/MONDO_0004992",
-          "label": "cancer",
-          "type": "unknown"
-        },
-        {
-          "id": "http://purl.obolibrary.org/obo/DOID_162",
-          "label": "cancer",
-          "type": "unknown"
-        }
-      ]
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "OBOFOUNDRY",
+    "category": "ontologies",
+    "script": "ontologies/obofoundry/obofoundry_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": null,
+    "exit_code": 0,
+    "duration_s": 5.8,
+    "checked_at": "2026-09-15T18:13:06Z"
   },
   {
-    "adapter": "tyto",
-    "timestamp": "2026-06-12T15:52:18.955536",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "ZOOMA",
+    "category": "ontologies",
+    "script": "ontologies/zooma/zooma_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": null,
+    "exit_code": 0,
+    "duration_s": 5.8,
+    "checked_at": "2026-09-15T18:13:08Z"
   },
   {
-    "adapter": "oxo",
-    "timestamp": "2026-06-12T15:52:18.955812",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "INTERPRO",
+    "category": "families",
+    "script": "families/interpro/interpro_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 5.6,
+    "checked_at": "2026-09-15T18:13:09Z"
   },
   {
-    "adapter": "obofoundry",
-    "timestamp": "2026-06-12T15:52:29.063273",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "DOID_162",
-          "label": "cancer",
-          "type": "unknown"
-        },
-        {
-          "id": "MONDO_0004992",
-          "label": "cancer",
-          "type": "unknown"
-        }
-      ]
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "PDB",
+    "category": "families",
+    "script": "families/pdb/pdb_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 7.1,
+    "checked_at": "2026-09-15T18:13:12Z"
   },
   {
-    "adapter": "interpro",
-    "timestamp": "2026-06-12T15:52:31.614985",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "InterPro:IPR011364",
-          "label": "Breast cancer type 1 susceptibility protein (BRCA1)",
-          "type": "protein"
-        },
-        {
-          "id": "InterPro:IPR015252",
-          "label": "Breast cancer type 2 susceptibility protein, helical domain",
-          "type": "molecular_entity"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "InterPro:IPR011364",
-      "found": true,
-      "label": "Breast cancer type 1 susceptibility protein (BRCA1)",
-      "type": "protein"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "PFAM",
+    "category": "families",
+    "script": "families/pfam/pfam_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 6.2,
+    "checked_at": "2026-09-15T18:13:12Z"
   },
   {
-    "adapter": "string",
-    "timestamp": "2026-06-12T15:52:32.533681",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "STRING",
+    "category": "families",
+    "script": "families/string/string_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": null,
+    "exit_code": 0,
+    "duration_s": 6.6,
+    "checked_at": "2026-09-15T18:13:15Z"
   },
   {
-    "adapter": "pfam",
-    "timestamp": "2026-06-12T15:52:32.866540",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "Pfam:PF06726",
-          "label": "Bladder cancer-related protein BC10",
-          "type": "protein"
-        },
-        {
-          "id": "Pfam:PF12366",
-          "label": "Cancer susceptibility candidate 1 C-terminal",
-          "type": "molecular_entity"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "Pfam:PF06726",
-      "found": true,
-      "label": "Bladder cancer-related protein BC10",
-      "type": "protein"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "EUROPEPMC",
+    "category": "literature",
+    "script": "literature/europepmc/europepmc_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 6.3,
+    "checked_at": "2026-09-15T18:13:15Z"
   },
   {
-    "adapter": "pdb",
-    "timestamp": "2026-06-12T15:52:35.228158",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "PDB:2N8B",
-          "label": "Cysteine knot with integrin avb6 cancer recognition site",
-          "type": "protein"
-        },
-        {
-          "id": "PDB:2N8C",
-          "label": "Cystein knot with 2fp integrin avb6 cancer recognition site",
-          "type": "protein"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "PDB:2N8B",
-      "found": true,
-      "label": "Cysteine knot with integrin avb6 cancer recognition site",
-      "type": "protein"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "EUTILS",
+    "category": "literature",
+    "script": "literature/eutils/eutils_example.py",
+    "status": "working",
+    "search_results": 5,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 14.1,
+    "checked_at": "2026-09-15T18:13:26Z"
   },
   {
-    "adapter": "cosmic",
-    "timestamp": "2026-06-12T15:52:36.447144",
-    "is_available": true,
-    "search_works": true,
-    "details_works": null,
-    "search_result": {
-      "query": "cancer",
-      "count": 0,
-      "examples": []
-    },
-    "details_result": null,
-    "errors": [],
-    "api_key_needed": false
+    "source": "BIOLINKER",
+    "category": "other",
+    "script": "other/biolinker/biolinker_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": null,
+    "exit_code": 0,
+    "duration_s": 8.4,
+    "checked_at": "2026-09-15T18:13:21Z"
   },
   {
-    "adapter": "clinvar",
-    "timestamp": "2026-06-12T15:52:37.764461",
-    "is_available": true,
-    "search_works": true,
-    "details_works": true,
-    "search_result": {
-      "query": "cancer",
-      "count": 2,
-      "examples": [
-        {
-          "id": "ClinVar:4852579",
-          "label": "NM_000059.4(BRCA2):c.1909+12T>C",
-          "type": "molecular_entity"
-        },
-        {
-          "id": "ClinVar:4852578",
-          "label": "NM_000059.4(BRCA2):c.8021A>G (p.Lys2674Arg)",
-          "type": "molecular_entity"
-        }
-      ]
-    },
-    "details_result": {
-      "concept_id": "ClinVar:4852579",
-      "found": true,
-      "label": "NM_000059.4(BRCA2):c.1909+12T>C",
-      "type": "molecular_entity"
-    },
-    "errors": [],
-    "api_key_needed": false
+    "source": "COSMIC",
+    "category": "other",
+    "script": "other/cosmic/cosmic_example.py",
+    "status": "skipped",
+    "search_results": null,
+    "details": null,
+    "exit_code": 0,
+    "duration_s": 4.6,
+    "checked_at": "2026-09-15T18:13:19Z"
   },
   {
-    "adapter": "omim",
-    "timestamp": "2026-06-12T15:52:38.789862",
-    "is_available": null,
-    "search_works": null,
-    "details_works": null,
-    "search_result": null,
-    "details_result": null,
-    "errors": [
-      "Failed to get adapter: omim"
-    ],
-    "api_key_needed": false
+    "source": "DBPEDIA",
+    "category": "other",
+    "script": "other/dbpedia/dbpedia_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 4.8,
+    "checked_at": "2026-09-15T18:13:20Z"
+  },
+  {
+    "source": "OXO",
+    "category": "other",
+    "script": "other/oxo/oxo_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 4.8,
+    "checked_at": "2026-09-15T18:13:24Z"
+  },
+  {
+    "source": "TYTO",
+    "category": "other",
+    "script": "other/tyto/tyto_example.py",
+    "status": "working",
+    "search_results": 1,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 11.0,
+    "checked_at": "2026-09-15T18:13:31Z"
+  },
+  {
+    "source": "WIKIDATA",
+    "category": "other",
+    "script": "other/wikidata/wikidata_example.py",
+    "status": "working",
+    "search_results": 2,
+    "details": "found",
+    "exit_code": 0,
+    "duration_s": 5.5,
+    "checked_at": "2026-09-15T18:13:26Z"
   }
 ]

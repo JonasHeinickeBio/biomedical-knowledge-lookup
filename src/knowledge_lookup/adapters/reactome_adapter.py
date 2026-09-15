@@ -4,13 +4,43 @@ Reactome Pathway Database Adapter
 Integrates with Reactome Analysis Service for biological pathway lookup.
 """
 
+import html
 import logging
+import re
 from typing import Any
+
+import aiohttp
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
 logger = logging.getLogger(__name__)
+
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _strip_markup(text: Any) -> str:
+    """Remove the HTML markup Reactome embeds in search hits (highlighting spans, <BR>)."""
+    if not isinstance(text, str):
+        return ""
+    return html.unescape(_TAG_RE.sub(" ", text)).replace("  ", " ").strip()
+
+
+# Reactome schema classes (search entry "type", details "schemaClass") -> ConceptType
+_EVENT_TYPES: dict[str, ConceptType] = {
+    "Pathway": ConceptType.PATHWAY,
+    "TopLevelPathway": ConceptType.PATHWAY,
+    "Reaction": ConceptType.BIOLOGICAL_PROCESS,
+    "BlackBoxEvent": ConceptType.BIOLOGICAL_PROCESS,
+    "Depolymerisation": ConceptType.BIOLOGICAL_PROCESS,
+    "Polymerisation": ConceptType.BIOLOGICAL_PROCESS,
+    "FailedReaction": ConceptType.BIOLOGICAL_PROCESS,
+}
+
+
+def _concept_type(schema_class: Any) -> ConceptType:
+    """Map a Reactome schema class to a ConceptType (UNKNOWN when unmapped)."""
+    return _EVENT_TYPES.get(schema_class, ConceptType.UNKNOWN)
 
 
 class ReactomeAdapter(KnowledgeSourceAdapter):
@@ -34,18 +64,29 @@ class ReactomeAdapter(KnowledgeSourceAdapter):
 
             data = await self._make_request(url, params)
 
-            concepts = []
-            if "results" in data:
-                for result in data["results"]:
-                    # Only include pathways and entries with relevant types
-                    if result.get("type") in ["Pathway", "Reaction"]:
-                        concept = self._convert_reactome_result_to_concept(result)
+            concepts: list[UnifiedConcept] = []
+            # The ContentService groups hits by type:
+            # {"results": [{"typeName": "Pathway", "entries": [{"type": "Pathway", ...}]}]}
+            for group in data.get("results", []) or []:
+                for entry in group.get("entries", []) or []:
+                    if len(concepts) >= limit:
+                        break
+                    # Only include pathways and reactions
+                    if entry.get("type") in ["Pathway", "Reaction"]:
+                        concept = self._convert_reactome_result_to_concept(entry)
                         if concept:
                             concepts.append(concept)
 
             logger.info(f"Reactome search for '{query}' returned {len(concepts)} concepts")
             return concepts
 
+        except aiohttp.ClientResponseError as e:
+            if e.status == 404:
+                # Reactome answers 404 when a query has no matches
+                logger.info(f"Reactome search for '{query}' returned no matches")
+                return []
+            logger.error(f"Reactome search failed for '{query}': {e}")
+            return []
         except Exception as e:
             logger.error(f"Reactome search failed for '{query}': {e}")
             return []
@@ -71,7 +112,8 @@ class ReactomeAdapter(KnowledgeSourceAdapter):
         """Convert Reactome search result to unified concept."""
         try:
             st_id = result.get("stId", "")
-            label = result.get("name", "")
+            # Search hits wrap matched words in <span class="highlighting"> markup
+            label = _strip_markup(result.get("name", ""))
 
             if not st_id or not label:
                 return None
@@ -79,7 +121,7 @@ class ReactomeAdapter(KnowledgeSourceAdapter):
             concept = UnifiedConcept(
                 primary_id=st_id,
                 primary_label=label,
-                concept_type=ConceptType.UNKNOWN,  # noqa: E501  # Pathways are not exactly one of our ConceptTypes
+                concept_type=_concept_type(result.get("type")),
             )
 
             concept.add_identifier(
@@ -90,8 +132,9 @@ class ReactomeAdapter(KnowledgeSourceAdapter):
             )
 
             if "summation" in result:
-                if concept.definitions is not None:
-                    concept.definitions.append(result["summation"])
+                summation = _strip_markup(result["summation"])
+                if summation and concept.definitions is not None:
+                    concept.definitions.append(summation)
 
             if "species" in result:
                 if concept.categories is not None:
@@ -117,7 +160,9 @@ class ReactomeAdapter(KnowledgeSourceAdapter):
                 return None
 
             concept = UnifiedConcept(
-                primary_id=st_id, primary_label=label, concept_type=ConceptType.UNKNOWN
+                primary_id=st_id,
+                primary_label=label,
+                concept_type=_concept_type(data.get("schemaClass") or data.get("className")),
             )
 
             concept.add_identifier(

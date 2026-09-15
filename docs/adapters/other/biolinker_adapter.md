@@ -1,193 +1,88 @@
-# BioLinker AI Adapter Documentation
+---
+description: TIB BioLinker AI - link entities and predicates in free text to UMLS concepts.
+---
 
-## Overview
-The BioLinker AI adapter provides access to TIB BioLinker AI API for entity and relation extraction from text. It enables automated extraction of biomedical entities (genes, proteins, diseases, drugs) and their relationships from free-text descriptions.
+# BioLinker adapter
 
-## Key Functions
+Sends free text to the TIB BioLinker AI service, which recognises entities and predicates and links them to UMLS concepts. `search_concepts` expects a sentence or passage rather than a single term, and the adapter adds sentence-level helpers that group the results into entities, predicates and candidate relations.
 
-### `search_concepts(query, limit=20)` [async]
-Extract entities and relations from text using BioLinker AI.
+| | |
+|---|---|
+| Source | `KnowledgeSource.BIOLINKER` |
+| Class | `knowledge_lookup.adapters.BioLinkerAdapter` |
+| Requires | none |
+| Identifiers | input is text; results use UMLS CUIs, e.g. `C0025598` |
+| Upstream API | `https://labs.tib.eu/biolinkerai/process-text` |
 
-**Parameters:**
-- `query`: Input text to process
-- `limit`: Maximum number of results (default: 20)
-
-**Returns:** `List[UnifiedConcept]` - Extracted concepts from the text
-
-**Example:**
-```python
-concepts = await adapter.search_concepts("Diabetes is associated with insulin resistance")
-```
-
-### `search_concepts_with_depth(query, limit=20, search_depth=50)` [async]
-Extract entities with custom search depth for more comprehensive results.
-
-**Parameters:**
-- `query`: Input text to process
-- `limit`: Maximum number of results (default: 20)
-- `search_depth`: Number of concepts to consider (default: 50, max: 100)
-
-**Returns:** `List[UnifiedConcept]` - Extracted concepts with specified depth
-
-### `annotate_sentence(sentence, search_depth=50)` [async]
-Annotate a complete sentence with structured entity and relation extraction.
-
-**Parameters:**
-- `sentence`: Complete sentence to annotate
-- `search_depth`: Number of concepts to consider
-
-**Returns:** `Dict[str, Any]` with structured annotation results including:
-- `entities`: List of extracted entities with positions
-- `predicates`: List of extracted predicates
-- `relations`: Identified relations between entities and predicates
-
-### `annotate_multiple_sentences(sentences, search_depth=50)` [async]
-Annotate multiple sentences efficiently.
-
-**Parameters:**
-- `sentences`: List of sentences to annotate
-- `search_depth`: Number of concepts to consider per sentence
-
-**Returns:** `List[Dict[str, Any]]` - Annotation results for each sentence
-
-## API Information
-
-### Endpoint
-- **Base URL**: `https://labs.tib.eu/biolinkerai`
-- **Process Endpoint**: `/process-text`
-- **Authentication**: Not required (public API)
-- **Rate Limits**: None documented
-
-### Request Parameters
-- `input_text`: Text to process
-- `k`: Search depth (number of concepts to consider)
-
-### Response Structure
-```json
-{
-  "results": [
-    {
-      "best_candidate": {
-        "id": "C0011860",
-        "label": "Diabetes Mellitus",
-        "description": "A metabolic disorder...",
-        "type": ["disease"]
-      },
-      "surface_form": "Diabetes",
-      "category": "entities",
-      "start": 0,
-      "end": 8
-    }
-  ]
-}
-```
-
-## Data Types and Structures
-
-### UnifiedConcept Fields for BioLinker
-- `primary_id`: UMLS concept ID (C-code, e.g., 'C0011860')
-- `primary_label`: Concept label
-- `concept_type`: Mapped from semantic types
-- `definitions`: Concept descriptions
-- `synonyms`: Surface forms found in text
-- `semantic_types`: BioLinker AI semantic categories
-- `categories`: Entity category (entities/predicates)
-- `confidence_score`: Based on candidate quality
-- `source_data`: Raw API response with position info
-
-### Source Data Fields
-- `surface_form`: Text substring that matched
-- `text_position`: Start and end character positions
-- `category`: 'entities' or 'predicates'
-- `biolinker_source`: 'TIB BioLinker AI'
-
-## Configuration
-No special configuration required. The adapter is publicly available.
+## Quick example
 
 ```python
-config = LookupConfig()
-adapter = BioLinkerAdapter(config)
+import asyncio
+
+from knowledge_lookup.adapters import BioLinkerAdapter
+from knowledge_lookup.models import LookupConfig
+
+TEXT = "Metformin is used to treat type 2 diabetes."
+
+
+async def main():
+    async with BioLinkerAdapter(LookupConfig()) as adapter:
+        for concept in await adapter.search_concepts(TEXT):
+            print(concept.primary_id, concept.primary_label, concept.categories, concept.concept_type)
+
+        annotation = await adapter.annotate_sentence(TEXT)
+        print([e["surface_form"] for e in annotation["entities"]], len(annotation["relations"]))
+
+
+asyncio.run(main())
 ```
 
-## Features
-- **Entity Extraction**: Extract genes, proteins, diseases, drugs from text
-- **Predicate Extraction**: Identify relations and actions
-- **Position Tracking**: Character-level positions in source text
-- **Semantic Typing**: Automatic classification of entities
-- **Confidence Scoring**: Based on candidate quality and surface forms
-- **Sentence Annotation**: Structured annotation of complete sentences
-- **Batch Processing**: Efficient multiple sentence processing
-- **Flexible Depth**: Configurable search depth for comprehensive results
+Output (the service is non-deterministic; repeated calls can link different spans):
 
-## Error Handling
-- Network connectivity validation
-- API timeout handling (2 minute timeout for slow responses)
-- Response structure validation
-- Entity parsing errors
-- Comprehensive logging
-
-## Usage Examples
-
-### Basic Text Processing
-```python
-from knowledge_lookup.adapters.biolinker_adapter import BioLinkerAdapter
-
-adapter = BioLinkerAdapter(config)
-
-# Extract entities from text
-concepts = await adapter.search_concepts(
-    "TP53 mutations are associated with increased cancer risk"
-)
-
-for concept in concepts:
-    print(f"Found: {concept.primary_label} ({concept.concept_type.value})")
+```
+C0025598 metformin ['entities'] DRUG
+C0011860 type 2 diabetes ['entities'] UNKNOWN
+C1880036 regimen used to treat breast carcinoma ['predicates'] PROCEDURE
+['type 2 diabetes'] 0
 ```
 
-### Sentence Annotation
-```python
-# Get structured annotation
-annotation = await adapter.annotate_sentence(
-    "Insulin resistance leads to type 2 diabetes"
-)
+## Searching
 
-print(f"Entities: {len(annotation['entities'])}")
-print(f"Predicates: {len(annotation['predicates'])}")
-print(f"Relations: {len(annotation['relations'])}")
+`search_concepts(query, limit)` POSTs `{"input_text": query, "k": depth}`. The search depth `k` depends on the length of the text: 25 for fewer than 3 words, 100 for more than 10 words, otherwise 50. Each result's best candidate becomes a concept:
 
-# Extract entity information
-for entity in annotation['entities']:
-    print(f"  {entity['surface_form']}: {entity['label']}")
-```
+| Field | Value |
+|---|---|
+| `primary_id` | linked ID (a UMLS CUI) |
+| `primary_label` | candidate label |
+| `concept_type` | keyword match on the candidate types (disease → `DISEASE`, drug/pharmacologic/substance → `DRUG`, gene, protein, pathway, organism, anatomy, phenotype, chemical, procedure), else `UNKNOWN` |
+| `semantic_types` | candidate types as returned (sometimes a single stringified list) |
+| `categories` | `['entities']` or `['predicates']` |
+| `definitions` | candidate description |
+| `synonyms` | the matched surface form, if it differs from the label |
+| `identifiers` | one `BIOLINKER` identifier, with a UTS URL for CUIs |
+| `confidence_score` | 0.7, plus 0.1 with a description, 0.1 with types, 0.05 for entities, 0.05 if the surface form equals the label |
+| `source_data[BIOLINKER]` | `surface_form`, `text_position` (`start`, `end`), `category` |
 
-### Batch Processing
-```python
-# Process multiple sentences
-sentences = [
-    "Diabetes increases cardiovascular risk",
-    "Obesity is a risk factor for diabetes"
-]
+## Concept details
 
-annotations = await adapter.annotate_multiple_sentences(sentences)
+Not supported: BioLinker has no lookup by ID, so `get_concept_details` logs a warning and returns `None`. Resolve CUIs with the [UMLS adapter](../core/umls_adapter.md).
 
-for i, annotation in enumerate(annotations):
-    print(f"Sentence {i+1}: {len(annotation['entities'])} entities")
-```
+## Source-specific methods
 
-### Custom Search Depth
-```python
-# For complex queries, use higher search depth
-concepts = await adapter.search_concepts_with_depth(
-    "Genetic and environmental factors interact in complex diseases",
-    limit=20,
-    search_depth=100
-)
-```
+| Method | Returns |
+|---|---|
+| `search_concepts_with_depth(query, limit=20, search_depth=50)` | same as `search_concepts` with an explicit `k` |
+| `annotate_sentence(sentence, search_depth=50)` | dict with `sentence`, `search_depth`, `total_concepts`, `entities`, `predicates`, `relations`, `concept_map`; on failure a dict with `error` |
+| `annotate_multiple_sentences(sentences, search_depth=50)` | list of `annotate_sentence` results, with a 0.5 s pause between sentences |
 
-## Architecture
-The adapter sends text to BioLinker AI's process-text endpoint, which returns extracted entities and predicates. Results are converted to UnifiedConcept objects with surface forms, positions, and confidence scores based on the quality of extracted candidates.
+Entities and predicates are dicts with `surface_form`, `label`, `id`, `type`, `semantic_types`, `position`, `confidence` and `definition`. `relations` is a proximity heuristic: for each predicate, the two nearest entities within 50 characters become subject and object.
 
-## Notes
-- BioLinker AI may be slow for complex queries (uses 180-second timeout)
-- Search depth affects both accuracy and processing time
-- Entity positions are useful for text highlighting and navigation
-- Confidence scores help prioritize high-quality extractions
+## Rate limits and errors
+
+The adapter opens its own HTTP session with a 180-second total timeout, ignoring `timeout_per_source`. Requests go through the shared retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)); non-200 responses are raised as `OSError` and retried by category. Errors are logged and search returns `[]`. Calls took 7–15 seconds in testing. Through `CentralKnowledgeLookup` the 30-second `timeout_per_source` still applies.
+
+## See also
+
+- [UMLS adapter](../core/umls_adapter.md)
+- [BioOntology adapter](../ontologies/bioontology_adapter.md): BioPortal Annotator
+- [All adapters](../README.md)

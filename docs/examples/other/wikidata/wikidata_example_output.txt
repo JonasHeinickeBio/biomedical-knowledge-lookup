@@ -1,46 +1,26 @@
-Checking if Wikidata adapter is available...
-  ✓ Wikidata adapter is available
+The WIKIDATA adapter is available.
 
-Searching for 'cancer' concepts in Wikidata...
+Searching WIKIDATA for 'aspirin' ...
+Found 2 concept(s) in 1.6s
 
-Found 32 results from Wikidata:
+  1. aspirin
+     ID:         Q18216
+     Type:       CHEMICAL
+     Confidence: 0.7
+     Definition: medication used to treat pain and decrease the risk of heart disease
 
-  Concept 1:
-    Label: Cancer Research
-    ID: Q326097
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.7
-    Definitions (1):
-      - scientific journal
+  2. aspirin-exacerbated respiratory disease
+     ID:         Q2039267
+     Type:       DISEASE
+     Confidence: 0.7
+     Definition: human disease
 
-  Concept 2:
-    Label: colon cancer
-    ID: Q18555025
-    Type: ConceptType.DISEASE
-    Confidence: 0.7
-    Definitions (1):
-      - colorectal cancer that is located in the colon
+Fetching details for 'Q18216' ...
+  Label:      aspirin
+  ID:         Q18216
+  Type:       CHEMICAL
+  Definition: medication used to treat pain and decrease the risk of heart disease
+  Identifier: Q18216 (WIKIDATA)
+  Identifier: C0004057 (UMLS)
 
-  Concept 3:
-    Label: Cancers
-    ID: Q27722963
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.7
-    Definitions (1):
-      - scientific journal
-
-  Concept 4:
-    Label: breast carcinoma
-    ID: Q18555947
-    Type: ConceptType.DISEASE
-    Confidence: 0.7
-    Definitions (1):
-      - breast cancer that has material basis in abnormally proliferating cells derives from epithelial cells
-
-  Concept 5:
-    Label: lung carcinoma
-    ID: Q18556110
-    Type: ConceptType.DISEASE
-    Confidence: 0.7
-    Definitions (1):
-      - lung cancer that has material basis in abnormally proliferating cells derives from epithelial cells and is located in the lungs and has symptom cough and has symptom chest discomfort or pain and has symptom weight loss and has symptom hemoptysis
+Summary: search=2 details=found

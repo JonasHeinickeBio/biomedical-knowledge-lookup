@@ -1,12 +1,18 @@
-╔══════════════════════════════════════════════════════╗
-║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
-║  The adapter does not return valid search results.  ║
-╚══════════════════════════════════════════════════════╝
+The OXO adapter is available.
 
-Checking if OxO adapter is available...
-  ✓ OxO adapter is available
+Searching OXO for 'MONDO:0005148' ...
+Found 1 concept(s) in 1.1s
 
-Searching for 'MONDO:0004992' concepts in OxO...
+  1. type 2 diabetes mellitus
+     ID:         MONDO:0005148
+     Type:       UNKNOWN
+     Confidence: 0.8
+     Mapping:    UMLS:C0011860 (UMLS)
 
-Found 0 results from OxO:
-  No results found for 'MONDO:0004992'
+Fetching details for 'MONDO:0005148' ...
+  Label:      type 2 diabetes mellitus
+  ID:         MONDO:0005148
+  Type:       UNKNOWN
+  Identifier: MONDO:0005148 (OXO)
+
+Summary: search=1 details=found

@@ -59,14 +59,31 @@ class EuropePMCAdapter(KnowledgeSourceAdapter):
     async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed information about a specific EuropePMC article."""
         try:
-            # concept_id expected in form "MED:12345678" or just "12345678"
+            # concept_id may be "PMID:12345678" (as produced by search_concepts),
+            # a Europe PMC "<source>:<id>" pair such as "MED:12345678", a PMC ID
+            # ("PMC1234567") or a bare PubMed ID ("12345678").
             if ":" in concept_id:
                 source, pmid = concept_id.split(":", 1)
+                source = source.strip().upper()
             else:
                 source, pmid = "MED", concept_id
+            pmid = pmid.strip()
+
+            if source == "PMID":
+                # search_concepts wraps non-PubMed records too (PMID:PMC..., PMID:PPR...)
+                if pmid.upper().startswith("PMC"):
+                    source = "PMC"
+                elif pmid.upper().startswith("PPR"):
+                    source = "PPR"
+                else:
+                    source = "MED"
+            elif source == "PMCID":
+                source = "PMC"
+            elif source == "MED" and pmid.upper().startswith("PMC"):
+                source = "PMC"
 
             url = f"{self.base_url}/article/{source}/{pmid}"
-            params = {"format": "json"}
+            params = {"format": "json", "resultType": "core"}
 
             data = await self._make_request(url, params)
             result = data.get("result", {})
@@ -113,6 +130,13 @@ class EuropePMCAdapter(KnowledgeSourceAdapter):
 
             # Journal / source
             journal_title = item.get("journalTitle", "")
+            if not journal_title:
+                # resultType=core nests the journal: journalInfo.journal.title
+                journal_info = item.get("journalInfo", {})
+                if isinstance(journal_info, dict):
+                    journal = journal_info.get("journal", {})
+                    if isinstance(journal, dict):
+                        journal_title = journal.get("title", "")
             if journal_title:
                 if concept.categories is not None:
                     concept.categories.append(f"journal:{journal_title}")

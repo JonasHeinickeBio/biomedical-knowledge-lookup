@@ -6,9 +6,22 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters import ADAPTER_CLASSES
+from knowledge_lookup.base import KnowledgeSourceAdapter
 from knowledge_lookup.models import UnifiedConcept
+
+pytestmark = pytest.mark.unit
+
+
+def _no_library_calls(return_value):
+    """Stub the worker-thread path used by adapters built on synchronous client
+    libraries (tyto, bioservices, chembl_webresource_client). Patching aiohttp
+    alone leaves those adapters making real network calls, which hang on CI."""
+    return patch.object(
+        KnowledgeSourceAdapter,
+        "_thread_with_retry",
+        new=AsyncMock(return_value=return_value),
+    )
 
 
 class TestAllAdapters:
@@ -45,6 +58,7 @@ class TestAllAdapters:
         with (
             patch("aiohttp.ClientSession.get") as mock_get,
             patch("aiohttp.ClientSession.post") as mock_post,
+            _no_library_calls([]),
         ):
             mock_get.return_value.__aenter__.return_value = mock_response
             mock_post.return_value.__aenter__.return_value = mock_response
@@ -71,6 +85,7 @@ class TestAllAdapters:
         with (
             patch("aiohttp.ClientSession.get") as mock_get,
             patch("aiohttp.ClientSession.post") as mock_post,
+            _no_library_calls(None),
         ):
             mock_get.return_value.__aenter__.return_value = mock_response
             mock_post.return_value.__aenter__.return_value = mock_response

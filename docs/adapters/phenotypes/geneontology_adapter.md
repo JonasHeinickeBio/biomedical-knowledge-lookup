@@ -1,182 +1,74 @@
-# Gene Ontology (GO) Adapter
+---
+description: Gene Ontology terms (processes, functions, components) from the QuickGO ontology API.
+---
 
-## Overview
+# Gene Ontology adapter
 
-The Gene Ontology Adapter provides access to the Gene Ontology (GO) database through QuickGO API. GO provides a controlled vocabulary of terms for describing gene product characteristics across species, covering biological process, molecular function, and cellular component.
+Searches Gene Ontology terms and fetches them by GO ID using EBI's QuickGO REST API. Results carry the term name, definition, synonyms and GO aspect (biological process, molecular function or cellular component).
 
-### Purpose
-- Search for Gene Ontology terms
-- Retrieve GO term definitions and relationships
-- Access gene-to-GO term annotations
-- Support functional enrichment analysis
+| | |
+|---|---|
+| Source | `KnowledgeSource.GENEONTOLOGY` |
+| Class | `knowledge_lookup.adapters.GeneOntologyAdapter` |
+| Requires | none |
+| Identifiers | `GO:0006915` |
+| Upstream API | `https://www.ebi.ac.uk/QuickGO/services/ontology/go` |
 
-### Scope
-- GO terms (Biological Process, Molecular Function, Cellular Component)
-- GO term definitions and synonyms
-- Term relationships (is_a, part_of, regulates)
-- Gene and protein annotations to GO terms
-- Evidence codes and annotation sources
-
-## Key Features
-
-- **GO Term Search**: Search GO for terms by name or description
-- **Term Details**: Retrieve comprehensive term information
-- **Annotation Search**: Find genes annotated to specific GO terms
-- **Evidence Codes**: Access evidence codes for annotations
-- **Term Relationships**: Access hierarchical relationships between terms
-- **Cross-References**: Link to external databases
-
-## API Information
-
-### Endpoint
-- **Base URL**: `https://www.ebi.ac.uk/QuickGO/services/ontology/go`
-
-### Authentication
-- **Required**: No
-- **API Key**: Not required (public EMBL-EBI service)
-
-### Environment Variables
-- None required
-
-## Key Methods
-
-### `search_concepts(query, limit=20) -> list[UnifiedConcept]`
-
-Search GO for terms matching the query.
-
-**Parameters:**
-- `query` (str): Search term (GO term name, keyword)
-- `limit` (int): Maximum number of results (default: 20)
-
-**Returns:**
-- List of `UnifiedConcept` objects representing GO terms
-
-**Example:**
-```python
-concepts = await adapter.search_concepts("cell cycle")
-```
-
-### `get_concept_details(concept_id) -> UnifiedConcept | None`
-
-Get detailed information about a specific GO term.
-
-**Parameters:**
-- `concept_id` (str): GO ID (e.g., "GO:0008150")
-
-**Returns:**
-- `UnifiedConcept` with full term details, or `None` if not found
-
-**Example:**
-```python
-term = await adapter.get_concept_details("GO:0008150")
-```
-
-## Configuration
-
-Configure the adapter with required `LookupConfig`:
+## Quick example
 
 ```python
-from knowledge_lookup.adapters.geneontology_adapter import GeneOntologyAdapter
+import asyncio
+
+from knowledge_lookup.adapters import GeneOntologyAdapter
 from knowledge_lookup.models import LookupConfig
 
-config = LookupConfig()
-adapter = GeneOntologyAdapter(config)
+
+async def main():
+    async with GeneOntologyAdapter(LookupConfig()) as adapter:
+        for concept in await adapter.search_concepts("apoptosis", limit=3):
+            print(concept.primary_id, concept.primary_label, concept.categories)
+
+        term = await adapter.get_concept_details("GO:0006915")
+        print(term.primary_label, len(term.synonyms), term.definitions[0][:60])
+
+
+asyncio.run(main())
 ```
 
-## Usage Examples
+Output:
 
-### Basic Search
-```python
-from knowledge_lookup.adapters.geneontology_adapter import GeneOntologyAdapter
-
-adapter = GeneOntologyAdapter(config)
-
-# Search for cell cycle terms
-results = await adapter.search_concepts("cell cycle", limit=10)
-
-for concept in results:
-    print(f"GO Term: {concept.primary_label}")
-    print(f"ID: {concept.primary_id}")
-    print(f"Aspect: {concept.categories}")
+```
+GO:0097194 execution phase of apoptosis ['Aspect: biological_process']
+GO:0070227 lymphocyte apoptotic process ['Aspect: biological_process']
+GO:1902489 hepatoblast apoptotic process ['Aspect: biological_process']
+apoptotic process 16 A programmed cell death process which begins when a cell rec
 ```
 
-### Get Term Details
-```python
-# Get detailed information for a specific GO term
-term = await adapter.get_concept_details("GO:0008150")
+## Searching
 
-if term:
-    print(f"Name: {term.primary_label}")
-    print(f"ID: {term.primary_id}")
-    print(f"Definition: {term.definitions}")
-    print(f"Aspect: {term.categories}")
-    print(f"Synonyms: {term.synonyms}")
-```
+`search_concepts(query, limit)` calls `/search?query=...&limit=min(limit, 100)`. QuickGO's ranking does not put the exact term first: `apoptotic process` itself is not in the top three above.
 
-### Search by Function
-```python
-# Search for ATP binding terms
-results = await adapter.search_concepts("ATP binding")
-```
+| Field | Value |
+|---|---|
+| `primary_id` | GO ID |
+| `primary_label` | term name |
+| `concept_type` | always `GENE` (the [QuickGO adapter](quickgo_adapter.md) uses `BIOLOGICAL_PROCESS` etc. instead) |
+| `categories` | `Aspect: <biological_process \| molecular_function \| cellular_component>` |
+| `definitions` | definition text |
+| `synonyms` | synonym names (search results usually have none) |
+| `identifiers` | one `GENEONTOLOGY` identifier, URL `https://www.ebi.ac.uk/QuickGO/term/<id>` |
+| `confidence_score` | `0.95` |
 
-### Search by Process
-```python
-# Search for metabolic process terms
-results = await adapter.search_concepts("metabolic process")
-```
+## Concept details
 
-## Error Handling
+`get_concept_details("GO:0006915")` calls `/terms/{id}` and converts the first result the same way, with synonyms filled in.
 
-The adapter implements comprehensive error handling:
+## Rate limits and errors
 
-- **Search Failures**: Returns empty list on error with logging
-- **Invalid IDs**: Returns `None` for non-existent term IDs
-- **Network Errors**: Caught and logged, returns appropriate fallback
-- **Data Parsing Errors**: Graceful handling with `logger.error` logging
+Uses the shared HTTP retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). Errors are logged; search returns `[]` and details return `None`.
 
-```python
-try:
-    results = await adapter.search_concepts("cell cycle")
-    if not results:
-        logger.info("No GO terms found for 'cell cycle'")
-except Exception as e:
-    logger.error(f"GO search failed: {e}")
-```
+## See also
 
-## Rate Limiting
-
-**QuickGO API Rate Limits:**
-- Free tier: 15 requests per second
-- No API key required for public data
-
-The adapter includes built-in rate limiting via the base class `KnowledgeSourceAdapter`. Implementations should:
-- Respect QuickGO's rate limits
-- Implement request batching for bulk operations
-- Consider caching for frequently accessed terms
-
-```python
-# The adapter automatically handles rate limiting through the base class
-```
-
-## Data Model Mapping
-
-| GO Field | UnifiedConcept Mapping |
-|---------|----------------------|
-| `id` | `primary_id` (as `GO:{id}`) |
-| `name` | `primary_label` |
-| `definition.text` | `definitions.append(definition)` |
-| `synonyms.name` | `synonyms.extend(synonyms)` |
-| `aspect` | `categories.append("Aspect: {aspect}")` |
-
-## Related Adapters
-
-- **QuickGO Adapter**: For GO annotations
-- **Uniprot Adapter**: For protein-GO annotations
-- **HGNC Adapter**: For gene-GO annotations
-- **InterPro Adapter**: For domain-GO mappings
-
-## References
-
-- [QuickGO Documentation](https://www.ebi.ac.uk/QuickGO/)
-- [Gene Ontology Website](http://geneontology.org/)
-- [GO Help](http://geneontology.org/docs/go-citation-policy/)
+- [QuickGO adapter](quickgo_adapter.md): GO terms through `bioservices`
+- [Reactome adapter](../pathways/reactome_adapter.md)
+- [All adapters](../README.md)

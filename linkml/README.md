@@ -36,13 +36,18 @@ The schema defines:
 cd linkml && make generate-python
 
 # Or directly with linkml (from project root)
-poetry run linkml generate pydantic linkml/biomedical_knowledge_schema.yaml > src/knowledge_lookup/generated_models/biomedical_knowledge_models.py
+poetry run linkml generate pydantic linkml/biomedical_knowledge_schema.yaml > src/knowledge_lookup/models/biomedical_knowledge_models.py
 ```
+
+> **Warning:** the committed `models/biomedical_knowledge_models.py` carries hand edits that
+> the schema does not express. For example, `LookupConfig.rate_limits` is a `dict` in the model
+> but a `json_string` in the schema. Regenerating overwrites these edits, so diff the output
+> against the committed file and re-apply them (or update the schema) before committing.
 
 ### Use in Python
 
 ```python
-from src.knowledge_lookup.generated_models.biomedical_knowledge_models import (
+from knowledge_lookup.models.biomedical_knowledge_models import (
     UnifiedConcept,
     ConceptIdentifier,
     ConceptMapping,

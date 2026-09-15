@@ -11,6 +11,7 @@ from typing import cast
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from knowledge_lookup import (
@@ -20,6 +21,8 @@ from knowledge_lookup import (
     __description__,
     __version__,
 )
+from knowledge_lookup.cache import init_cache
+from knowledge_lookup.mcp_server.sources import SOURCE_CATALOG
 
 try:
     from knowledge_lookup.adapters.umls_adapter import UMLSAdapter
@@ -40,7 +43,7 @@ def callback():
     """
     Biomedical Knowledge Lookup CLI
 
-    Search for biological concepts across 29+ biomedical knowledge sources.
+    Search for biological concepts across 36 biomedical knowledge sources.
     """
     pass
 
@@ -54,9 +57,18 @@ def search(
         "-s",
         help="Knowledge sources to search (default: all available)",
     ),
-    limit: int = typer.Option(10, "--limit", "-l", help="Maximum results per source"),
+    limit: int = typer.Option(
+        10,
+        "--limit",
+        "-l",
+        help="Maximum number of results in total (split across the selected sources)",
+    ),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table, json, csv"),
-    cache_dir: str | None = typer.Option(None, "--cache-dir", help="Cache directory path"),
+    cache_dir: str | None = typer.Option(
+        None,
+        "--cache-dir",
+        help="Directory for the on-disk adapter cache (default: in-memory cache only)",
+    ),
     partial: bool = typer.Option(
         False, "--partial", "-p", help="Enable partial/fuzzy matching (UMLS adapter)"
     ),
@@ -65,6 +77,10 @@ def search(
     Search for biological concepts across knowledge sources.
     """
     try:
+        # Configure the global cache before the lookup system picks it up
+        if cache_dir:
+            init_cache(disk_cache_dir=cache_dir)
+
         # Initialize lookup system
         lookup = CentralKnowledgeLookup()
 
@@ -90,24 +106,26 @@ def search(
                 f"[bold blue]Sources:[/bold blue] {', '.join([s.value for s in source_enums])}"
             )
 
-        async def do_search(lkp=None):
-            if partial and (source_enums is None or KnowledgeSource.UMLS in source_enums):
-                # Direct UMLS adapter call with partial_search enabled
-                lkp = CentralKnowledgeLookup()
-                umls_adapter = lkp._get_adapter(KnowledgeSource.UMLS)
-                if umls_adapter and umls_adapter.is_available():
-                    umls_adapter_casted = cast("UMLSAdapter", umls_adapter)
-                    umls_concepts = await umls_adapter_casted.search_concepts(
-                        query, limit=limit, partial_search=True
-                    )
-                    result = LookupResult(query=query)
-                    result.add_concepts(umls_concepts, KnowledgeSource.UMLS)
-                    return result
-            return await lkp.search_concepts(
-                query=query,
-                sources=source_enums,
-                max_results=limit,
-            )
+        async def do_search(lkp: CentralKnowledgeLookup) -> LookupResult:
+            try:
+                if partial and (source_enums is None or KnowledgeSource.UMLS in source_enums):
+                    # Direct UMLS adapter call with partial_search enabled
+                    umls_adapter = lkp._get_adapter(KnowledgeSource.UMLS)
+                    if umls_adapter and umls_adapter.is_available():
+                        umls_adapter_casted = cast("UMLSAdapter", umls_adapter)
+                        umls_concepts = await umls_adapter_casted.search_concepts(
+                            query, limit=limit, partial_search=True
+                        )
+                        result = LookupResult(query=query)
+                        result.add_concepts(umls_concepts, KnowledgeSource.UMLS)
+                        return result
+                return await lkp.search_concepts(
+                    query=query,
+                    sources=source_enums,
+                    max_results=limit,
+                )
+            finally:
+                await lkp.close()
 
         results = asyncio.run(do_search(lookup))
 
@@ -119,7 +137,10 @@ def search(
         if output == "json":
             output_data = {
                 "query": query,
-                "sources": [s.value for s in (source_enums or list(KnowledgeSource))],
+                "sources": [
+                    str(getattr(s, "value", s))
+                    for s in (source_enums or results.sources_queried or [])
+                ],
                 "total_results": len(results.concepts),
                 "results": [
                     {
@@ -204,16 +225,26 @@ def _get_concept_umls_cui(concept) -> str | None:
 def workflow(
     query: str = typer.Argument(..., help="Search query for the agent workflow"),
     sources: list[str] | None = typer.Option(
-        None, "--source", "-s", help="Knowledge sources to search"
+        None,
+        "--source",
+        "-s",
+        help="Knowledge sources for term expansion and the main lookup (default: all available)",
     ),
-    limit: int = typer.Option(20, "--limit", "-l", help="Maximum results"),
+    limit: int = typer.Option(
+        20,
+        "--limit",
+        "-l",
+        help="Maximum results per search term; also the number of concepts kept after filtering",
+    ),
     export_formats: list[str] = typer.Option(
         ["json"], "--format", "-f", help="Export formats (json, csv, ttl)"
     ),
     export_path: str | None = typer.Option(
         None, "--export-path", "-e", help="Export directory path"
     ),
-    max_iterations: int = typer.Option(3, "--max-iter", help="Maximum refinement rounds"),
+    max_iterations: int = typer.Option(
+        3, "--max-iter", help="Maximum lookup passes (initial search plus refinements)"
+    ),
     auto_approve: float = typer.Option(0.8, "--auto-approve", help="Auto-approve threshold (0-1)"),
     concept_types: list[str] | None = typer.Option(
         None, "--type", "-t", help="Filter by concept types"
@@ -256,83 +287,31 @@ def workflow(
         )
 
     result = asyncio.run(_run())
+    _print_review(result, auto_approve)
 
-    # Display concept map (term → CUI → ontology IDs → type)
-    concept_map = result.get("summary", {}).get("concept_map") or result.get("concept_map") or []
-    llm_explanation = (
-        result.get("summary", {}).get("llm_explanation") or result.get("llm_explanation") or ""
-    )
-
-    # Display review
-    if result.get("review_score") is not None:
-        score = result["review_score"]
-        color = "green" if score >= auto_approve else "yellow" if score >= 0.5 else "red"
-        console.print(f"\n[bold {color}]Review Score: {score:.2f}[/bold {color}]")
-        if result.get("review_summary"):
-            console.print(f"[dim]{result['review_summary']}[/dim]")
-
-    # Show concept map
-    if concept_map:
-        console.print("\n[bold]Concept Map:[/bold]")
-        map_table = Table()
-        map_table.add_column("Term", style="bold", no_wrap=True)
-        map_table.add_column("UMLS CUI", style="magenta")
-        map_table.add_column("Ontology IDs", style="cyan")
-        map_table.add_column("Type", style="yellow")
-        for entry in concept_map[:15]:
-            term = entry.get("term", "")
-            cui = entry.get("umls_cui", "") or "—"
-            ids = ", ".join(entry.get("ontology_ids", [])[:5])
-            if len(entry.get("ontology_ids", [])) > 5:
-                ids += f" … (+{len(entry['ontology_ids']) - 5} more)"
-            ptype = entry.get("primary_type", "") or "—"
-            map_table.add_row(term, cui, ids, ptype)
-        console.print(map_table)
-
-    # Show LLM explanation
-    if llm_explanation:
-        console.print("\n[bold]LLM Explanation:[/bold]")
-        console.print(f"{llm_explanation[:500]}{'…' if len(llm_explanation) > 500 else ''}")
-
-    # Show strengths/weaknesses
-    if result.get("review_strengths"):
-        console.print("\n[bold green]Strengths:[/bold green]")
-        for s in result["review_strengths"]:
-            console.print(f"  [green]✓[/green] {s}")
-    if result.get("review_weaknesses"):
-        console.print("\n[bold red]Weaknesses:[/bold red]")
-        for w in result["review_weaknesses"]:
-            console.print(f"  [red]✗[/red] {w}")
-    if result.get("review_suggestions"):
-        console.print("\n[bold yellow]Suggestions:[/bold yellow]")
-        for s in result["review_suggestions"]:
-            console.print(f"  [yellow]→[/yellow] {s}")
-
-    # Check if paused for approval
-    if result.get("status") == "awaiting_approval":
+    # Ask for a decision while the workflow waits at the approval gate; a
+    # refinement searches again and can pause again (up to --max-iter passes).
+    rejected = False
+    while result.get("status") == "awaiting_approval":
         console.print("\n[bold yellow]Workflow paused for approval.[/bold yellow]")
         console.print(f"Thread ID: {result['thread_id']}")
-
-        # Interactive approval
-        approve = typer.confirm("Do you approve these results?")
-        if approve:
-            decision = {"approved": True}
-        else:
-            refine = typer.confirm("Would you like to refine the search?")
-            if refine:
-                notes = typer.prompt("Enter refinement notes (or press Enter to skip)", default="")
-                decision = {"approved": False, "refine": True, "notes": notes}
-            else:
-                decision = {"approved": False, "refine": False}
-
-        async def _resume():
-            return await resume_workflow(result["thread_id"], decision)
-
-        final = asyncio.run(_resume())
-        result = final
+        try:
+            decision = _prompt_approval_decision()
+        except typer.Abort:
+            console.print(
+                "\n[yellow]No approval decision received (input closed); stopping without "
+                "export. Pass --auto-approve 0 to export without asking.[/yellow]"
+            )
+            raise typer.Exit(1) from None
+        rejected = not decision.get("approved") and not decision.get("refine")
+        result = asyncio.run(resume_workflow(result["thread_id"], decision))
+        if result.get("status") == "awaiting_approval":
+            _print_review(result, auto_approve)
 
     # Display final results
-    if result.get("status") == "completed":
+    if rejected:
+        console.print("\n[bold yellow]Results rejected; nothing was exported.[/bold yellow]")
+    elif result.get("status") == "completed":
         console.print("\n[bold green]Workflow completed![/bold green]")
 
         # Show concept map in final output
@@ -398,40 +377,96 @@ def workflow(
             )
 
 
+def _prompt_approval_decision() -> dict:
+    """Ask the user for an approval decision (raises ``typer.Abort`` on closed input)."""
+    if typer.confirm("Do you approve these results?"):
+        return {"approved": True}
+    if typer.confirm("Would you like to refine the search?"):
+        notes = typer.prompt("Enter refinement notes (or press Enter to skip)", default="")
+        return {"approved": False, "refine": True, "notes": notes}
+    return {"approved": False, "refine": False}
+
+
+def _print_review(result: dict, auto_approve: float) -> None:
+    """Print the review score, concept map, explanation and review notes."""
+    # Display concept map (term → CUI → ontology IDs → type)
+    concept_map = result.get("summary", {}).get("concept_map") or result.get("concept_map") or []
+    llm_explanation = (
+        result.get("summary", {}).get("llm_explanation") or result.get("llm_explanation") or ""
+    )
+
+    # Display review
+    if result.get("review_score") is not None:
+        score = result["review_score"]
+        color = "green" if score >= auto_approve else "yellow" if score >= 0.5 else "red"
+        console.print(f"\n[bold {color}]Review Score: {score:.2f}[/bold {color}]")
+        if result.get("review_summary"):
+            console.print(f"[dim]{result['review_summary']}[/dim]")
+
+    # Show concept map
+    if concept_map:
+        console.print("\n[bold]Concept Map:[/bold]")
+        map_table = Table()
+        map_table.add_column("Term", style="bold", no_wrap=True)
+        map_table.add_column("UMLS CUI", style="magenta")
+        map_table.add_column("Ontology IDs", style="cyan")
+        map_table.add_column("Type", style="yellow")
+        for entry in concept_map[:15]:
+            term = entry.get("term", "")
+            cui = entry.get("umls_cui", "") or "—"
+            ids = ", ".join(entry.get("ontology_ids", [])[:5])
+            if len(entry.get("ontology_ids", [])) > 5:
+                ids += f" … (+{len(entry['ontology_ids']) - 5} more)"
+            ptype = entry.get("primary_type", "") or "—"
+            map_table.add_row(term, cui, ids, ptype)
+        console.print(map_table)
+
+    # Show LLM explanation
+    if llm_explanation:
+        console.print("\n[bold]LLM Explanation:[/bold]")
+        console.print(f"{llm_explanation[:500]}{'…' if len(llm_explanation) > 500 else ''}")
+
+    # Show strengths/weaknesses
+    if result.get("review_strengths"):
+        console.print("\n[bold green]Strengths:[/bold green]")
+        for s in result["review_strengths"]:
+            console.print(f"  [green]✓[/green] {s}")
+    if result.get("review_weaknesses"):
+        console.print("\n[bold red]Weaknesses:[/bold red]")
+        for w in result["review_weaknesses"]:
+            console.print(f"  [red]✗[/red] {w}")
+    if result.get("review_suggestions"):
+        console.print("\n[bold yellow]Suggestions:[/bold yellow]")
+        for s in result["review_suggestions"]:
+            console.print(f"  [yellow]→[/yellow] {s}")
+
+
 @app.command()
 def sources():
     """
-    List all available knowledge sources.
+    List all knowledge sources with an adapter and whether they are available here.
     """
-    table = Table(title="Available Knowledge Sources")
+    lookup = CentralKnowledgeLookup()
+    available = {s for s in SOURCE_CATALOG if lookup._get_adapter(s)}
+
+    table = Table(title="Knowledge Sources")
     table.add_column("Source", style="cyan", no_wrap=True)
     table.add_column("Description", style="white")
-    table.add_column("Requires API Key", style="yellow")
+    table.add_column("Requires", style="yellow")
+    table.add_column("Available", no_wrap=True)
 
-    source_info = {
-        KnowledgeSource.BIOPORTAL: ("NCBI BioPortal ontology repository", True),
-        KnowledgeSource.OLS: ("Ontology Lookup Service", False),
-        KnowledgeSource.UMLS: ("Unified Medical Language System", True),
-        KnowledgeSource.CHEMBL: ("Chemical database", False),
-        KnowledgeSource.DISGENET: ("Disease-gene associations", False),
-        KnowledgeSource.DRUGBANK: ("Drug information database", False),
-        KnowledgeSource.ENSEMBL: ("Genome annotation database", False),
-        KnowledgeSource.GO: ("Gene Ontology", False),
-        KnowledgeSource.HPO: ("Human Phenotype Ontology", False),
-        KnowledgeSource.MONDO: ("Mondo Disease Ontology", False),
-        KnowledgeSource.OPENTARGETS: ("Target-disease associations", False),
-        KnowledgeSource.PUBCHEM: ("Chemical information", False),
-        KnowledgeSource.REACTOME: ("Pathway database", False),
-        KnowledgeSource.UNIPROT: ("Protein sequence database", False),
-        KnowledgeSource.WIKIDATA: ("Structured knowledge base", False),
-        KnowledgeSource.ZOOMA: ("Ontology mapping service", False),
-    }
-
-    for source, (description, requires_key) in source_info.items():
-        table.add_row(source.value, description, "Yes" if requires_key else "No")
+    for source, spec in sorted(SOURCE_CATALOG.items(), key=lambda item: item[0].value):
+        table.add_row(
+            source.value,
+            escape(spec.description),
+            escape(spec.requires or "-"),  # "[chembl] extra" is not Rich markup
+            "[green]yes[/green]" if source in available else "[red]no[/red]",
+        )
 
     console.print(table)
-    console.print(f"\n[dim]Total sources: {len(KnowledgeSource)}[/dim]")
+    console.print(
+        f"\n[dim]{len(available)}/{len(SOURCE_CATALOG)} sources available in this environment[/dim]"
+    )
 
 
 @app.command()
@@ -444,10 +479,10 @@ def info():
     console.print(f"Description: {__description__}")
     console.print("Repository: https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup")
 
-    # Check available sources
+    # Check available sources (every source with an adapter)
     lookup = CentralKnowledgeLookup()
-    available_sources = [s.value for s in KnowledgeSource if lookup._get_adapter(s)]
-    console.print(f"Available sources: {len(available_sources)}/{len(KnowledgeSource)}")
+    available_sources = [s.value for s in SOURCE_CATALOG if lookup._get_adapter(s)]
+    console.print(f"Available sources: {len(available_sources)}/{len(SOURCE_CATALOG)}")
 
 
 @app.command()

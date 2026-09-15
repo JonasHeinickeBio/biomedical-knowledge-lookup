@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
 from knowledge_lookup.models import KnowledgeSource
 
 FIXTURE_DIR = Path(__file__).parent / "api_fixtures"

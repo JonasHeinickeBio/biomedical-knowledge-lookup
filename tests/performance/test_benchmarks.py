@@ -6,6 +6,7 @@ import time
 from unittest.mock import patch
 
 import pytest
+
 from knowledge_lookup import CentralKnowledgeLookup, KnowledgeSource, LookupConfig
 from knowledge_lookup.cache import KnowledgeLookupCache
 from knowledge_lookup.models import ConceptType, UnifiedConcept

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 from knowledge_lookup.core.expansion_store import (
     ORIGIN_ORIGINAL,
     ORIGIN_SYNONYM,

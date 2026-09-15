@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
+
 from knowledge_lookup.adapters.europepmc_adapter import EuropePMCAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 
@@ -153,6 +154,73 @@ class TestEuropePMCAdapter:
 
         result = await adapter.get_concept_details("MED:99999999")
         assert result is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("concept_id", "expected_path"),
+        [
+            ("PMID:12345678", "/article/MED/12345678"),
+            ("pmid:12345678", "/article/MED/12345678"),
+            ("MED:12345678", "/article/MED/12345678"),
+            ("12345678", "/article/MED/12345678"),
+            ("PMID:PMC7654321", "/article/PMC/PMC7654321"),
+            ("PMCID:PMC7654321", "/article/PMC/PMC7654321"),
+            ("PMC7654321", "/article/PMC/PMC7654321"),
+            ("PMID:PPR1319214", "/article/PPR/PPR1319214"),
+        ],
+    )
+    async def test_get_concept_details_accepts_search_ids(
+        self, adapter, concept_id, expected_path
+    ):
+        """Regression: IDs produced by search (``PMID:...``) are valid details IDs."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {
+                "version": "6.9",
+                "hitCount": 1,
+                "result": {"id": "12345678", "source": "MED", "pmid": "12345678", "title": "T"},
+            }
+            result = await adapter.get_concept_details(concept_id)
+        url, params = mock_req.call_args.args
+        assert url.endswith(expected_path)
+        assert params == {"format": "json", "resultType": "core"}
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_search_id_round_trips_to_details(self, adapter):
+        """The primary_id of a search result can be passed to get_concept_details."""
+        record = {
+            "id": "20301425",
+            "source": "MED",
+            "pmid": "20301425",
+            "title": "BRCA1- and BRCA2-Associated Hereditary Breast and Ovarian Cancer",
+        }
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = [
+                {"hitCount": 1, "resultList": {"result": [record]}},
+                {"hitCount": 1, "result": record},
+            ]
+            [found] = await adapter.search_concepts("BRCA1", limit=1)
+            details = await adapter.get_concept_details(found.primary_id)
+        assert found.primary_id == "PMID:20301425"
+        assert details is not None
+        assert details.primary_id == found.primary_id
+        assert mock_req.call_args.args[0].endswith("/article/MED/20301425")
+
+    def test_convert_result_reads_core_journal_info(self, adapter):
+        """resultType=core nests the journal title under journalInfo.journal."""
+        concept = adapter._convert_result_to_concept(
+            {
+                "pmid": "12345678",
+                "title": "Test",
+                "journalInfo": {
+                    "volume": "20",
+                    "journal": {"title": "Nature", "isoabbreviation": "Nature"},
+                },
+                "pubYear": "2026",
+            }
+        )
+        assert "journal:Nature" in concept.categories
+        assert "year:2026" in concept.categories
 
     @pytest.mark.asyncio
     async def test_get_mappings_default(self, adapter):

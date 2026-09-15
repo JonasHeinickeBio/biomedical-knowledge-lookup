@@ -14,14 +14,12 @@ Quick Start::
 
     from knowledge_lookup.agents import run_workflow, resume_workflow
 
-    # Run the workflow (pauses at approval)
-    result = await run_workflow("insulin receptor", max_results=20)
+    # Run the workflow (pauses at approval when the review score is low)
+    result = await run_workflow("insulin receptor", max_results=20, sources=["OLS"])
 
-    # Resume with user decision
-    result = await resume_workflow(
-        result["thread_id"],
-        {"approved": True}
-    )
+    # Resume with user decision (same process, or pass the same checkpointer)
+    if result["status"] == "awaiting_approval":
+        result = await resume_workflow(result["thread_id"], {"approved": True})
 
 Module Structure::
 
@@ -44,7 +42,7 @@ Module Structure::
 try:
     from .config import call_llm, load_llm_config
     from .graph import build_workflow_graph
-    from .runners import resume_workflow, run_workflow
+    from .runners import get_default_checkpointer, resume_workflow, run_workflow
     from .state import (
         LookupWorkflowState,
         dict_to_lookup_result,
@@ -61,6 +59,7 @@ __all__ = [
     # High-level API
     "run_workflow",
     "resume_workflow",
+    "get_default_checkpointer",
     "build_workflow_graph",
     # State
     "LookupWorkflowState",

@@ -1,12 +1,36 @@
-╔══════════════════════════════════════════════════════╗
-║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
-║  The adapter does not return valid search results.  ║
-╚══════════════════════════════════════════════════════╝
+The EUTILS adapter is available.
 
-Checking if Eutils adapter is available...
-  ✓ Eutils adapter is available
+Searching EUTILS for 'BRCA1' ...
+Found 5 concept(s) in 8.5s
 
-Searching for 'cancer' concepts in Eutils...
+  1. Overcoming Resistance to PARP Inhibitors in BRCA-Mutated Cancers: Mechanisms and Therapeutic Strategies.
+     ID:         PMID:42741651
+     Type:       CITATION
+     Confidence: 0.0
 
-Found 0 results from Eutils:
-  No results found for 'cancer'
+  2. Clinicopathologic Spectrum and Intraprostatic Heterogeneity of Primary Mismatch Repair-Deficient Prostate Cancer.
+     ID:         PMID:42740602
+     Type:       CITATION
+     Confidence: 0.0
+
+  3. bap1
+     ID:         GeneID:148364138
+     Type:       GENE
+     Confidence: 0.0
+
+  4. babam1
+     ID:         GeneID:148355318
+     Type:       GENE
+     Confidence: 0.0
+
+  5. BRCT domain-containing protein [Streptococcus sp.]
+     ID:         Protein:3392429547
+     Type:       PROTEIN
+     Confidence: 0.0
+
+Fetching details for 'GeneID:672' ...
+  Label:      BRCA1
+  ID:         GeneID:672
+  Type:       GENE
+
+Summary: search=5 details=found
