@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [2.0.0] - 2026-09-16
+
 This is a major release. The breaking changes and how to adapt code written
 for 1.x are collected in
 [Upgrading to 2.0](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/blob/main/docs/getting-started/upgrading-to-2.0.md).
@@ -230,7 +233,6 @@ for 1.x are collected in
   `bioportal_adapter_example.ipynb` and `rdf_converter_demo.ipynb`, where it
   appeared in logged request URLs. The key remains in earlier commits, so it
   must be revoked and replaced.
-
 
 ## [1.2.0] - 2026-09-11
 
