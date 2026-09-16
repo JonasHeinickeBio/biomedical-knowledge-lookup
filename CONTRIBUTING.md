@@ -164,52 +164,55 @@ The version number is **not** hand-edited anywhere — `pyproject.toml`'s
 overwrites at build time from the nearest `vX.Y.Z` git tag. There is nothing
 to bump manually; the pipeline below computes it for you.
 
-### The pipeline: staging → main → draft release → publish
+### The pipeline: pull request → main → draft release → publish
 
-1. **Land your change on `staging`** (directly, or — for anything nontrivial
-   — via a PR into `staging`) with a `CHANGELOG.md` entry under
-   `## [Unreleased]`. A `### Added` entry signals a minor release; anything
-   else defaults to a patch release; a line starting with `- **Breaking`
-   signals a major release.
+`main` is the only long-lived branch.
 
-2. **`.github/workflows/staging.yml`** runs on every push to `staging`: the
-   full unit + integration matrix (Python 3.11–3.13), blocking `ruff`/`mypy`,
-   live-API functional tests, and a packaging smoke test (core-only install
-   + all-extras install). When everything passes, it opens (or updates) a
-   `staging → main` PR and turns on GitHub's native auto-merge for it —
-   `main`'s own required checks (from `tests.yml` on that PR) still have to
-   pass too.
+1. **Open a pull request into `main`** with a `CHANGELOG.md` entry under
+   `## [Unreleased]`. The entries decide the next version: a line starting
+   with `- **Breaking` means a major release, a `### Added` section a minor
+   release, anything else a patch release. `.github/workflows/ci.yml` runs on
+   the pull request: ruff and mypy, unit and integration tests on Python
+   3.11–3.13, wheel packaging smoke tests, and the live-API functional tests.
 
-3. **`.github/workflows/release-draft.yml`** runs on every push to `main`
-   (i.e. every promotion): it cuts `[Unreleased]` into a new
-   `## [X.Y.Z] - <date>` section, commits that to `main`, and opens a
-   **draft** GitHub Release with that content as the notes. Nothing is
-   tagged or published yet. If `[Unreleased]` is empty, this is a no-op.
+2. **Merge the pull request with your own account** (the merge button or
+   `gh pr merge`). CI runs again on `main`, including unit tests on macOS and
+   Windows.
 
-4. **You review and publish the draft** (repo → Releases → the draft →
-   *Publish release*). This is the deliberate manual checkpoint before
-   anything reaches PyPI — check the CHANGELOG diff and version number here.
+   Don't leave the merge to a workflow: events caused by a workflow's
+   `GITHUB_TOKEN` (such as a bot-enabled auto-merge) never trigger other
+   workflows, so no draft release would appear. That is what broke the old
+   `staging → main` promotion.
 
-5. **`.github/workflows/publish.yml`** fires on `release: published`
-   (creating the tag is automatic — GitHub does it when you publish a
-   release against a not-yet-existing tag name): it re-verifies, builds,
-   generates Sigstore provenance attestations, and publishes to PyPI using
-   **Trusted Publishing (OIDC)** — no API tokens needed — gated by the
-   `pypi` GitHub Environment's approval rule, if one is configured. Add a
-   required reviewer to that environment (Settings → Environments → pypi)
-   for an extra manual gate right before the upload itself.
+3. **`.github/workflows/release-draft.yml`** runs on the push to `main`. It
+   cuts `[Unreleased]` into a new `## [X.Y.Z] - <date>` section, commits it to
+   `main` as `github-actions[bot]`, and creates a **draft** GitHub Release with
+   that section as its notes. Nothing is tagged or published yet.
+   - An empty `[Unreleased]` section produces no draft.
+   - While a draft is unpublished, later merges do not cut another version;
+     their entries wait in `[Unreleased]`. Publish (or delete) the draft, then
+     merge the next pull request or run the workflow by hand (Actions → Draft
+     Release → Run workflow).
 
-A tag pushed by hand (`git tag vX.Y.Z && git push origin vX.Y.Z`) still
-works too — `publish.yml` also triggers on `push: tags: v*` as a fallback,
-independent of the staging/draft-release flow above.
+4. **Review and publish the draft** (Releases → the draft → *Publish
+   release*). This is the manual checkpoint before PyPI: check the version
+   number and the notes.
+
+5. **`.github/workflows/publish.yml`** runs on the `vX.Y.Z` tag that
+   publishing creates. It re-verifies, builds, generates Sigstore provenance
+   attestations, uploads to PyPI with **Trusted Publishing (OIDC)** — no API
+   tokens needed — and attaches the distributions to the release. The upload
+   waits for the `pypi` environment's approval if you configured one.
+
+A tag pushed by hand (`git tag vX.Y.Z && git push origin vX.Y.Z`) runs
+`publish.yml` the same way. `release-draft.yml` is not involved then, so cut
+the CHANGELOG yourself first.
 
 ### One-time repo setup this pipeline needs
 
-- **Settings → General → Pull Requests → "Allow auto-merge"**, so
-  `staging.yml`'s promotion step can enable auto-merge on the `staging →
-  main` PR it opens.
-- `main`'s branch protection (if any) needs to allow the `github-actions[bot]`
-  push that `release-draft.yml` makes to commit the cut CHANGELOG.
+- If you protect `main` (a ruleset or branch protection rule), let
+  `github-actions[bot]` push to it, or `release-draft.yml` cannot commit the
+  cut CHANGELOG. Requiring the `CI` checks on pull requests is recommended.
 - **Strongly recommended:** Settings → Environments → `pypi` → add yourself
   (or the maintainer team) as a **required reviewer**. This is the current
   PyPA-recommended hardening for OIDC trusted publishing from Actions — it

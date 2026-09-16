@@ -56,6 +56,12 @@ for 1.x are collected in
 - `py.typed` marker, so type checkers use the package's inline annotations.
 
 ### Changed
+- **Release process:** the `staging` branch and its bot-merged promotion are
+  gone. Pull requests target `main`, and merging one prepares the draft
+  release; `release-draft.yml` commits the CHANGELOG cut to `main` directly
+  instead of opening another pull request. One `ci.yml` workflow replaces
+  `staging.yml` and `tests.yml`, and `publish.yml` now runs once per release
+  (on the tag) and never cancels a running upload. See `CONTRIBUTING.md`.
 - **Breaking: Python >= 3.11 is now required** (was >= 3.10); CI tests 3.11,
   3.12 and 3.13. This lets every dependency move to its newest release (the
   newest pandas, bioregistry and curies need 3.11+). Ruff and mypy now target

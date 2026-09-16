@@ -1,0 +1,196 @@
+name: CI
+
+# The one gate for every change. `main` is the only long-lived branch:
+# feature branches open a pull request into `main`, and this workflow runs on
+# that PR and again on the push to `main` after you merge it.
+#
+#   lint        ruff, ruff format and mypy on src/
+#   test        unit + integration tests, Python 3.11-3.13 (Ubuntu)
+#   packaging   wheel build; core-only and all-extras install smoke tests
+#   functional  live-API tests (uses the repository's API-key secrets)
+#   test-os     unit tests on macOS and Windows (after merge, weekly, manual)
+#
+# Merge pull requests with your own account. Pushes made with a workflow's
+# GITHUB_TOKEN do not trigger other workflows, so a bot-made merge would not
+# start release-draft.yml.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * 1"  # Mondays: catches upstream API and dependency drift
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # poetry-dynamic-versioning needs tags
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Poetry and dependencies
+      run: |
+        pip install --upgrade pip poetry
+        poetry install --with dev --no-interaction
+
+    - name: Ruff lint
+      run: poetry run ruff check src/
+
+    - name: Ruff format check
+      run: poetry run ruff format --check src/
+
+    - name: mypy
+      run: poetry run mypy src/
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Poetry and dependencies (core + dev + all extras)
+      run: |
+        pip install --upgrade pip poetry
+        poetry install --with dev --no-interaction
+
+    - name: Unit tests
+      run: |
+        poetry run pytest tests/unit -q -m "not network and not slow" \
+          --cov=knowledge_lookup --cov-report=xml --cov-report=term-missing --timeout=90
+
+    - name: Integration tests
+      run: poetry run pytest tests/integration -q -m integration --timeout=120
+
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.12'
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage.xml
+        flags: unittests
+        fail_ci_if_error: false
+
+  packaging:
+    # Build the wheel the way publish.yml does, install it with no extras,
+    # check the lean-core promise, then install every extra and re-check.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Build wheel
+      run: |
+        pip install --upgrade pip build
+        python -m build --wheel
+
+    - name: Install core only (no extras)
+      run: pip install dist/*.whl
+
+    - name: Assert heavy dependencies are absent
+      # Keep each `python -c` on one physical line: a YAML block scalar strips
+      # the same indentation from every line, which breaks multi-line bodies.
+      run: |
+        python -c "import importlib.util as u; heavy = ['pandas', 'openpyxl', 'chembl_webresource_client', 'bioservices', 'tyto', 'langgraph', 'mcp']; present = [m for m in heavy if u.find_spec(m) is not None]; assert not present, f'heavy deps leaked into the core install: {present}'"
+
+    - name: Core import smoke test
+      run: |
+        python -c "from knowledge_lookup import CentralKnowledgeLookup, MultiSourceAnnotator, ADAPTER_CLASSES, __version__; from knowledge_lookup.adapters import MondoAdapter, HPOAdapter, OLSAdapter, OxOAdapter, UniProtAdapter, DrugBankAdapter; from knowledge_lookup.curie_utils import parse_curie_or_uri; print('core OK:', len(ADAPTER_CLASSES), 'adapters, version', __version__)"
+        knowledge-lookup --help > /dev/null
+
+    - name: Install every extra, smoke test
+      run: |
+        pip install "$(ls dist/*.whl)[all]"
+        python -c "import knowledge_lookup.agents, knowledge_lookup.mcp_server; from knowledge_lookup.adapters import ChEMBLAdapter, UMLSAdapter; from knowledge_lookup.curie_utils import validate_prefix; import openpyxl, pandas; assert ChEMBLAdapter is not None and UMLSAdapter is not None; assert validate_prefix('doid') is True; print('all-extras OK')"
+        knowledge-lookup-mcp --help > /dev/null
+
+  functional:
+    # Live-API tests catch what mocks can't (dead endpoints, changed response
+    # shapes). Tests that need an API key skip when its secret is missing.
+    # Pull requests from forks get no secrets, so the job is skipped there.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Poetry and dependencies
+      run: |
+        pip install --upgrade pip poetry
+        poetry install --with dev --no-interaction
+
+    - name: Live-API functional tests
+      env:
+        BIOPORTAL_API_KEY: ${{ secrets.BIOPORTAL_API_KEY }}
+        UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
+        DISGENET_API_KEY: ${{ secrets.DISGENET_API_KEY }}
+        DRUGBANK_API_KEY: ${{ secrets.DRUGBANK_API_KEY }}
+      # --reruns absorbs transient rate limits (PubChem, EBI OLS) when the
+      # whole suite hits the public APIs in one burst.
+      run: poetry run pytest tests/functional -q --timeout=120 --reruns 2 --reruns-delay 5
+
+  test-os:
+    # Cross-platform unit tests. Not run on pull requests to keep them fast;
+    # a failure here shows up on main (and in the weekly run) before release.
+    if: github.event_name != 'pull_request'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Poetry and dependencies
+      run: |
+        pip install --upgrade pip poetry
+        poetry install --with dev --no-interaction
+
+    - name: Unit tests
+      run: poetry run pytest tests/unit -q -m "not network and not slow" --timeout=120

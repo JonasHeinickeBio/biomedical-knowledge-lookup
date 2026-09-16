@@ -195,7 +195,7 @@ Tests are automatically run in CI/CD on:
 - Multiple Python versions (3.11, 3.12, 3.13)
 - Multiple operating systems (Ubuntu, macOS, Windows)
 
-See `.github/workflows/tests.yml` for CI configuration.
+See `.github/workflows/ci.yml` for CI configuration.
 
 ## Test Data
 
