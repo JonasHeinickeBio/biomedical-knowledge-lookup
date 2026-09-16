@@ -63,4 +63,4 @@ Tests are automatically run on:
 - Multiple Python versions (3.10, 3.11, 3.12)
 - Multiple platforms (Linux, macOS, Windows)
 
-See `.github/workflows/tests.yml` for CI configuration.
+See `.github/workflows/ci.yml` for CI configuration.

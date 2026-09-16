@@ -6,7 +6,7 @@ cross-referenced concepts you can export, load into a knowledge graph or hand to
 
 [![PyPI](https://img.shields.io/pypi/v/biomedical-knowledge-lookup)](https://pypi.org/project/biomedical-knowledge-lookup/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
-[![Tests](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/actions/workflows/tests.yml/badge.svg)](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/actions/workflows/tests.yml)
+[![CI](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/actions/workflows/ci.yml/badge.svg)](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://opensource.org/licenses/MIT)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
