@@ -164,9 +164,10 @@ The version number is **not** hand-edited anywhere — `pyproject.toml`'s
 overwrites at build time from the nearest `vX.Y.Z` git tag. There is nothing
 to bump manually; the pipeline below computes it for you.
 
-### The pipeline: pull request → main → draft release → publish
+### The pipeline: pull request → release pull request → draft release → publish
 
-`main` is the only long-lived branch.
+`main` is the only long-lived branch, and the "Protect Main" ruleset requires
+a pull request for every change to it, including the CHANGELOG cut.
 
 1. **Open a pull request into `main`** with a `CHANGELOG.md` entry under
    `## [Unreleased]`. The entries decide the next version: a line starting
@@ -175,50 +176,58 @@ to bump manually; the pipeline below computes it for you.
    the pull request: ruff and mypy, unit and integration tests on Python
    3.11–3.13, wheel packaging smoke tests, and the live-API functional tests.
 
-2. **Merge the pull request with your own account** (the merge button or
-   `gh pr merge`). CI runs again on `main`, including unit tests on macOS and
-   Windows.
+2. **Merge it with your own account** (the merge button or `gh pr merge`).
+   CI runs again on `main`, including unit tests on macOS and Windows.
 
-   Don't leave the merge to a workflow: events caused by a workflow's
+   Don't leave merges to a workflow: events caused by a workflow's
    `GITHUB_TOKEN` (such as a bot-enabled auto-merge) never trigger other
-   workflows, so no draft release would appear. That is what broke the old
+   workflows, so nothing downstream would run. That is what broke the old
    `staging → main` promotion.
 
-3. **`.github/workflows/release-draft.yml`** runs on the push to `main`. It
-   cuts `[Unreleased]` into a new `## [X.Y.Z] - <date>` section, commits it to
-   `main` as `github-actions[bot]`, and creates a **draft** GitHub Release with
-   that section as its notes. Nothing is tagged or published yet.
-   - An empty `[Unreleased]` section produces no draft.
-   - While a draft is unpublished, later merges do not cut another version;
-     their entries wait in `[Unreleased]`. Publish (or delete) the draft, then
-     merge the next pull request or run the workflow by hand (Actions → Draft
-     Release → Run workflow).
+3. **`.github/workflows/release-draft.yml` opens the release pull request.**
+   After each merge it cuts `[Unreleased]` into `## [X.Y.Z] - <date>` on the
+   `release/next` branch (rebuilt from `main` every time) and opens or updates
+   the pull request `chore(release): vX.Y.Z`. More merges before you release
+   are added to it automatically. The pull request only changes
+   `CHANGELOG.md`, and CI does not run on it.
 
-4. **Review and publish the draft** (Releases → the draft → *Publish
+4. **Merge the release pull request when you want to release.** The push to
+   `main` runs the same workflow, which now finds no release for the newest
+   CHANGELOG section and creates the **draft** release `vX.Y.Z` on that commit,
+   with the section as its notes. Nothing is tagged or published yet. While
+   the draft is unpublished, later merges only collect entries in
+   `[Unreleased]`.
+
+5. **Review and publish the draft** (Releases → the draft → *Publish
    release*). This is the manual checkpoint before PyPI: check the version
    number and the notes.
 
-5. **`.github/workflows/publish.yml`** runs on the `vX.Y.Z` tag that
+6. **`.github/workflows/publish.yml`** runs on the `vX.Y.Z` tag that
    publishing creates. It re-verifies, builds, generates Sigstore provenance
    attestations, uploads to PyPI with **Trusted Publishing (OIDC)** — no API
    tokens needed — and attaches the distributions to the release. The upload
    waits for the `pypi` environment's approval if you configured one.
 
+To continue after publishing a draft without waiting for the next merge, run
+the workflow by hand (Actions → Release → Run workflow).
+
 A tag pushed by hand (`git tag vX.Y.Z && git push origin vX.Y.Z`) runs
-`publish.yml` the same way. `release-draft.yml` is not involved then, so cut
+`publish.yml` the same way. The release workflow is not involved then, so cut
 the CHANGELOG yourself first.
 
 ### One-time repo setup this pipeline needs
 
-- If you protect `main` (a ruleset or branch protection rule), let
-  `github-actions[bot]` push to it, or `release-draft.yml` cannot commit the
-  cut CHANGELOG. Requiring the `CI` checks on pull requests is recommended.
+- **Settings → Actions → General → Workflow permissions → "Allow GitHub
+  Actions to create and approve pull requests"**, so the release workflow can
+  open the release pull request.
+- The `main` ruleset must not cover `release/next`; the workflow force-pushes
+  that branch.
 - **Strongly recommended:** Settings → Environments → `pypi` → add yourself
   (or the maintainer team) as a **required reviewer**. This is the current
   PyPA-recommended hardening for OIDC trusted publishing from Actions — it
   forces one explicit human approval on the actual PyPI upload step of
-  `publish.yml`, on top of the draft-release review in step 4. Without it,
-  step 4 (publishing the draft) is the *only* human checkpoint before PyPI.
+  `publish.yml`, on top of the draft-release review in step 5. Without it,
+  step 5 (publishing the draft) is the *only* human checkpoint before PyPI.
 
 ### Manual TestPyPI Publishing
 

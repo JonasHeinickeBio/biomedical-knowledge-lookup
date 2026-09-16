@@ -1,25 +1,25 @@
-name: Draft Release
+name: Release
 
-# Turns CHANGELOG.md's [Unreleased] section into a draft GitHub Release.
+# Prepares releases from CHANGELOG.md. It never pushes to `main`: the
+# "Protect Main" ruleset requires a pull request for every change.
 #
-# Runs on every push to `main`, i.e. every merged pull request. Merge with
-# your own account (the merge button or `gh pr merge`): events caused by a
-# workflow's GITHUB_TOKEN never trigger other workflows, which is why the old
-# bot-merged staging -> main promotion never produced a draft.
+# Runs on every push to `main` and by hand. Merge pull requests with your own
+# account; events caused by a workflow's GITHUB_TOKEN never trigger other
+# workflows, so a bot-made merge would not start this one.
 #
-# 1. scripts/release/cut_changelog.py moves [Unreleased] into a dated
-#    `## [X.Y.Z]` section. The bump is read from the entries: a line starting
-#    with `- **Breaking` means major, a `### Added` section minor, anything
-#    else patch. An empty [Unreleased] section means there is nothing to do.
-# 2. github-actions[bot] commits the cut CHANGELOG.md straight to main. That
-#    push does not re-trigger this workflow.
-# 3. A draft release vX.Y.Z is created on that commit with the section as
-#    its notes.
+# What a run does depends on the newest `## [X.Y.Z]` section of CHANGELOG.md:
 #
-# Nothing is tagged or published here. Publishing the draft creates the tag,
-# which runs publish.yml. While a draft is unpublished, later merges only
-# collect entries in [Unreleased]; publish or delete the draft first.
-# `workflow_dispatch` runs the same steps by hand.
+# * No release exists for it yet (the release pull request was just merged):
+#   create the draft release vX.Y.Z on this commit, with the section as notes.
+# * Its release is still a draft: wait until you publish or delete it.
+# * It is released and [Unreleased] has entries: cut [Unreleased] into
+#   `## [X.Y.Z] - <date>` with scripts/release/cut_changelog.py (a line
+#   starting with `- **Breaking` means major, a `### Added` section minor,
+#   anything else patch) on the `release/next` branch, rebuilt from `main`,
+#   and open or update the pull request "chore(release): vX.Y.Z".
+#
+# A release is therefore: merge feature pull requests, merge the release pull
+# request, publish the draft (its tag runs publish.yml).
 
 on:
   push:
@@ -27,91 +27,111 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: write
+  contents: write       # push release/next, create the draft release
+  pull-requests: write  # open or update the release pull request
 
 concurrency:
   group: ${{ github.workflow }}
-  cancel-in-progress: false  # never interrupt a release cut
+  cancel-in-progress: false
 
 jobs:
-  draft-release:
+  release:
     if: github.repository == 'JonasHeinickeBio/biomedical-knowledge-lookup'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_BRANCH: release/next
     steps:
     - uses: actions/checkout@v4
       with:
         ref: main
-        fetch-depth: 0  # full tag history to compute the next version
+        fetch-depth: 0  # tags, to compute the next version
 
     - uses: actions/setup-python@v5
       with:
         python-version: "3.12"
 
-    - name: Check for an unpublished draft
-      id: pending
+    - name: Decide what to do
+      id: state
       run: |
         set -euo pipefail
-        DRAFT=$(gh release list --limit 20 --json tagName,isDraft --jq '[.[] | select(.isDraft)][0].tagName // empty')
-        echo "draft=$DRAFT" >> "$GITHUB_OUTPUT"
-        if [[ -n "$DRAFT" ]]; then
-          echo "::notice::Draft release $DRAFT is not published yet; [Unreleased] was left as it is."
+        TOP=$(python scripts/release/changelog_info.py top-version)
+        if IS_DRAFT=$(gh release view "v$TOP" --json isDraft --jq .isDraft 2>/dev/null); then
+          STATE=$([[ "$IS_DRAFT" == "true" ]] && echo draft || echo published)
+        elif git rev-parse -q --verify "refs/tags/v$TOP" >/dev/null; then
+          STATE=published  # tagged by hand, no release object
+        else
+          STATE=missing
         fi
-
-    - name: Cut CHANGELOG.md, compute next version
-      id: cut
-      if: steps.pending.outputs.draft == ''
-      run: |
-        set +e
-        OUTPUT=$(python scripts/release/cut_changelog.py --github-output "$GITHUB_OUTPUT")
-        STATUS=$?
-        set -e
-        echo "$OUTPUT"
-        if [[ $STATUS -eq 2 ]]; then
-          echo "skip=true" >> "$GITHUB_OUTPUT"
-        elif [[ $STATUS -ne 0 ]]; then
-          exit "$STATUS"
+        OTHER_DRAFT=$(gh release list --limit 20 --json tagName,isDraft --jq '[.[] | select(.isDraft)][0].tagName // empty')
+        if [[ "$STATE" == "missing" ]]; then
+          ACTION=draft
+        elif [[ "$STATE" == "draft" || -n "$OTHER_DRAFT" ]]; then
+          ACTION=wait
+        elif python scripts/release/changelog_info.py has-unreleased; then
+          ACTION=release-pr
+        else
+          ACTION=none
         fi
+        echo "top=$TOP" >> "$GITHUB_OUTPUT"
+        echo "action=$ACTION" >> "$GITHUB_OUTPUT"
+        echo "Newest CHANGELOG section: $TOP (release: $STATE${OTHER_DRAFT:+, pending draft $OTHER_DRAFT}); action: $ACTION"
 
-    - name: Commit the cut CHANGELOG.md to main
-      id: commit
-      if: steps.pending.outputs.draft == '' && steps.cut.outputs.skip != 'true'
-      run: |
-        set -euo pipefail
-        VERSION="${{ steps.cut.outputs.version }}"
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add CHANGELOG.md
-        git commit -m "chore(release): cut CHANGELOG for v$VERSION"
-        # Another merge may have reached main since checkout: replay once.
-        if ! git push origin HEAD:main; then
-          git pull --rebase origin main
-          git push origin HEAD:main
-        fi
-        echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-    - name: Create draft release
-      if: steps.commit.outputs.sha != ''
+    - name: Create the draft release
+      if: steps.state.outputs.action == 'draft'
       run: |
         set -euo pipefail
-        VERSION="${{ steps.cut.outputs.version }}"
+        VERSION="${{ steps.state.outputs.top }}"
+        python scripts/release/changelog_info.py notes "$VERSION" > release_notes.md
         gh release create "v$VERSION" \
           --draft \
           --title "v$VERSION" \
           --notes-file release_notes.md \
-          --target "${{ steps.commit.outputs.sha }}"
+          --target "$(git rev-parse HEAD)"
         {
           echo "### Draft release v$VERSION created"
-          echo "Review it under **Releases** and click **Publish release** when ready."
-          echo "Publishing creates the \`v$VERSION\` tag, which runs \`publish.yml\` (verify, build, attest, upload to PyPI)."
+          echo "Review it under **Releases** and click **Publish release**. Publishing creates the \`v$VERSION\` tag, which runs \`publish.yml\`."
         } >> "$GITHUB_STEP_SUMMARY"
 
-    - name: Summary (no draft created)
-      if: steps.commit.outputs.sha == ''
+    - name: Open or update the release pull request
+      if: steps.state.outputs.action == 'release-pr'
       run: |
-        if [[ -n "${{ steps.pending.outputs.draft }}" ]]; then
-          echo "Draft release ${{ steps.pending.outputs.draft }} is still unpublished. Publish or delete it; the next push to main (or a manual run) cuts the next release." >> "$GITHUB_STEP_SUMMARY"
+        set -euo pipefail
+        OUTPUT=$(python scripts/release/cut_changelog.py)
+        echo "$OUTPUT"
+        VERSION=$(sed -n 's/^version=//p' <<< "$OUTPUT")
+        TITLE="chore(release): v$VERSION"
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git switch -C "$RELEASE_BRANCH"
+        git add CHANGELOG.md
+        git commit -m "$TITLE"
+        git push --force origin "HEAD:refs/heads/$RELEASE_BRANCH"
+        {
+          echo "Cuts \`CHANGELOG.md\` for **v$VERSION**. Merge this pull request with your own account when you want to release; the push to \`main\` then creates the draft release v$VERSION."
+          echo
+          echo "The branch is rebuilt from \`main\` after every merge, so later changes are picked up automatically. It only changes \`CHANGELOG.md\`; CI does not run on it, because pull requests opened with \`GITHUB_TOKEN\` don't trigger workflows."
+          echo
+          echo "## Release notes"
+          echo
+          cat release_notes.md
+        } > pr_body.md
+        PR=$(gh pr list --base main --head "$RELEASE_BRANCH" --state open --json number --jq '.[0].number // empty')
+        if [[ -n "$PR" ]]; then
+          gh pr edit "$PR" --title "$TITLE" --body-file pr_body.md
         else
-          echo "Nothing in [Unreleased] since the last release; no draft created." >> "$GITHUB_STEP_SUMMARY"
+          gh pr create --base main --head "$RELEASE_BRANCH" --title "$TITLE" --body-file pr_body.md
+        fi
+        {
+          echo "### Release pull request for v$VERSION is ready"
+          echo "Merge \`$TITLE\` to create the draft release."
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Summary
+      if: steps.state.outputs.action == 'wait' || steps.state.outputs.action == 'none'
+      run: |
+        if [[ "${{ steps.state.outputs.action }}" == "wait" ]]; then
+          echo "A draft release is still unpublished. Publish or delete it; the next push to \`main\` (or a manual run) continues." >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "Nothing in [Unreleased] since v${{ steps.state.outputs.top }}; nothing to do." >> "$GITHUB_STEP_SUMMARY"
         fi
