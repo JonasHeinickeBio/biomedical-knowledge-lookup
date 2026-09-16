@@ -49,7 +49,7 @@ The hooks run Ruff (lint and format, line length 99), mypy and basic file checks
 1. Keep changes focused and add or update tests.
 2. Add an entry to `CHANGELOG.md` under `## [Unreleased]`.
 3. Use conventional commit prefixes such as `feat:`, `fix:`, `docs:`, `test:` or `refactor:`.
-4. Open a pull request against `main`. CI runs on the pull request; after you merge it, a draft release is prepared automatically. CONTRIBUTING.md describes the release process.
+4. Open a pull request against `main`. CI runs on the pull request; after it is merged, the next release pull request is prepared automatically. CONTRIBUTING.md describes the release process.
 
 ## Add a knowledge source
 
