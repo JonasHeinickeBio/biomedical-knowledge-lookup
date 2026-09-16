@@ -35,6 +35,19 @@ def _skip_retry_sleep() -> bool:
     return bool(os.environ.get("PYTEST_CURRENT_TEST")) and not os.environ.get("BKL_RETRY_SLEEP")
 
 
+def _is_not_found(exc: BaseException) -> bool:
+    """True when *exc* is an HTTP 404 answer.
+
+    Reads the status code from ``aiohttp.ClientResponseError.status`` or a
+    ``requests``-style ``exc.response.status_code``; the message text is not
+    inspected, so an identifier that happens to contain "404" does not match.
+    """
+    status = getattr(exc, "status", None)
+    if status is None:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+    return status == 404
+
+
 # Default per-category retry strategies shared by all adapter HTTP calls
 DEFAULT_RETRY_STRATEGIES: dict[ErrorCategory, tuple[int, float, float]] = {
     ErrorCategory.NETWORK_ERROR: (3, 0.0, 0.0),  # 2 immediate retries
@@ -55,7 +68,7 @@ class KnowledgeSourceAdapter(ABC):
     :meth:`_call_with_retry`, which apply category-aware retry with backoff and
     the shared per-source circuit breaker. Adapters built on a third-party
     library client (ChEMBL, EUtils/QuickGO/UniChem via ``bioservices``, Tyto,
-    UMLS, EBI-OLS) do **not** go through that path — they rely on the library's
+    UMLS) do **not** go through that path — they rely on the library's
     own retry and should call :meth:`_notify_circuit_breaker` on failure if
     breaker visibility matters for that source.
     """
@@ -123,6 +136,13 @@ class KnowledgeSourceAdapter(ABC):
 
             except Exception as exc:
                 last_exc = exc
+                if _is_not_found(exc):
+                    # The service answered. Several APIs (e.g. Reactome) use 404
+                    # for "no match", so it is not a sign the source is down and
+                    # must not push the breaker open; it counts as a success.
+                    if self._circuit_breaker is not None:
+                        self._circuit_breaker.record_success()
+                    raise
                 category = classify_error(exc)
                 max_tries, factor, max_delay = strat.get(category, strat[ErrorCategory.UNKNOWN])
 

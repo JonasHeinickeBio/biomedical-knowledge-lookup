@@ -6,9 +6,68 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-pytestmark = pytest.mark.unit
 from knowledge_lookup.adapters.disgenet_adapter import DisGeNETAdapter
-from knowledge_lookup.models import KnowledgeSource, LookupConfig
+from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig
+
+pytestmark = pytest.mark.unit
+
+
+def _response(*rows):
+    """Shape of a DisGeNET v1 response (academic profile)."""
+    return {
+        "status": "OK",
+        "paging": {
+            "pageSize": 100,
+            "totalElements": len(rows),
+            "totalElementsInPage": len(rows),
+            "currentPageNumber": 0,
+        },
+        "warnings": ["Academic roles can only access to CURATED sources: (CLINVAR, ...)"],
+        "userinfo": {"profile": "ACADEMIC"},
+        "payload": list(rows),
+    }
+
+
+def _disease_entity(cui="C0004096", name="Asthma", **extra):
+    """Row of /entity/disease."""
+    return {
+        "diseaseClasses_MSH": ["Respiratory Tract Diseases (C08)", "Immune System Diseases (C20)"],
+        "diseaseClasses_UMLS_ST": ["Disease or Syndrome (T047)"],
+        "diseaseClasses_DO": ["disease of anatomical entity (7)"],
+        "diseaseClasses_HPO": [],
+        "name": name,
+        "diseaseUMLSCUI": cui,
+        "type": "disease",
+        "diseaseCodes": [
+            {"vocabulary": "MONDO", "code": "0004979"},
+            {"vocabulary": "UMLS", "code": cui},
+        ],
+        "synonyms": [
+            {"name": name, "isPTI": False},
+            {"name": "Bronchial asthma, NOS", "isPTI": False},
+            {"name": "BRONCHIAL ASTHMA", "isPTI": True},
+        ],
+        **extra,
+    }
+
+
+def _gda_row(cui="C0677776", disease="Hereditary Breast and Ovarian Cancer Syndrome", score=0.9):
+    """Row of /gda/summary (no ``diseaseid`` / ``diseasename`` fields)."""
+    return {
+        "assocID": "x5SCdp4Bu8jCkiVmyEkl",
+        "symbolOfGene": "BRCA1",
+        "geneNcbiID": 672,
+        "geneEnsemblIDs": ["ENSG00000012048"],
+        "geneNcbiType": "protein-coding",
+        "diseaseVocabularies": [f"UMLS_{cui}"],
+        "diseaseName": disease,
+        "diseaseType": "[disease]",
+        "diseaseUMLSCUI": cui,
+        "diseaseClasses_MSH": ["Neoplasms (C04)"],
+        "diseaseClasses_UMLS_ST": ["Neoplastic Process (T191)"],
+        "score": score,
+        "numPMIDs": 15,
+    }
 
 
 class TestDisGeNETAdapter:
@@ -52,20 +111,117 @@ class TestDisGeNETAdapter:
         adapter = DisGeNETAdapter(config)
         assert adapter.get_rate_limit() == 5.0
 
+    # --- search_concepts ---
+
     @pytest.mark.asyncio
-    async def test_search_concepts_success(self, adapter_with_api_key):
-        """Test successful search concepts."""
-        data = {
-            "payload": [
-                {"diseaseid": "DOID:162", "diseasename": "Diabetes", "score": 0.5},
-            ]
-        }
+    async def test_search_concepts_disease_name(self, adapter_with_api_key):
+        """Free-text queries use /entity/disease and return DISEASE concepts."""
         with patch.object(
             adapter_with_api_key, "_make_request", new_callable=AsyncMock
         ) as mock_req:
-            mock_req.return_value = data
-            results = await adapter_with_api_key.search_concepts("7157", limit=10)
-            assert len(results) == 1
+            mock_req.return_value = _response(
+                _disease_entity(), _disease_entity("C0155877", "Allergic asthma")
+            )
+            results = await adapter_with_api_key.search_concepts("asthma", limit=10)
+
+        assert [c.primary_id for c in results] == ["UMLS_C0004096", "UMLS_C0155877"]
+        asthma = results[0]
+        assert asthma.primary_label == "Asthma"
+        assert asthma.concept_type == ConceptType.DISEASE
+        assert asthma.synonyms == ["Bronchial asthma, NOS", "BRONCHIAL ASTHMA"]
+        assert asthma.semantic_types == ["Disease or Syndrome (T047)"]
+        assert "Respiratory Tract Diseases (C08)" in asthma.categories
+        assert asthma.identifiers[0].identifier == "UMLS_C0004096"
+        assert asthma.sources == [KnowledgeSource.DISGENET]
+
+        mock_req.assert_awaited_once()
+        assert mock_req.call_args.args[0].endswith("/entity/disease")
+        assert mock_req.call_args.kwargs["params"] == {
+            "disease_free_text_search_string": "asthma",
+            "page_number": 0,
+        }
+        assert mock_req.call_args.kwargs["headers"]["Authorization"] == "test_api_key"
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_reads_current_gda_fields(self, adapter_with_api_key):
+        """Regression: v1 GDA rows carry diseaseUMLSCUI/diseaseName, not diseaseid."""
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            mock_req.return_value = _response(
+                _gda_row(score=0.9), _gda_row("C0376358", "Malignant neoplasm of prostate", 1.35)
+            )
+            results = await adapter_with_api_key.search_concepts("BRCA1", limit=10)
+
+        assert [c.primary_id for c in results] == ["UMLS_C0677776", "UMLS_C0376358"]
+        assert results[0].primary_label == "Hereditary Breast and Ovarian Cancer Syndrome"
+        assert results[0].concept_type == ConceptType.DISEASE
+        assert results[0].confidence_score == 0.9
+        assert results[1].confidence_score == 1.0  # scores above 1 are clamped
+        assert results[0].related == ["BRCA1"]
+        assert mock_req.call_args.args[0].endswith("/gda/summary")
+        assert mock_req.call_args.kwargs["params"] == {"gene_symbol": "BRCA1", "page_number": 0}
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_ncbi_gene_id(self, adapter_with_api_key):
+        """All-digit queries are NCBI gene IDs; no disease-name fallback."""
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            mock_req.return_value = _response()
+            results = await adapter_with_api_key.search_concepts("1017", limit=10)
+        assert results == []
+        mock_req.assert_awaited_once()
+        assert mock_req.call_args.kwargs["params"] == {"gene_ncbi_id": "1017", "page_number": 0}
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_symbol_falls_back_to_disease_name(self, adapter_with_api_key):
+        """Symbol-like disease names (COPD) fall back to the disease name search."""
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            mock_req.side_effect = [
+                _response(),
+                _response(_disease_entity("C0024117", "Chronic Obstructive Airway Disease")),
+            ]
+            results = await adapter_with_api_key.search_concepts("COPD", limit=10)
+        assert [c.primary_id for c in results] == ["UMLS_C0024117"]
+        first, second = mock_req.call_args_list
+        assert first.kwargs["params"] == {"gene_symbol": "COPD", "page_number": 0}
+        assert second.kwargs["params"]["disease_free_text_search_string"] == "COPD"
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_limit(self, adapter_with_api_key):
+        """Test search respects limit."""
+        rows = [_disease_entity(f"C000000{i}", f"Disease {i}") for i in range(5)]
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            mock_req.return_value = _response(*rows)
+            concepts = await adapter_with_api_key.search_concepts("disease", limit=2)
+            assert len(concepts) == 2
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_skips_incomplete_rows(self, adapter_with_api_key):
+        """Rows without a CUI or name are skipped instead of producing empty IDs."""
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            mock_req.return_value = _response(
+                {"diseaseid": "DOID:162", "diseasename": "Diabetes", "score": 0.5},
+                _disease_entity(),
+            )
+            concepts = await adapter_with_api_key.search_concepts("asthma", limit=10)
+        assert [c.primary_id for c in concepts] == ["UMLS_C0004096"]
+
+    @pytest.mark.asyncio
+    async def test_search_concepts_empty_query(self, adapter_with_api_key):
+        """A blank query returns [] without a request."""
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            assert await adapter_with_api_key.search_concepts("  ") == []
+        mock_req.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_search_concepts_empty_response(self, adapter_with_api_key):
@@ -116,8 +272,6 @@ class TestDisGeNETAdapter:
         async with adapter:
             pass  # Should not raise any exceptions
 
-    # --- Additional tests to cover missing lines (22, 43-51, 68-73, 75-76, 127-162, 199-244, 257-270) ---
-
     def test_is_available_with_api_key(self, adapter_with_api_key):
         """Test is_available when API key is present."""
         assert adapter_with_api_key.is_available() is True
@@ -129,21 +283,49 @@ class TestDisGeNETAdapter:
             adapter_no_key = DisGeNETAdapter(config)
             assert adapter_no_key.is_available() is False
 
+    # --- get_concept_details ---
+
     @pytest.mark.asyncio
-    async def test_get_concept_details_success(self, adapter_with_api_key):
-        """Test get_concept_details with successful response (lines 43-51)."""
-        disease_data = {
-            "diseaseid": "DOID:162",
-            "diseasename": "Diabetes mellitus",
-        }
+    @pytest.mark.parametrize(
+        ("concept_id", "expected_param"),
+        [
+            ("UMLS_C0004096", "UMLS_C0004096"),
+            ("C0004096", "UMLS_C0004096"),
+            ("UMLS:C0004096", "UMLS_C0004096"),
+            ("mondo:0004979", "MONDO_0004979"),
+            ("MONDO_0004979", "MONDO_0004979"),
+        ],
+    )
+    async def test_get_concept_details_success(
+        self, adapter_with_api_key, concept_id, expected_param
+    ):
+        """Details use /entity/disease?disease=<VOCAB>_<code> (not /disease/{id})."""
         with patch.object(
             adapter_with_api_key, "_make_request", new_callable=AsyncMock
         ) as mock_req:
-            mock_req.return_value = disease_data
-            result = await adapter_with_api_key.get_concept_details("DOID:162")
-            assert result is not None
-            assert result.primary_id == "DOID:162"
-            assert result.primary_label == "Diabetes mellitus"
+            mock_req.return_value = _response(_disease_entity())
+            result = await adapter_with_api_key.get_concept_details(concept_id)
+
+        assert result is not None
+        assert result.primary_id == "UMLS_C0004096"
+        assert result.primary_label == "Asthma"
+        assert result.concept_type == ConceptType.DISEASE
+        url = mock_req.call_args.args[0]
+        assert url.endswith("/entity/disease")
+        assert "/disease/" not in url
+        assert mock_req.call_args.kwargs["params"] == {"disease": expected_param}
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_picks_matching_cui(self, adapter_with_api_key):
+        """When several rows come back, the one with the requested CUI wins."""
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            mock_req.return_value = _response(
+                _disease_entity("C0155877", "Allergic asthma"), _disease_entity()
+            )
+            result = await adapter_with_api_key.get_concept_details("UMLS_C0004096")
+        assert result.primary_label == "Asthma"
 
     @pytest.mark.asyncio
     async def test_get_concept_details_no_data(self, adapter_with_api_key):
@@ -152,18 +334,34 @@ class TestDisGeNETAdapter:
             adapter_with_api_key, "_make_request", new_callable=AsyncMock
         ) as mock_req:
             mock_req.return_value = None
-            result = await adapter_with_api_key.get_concept_details("DOID:162")
+            result = await adapter_with_api_key.get_concept_details("UMLS_C0004096")
             assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_concept_details_no_diseaseid(self, adapter_with_api_key):
-        """Test get_concept_details when diseaseid not in response."""
+    async def test_get_concept_details_unknown_disease(self, adapter_with_api_key):
+        """Unknown IDs come back as an empty payload."""
         with patch.object(
             adapter_with_api_key, "_make_request", new_callable=AsyncMock
         ) as mock_req:
-            mock_req.return_value = {"diseasename": "Test"}
-            result = await adapter_with_api_key.get_concept_details("DOID:162")
+            mock_req.return_value = _response()
+            result = await adapter_with_api_key.get_concept_details("UMLS_C9999999")
             assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_error_returns_none(self, adapter_with_api_key):
+        """Regression: HTTP errors are logged and give None instead of raising."""
+        import aiohttp
+
+        error = aiohttp.ClientResponseError(
+            request_info=MagicMock(), history=(), status=404, message="Resource not found"
+        )
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock, side_effect=error
+        ):
+            result = await adapter_with_api_key.get_concept_details("C0011849")
+        assert result is None
+
+    # --- _make_request ---
 
     @pytest.mark.asyncio
     async def test_make_request_rate_limit_retry(self, adapter_with_api_key):
@@ -241,6 +439,8 @@ class TestDisGeNETAdapter:
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 with pytest.raises(Exception, match="Network error"):
                     await adapter_with_api_key._make_request("http://test.com/api")
+
+    # --- gene-disease associations ---
 
     @pytest.mark.asyncio
     async def test_get_gene_disease_associations_success(self, adapter_with_api_key):
@@ -395,54 +595,3 @@ class TestDisGeNETAdapter:
                 {"gene_ncbi_id": "7157"}
             )
             assert result is None
-
-    @pytest.mark.asyncio
-    async def test_search_concepts_with_results(self, adapter_with_api_key):
-        """Test search_concepts with actual results (lines 257-270)."""
-        data = {
-            "payload": [
-                {
-                    "diseaseid": "DOID:162",
-                    "diseasename": "Diabetes mellitus",
-                    "score": 0.5,
-                },
-                {
-                    "diseaseid": "DOID:9351",
-                    "diseasename": "Type 2 diabetes",
-                    "score": 0.7,
-                },
-            ]
-        }
-        with patch.object(
-            adapter_with_api_key, "_make_request", new_callable=AsyncMock
-        ) as mock_req:
-            mock_req.return_value = data
-            concepts = await adapter_with_api_key.search_concepts("7157", limit=2)
-            assert len(concepts) == 2
-            assert concepts[0].primary_id == "DOID:162"
-
-    @pytest.mark.asyncio
-    async def test_search_concepts_limit(self, adapter_with_api_key):
-        """Test search respects limit."""
-        data = {
-            "payload": [
-                {"diseaseid": f"DOID:{i}", "diseasename": f"Disease {i}", "score": 0.5}
-                for i in range(5)
-            ]
-        }
-        with patch.object(
-            adapter_with_api_key, "_make_request", new_callable=AsyncMock
-        ) as mock_req:
-            mock_req.return_value = data
-            concepts = await adapter_with_api_key.search_concepts("7157", limit=2)
-            assert len(concepts) == 2
-
-    @pytest.mark.asyncio
-    async def test_search_concepts_no_data(self, adapter_with_api_key):
-        """Test search when no data returned."""
-        with patch.object(
-            adapter_with_api_key, "_make_request", new_callable=AsyncMock
-        ) as mock_req:
-            mock_req.return_value = None
-            concepts = await adapter_with_api_key.search_concepts("7157")
-            assert concepts == []

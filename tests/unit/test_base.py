@@ -151,3 +151,80 @@ class TestKnowledgeSourceAdapter:
         """Test _determine_concept_type for unknown."""
         concept_type = adapter._determine_concept_type(["unknown"])
         assert concept_type.name == "UNKNOWN"
+
+
+class TestNotFoundIsNotABreakerFailure:
+    """Regression: HTTP 404 ("no match" for several APIs) opened the circuit breaker."""
+
+    @staticmethod
+    def _adapter(threshold: int):
+        from knowledge_lookup.utils.retry_utils import CircuitBreaker
+
+        class Adapter(KnowledgeSourceAdapter):
+            def get_source(self):
+                return KnowledgeSource.REACTOME
+
+            async def search_concepts(self, query: str, limit: int = 20):
+                return []
+
+            async def get_concept_details(self, concept_id: str):
+                return None
+
+        adapter = Adapter(LookupConfig())
+        breaker = CircuitBreaker(threshold=threshold, cooldown=60)
+        adapter.set_circuit_breaker(breaker)
+        return adapter, breaker
+
+    @staticmethod
+    def _http_error(status: int):
+        import aiohttp
+
+        return aiohttp.ClientResponseError(
+            request_info=MagicMock(), history=(), status=status, message="HTTP error"
+        )
+
+    @pytest.mark.asyncio
+    async def test_repeated_404s_keep_the_breaker_closed(self):
+        adapter, breaker = self._adapter(threshold=2)
+        operation = AsyncMock(side_effect=self._http_error(404))
+
+        for _ in range(5):
+            with pytest.raises(Exception, match="HTTP error"):
+                await adapter._call_with_retry("search", operation)
+
+        assert operation.await_count == 5  # raised to the adapter every time, never retried
+        assert breaker.state.value == "closed"
+        assert breaker.failure_count == 0
+
+    @pytest.mark.asyncio
+    async def test_404_probe_closes_a_half_open_breaker(self):
+        adapter, breaker = self._adapter(threshold=1)
+        breaker.record_failure()
+        breaker.last_failure_time -= breaker.cooldown + 1  # cooldown elapsed
+
+        with pytest.raises(Exception, match="HTTP error"):
+            await adapter._call_with_retry("search", AsyncMock(side_effect=self._http_error(404)))
+
+        assert breaker.state.value == "closed"
+
+    @pytest.mark.asyncio
+    async def test_other_client_errors_still_count(self):
+        adapter, breaker = self._adapter(threshold=2)
+        operation = AsyncMock(side_effect=self._http_error(403))
+
+        for _ in range(2):
+            with pytest.raises(Exception, match="HTTP error"):
+                await adapter._call_with_retry("search", operation)
+
+        assert breaker.state.value == "open"
+
+    def test_is_not_found_reads_the_status_code_not_the_message(self):
+        from knowledge_lookup.base import _is_not_found
+
+        class RequestsStyleError(Exception):
+            response = MagicMock(status_code=404)
+
+        assert _is_not_found(self._http_error(404))
+        assert _is_not_found(RequestsStyleError())
+        assert not _is_not_found(self._http_error(500))
+        assert not _is_not_found(Exception("lookup of R-HSA-404 failed"))

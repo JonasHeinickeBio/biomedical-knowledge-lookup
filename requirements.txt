@@ -3,7 +3,7 @@
 # The authoritative sources are pyproject.toml + poetry.lock. This file
 # lists only the CORE install (no optional extras). For a feature group:
 #   pip install 'biomedical-knowledge-lookup[chembl]'   # or bioservices, tyto,
-#   agents, umls, curie, export, all
+#   agents, umls, curie, export, mcp, all
 #
 # Regenerate:  uv pip compile pyproject.toml -o requirements.txt
 
@@ -14,8 +14,6 @@ annotated-doc==0.0.5
 annotated-types==0.8.0
 attrs==26.1.0
 backoff==2.2.1
-certifi==2026.7.22
-charset-normalizer==3.5.1
 frozenlist==1.8.0
 idna==3.19
 markdown-it-py==4.2.0
@@ -28,12 +26,9 @@ pygments==2.21.0
 pyparsing==3.3.2
 python-dotenv==1.2.3
 rdflib==7.6.0
-requests==2.34.2
-rich==13.9.4
+rich==15.0.0
 shellingham==1.5.4
-tenacity==8.5.0
 typer==0.27.2
 typing-extensions==4.16.0
 typing-inspection==0.4.4
-urllib3==2.7.0
 yarl==1.24.5

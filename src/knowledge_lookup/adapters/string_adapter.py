@@ -31,6 +31,30 @@ class STRINGAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         return True  # STRING is publicly available
 
+    async def _make_request(
+        self,
+        url: str,
+        params: dict | None = None,
+        headers: dict | None = None,
+        json_data: dict | None = None,
+    ) -> Any:
+        """GET a STRING JSON endpoint with the shared retry and circuit breaker.
+
+        STRING answers with ``Content-Type: text/json``, which aiohttp's
+        ``response.json()`` rejects by default, so the content-type check is
+        disabled here. STRING's JSON API is GET-only; ``json_data`` is ignored.
+        """
+        request_headers = dict(headers or {})
+        request_headers.setdefault("User-Agent", "AID-PAIS-Knowledge-Lookup/1.0")
+
+        async def _do() -> Any:
+            session = await self._get_session()
+            async with session.get(url, params=params, headers=request_headers) as response:
+                response.raise_for_status()
+                return await response.json(content_type=None)
+
+        return await self._call_with_retry("string_api", _do)
+
     async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search STRING for proteins and protein-protein interactions."""
         try:
@@ -88,22 +112,31 @@ class STRINGAdapter(KnowledgeSourceAdapter):
     async def _add_interaction_partners(self, concept: UnifiedConcept, string_id: str) -> None:
         """Fetch top interaction partners and attach them to the concept."""
         try:
-            url = f"{self.base_url}/json/network"
+            # interaction_partners returns only edges that involve the query protein
+            # (/json/network also returns edges among the partners themselves)
+            url = f"{self.base_url}/json/interaction_partners"
             params = {
                 "identifiers": string_id,
                 "species": 9606,
                 "limit": 5,
             }
             data = await self._make_request(url, params)
-            if isinstance(data, list):
+            if isinstance(data, list) and concept.related is not None:
+                seen: set[str] = set()
                 for interaction in data[:5]:
                     partner_a = interaction.get("preferredName_A", "")
                     partner_b = interaction.get("preferredName_B", "")
                     score = interaction.get("score", 0)
-                    for partner in (partner_a, partner_b):
-                        if partner and partner != concept.primary_label:
-                            if concept.related is not None:
-                                concept.related.append(f"{partner}(score={score})")
+                    # The query protein is side A; fall back to the name when IDs differ
+                    if interaction.get("stringId_A") == string_id or (
+                        partner_a == concept.primary_label
+                    ):
+                        partner = partner_b
+                    else:
+                        partner = partner_a
+                    if partner and partner != concept.primary_label and partner not in seen:
+                        seen.add(partner)
+                        concept.related.append(f"{partner}(score={score})")
         except Exception as e:
             logger.warning(f"STRING interaction fetch failed: {e}")
 
@@ -125,7 +158,8 @@ class STRINGAdapter(KnowledgeSourceAdapter):
                     concept.definitions.append(annotation[:500])
 
             # Taxon
-            taxon_id = item.get("taxonId", "")
+            # Current API returns ncbiTaxonId; older responses used taxonId
+            taxon_id = item.get("ncbiTaxonId", "") or item.get("taxonId", "")
             if taxon_id:
                 if concept.categories is not None:
                     concept.categories.append(f"taxon:{taxon_id}")

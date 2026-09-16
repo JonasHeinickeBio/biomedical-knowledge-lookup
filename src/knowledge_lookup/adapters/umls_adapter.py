@@ -192,7 +192,11 @@ class UMLSAdapter(KnowledgeSourceAdapter):
             return
 
         try:
-            api_key = self.config.get_api_key("umls") or self.config.get_api_key("UMLS_API_KEY_TU")
+            import os
+
+            # UMLS_API_KEY (through get_api_key), or the legacy UMLS_API_KEY_TU variable.
+            # get_api_key("UMLS_API_KEY_TU") looked up UMLS_API_KEY_TU_API_KEY instead.
+            api_key = self.config.get_api_key("umls") or os.getenv("UMLS_API_KEY_TU")
             if not api_key:
                 logger.warning("No UMLS API key configured; adapter unavailable")
                 return
@@ -612,9 +616,10 @@ class UMLSAdapter(KnowledgeSourceAdapter):
 
         # Extract semantic type names for type determination
         semantic_type_names = [st.get("name", "") for st in semantic_types]
-        concept_type = self._determine_concept_type(
-            semantic_type_names
-        ) or self._determine_concept_type_from_semantic_types(semantic_types)
+        concept_type = self._determine_concept_type(semantic_type_names)
+        # ConceptType.UNKNOWN is a truthy str enum, so `a or b` never reached the fallback
+        if concept_type == ConceptType.UNKNOWN:
+            concept_type = self._determine_concept_type_from_semantic_types(semantic_types)
 
         concept = UnifiedConcept(
             primary_id=cui,

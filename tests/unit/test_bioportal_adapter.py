@@ -144,18 +144,29 @@ class TestBioPortalGetConceptDetails:
 
     @pytest.mark.asyncio
     async def test_get_details_with_slash(self, adapter_with_api_key):
-        """Test get_concept_details extracts ontology from URL."""
+        """Test get_concept_details infers the ontology from a BioPortal PURL."""
+        iri = "http://purl.bioontology.org/ontology/MESH/D003924"
         adapter_with_api_key._make_request = AsyncMock(
-            return_value={"@id": "http://example.com/ontology/123", "prefLabel": "Test"}
+            return_value={"@id": iri, "prefLabel": "Test"}
         )
-        result = await adapter_with_api_key.get_concept_details("http://example.com/ontology/123")
+        result = await adapter_with_api_key.get_concept_details(iri)
         assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_get_details_unknown_ontology_is_not_requested(self, adapter_with_api_key):
+        """An IRI whose ontology can't be inferred returns None without a request."""
+        adapter_with_api_key._make_request = AsyncMock()
+        result = await adapter_with_api_key.get_concept_details("http://example.com/ontology/123")
+        assert result is None
+        adapter_with_api_key._make_request.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_get_details_exception(self, adapter_with_api_key):
         """Test get_concept_details handles exceptions."""
         adapter_with_api_key._make_request = AsyncMock(side_effect=Exception("Error"))
-        result = await adapter_with_api_key.get_concept_details("http://example.com/ontology/123")
+        result = await adapter_with_api_key.get_concept_details(
+            "http://purl.bioontology.org/ontology/MESH/D003924"
+        )
         assert result is None
 
 

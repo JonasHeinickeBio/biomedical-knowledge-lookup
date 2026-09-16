@@ -23,7 +23,7 @@ import logging
 import re
 
 from ...models import LookupResult
-from ..config import call_llm
+from ..config import call_llm, load_llm_config
 from ..state import LookupWorkflowState, dict_to_lookup_result, make_step
 
 logger = logging.getLogger(__name__)
@@ -350,7 +350,9 @@ async def review_node(state: LookupWorkflowState) -> dict:
     # Step 2: Try LLM for quality assessment
     context = state.get("aggregated_context", "") or ""
     llm_review = None
-    max_llm_retries = 3
+    # Retry only when an LLM backend is configured; without one call_llm
+    # returns None immediately and retrying would only sleep.
+    max_llm_retries = 3 if load_llm_config().get("api_key") else 1
     for attempt in range(max_llm_retries):
         llm_review = await _llm_review(context, state["query"], state["max_results"])
         if llm_review is not None:

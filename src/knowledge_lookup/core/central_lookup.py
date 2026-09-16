@@ -6,12 +6,14 @@ Unified interface for querying multiple biological knowledge sources.
 
 import asyncio
 import csv
+import functools
 import json
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 if TYPE_CHECKING:
     from .term_expansion import AbbreviationSource
@@ -19,13 +21,15 @@ if TYPE_CHECKING:
 # Keep these imports at top for E402 compliance
 from ..adapters import ADAPTER_CLASSES
 from ..base import KnowledgeSourceAdapter
-from ..cache import init_cache
+from ..cache import ensure_cache
 from ..curie_utils import get_source_prefix_mapping
 from ..models import ConceptType, KnowledgeSource, LookupConfig, LookupResult
 from ..models.biomedical_knowledge_models import SourceHealth
 from ..models.extensions import UnifiedConcept as UC
 from ..models.models import ConceptIdentifier
-from ..utils.retry_utils import CircuitBreaker, CircuitState
+from ..utils.retry_utils import CircuitBreaker, CircuitBreakerOpen, CircuitState
+
+_T = TypeVar("_T")
 
 # CURIE prefix -> the KnowledgeSource that can resolve it. Prefixes without a
 # dedicated adapter (MESH, NCIT, EFO, ORDO, SNOMEDCT, ICD10, ...) fall back to
@@ -100,9 +104,12 @@ class SourceHealthTracker:
     def get_or_create(self, source: KnowledgeSource) -> CircuitBreaker:
         """Return existing breaker for *source* or create a new one."""
         if source not in self._breakers:
+            # `is None` checks, so an explicit 0 is honoured instead of the default
+            threshold = self._config.circuit_breaker_threshold
+            cooldown = self._config.circuit_breaker_cooldown
             self._breakers[source] = CircuitBreaker(
-                threshold=self._config.circuit_breaker_threshold or 5,
-                cooldown=self._config.circuit_breaker_cooldown or 30.0,
+                threshold=5 if threshold is None else threshold,
+                cooldown=30.0 if cooldown is None else cooldown,
             )
         return self._breakers[source]
 
@@ -125,9 +132,15 @@ class SourceHealthTracker:
             CircuitState.OPEN: ModelCircuitState.OPEN,
             CircuitState.HALF_OPEN: ModelCircuitState.HALF_OPEN,
         }
+        state = cb.state
+        # The breaker only moves OPEN -> HALF_OPEN when a request asks it
+        # (allow_request); once the cooldown has elapsed the next request is a
+        # probe, so report it as half-open rather than as rejecting requests.
+        if state == CircuitState.OPEN and cb._now() - cb.last_failure_time >= cb.cooldown:
+            state = CircuitState.HALF_OPEN
         return SourceHealth(
             source=source,
-            circuit_state=state_map.get(cb.state),
+            circuit_state=state_map.get(state),
             failure_count=cb.failure_count,
             threshold=cb.threshold,
             cooldown=cb.cooldown,
@@ -135,6 +148,7 @@ class SourceHealthTracker:
             total_failures=cb.total_failures,
             total_successes=cb.total_successes,
             health_score=cb.health,
+            is_open=state == CircuitState.OPEN,
         )
 
     def all_health(self) -> dict[KnowledgeSource, SourceHealth]:
@@ -144,8 +158,14 @@ class SourceHealthTracker:
         }
 
     def open_sources(self) -> set[KnowledgeSource]:
-        """Return the set of sources whose circuit breaker is open."""
-        return {src for src, cb in self._breakers.items() if cb.state == CircuitState.OPEN}
+        """Return the set of sources whose circuit breaker is open (still cooling down)."""
+        return {src for src, health in self.all_health().items() if health.is_open}
+
+    def record_failure(self, source: KnowledgeSource) -> None:
+        """Count one failure against *source*'s breaker; no-op for an untracked source."""
+        cb = self._breakers.get(source)
+        if cb is not None:
+            cb.record_failure()
 
 
 class CentralKnowledgeLookup:
@@ -179,7 +199,8 @@ class CentralKnowledgeLookup:
         self.health_tracker = SourceHealthTracker(self.config)
         self.executor = ThreadPoolExecutor(max_workers=10)
         self._prefix_map: dict[str, str] | None = None
-        init_cache()  # Use default cache config; can be customized if needed
+        # Keep a cache configured beforehand with init_cache(...); create the default otherwise
+        ensure_cache()
         if auto_initialize:
             self._initialize_adapters()
 
@@ -430,21 +451,30 @@ class CentralKnowledgeLookup:
         """
         Get detailed information about a specific concept.
 
+        As in :meth:`search_concepts`, a source whose circuit breaker is open is
+        not called, and a call cut off by the timeout counts as a failure on the
+        source's breaker.
+
         Args:
             concept_id: Identifier of the concept
             source: Specific source to query (if None, tries all sources in parallel)
+            timeout: Seconds allowed per source (default ``timeout_per_source``)
 
         Returns:
             Unified concept with detailed information
         """
         _timeout = timeout or self.config.timeout_per_source
 
+        async def _ask(src: KnowledgeSource, adp: KnowledgeSourceAdapter) -> UnifiedConcept | None:
+            return await self._call_source_bounded(
+                src, functools.partial(adp.get_concept_details, concept_id), _timeout
+            )
+
         if source and source in self.adapters:
             try:
-                return await asyncio.wait_for(
-                    self.adapters[source].get_concept_details(concept_id),
-                    timeout=_timeout,
-                )
+                return await _ask(source, self.adapters[source])
+            except CircuitBreakerOpen:
+                return None  # skipped; already logged
             except Exception as e:
                 logger.error(f"Failed to get concept details from {source.value}: {e}")
                 return None
@@ -454,10 +484,7 @@ class CentralKnowledgeLookup:
             src: KnowledgeSource, adp: KnowledgeSourceAdapter
         ) -> UnifiedConcept | None:
             try:
-                return await asyncio.wait_for(
-                    adp.get_concept_details(concept_id),
-                    timeout=_timeout,
-                )
+                return await _ask(src, adp)
             except Exception:
                 return None
 
@@ -635,56 +662,98 @@ class CentralKnowledgeLookup:
     async def _search_parallel(
         self, query: str, sources: list[KnowledgeSource], max_results: int
     ) -> dict[KnowledgeSource, list[UnifiedConcept] | Exception]:
-        """Search sources in parallel with per-source timeout."""
-        tasks = []
+        """Search sources in parallel, each bounded by the per-source timeout."""
         per_source_limit = max(1, max_results // len(sources))
+        active = [source for source in sources if source in self.adapters]
 
-        for source in sources:
-            if source in self.adapters:
-                # Skip sources whose circuit breaker is open
-                if self.config.enable_source_health_tracking:
-                    health = self.health_tracker.get_health(source)
-                    if health and health.is_open:
-                        logger.warning(
-                            "Skipping %s (circuit breaker open, %d consecutive failures)",
-                            source.value,
-                            health.failure_count,
-                        )
-                        continue
-
-                task = asyncio.create_task(
-                    self._search_single_source(source, query, per_source_limit)
-                )
-                tasks.append((source, task))
+        # The timeout lives inside each coroutine, so every source gets the full
+        # timeout from the start instead of from when the previous one finished.
+        outcomes = await asyncio.gather(
+            *(self._search_source_bounded(source, query, per_source_limit) for source in active),
+            return_exceptions=True,
+        )
 
         results: dict[KnowledgeSource, list[UnifiedConcept] | Exception] = {}
-        for source, task in tasks:
-            try:
-                concepts = await asyncio.wait_for(task, timeout=self.config.timeout_per_source)
-                results[source] = concepts
-            except asyncio.TimeoutError:
-                msg = f"Timed out after {self.config.timeout_per_source}s"
-                results[source] = TimeoutError(msg)
-            except Exception as e:
-                results[source] = e
-
+        for source, outcome in zip(active, outcomes, strict=True):
+            if isinstance(outcome, Exception) or not isinstance(outcome, BaseException):
+                results[source] = outcome
+            else:
+                raise outcome  # e.g. CancelledError / KeyboardInterrupt
         return results
 
     async def _search_sequential(
         self, query: str, sources: list[KnowledgeSource], max_results: int
     ) -> dict[KnowledgeSource, list[UnifiedConcept] | Exception]:
-        """Search sources sequentially."""
+        """Search sources one after another, each bounded by the per-source timeout."""
         results: dict[KnowledgeSource, list[UnifiedConcept] | Exception] = {}
         per_source_limit = max(1, max_results // len(sources))
 
         for source in sources:
             try:
-                concepts = await self._search_single_source(source, query, per_source_limit)
+                concepts = await self._search_source_bounded(source, query, per_source_limit)
                 results[source] = concepts
             except Exception as e:
                 results[source] = e
 
         return results
+
+    async def _search_source_bounded(
+        self, source: KnowledgeSource, query: str, limit: int
+    ) -> list[UnifiedConcept]:
+        """Search one source unless its circuit breaker is open, within ``timeout_per_source``.
+
+        Raises:
+            CircuitBreakerOpen: The source's breaker is open, so it was not called.
+            TimeoutError: ``Timed out after <n>s`` when the per-source timeout fired.
+        """
+        return await self._call_source_bounded(
+            source,
+            functools.partial(self._search_single_source, source, query, limit),
+            self.config.timeout_per_source,
+        )
+
+    async def _call_source_bounded(
+        self,
+        source: KnowledgeSource,
+        call: Callable[[], Awaitable[_T]],
+        timeout: float | None,
+    ) -> _T:
+        """Await ``call()`` for *source* unless its breaker is open, within *timeout* seconds.
+
+        Shared by searches and detail lookups, so both skip a source in cooldown
+        and both count a hang against its breaker.
+
+        Raises:
+            CircuitBreakerOpen: The source's breaker is open, so *call* was not made.
+            TimeoutError: ``Timed out after <n>s`` when *timeout* fired. This is
+                recorded as a failure on the source's breaker, so a source that
+                keeps hanging opens it. A ``TimeoutError`` raised by the adapter
+                itself is re-raised unchanged and not recorded here (adapters
+                using the shared retry record their own failures).
+        """
+        if self.config.enable_source_health_tracking:
+            health = self.health_tracker.get_health(source)
+            if health is not None and health.is_open:
+                logger.warning(
+                    "Skipping %s (circuit breaker open, %s consecutive failures)",
+                    source.value,
+                    health.failure_count,
+                )
+                raise CircuitBreakerOpen(
+                    f"Circuit breaker open ({health.failure_count} consecutive failures); "
+                    f"skipped until the {health.cooldown}s cooldown has elapsed"
+                )
+
+        scope = asyncio.timeout(timeout)
+        try:
+            async with scope:
+                return await call()
+        except TimeoutError:
+            if scope.expired():
+                if self.config.enable_source_health_tracking:
+                    self.health_tracker.record_failure(source)
+                raise TimeoutError(f"Timed out after {timeout}s") from None
+            raise  # a TimeoutError raised by the adapter itself
 
     async def _search_single_source(
         self, source: KnowledgeSource, query: str, limit: int
@@ -731,6 +800,7 @@ class CentralKnowledgeLookup:
 
     async def get_statistics(self) -> dict[str, Any]:
         """Get usage statistics for the lookup system."""
+        all_health = self.health_tracker.all_health()
         stats = {
             "available_sources": list(self.adapters.keys()),
             "total_sources": len(self.adapters),
@@ -747,19 +817,16 @@ class CentralKnowledgeLookup:
             },
             "source_health": {
                 src.value: {
-                    "state": h.circuit_state.value if h.circuit_state is not None else "closed",
+                    # use_enum_values=True stores the state as its string value ("OPEN")
+                    "state": str(getattr(h.circuit_state, "value", h.circuit_state) or "CLOSED"),
                     "health_score": h.health_score,
                     "total_calls": h.total_calls,
                     "total_failures": h.total_failures,
                 }
-                for src, h in self.health_tracker.all_health().items()
+                for src, h in all_health.items()
             },
         }
-        open_sources = sum(
-            1
-            for h in self.health_tracker.all_health().values()
-            if (h.circuit_state is not None and h.circuit_state.value == "open")
-        )
+        open_sources = sum(1 for h in all_health.values() if h.is_open)
         logger.info(
             f"Statistics: {len(self.adapters)} sources available, "
             f"Source health: {open_sources} open"
@@ -843,7 +910,7 @@ class CentralKnowledgeLookup:
         if errors:
             lines.append(f"ERRORS: {len(errors)} source(s) failed")
             for source, error in errors.items():
-                lines.append(f"  - {source}: {truncate(str(error), 80)}")
+                lines.append(f"  - {getattr(source, 'value', source)}: {truncate(str(error), 80)}")
 
         return "\n".join(lines)
 
@@ -1255,12 +1322,14 @@ class CentralKnowledgeLookup:
             # Source statistics sheet
             source_df.to_excel(writer, sheet_name="Source Stats", index=False)
 
-            # Errors sheet (if any)
-        errors: dict = result.errors if isinstance(result.errors, dict) else {}
-        if errors:
-            error_data = [{"Source": k, "Error": str(v)} for k, v in errors.items()]
-            error_df = pd.DataFrame(error_data)
-            error_df.to_excel(writer, sheet_name="Errors", index=False)
+            # Errors sheet (if any); must be written before the writer closes
+            errors: dict = result.errors if isinstance(result.errors, dict) else {}
+            if errors:
+                error_data = [
+                    {"Source": getattr(k, "value", k), "Error": str(v)} for k, v in errors.items()
+                ]
+                error_df = pd.DataFrame(error_data)
+                error_df.to_excel(writer, sheet_name="Errors", index=False)
 
         logger.info(f"Results exported to Excel: {filepath}")
         return str(filepath)
@@ -1355,7 +1424,7 @@ class CentralKnowledgeLookup:
             lines.append("ERRORS AND ISSUES")
             lines.append("-" * 40)
             for source, error in errors.items():
-                lines.append(f"{source}: {str(error)[:100]}")
+                lines.append(f"{getattr(source, 'value', source)}: {str(error)[:100]}")
             lines.append("")
 
         # Recommendations
@@ -1419,7 +1488,7 @@ class CentralKnowledgeLookup:
             raise ImportError("RDF conversion requires rdflib. Install with: pip install rdflib")
 
         # Import here to avoid circular imports
-        from .rdf_converter import UnifiedRDFConverter
+        from ..services.rdf_converter import UnifiedRDFConverter
 
         # Perform the search
         result = await self.search_concepts(
@@ -1435,7 +1504,9 @@ class CentralKnowledgeLookup:
 
         # Convert to RDF
         converter = UnifiedRDFConverter(adapter_hints)
-        rdf_graph = converter.convert_concepts_to_graph(result.concepts)
+        rdf_graph = converter.convert_concepts_to_graph(
+            cast(list[UnifiedConcept], result.concepts)
+        )
 
         # Save if output path provided
         if output_path:

@@ -207,7 +207,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         annotations = []
 
         for i, sentence in enumerate(sentences):
-            logger.info(f"Annotating sentence {i+1}/{len(sentences)}")
+            logger.info(f"Annotating sentence {i + 1}/{len(sentences)}")
             annotation = await self.annotate_sentence(sentence, search_depth)
             annotations.append(annotation)
 

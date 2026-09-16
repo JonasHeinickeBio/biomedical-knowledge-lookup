@@ -1,36 +1,38 @@
-Checking if InterPro adapter is available...
-  ✓ InterPro adapter is available
+The INTERPRO adapter is available.
 
-Searching for 'BRCA1' concepts in InterPro...
+Searching INTERPRO for 'kinase' ...
+Found 5 concept(s) in 1.1s
 
-Found 10 results from InterPro:
+  1. Phosphofructokinase domain
+     ID:         InterPro:IPR000023
+     Type:       MOLECULAR_ENTITY
+     Confidence: 0.85
 
-  Concept 1:
-    Label: BRCA1-A complex subunit BRE
-    ID: InterPro:IPR010358
-    Type: ConceptType.PROTEIN
-    Confidence: 0.85
+  2. GPCR kinase
+     ID:         InterPro:IPR000239
+     Type:       PROTEIN
+     Confidence: 0.85
 
-  Concept 2:
-    Label: Cofactor of BRCA1
-    ID: InterPro:IPR010405
-    Type: ConceptType.PROTEIN
-    Confidence: 0.85
+  3. Ser/Thr protein kinase, TGFB receptor
+     ID:         InterPro:IPR000333
+     Type:       PROTEIN
+     Confidence: 0.85
 
-  Concept 3:
-    Label: Breast cancer type 1 susceptibility protein (BRCA1)
-    ID: InterPro:IPR011364
-    Type: ConceptType.PROTEIN
-    Confidence: 0.85
+  4. Phosphatidylinositol 3-kinase Ras-binding (PI3K RBD) domain
+     ID:         InterPro:IPR000341
+     Type:       MOLECULAR_ENTITY
+     Confidence: 0.85
 
-  Concept 4:
-    Label: BRCA1-associated 2/ETP1, RRM
-    ID: InterPro:IPR011422
-    Type: ConceptType.MOLECULAR_ENTITY
-    Confidence: 0.85
+  5. Phosphatidylinositol 3-/4-kinase, catalytic domain
+     ID:         InterPro:IPR000403
+     Type:       MOLECULAR_ENTITY
+     Confidence: 0.85
 
-  Concept 5:
-    Label: BRCA1, serine-rich domain
-    ID: InterPro:IPR025994
-    Type: ConceptType.MOLECULAR_ENTITY
-    Confidence: 0.85
+Fetching details for 'IPR000719' ...
+  Label:      Protein kinase domain
+  ID:         InterPro:IPR000719
+  Type:       MOLECULAR_ENTITY
+  Definition: <p>This entry represents the protein kinase domain containing the catalytic function of protein kinases [[cite:PUB00003569]]. This domain is found in serine/threonine-protein kinases, tyrosine- [...]
+  Identifier: InterPro:IPR000719 (INTERPRO)
+
+Summary: search=5 details=found

@@ -2,7 +2,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-pytestmark = pytest.mark.unit
 from knowledge_lookup.core.multi_source_annotator import (
     AnnotationConfidence,
     ConceptAgreement,
@@ -11,6 +10,8 @@ from knowledge_lookup.core.multi_source_annotator import (
     SourceAnnotation,
 )
 from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+
+pytestmark = pytest.mark.unit
 
 
 class TestMultiSourceAnnotator:
@@ -57,13 +58,15 @@ class TestMultiSourceAnnotator:
             processing_time=0.1,
         )
 
-        with patch.object(
-            annotator, "_get_source_annotations", AsyncMock(return_value=[mock_source_ann])
-        ), patch.object(annotator, "_analyze_consensus", AsyncMock(return_value=[])), patch.object(
-            annotator, "_identify_discrepancies", return_value=[]
-        ), patch.object(
-            annotator, "_calculate_overall_confidence", return_value=0.5
-        ), patch.object(annotator, "_generate_annotation_stats", return_value={}):
+        with (
+            patch.object(
+                annotator, "_get_source_annotations", AsyncMock(return_value=[mock_source_ann])
+            ),
+            patch.object(annotator, "_analyze_consensus", AsyncMock(return_value=[])),
+            patch.object(annotator, "_identify_discrepancies", return_value=[]),
+            patch.object(annotator, "_calculate_overall_confidence", return_value=0.5),
+            patch.object(annotator, "_generate_annotation_stats", return_value={}),
+        ):
             result = await annotator.annotate_sentence(sentence)
             assert isinstance(result, MultiSourceAnnotationResult)
             assert result.sentence == sentence
@@ -82,14 +85,16 @@ class TestMultiSourceAnnotator:
             processing_time=0.1,
         )
 
-        with patch.object(
-            annotator, "_get_source_annotations", AsyncMock(return_value=[mock_source_ann])
-        ), patch.object(annotator, "_analyze_consensus", AsyncMock(return_value=[])), patch.object(
-            annotator, "_identify_discrepancies", return_value=[]
-        ), patch.object(
-            annotator, "_calculate_overall_confidence", return_value=0.6
-        ), patch.object(
-            annotator, "_generate_annotation_stats", return_value={"total_sources": 1}
+        with (
+            patch.object(
+                annotator, "_get_source_annotations", AsyncMock(return_value=[mock_source_ann])
+            ),
+            patch.object(annotator, "_analyze_consensus", AsyncMock(return_value=[])),
+            patch.object(annotator, "_identify_discrepancies", return_value=[]),
+            patch.object(annotator, "_calculate_overall_confidence", return_value=0.6),
+            patch.object(
+                annotator, "_generate_annotation_stats", return_value={"total_sources": 1}
+            ),
         ):
             result = await annotator.annotate_text(sentence)
             assert result.sentence == sentence
@@ -593,6 +598,23 @@ class TestMultiSourceAnnotator:
         stats = annotator._generate_annotation_stats([ann_ok, ann_err], [])
         assert stats["failed_sources"] == 1
         assert stats["successful_sources"] == 1
+
+    def test_generate_annotation_stats_source_health(self, annotator):
+        """Health snapshots store circuit_state as a string; stats must not call .value on it."""
+        from knowledge_lookup.core.central_lookup import SourceHealthTracker
+
+        tracker = SourceHealthTracker(LookupConfig(circuit_breaker_threshold=2))
+        breaker = tracker.get_or_create(KnowledgeSource.OLS)
+        breaker.record_failure()
+        breaker.record_failure()
+        tracker.get_or_create(KnowledgeSource.HPO).record_success()
+        annotator.central_lookup.health_tracker = tracker
+
+        stats = annotator._generate_annotation_stats([], [])
+
+        assert stats["source_health"]["OLS"]["state"] == "OPEN"
+        assert stats["source_health"]["OLS"]["total_failures"] == 2
+        assert stats["source_health"]["HPO"]["state"] == "CLOSED"
 
     @pytest.mark.asyncio
     async def test_annotate_multiple_sentences(self, annotator):

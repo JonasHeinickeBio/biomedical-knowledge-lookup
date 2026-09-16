@@ -198,6 +198,14 @@ class MemoryCacheBackend(CacheBackend):
         with self._lock:
             return len(self._cache)
 
+    def delete_prefix(self, prefix: str) -> int:
+        """Delete every entry whose key starts with *prefix*. Returns the number removed."""
+        with self._lock:
+            keys = [key for key in self._cache if key.startswith(prefix)]
+            for key in keys:
+                self._delete_entry(key)
+            return len(keys)
+
     def _delete_entry(self, key: str) -> bool:
         """Delete an entry (internal method)."""
         if key in self._cache:
@@ -310,6 +318,20 @@ class DiskCacheBackend(CacheBackend):
         """Get number of entries in cache."""
         with self._lock:
             return len(self._index)
+
+    def delete_prefix(self, prefix: str) -> int:
+        """Delete every entry whose key starts with *prefix*. Returns the number removed."""
+        with self._lock:
+            keys = [key for key in self._index if key.startswith(prefix)]
+            for key in keys:
+                try:
+                    self._get_cache_file(key).unlink(missing_ok=True)
+                except OSError as e:
+                    logger.error(f"Failed to delete cache entry '{key}': {e}")
+                del self._index[key]
+            if keys:
+                self._save_index()  # once, not per entry
+            return len(keys)
 
     def _get_cache_file(self, key: str) -> Path:
         """Get cache file path for a key."""
@@ -510,9 +532,12 @@ class KnowledgeLookupCache:
             if self._disk_cache:
                 self._disk_cache.clear()
         else:
-            # Namespace-specific clearing would require iterating all keys
-            # For now, we'll clear all (can be optimized later)
-            logger.warning("Namespace-specific clearing not implemented, clearing all")
+            # Keys are stored as "<namespace>:<key>" (see _make_key)
+            prefix = self._make_key("", namespace)
+            removed = self._memory_cache.delete_prefix(prefix)
+            if self._disk_cache:
+                removed += self._disk_cache.delete_prefix(prefix)
+            logger.debug(f"Cleared {removed} cache entries in namespace '{namespace}'")
 
     def cleanup(self) -> dict[str, int]:
         """
@@ -632,4 +657,19 @@ def init_cache(
         default_ttl=default_ttl,
         cleanup_interval=cleanup_interval,
     )
+    return _cache_instance
+
+
+def ensure_cache() -> KnowledgeLookupCache:
+    """
+    Return the global cache, creating it with :func:`init_cache` defaults if none exists.
+
+    Unlike :func:`init_cache`, a cache configured earlier (for example with a
+    disk cache directory) is kept rather than replaced.
+
+    Returns:
+        The global cache instance
+    """
+    if _cache_instance is None:
+        return init_cache()
     return _cache_instance

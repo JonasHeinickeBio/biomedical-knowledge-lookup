@@ -1,186 +1,72 @@
-# COSMIC Adapter
+---
+description: COSMIC cancer genes and somatic mutations (requires COSMIC account credentials; no query API is currently available).
+---
 
-## Overview
+# COSMIC adapter
 
-The COSMIC Adapter provides access to the Catalogue Of Somatic Mutations In Cancer (COSMIC), the world's largest and most comprehensive resource for exploring the impact of somatic mutations in human cancer. It enables searching for cancer genes, mutations, and their clinical implications.
+Meant to look up cancer genes in COSMIC, the Catalogue of Somatic Mutations in Cancer: role in cancer, tier, synonyms and hallmarks.
 
-### Purpose
-- Search for cancer-associated genes and mutations
-- Retrieve somatic mutation data from tumor samples
-- Access cancer gene census information
-- Support cancer genomics and precision oncology research
+| | |
+|---|---|
+| Source | `KnowledgeSource.COSMIC` |
+| Class | `knowledge_lookup.adapters.COSMICAdapter` |
+| Requires | COSMIC account credentials (`COSMIC_API_KEY`) |
+| Identifiers | `COSMIC:TP53` |
+| Upstream API | `https://cancer.sanger.ac.uk/api/rest/cosmic` |
 
-### Scope
-- Cancer genes and their roles in oncology
-- Somatic mutations with clinical significance
-- Drug resistance and sensitivity data
-- Tumor type associations
-- Cancer predisposition genes
+{% hint style="warning" %}
+**Credentials required, and no query API is currently available.** COSMIC has no public, keyless API: programmatic access needs a registered COSMIC account, and COSMIC currently offers authenticated file downloads rather than a gene or mutation query endpoint. The legacy REST endpoint the adapter calls (`/genes`) answers HTTP 404 with or without credentials.
 
-## Key Features
+- Without credentials `is_available()` is `False`, so `CentralKnowledgeLookup` skips COSMIC. Direct calls log a warning and return `[]` / `None` without sending a request.
+- With credentials the request is sent; the 404 is logged at `ERROR` level with this explanation, and the calls return `[]` / `None`.
 
-- **Cancer Gene Search**: Search COSMIC for genes associated with cancer
-- **Mutation Data**: Access somatic mutation information with tissue specificity
-- **Role in Cancer**: Retrieve functional role (oncogene, tumor suppressor, etc.)
-- **Tier Classification**: Access COSMIC's tier system for cancer genes
-- **Hallmark Annotations**: Get cancer hallmark pathway information
-- **Synonym Resolution**: Access multiple gene nomenclatures and aliases
+For clinically interpreted variants, use the [ClinVar adapter](../phenotypes/clinvar_adapter.md).
+{% endhint %}
 
-## API Information
-
-### Endpoint
-- **Base URL**: `https://cancer.sanger.ac.uk/api/rest/cosmic`
-
-### Authentication
-- **Required**: Optional (full data access requires authentication)
-- **API Key**: Set via `COSMIC_API_KEY` environment variable or config
-
-### Environment Variables
-- `COSMIC_API_KEY`: API key for authenticated access (optional but recommended)
-
-## Key Methods
-
-### `search_concepts(query, limit=20) -> list[UnifiedConcept]`
-
-Search COSMIC for cancer genes and somatic mutations matching the query.
-
-**Parameters:**
-- `query` (str): Search term (gene name, mutation, cancer type)
-- `limit` (int): Maximum number of results (default: 20, max: 25)
-
-**Returns:**
-- List of `UnifiedConcept` objects representing cancer genes/mutations
-
-**Example:**
-```python
-concepts = await adapter.search_concepts("BRAF")
-```
-
-### `get_concept_details(concept_id) -> UnifiedConcept | None`
-
-Get detailed information about a specific COSMIC gene entry.
-
-**Parameters:**
-- `concept_id` (str): COSMIC gene ID (e.g., "COSMIC:719" for BRAF)
-
-**Returns:**
-- `UnifiedConcept` with full gene details, or `None` if not found
-
-**Example:**
-```python
-gene = await adapter.get_concept_details("COSMIC:719")
-```
-
-## Configuration
-
-Configure the adapter with optional API key authentication:
+## Quick example
 
 ```python
-from knowledge_lookup.adapters.cosmic_adapter import COSMICAdapter
+import asyncio
+
+from knowledge_lookup.adapters import COSMICAdapter
 from knowledge_lookup.models import LookupConfig
 
-config = LookupConfig()
-# Optional: Set API key via environment variable
-# export COSMIC_API_KEY="your_api_key_here"
-adapter = COSMICAdapter(config)
+
+async def main():
+    async with COSMICAdapter(LookupConfig()) as adapter:
+        print(adapter.is_available())
+        print(await adapter.search_concepts("TP53", limit=3))
+
+
+asyncio.run(main())
 ```
 
-## Usage Examples
+Output (without credentials; the warning is logged):
 
-### Basic Search
-```python
-from knowledge_lookup.adapters.cosmic_adapter import COSMICAdapter
-
-adapter = COSMICAdapter(config)
-
-# Search for BRAF in COSMIC
-results = await adapter.search_concepts("BRAF", limit=5)
-
-for concept in results:
-    print(f"Gene: {concept.primary_label}")
-    print(f"Role in Cancer: {concept.categories}")
-    print(f"Tier: {concept.categories}")
+```
+False
+[]
 ```
 
-### Get Gene Details
-```python
-# Get detailed information for BRAF
-gene = await adapter.get_concept_details("COSMIC:719")
+## Searching
 
-if gene:
-    print(f"Gene: {gene.primary_label}")
-    print(f"Roles: {[c for c in gene.categories if c.startswith('role_in_cancer:')]}")
-    print(f"Tier: {[c for c in gene.categories if c.startswith('tier:')}])")
-    print(f"Synonyms: {gene.synonyms}")
-```
+Credentials are the base64 encoding of `email:password` for a COSMIC account, passed as `api_keys={"cosmic": ...}` or `COSMIC_API_KEY`. With credentials, `search_concepts(query, limit)` requests `/genes?gene_name=<query>&limit=min(limit, 25)` with `Authorization: Basic <key>`. Any gene record would become a `GENE` concept:
 
-### Search by Mutation
-```python
-# Search for mutations in a specific gene
-results = await adapter.search_concepts("V600E")
-```
+- `primary_id`: `COSMIC:<id>`
+- `categories`: `role_in_cancer:...` and `tier:...`
+- `synonyms`: gene synonyms
+- `semantic_types`: hallmarks
+- `confidence_score`: `0.85`
 
-### Search by Cancer Type
-```python
-# Search for genes associated with melanoma
-results = await adapter.search_concepts("melanoma")
-```
+## Concept details
 
-## Error Handling
+`get_concept_details(concept_id)` strips a `COSMIC:` prefix and requests `/genes/{id}` (credentials required, as above).
 
-The adapter implements comprehensive error handling:
+## Rate limits and errors
 
-- **Authentication Errors**: Gracefully handles missing API keys
-- **Invalid IDs**: Returns `None` for non-existent gene IDs
-- **Network Errors**: Caught and logged, returns empty list
-- **Data Parsing Errors**: Graceful handling with error logging
+Uses the shared HTTP retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). 404 responses are not retried.
 
-```python
-try:
-    results = await adapter.search_concepts("BRAF")
-    if not results:
-        logger.info("No COSMIC entries found for BRAF")
-except Exception as e:
-    logger.error(f"COSMIC search failed: {e}")
-```
+## See also
 
-## Rate Limiting
-
-**COSMIC API Rate Limits:**
-- Rate limits are imposed by the COSMIC service
-- Unauthenticated requests have limited access
-- Authenticated requests have higher limits
-
-The adapter includes built-in rate limiting via the base class `KnowledgeSourceAdapter`. Implementations should:
-- Respect COSMIC's rate limits
-- Implement request throttling for bulk operations
-- Use authenticated access for production workloads
-
-```python
-# The adapter automatically handles rate limiting through the base class
-# Consider setting API key for higher rate limits
-```
-
-## Data Model Mapping
-
-| COSMIC Field | UnifiedConcept Mapping |
-|-------------|----------------------|
-| `id` / `cosmic_id` | `primary_id` (as `COSMIC:{id}`) |
-| `gene_name` / `name` | `primary_label` |
-| `role_in_cancer` | `categories.append("role_in_cancer:{role}")` |
-| `tier` | `categories.append("tier:{tier}")` |
-| `synonyms` | `synonyms.extend(synonyms)` |
-| `hallmarks.hallmark` | `semantic_types.append(hallmark)` |
-
-## Related Adapters
-
-- **ClinVar Adapter**: For germline variant data
-- **OMIM Adapter**: For Mendelian disease genes
-- **Uniprot Adapter**: For protein-level mutation impact
-- **DrugBank Adapter**: For targeted therapy drugs
-
-## References
-
-- [COSMIC Documentation](https://cancer.sanger.ac.uk/cosmic/download/api)
-- [COSMIC Database](https://cancer.sanger.ac.uk/cosmic)
-- [Cancer Gene Census](https://cancer.sanger.ac.uk/census)
+- [ClinVar adapter](../phenotypes/clinvar_adapter.md): clinical variants from NCBI
+- [All adapters](../README.md)

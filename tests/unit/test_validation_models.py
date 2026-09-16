@@ -1,12 +1,10 @@
 """
-Unit tests for validation_models module.
+Unit tests for knowledge_lookup.models.validation_models.
 """
 
 import pytest
 
-pytestmark = pytest.mark.unit
-
-from knowledge_lookup.validation_models import (
+from knowledge_lookup.models.validation_models import (
     convert_generated_concept_identifier,
     convert_generated_concept_mapping,
     convert_generated_lookup_config,
@@ -14,9 +12,11 @@ from knowledge_lookup.validation_models import (
     convert_generated_unified_concept,
 )
 
+pytestmark = pytest.mark.unit
+
 
 def _make_gen_identifier(source="CHEMBL", identifier="CHEMBL1", label="Test", url=None):
-    from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+    from knowledge_lookup.models.biomedical_knowledge_models import (
         ConceptIdentifier as GenCI,
     )
 
@@ -26,7 +26,7 @@ def _make_gen_identifier(source="CHEMBL", identifier="CHEMBL1", label="Test", ur
 def _make_gen_mapping(
     from_id="CHEMBL1", to_id="PUBCHEM2", mapping_type="exact", confidence=1.0, source="test"
 ):
-    from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+    from knowledge_lookup.models.biomedical_knowledge_models import (
         ConceptMapping as GenCM,
     )
 
@@ -55,7 +55,7 @@ def _make_gen_concept(
     related=None,
     confidence_score=0.9,
 ):
-    from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+    from knowledge_lookup.models.biomedical_knowledge_models import (
         UnifiedConcept as GenUC,
     )
 
@@ -99,7 +99,7 @@ class TestConvertConceptIdentifier:
         assert result.url == "http://x.com"
 
     def test_enum_source_value(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
         )
 
@@ -122,7 +122,7 @@ class TestConvertConceptMapping:
         assert result.confidence == 1.0
 
     def test_none_mapping_type_defaults_to_exact(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             ConceptMapping as GenCM,
         )
 
@@ -157,7 +157,7 @@ class TestConvertUnifiedConcept:
         assert result.synonyms == ["syn1"]
 
     def test_concept_type_fallback_to_unknown(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             UnifiedConcept as GenUC,
         )
 
@@ -176,7 +176,7 @@ class TestConvertUnifiedConcept:
         assert result.concept_type == "UNKNOWN"
 
     def test_concept_type_enum_value(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             ConceptType as GenCT,
         )
 
@@ -185,7 +185,7 @@ class TestConvertUnifiedConcept:
         assert result.concept_type == "GENE"
 
     def test_sources_from_list(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
         )
 
@@ -226,7 +226,7 @@ class TestConvertUnifiedConcept:
         assert result.related == []
 
     def test_sources_enum_with_value_attr(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
         )
 
@@ -236,7 +236,7 @@ class TestConvertUnifiedConcept:
         assert "UNIPROT" in source_values
 
     def test_identifiers_with_enum_source(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
         )
 
@@ -246,7 +246,7 @@ class TestConvertUnifiedConcept:
         assert result.identifiers[0].source == "PUBCHEM"
 
     def test_no_identifiers_and_no_sources(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             UnifiedConcept as GenUC,
         )
 
@@ -261,7 +261,7 @@ class TestConvertUnifiedConcept:
         assert len(result.sources) == 0
 
     def test_none_optional_fields(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             UnifiedConcept as GenUC,
         )
 
@@ -288,7 +288,7 @@ class TestConvertUnifiedConcept:
         assert result.related == []
 
     def test_confidence_score_none(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             UnifiedConcept as GenUC,
         )
 
@@ -298,7 +298,8 @@ class TestConvertUnifiedConcept:
             confidence_score=None,
         )
         result = convert_generated_unified_concept(gen_concept)
-        assert result.confidence_score == 0.0
+        # confidence_score is Optional[float] with default None; the converter keeps "unknown"
+        assert result.confidence_score is None
 
     def test_last_updated_preserved(self):
         from datetime import datetime
@@ -311,7 +312,7 @@ class TestConvertUnifiedConcept:
 
 class TestConvertLookupResult:
     def test_basic_conversion(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
 
@@ -331,7 +332,7 @@ class TestConvertLookupResult:
         assert result.total_found == 1
 
     def test_empty_sources(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
 
@@ -341,10 +342,10 @@ class TestConvertLookupResult:
         assert result.total_found == 0
 
     def test_sources_with_enum_value(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
         )
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
 
@@ -359,7 +360,7 @@ class TestConvertLookupResult:
         assert "OLS" in queried_values
 
     def test_failed_sources(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
 
@@ -374,7 +375,7 @@ class TestConvertLookupResult:
         assert "CHEMBL" in failed_values
 
     def test_execution_time_none(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupResult as GenLR,
         )
 
@@ -385,7 +386,7 @@ class TestConvertLookupResult:
 
 class TestConvertLookupConfig:
     def test_basic_conversion(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
 
@@ -399,7 +400,7 @@ class TestConvertLookupConfig:
         assert result.timeout_per_source == 10.0
 
     def test_empty_config(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
 
@@ -411,10 +412,10 @@ class TestConvertLookupConfig:
         assert result.enable_deduplication is True
 
     def test_concept_types_normalization(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             ConceptType as GenCT,
         )
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
 
@@ -425,7 +426,7 @@ class TestConvertLookupConfig:
         assert "DISEASE" in type_values
 
     def test_no_concept_types(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
 
@@ -434,10 +435,10 @@ class TestConvertLookupConfig:
         assert result.concept_types is None
 
     def test_enabled_sources_enum(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             KnowledgeSource as GenKS,
         )
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
 
@@ -447,7 +448,7 @@ class TestConvertLookupConfig:
         assert "UNIPROT" in source_values
 
     def test_concept_types_none_value(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
 
@@ -456,7 +457,7 @@ class TestConvertLookupConfig:
         assert result.concept_types is None
 
     def test_similarity_threshold(self):
-        from knowledge_lookup.generated_models.biomedical_knowledge_models import (
+        from knowledge_lookup.models.biomedical_knowledge_models import (
             LookupConfig as GenLC,
         )
 

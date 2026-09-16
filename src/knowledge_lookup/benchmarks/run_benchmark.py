@@ -78,7 +78,7 @@ async def _search_safe(
             lookup.search_concepts(query, sources=sources, parallel=parallel),
             timeout=timeout,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return None
 
 
@@ -95,7 +95,7 @@ async def _details_safe(
             lookup.get_concept_details(concept_id, source=source, timeout=timeout),
             timeout=timeout + 3.0,
         )
-    except (asyncio.TimeoutError, Exception):
+    except (TimeoutError, Exception):
         return None
 
 
@@ -175,9 +175,7 @@ async def bench_parallel_vs_sequential(
             BenchResult(
                 label=f"speedup_{len(sources)}src",
                 duration_s=par_t,
-                detail=(
-                    f"sequential={seq_t:.3f}s  parallel={par_t:.3f}s  " f"speedup={speedup:.2f}x"
-                ),
+                detail=(f"sequential={seq_t:.3f}s  parallel={par_t:.3f}s  speedup={speedup:.2f}x"),
                 extra={
                     "n_sources": len(sources),
                     "sources": [s.value for s in sources],
@@ -295,8 +293,7 @@ async def bench_concurrent_throughput(
             label="concurrent_5_queries",
             duration_s=con_t,
             detail=(
-                f"sequential batch={seq_t:.3f}s  concurrent={con_t:.3f}s  "
-                f"speedup={speedup:.2f}x"
+                f"sequential batch={seq_t:.3f}s  concurrent={con_t:.3f}s  speedup={speedup:.2f}x"
             ),
             extra={
                 "n_queries": 5,
@@ -328,7 +325,7 @@ async def bench_annotator() -> list[BenchResult]:
     with t:
         try:
             r = await asyncio.wait_for(annotator.annotate_text(sentences[0]), timeout=30.0)
-        except (asyncio.TimeoutError, Exception) as e:
+        except (TimeoutError, Exception) as e:
             results.append(
                 BenchResult(
                     label="annotator_single",

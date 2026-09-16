@@ -123,13 +123,39 @@ class ClinVarAdapter(KnowledgeSourceAdapter):
             concept_id = f"ClinVar:{uid}"
             concept = self._create_concept(concept_id, title, ConceptType.MOLECULAR_ENTITY)
 
-            # Clinical significance
-            clin_sig = item.get("clinical_significance", {})
-            if isinstance(clin_sig, dict):
-                sig_desc = clin_sig.get("description", "")
-                if sig_desc:
-                    if concept.categories is not None:
-                        concept.categories.append(f"clinical_significance:{sig_desc}")
+            # Clinical significance. Current esummary records carry it under
+            # germline_classification (plus clinical_impact_classification and
+            # oncogenicity_classification for somatic records); older records
+            # used clinical_significance.
+            trait_names: list[str] = []
+            for field in (
+                "germline_classification",
+                "clinical_significance",
+                "clinical_impact_classification",
+                "oncogenicity_classification",
+            ):
+                classification = item.get(field)
+                if not isinstance(classification, dict):
+                    continue
+                sig_desc = classification.get("description", "")
+                if not sig_desc:
+                    continue
+                if concept.categories is not None:
+                    prefix = (
+                        "clinical_significance"
+                        if field in ("germline_classification", "clinical_significance")
+                        else field.removesuffix("_classification")
+                    )
+                    concept.categories.append(f"{prefix}:{sig_desc}")
+                    review_status = classification.get("review_status", "")
+                    if review_status and field != "clinical_significance":
+                        concept.categories.append(f"review_status:{review_status}")
+                for trait in classification.get("trait_set", []) or []:
+                    trait_name = (
+                        trait.get("trait_name", "") if isinstance(trait, dict) else str(trait)
+                    )
+                    if trait_name and trait_name not in trait_names:
+                        trait_names.append(trait_name)
 
             # Gene info
             gene_sort = item.get("gene_sort", "")
@@ -143,16 +169,23 @@ class ClinVarAdapter(KnowledgeSourceAdapter):
                 if concept.semantic_types is not None:
                     concept.semantic_types.append(variation_type)
 
-            # Supporting traits / conditions
+            # Supporting traits / conditions: collected from the classifications
+            # above, plus the legacy top-level trait_set
             trait_set = item.get("trait_set", [])
             if isinstance(trait_set, list):
                 for trait in trait_set:
                     trait_name = (
                         trait.get("trait_name", "") if isinstance(trait, dict) else str(trait)
                     )
-                    if trait_name:
-                        if concept.categories is not None:
-                            concept.categories.append(f"condition:{trait_name}")
+                    if trait_name and trait_name not in trait_names:
+                        trait_names.append(trait_name)
+            if concept.categories is not None:
+                concept.categories.extend(f"condition:{name}" for name in trait_names)
+
+            # Molecular consequences (e.g. "missense variant")
+            consequences = item.get("molecular_consequence_list", [])
+            if isinstance(consequences, list) and concept.semantic_types is not None:
+                concept.semantic_types.extend(c for c in consequences if isinstance(c, str) and c)
 
             concept.confidence_score = 0.85
             if isinstance(concept.source_data, dict):

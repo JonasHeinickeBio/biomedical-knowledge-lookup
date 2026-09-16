@@ -173,7 +173,7 @@ to bump manually; the pipeline below computes it for you.
    signals a major release.
 
 2. **`.github/workflows/staging.yml`** runs on every push to `staging`: the
-   full unit + integration matrix (Python 3.10–3.12), blocking `ruff`/`mypy`,
+   full unit + integration matrix (Python 3.11–3.13), blocking `ruff`/`mypy`,
    live-API functional tests, and a packaging smoke test (core-only install
    + all-extras install). When everything passes, it opens (or updates) a
    `staging → main` PR and turns on GitHub's native auto-merge for it —

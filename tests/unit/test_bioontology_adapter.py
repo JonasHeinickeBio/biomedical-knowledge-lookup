@@ -291,7 +291,7 @@ class TestBioOntologyBuildParams:
         """Test _build_params maps 'query' to 'q'."""
         params = adapter_with_api_key._build_params(query="diabetes")
         assert params["q"] == "diabetes"
-        assert params["apikey"] == "test_api_key"
+        assert "apikey" not in params  # the key goes in the Authorization header
 
     def test_build_params_with_q_kwarg(self, adapter_with_api_key):
         """Test _build_params maps 'q' to 'q'."""
@@ -482,7 +482,7 @@ class TestBioOntologyBuildSearchRequest:
         assert url == "https://data.bioontology.org/search"
         assert params["q"] == "diabetes"
         assert params["pagesize"] == 10
-        assert params["apikey"] == "test_api_key"
+        assert "apikey" not in params  # the key goes in the Authorization header
 
     def test_build_search_request_max_limit(self, adapter_with_api_key):
         """Test _build_search_request caps pagesize at 50."""
@@ -704,19 +704,20 @@ class TestBioOntologyBatchAnnotate:
 
     @pytest.mark.asyncio
     async def test_batch_annotate_success(self, adapter_with_api_key):
-        """Test batch_annotate returns data."""
+        """Test batch_annotate annotates every text and returns one list per text."""
         adapter_with_api_key._make_request = AsyncMock(return_value={"results": []})
 
         result = await adapter_with_api_key.batch_annotate(["text1", "text2"], ontologies="DOID")
-        assert result == {"results": []}
+        assert result == [[], []]
+        assert adapter_with_api_key._make_request.await_count == 2
 
     @pytest.mark.asyncio
     async def test_batch_annotate_exception(self, adapter_with_api_key):
-        """Test batch_annotate handles exceptions."""
+        """Test batch_annotate returns an empty list for a text whose request failed."""
         adapter_with_api_key._make_request = AsyncMock(side_effect=Exception("Error"))
 
         result = await adapter_with_api_key.batch_annotate(["text1"])
-        assert result is None
+        assert result == [[]]
 
     @pytest.mark.asyncio
     async def test_batch_annotate_with_extra_params(self, adapter_with_api_key):
@@ -839,7 +840,7 @@ class TestBioOntologyBuildDetailsRequest:
             "http://purl.obolibrary.org/obo/DOID_9351", ontology="doid"
         )
         assert "doid" in url
-        assert params["apikey"] == "test_api_key"
+        assert "apikey" not in params  # the key goes in the Authorization header
 
     def test_build_details_request_no_ontology_raises(self, adapter_with_api_key):
         """Test _build_details_request raises ValueError without ontology."""

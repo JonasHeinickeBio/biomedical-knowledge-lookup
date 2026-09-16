@@ -1,36 +1,38 @@
-Checking if KEGG adapter is available...
-  ✓ KEGG adapter is available
+The KEGG adapter is available.
 
-Searching for 'cancer' concepts in KEGG...
+Searching KEGG for 'diabetes' ...
+Found 5 concept(s) in 2.7s
 
-Found 35 results from KEGG:
+  1. Congenital nephrogenic diabetes insipidus
+     ID:         H00252
+     Type:       DISEASE
+     Confidence: 0.8
 
-  Concept 1:
-    Label: Small cell lung cancer
-    ID: H00013
-    Type: ConceptType.DISEASE
-    Confidence: 0.8
+  2. Neurohypophyseal diabetes insipidus
+     ID:         H00253
+     Type:       DISEASE
+     Confidence: 0.8
 
-  Concept 2:
-    Label: Non-small cell lung cancer
-    ID: H00014
-    Type: ConceptType.DISEASE
-    Confidence: 0.8
+  3. Type 1 diabetes mellitus
+     ID:         H00408
+     Type:       DISEASE
+     Confidence: 0.8
 
-  Concept 3:
-    Label: Oral cancer
-    ID: H00016
-    Type: ConceptType.DISEASE
-    Confidence: 0.8
+  4. Type 2 diabetes mellitus
+     ID:         H00409
+     Type:       DISEASE
+     Confidence: 0.8
 
-  Concept 4:
-    Label: Esophageal cancer
-    ID: H00017
-    Type: ConceptType.DISEASE
-    Confidence: 0.8
+  5. Maturity onset diabetes of the young (MODY)
+     ID:         H00410
+     Type:       DISEASE
+     Confidence: 0.8
 
-  Concept 5:
-    Label: Gastric cancer
-    ID: H00018
-    Type: ConceptType.DISEASE
-    Confidence: 0.8
+Fetching details for 'H00409' ...
+  Label:      Type 2 diabetes mellitus
+  ID:         H00409
+  Type:       DISEASE
+  Definition: Type 2 diabetes mellitus (T2DM) is characterized by chronic hyperglycemia due to insulin resistance of peripheral tissues (skeletal muscle, liver, adipose tissue) and insufficient compensatory [...]
+  Identifier: H00409 (KEGG)
+
+Summary: search=5 details=found

@@ -2,43 +2,27 @@
 Functional test for DrugBank adapter.
 
 Tests real API calls to validate response structures and detect changes.
-Requires DRUGBANK_API_KEY environment variable.
+DrugBank records are served keyless by MyChem.info, so no API key is needed.
 """
 
-import os
-
 import pytest
-from knowledge_lookup.adapters.drugbank_adapter import DrugBankAdapter
-from knowledge_lookup.models import KnowledgeSource
 
-from .conftest import requires_api_key
+from knowledge_lookup.adapters.drugbank_adapter import DrugBankAdapter
+from knowledge_lookup.models import ConceptType, KnowledgeSource
 
 pytestmark = [pytest.mark.functional, pytest.mark.network, pytest.mark.api]
 
 
-@pytest.fixture
-def drugbank_available():
-    """Check if DrugBank API key is available."""
-    api_key = os.environ.get("DRUGBANK_API_KEY")
-    return api_key is not None and len(api_key) > 10
-
-
 @pytest.mark.asyncio
-@requires_api_key(KnowledgeSource.DRUGBANK)
-async def test_drugbank_search_aspirin(
-    adapter, response_validator, warning_manager, drugbank_available
-):
+async def test_drugbank_search_aspirin(adapter, response_validator, warning_manager):
     """
     Test DrugBank search for aspirin with real API call.
 
     This test validates:
-    - Adapter can connect to DrugBank API
+    - Adapter can connect to MyChem.info
     - Response structure matches expected format
     - Results contain drug information
     """
-    if not drugbank_available:
-        pytest.skip("DRUGBANK_API_KEY not set")
-
     adapter = DrugBankAdapter(adapter.config)
 
     # Search for aspirin
@@ -47,12 +31,13 @@ async def test_drugbank_search_aspirin(
     # Validate results
     assert isinstance(results, list), "Expected list of results"
     assert len(results) >= 1, f"Expected at least 1 result, got {len(results)}"
+    assert "DB00945" in [r.primary_id for r in results]
 
     # Check that results have expected structure
     for result in results[:3]:
-        assert hasattr(result, "primary_id"), "Result missing primary_id"
-        assert hasattr(result, "primary_label"), "Result missing primary_label"
-        assert hasattr(result, "concept_type"), "Result missing concept_type"
+        assert result.primary_id.startswith("DB"), "Expected a DrugBank ID"
+        assert result.primary_label, "Result missing primary_label"
+        assert result.concept_type == ConceptType.DRUG
 
     # Extract sample response data
     response_data = {
@@ -82,14 +67,8 @@ async def test_drugbank_search_aspirin(
 
 
 @pytest.mark.asyncio
-@requires_api_key(KnowledgeSource.DRUGBANK)
-async def test_drugbank_search_metformin(
-    adapter, response_validator, warning_manager, drugbank_available
-):
+async def test_drugbank_search_metformin(adapter, response_validator, warning_manager):
     """Test DrugBank search for metformin."""
-    if not drugbank_available:
-        pytest.skip("DRUGBANK_API_KEY not set")
-
     adapter = DrugBankAdapter(adapter.config)
 
     results = await adapter.search_concepts("metformin", limit=3)
@@ -99,14 +78,8 @@ async def test_drugbank_search_metformin(
 
 
 @pytest.mark.asyncio
-@requires_api_key(KnowledgeSource.DRUGBANK)
-async def test_drugbank_search_insulin(
-    adapter, response_validator, warning_manager, drugbank_available
-):
+async def test_drugbank_search_insulin(adapter, response_validator, warning_manager):
     """Test DrugBank search for insulin."""
-    if not drugbank_available:
-        pytest.skip("DRUGBANK_API_KEY not set")
-
     adapter = DrugBankAdapter(adapter.config)
 
     results = await adapter.search_concepts("insulin", limit=3)
@@ -116,27 +89,32 @@ async def test_drugbank_search_insulin(
 
 
 @pytest.mark.asyncio
-@requires_api_key(KnowledgeSource.DRUGBANK)
-async def test_drugbank_empty_search(adapter, response_validator, drugbank_available):
-    """Test DrugBank search with no results."""
-    if not drugbank_available:
-        pytest.skip("DRUGBANK_API_KEY not set")
+async def test_drugbank_get_concept_details(adapter):
+    """Test DrugBank details for a known DrugBank ID."""
+    adapter = DrugBankAdapter(adapter.config)
 
+    details = await adapter.get_concept_details("DB00945")
+
+    assert details is not None
+    assert details.primary_id == "DB00945"
+    assert details.primary_label == "Acetylsalicylic acid"
+    assert details.identifiers[0].url == "https://go.drugbank.com/drugs/DB00945"
+
+
+@pytest.mark.asyncio
+async def test_drugbank_empty_search(adapter, response_validator):
+    """Test DrugBank search with no results."""
     adapter = DrugBankAdapter(adapter.config)
 
     # Search for something very unlikely to exist
     results = await adapter.search_concepts("xkjshdfkjsdhfkljhsdkfj", limit=5)
 
-    assert isinstance(results, list)
+    assert results == []
 
 
 @pytest.mark.asyncio
-@requires_api_key(KnowledgeSource.DRUGBANK)
-async def test_drugbank_limit_parameter(adapter, response_validator, drugbank_available):
+async def test_drugbank_limit_parameter(adapter, response_validator):
     """Test that limit parameter works correctly."""
-    if not drugbank_available:
-        pytest.skip("DRUGBANK_API_KEY not set")
-
     adapter = DrugBankAdapter(adapter.config)
 
     # Test with small limit

@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
+
 from knowledge_lookup.adapters.interpro_adapter import InterProAdapter
 from knowledge_lookup.models import KnowledgeSource, LookupConfig
 

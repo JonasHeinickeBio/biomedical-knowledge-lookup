@@ -1,184 +1,123 @@
-# DisGeNET Adapter Documentation
+---
+description: DisGeNET diseases and gene–disease associations with scores and evidence metrics (API key required).
+---
 
-## Overview
-The DisGeNET adapter provides access to the DisGeNET REST API for gene-disease association data. It focuses on retrieving associations between genes and diseases with evidence scores and metadata.
+# DisGeNET adapter
 
-## Key Functions
+Queries the DisGeNET v1 REST API. `search_concepts` finds diseases by name or the diseases associated with a gene, `get_concept_details` fetches a disease record, and the association methods return parsed gene–disease associations (GDAs): which genes are linked to a disease, how strongly (score, evidence index) and since when.
 
-### `get_concept_details(concept_id: str) -> Optional[UnifiedConcept]`
-Retrieves detailed information about a specific disease by its DisGeNET ID.
+| | |
+|---|---|
+| Source | `KnowledgeSource.DISGENET` |
+| Class | `knowledge_lookup.adapters.DisGeNETAdapter` |
+| Requires | `DISGENET_API_KEY` |
+| Identifiers | disease `UMLS_C0011849` (also `C0011849`, `MONDO_0005015`), gene symbol `CDK2`, NCBI gene ID `1017` |
+| Upstream API | `https://api.disgenet.com/api/v1` |
 
-**Parameters:**
-- `concept_id`: DisGeNET disease ID (string)
+{% hint style="warning" %}
+**API key required.** The key is read with `LookupConfig.get_api_key("disgenet")`: pass `LookupConfig(api_keys={"disgenet": "..."})` or set `DISGENET_API_KEY` (a `.env` file is loaded). Without a key `is_available()` is `False` and `CentralKnowledgeLookup` skips the source. Academic accounts only see curated sources (the API adds a warning to each response).
+{% endhint %}
 
-**Returns:** `UnifiedConcept` with disease information or `None` if not found
-
-**Example Data Structure:**
-```json
-{
-  "primary_id": "C0005745",
-  "primary_label": "Myocardial Infarction",
-  "concept_type": "DISEASE",
-  "source_data": {
-    "DISGENET": {
-      "diseaseid": "C0005745",
-      "diseasename": "Myocardial Infarction",
-      "diseaseVocabularies": ["UMLS", "MESH", "OMIM"],
-      "diseaseUMLSCUI": "C0005745",
-      "diseaseClasses_MSH": ["Cardiovascular Diseases"],
-      "diseaseClasses_DO": ["cardiovascular system disease"],
-      "disease_prevalence_class": "Common",
-      "disease_inheritance": "Multifactorial"
-    }
-  }
-}
-```
-
-### `get_gene_disease_associations(params: Dict[str, Any], raw: bool = False) -> Optional[Any]`
-Queries gene-disease associations with flexible filtering parameters.
-
-**Parameters:**
-- `params`: Dictionary of query parameters (see supported parameters below)
-- `raw`: If `True`, returns raw API response; if `False`, returns parsed data
-
-**Supported Parameters:**
-- `gene_ncbi_id`: NCBI gene ID(s) (string or comma-separated)
-- `gene_ensembl_id`: Ensembl gene ID(s)
-- `gene_symbol`: Gene symbol(s)
-- `uniprot_id`: UniProt ID(s)
-- `disease`: Disease ID(s) in various vocabularies
-- `chemical_id`: Chemical compound ID(s)
-- `source`: List of data sources
-- `evidence_level`: Evidence level filter
-- `min_score`, `max_score`: Score range filters
-- `min_ei`, `max_ei`: Evidence index filters
-- `min_dsi`, `max_dsi`: Disease specificity index filters
-- `min_dpi`, `max_dpi`: Disease pleiotropy index filters
-- `min_pli`, `max_pli`: Probability of loss-of-function intolerance filters
-- `min_numCTs`: Minimum number of clinical trials
-- `min_yearInitial`, `max_yearInitial`: Publication year range
-- `type`: Association type
-- `dis_class_list`: Disease class filters
-- `page_number`: Pagination (integer)
-
-**Returns:** List of parsed association data or raw API response
-
-**Example Parsed Data Structure:**
-```json
-[
-  {
-    "assocID": "GDAA12345",
-    "gene_symbol": "TNF",
-    "gene_ncbi_id": 7124,
-    "gene_ensembl_ids": ["ENSG00000232810"],
-    "gene_type": "protein-coding",
-    "disease_name": "Rheumatoid Arthritis",
-    "disease_vocabularies": ["UMLS", "MESH", "OMIM"],
-    "disease_umls_cui": "C0003873",
-    "score": 0.85,
-    "year_initial": 1980,
-    "year_final": 2023,
-    "num_pmids": 1250,
-    "num_ct_supporting_association": 45,
-    "gene_dsi": 0.678,
-    "gene_dpi": 0.823,
-    "gene_pli": 0.912,
-    "gene_protein_str_ids": ["2AZ5", "5MU8"],
-    "gene_protein_class_names": ["Cytokine", "Inflammatory mediator"],
-    "disease_classes_msh": ["Musculoskeletal Diseases", "Immune System Diseases"],
-    "disease_classes_umls_st": ["T047", "T050"],
-    "disease_classes_do": ["musculoskeletal system disease", "immune system disease"],
-    "disease_classes_hpo": ["HP:0001370", "HP:0002960"],
-    "disease_prevalence_class": "Common",
-    "disease_prevalence_geo_area": "Worldwide",
-    "disease_prevalence_type": "Prevalent",
-    "disease_inheritance": "Multifactorial",
-    "ei": 0.923,
-    "el": "Definitive"
-  }
-]
-```
-
-### `get_gene_disease_associations_evidence(params: Dict[str, Any], raw: bool = False) -> Optional[Any]`
-Queries gene-disease associations with evidence-level details. Same parameters and return structure as `get_gene_disease_associations()` but includes more detailed evidence information.
-
-### `search_concepts(query: str, limit: int = 20) -> List[UnifiedConcept]`
-Searches for diseases associated with a specific gene.
-
-**Parameters:**
-- `query`: NCBI gene ID (string)
-- `limit`: Maximum number of results (maps to page limit)
-
-**Returns:** List of `UnifiedConcept` objects representing diseases
-
-**Example Data Structure:**
-```json
-[
-  {
-    "primary_id": "C0003873",
-    "primary_label": "Rheumatoid Arthritis",
-    "concept_type": "UNKNOWN",
-    "confidence_score": 0.85,
-    "source_data": {
-      "DISGENET": {
-        "diseaseid": "C0003873",
-        "diseasename": "Rheumatoid Arthritis",
-        "score": 0.85,
-        "geneNcbiID": 7124,
-        "symbolOfGene": "TNF"
-      }
-    }
-  }
-]
-```
-
-## Data Structures
-
-### Gene-Disease Association Fields
-- `assocID`: Unique association identifier
-- `gene_symbol`: HGNC gene symbol
-- `gene_ncbi_id`: NCBI Gene ID
-- `gene_ensembl_ids`: List of Ensembl gene IDs
-- `gene_type`: Gene type (protein-coding, etc.)
-- `disease_name`: Disease name
-- `disease_vocabularies`: List of vocabularies used
-- `disease_umls_cui`: UMLS CUI
-- `score`: Association score (0-1)
-- `year_initial`/`year_final`: Publication year range
-- `num_pmids`: Number of supporting PubMed articles
-- `num_ct_supporting_association`: Number of clinical trials
-- `gene_dsi`: Disease specificity index
-- `gene_dpi`: Disease pleiotropy index
-- `gene_pli`: Loss-of-function intolerance probability
-- `ei`: Evidence index
-- `el`: Evidence level
-
-### Disease Classification Fields
-- `disease_classes_msh`: MeSH disease classes
-- `disease_classes_umls_st`: UMLS semantic types
-- `disease_classes_do`: Disease Ontology classes
-- `disease_classes_hpo`: Human Phenotype Ontology classes
-- `disease_prevalence_class`: Prevalence classification
-- `disease_prevalence_geo_area`: Geographic prevalence
-- `disease_prevalence_type`: Prevalence type
-- `disease_inheritance`: Inheritance pattern
-
-## Usage Examples
+## Quick example
 
 ```python
-# Get associations for a specific gene
-params = {"gene_ncbi_id": "7124", "min_score": 0.5}
-associations = await adapter.get_gene_disease_associations(params)
+import asyncio
 
-# Get disease details
-disease = await adapter.get_concept_details("C0003873")
+from knowledge_lookup.adapters import DisGeNETAdapter
+from knowledge_lookup.models import LookupConfig
 
-# Search diseases for a gene
-diseases = await adapter.search_concepts("7124", limit=10)
+
+async def main():
+    async with DisGeNETAdapter(LookupConfig()) as adapter:
+        if not adapter.is_available():
+            raise SystemExit("Set DISGENET_API_KEY to use DisGeNET")
+
+        for concept in await adapter.search_concepts("asthma", limit=2):
+            print(concept.primary_id, concept.primary_label)
+
+        for concept in await adapter.search_concepts("CDK2", limit=2):
+            print(concept.primary_id, concept.primary_label, concept.confidence_score)
+
+        asthma = await adapter.get_concept_details("UMLS_C0004096")
+        print(asthma.primary_label, asthma.synonyms[:2], asthma.semantic_types)
+
+        rows = await adapter.get_gene_disease_associations(
+            {"disease": "UMLS_C0011849", "page_number": 0}
+        )
+        for row in (rows or [])[:3]:
+            print(row["gene_symbol"], row["disease_name"], row["score"])
+
+
+asyncio.run(main())
 ```
 
-## Notes
-- Requires DisGeNET API key for full functionality
-- Supports extensive filtering by gene, disease, evidence, and publication criteria
-- Returns both summary and evidence-level association data
-- Includes comprehensive disease classification and gene annotation metadata
+Output (academic account):
+
+```
+UMLS_C0004096 Asthma
+UMLS_C0155877 Allergic asthma
+UMLS_C3539878 Triple Negative Breast Neoplasms 0.75
+UMLS_C0007134 Renal Cell Carcinoma 0.75
+Asthma ['Asthmas', 'ASTHMA BRONCHIAL'] ['Disease or Syndrome (T047)']
+KCNJ11 Diabetes Mellitus 1.35
+ABCC8 Diabetes Mellitus 1.3
+TCF7L2 Diabetes Mellitus 1.2
+```
+
+## Searching
+
+`search_concepts(query, limit)` picks the request from the shape of the query:
+
+| Query | Request | Results |
+|---|---|---|
+| digits only, e.g. `1017` | `/gda/summary?gene_ncbi_id=...` | diseases associated with the gene |
+| gene-symbol-like (starts with an upper-case letter; upper-case letters, digits and hyphens; up to 15 characters), e.g. `CDK2`, `BRCA1` | `/gda/summary?gene_symbol=...`; if no gene matches (e.g. `COPD`), the disease name search below | diseases associated with the gene |
+| anything else, e.g. `asthma` | `/entity/disease?disease_free_text_search_string=...` | diseases matching the name |
+
+Every result is a disease concept:
+
+| Field | Value |
+|---|---|
+| `primary_id` | `UMLS_<CUI>`, accepted by `get_concept_details` and by the `disease` association filter |
+| `primary_label` | disease name |
+| `concept_type` | `DISEASE` |
+| `synonyms` | DisGeNET synonyms (name search only) |
+| `semantic_types` | UMLS semantic types (`diseaseClasses_UMLS_ST`) |
+| `categories` | MeSH disease classes (`diseaseClasses_MSH`) |
+| `related` | the gene symbol (gene queries only) |
+| `confidence_score` | association score, capped at `1.0` (gene queries); `0.8` (name search) |
+| `identifiers` | one `DISGENET` identifier |
+| `source_data[DISGENET]` | raw row |
+
+Gene queries return DisGeNET's order (highest score first); one page holds 100 rows. A symbol-like disease name costs two requests.
+
+## Concept details
+
+`get_concept_details(concept_id)` calls `/entity/disease?disease=<id>` and returns the disease with the same fields as the name search, or `None` if it is unknown. It accepts `UMLS_C0004096`, a bare CUI (`C0004096`), `UMLS:C0004096` and other vocabulary IDs such as `MONDO_0004979` or `MONDO:0004979`.
+
+## Source-specific methods
+
+### `get_gene_disease_associations(params: dict[str, Any], raw: bool = False)`
+
+Calls `/gda/summary` with `params` (keys whose value is `None` are dropped) and returns a list of dicts, or `None` if the response has no `payload`. Pass `raw=True` for the full JSON response, including `paging` and `warnings`. Pages hold 100 rows; use `page_number` to page.
+
+Common filters: `gene_ncbi_id`, `gene_ensembl_id`, `gene_symbol`, `uniprot_id`, `disease` (vocabulary-prefixed IDs such as `UMLS_C0011849` or `MONDO_0000728`, comma-separated), `chemical_id`, `source`, `evidence_level`, `min_score` / `max_score` (and the `ei`, `dsi`, `dpi`, `pli` ranges), `min_yearInitial` / `max_yearFinal`, `type`, `dis_class_list`, `order_by`, `page_number`.
+
+Each parsed row has these keys: `assocID`, `gene_symbol`, `gene_ncbi_id`, `gene_ensembl_ids`, `gene_type`, `disease_name`, `disease_vocabularies`, `disease_umls_cui`, `score`, `year_initial`, `year_final`, `num_pmids`, `num_ct_supporting_association`, `gene_dsi`, `gene_dpi`, `gene_pli`, `gene_protein_str_ids`, `gene_protein_class_names`, `disease_classes_msh`, `disease_classes_umls_st`, `disease_classes_do`, `disease_classes_hpo`, `disease_prevalence_class`, `disease_prevalence_geo_area`, `disease_prevalence_type`, `disease_inheritance`, `ei`, `el`.
+
+### `get_gene_disease_associations_evidence(params: dict[str, Any], raw: bool = False)`
+
+Same parameters against `/gda/evidence`. Rows are parsed with the same key mapping as the summary method, so evidence-specific fields are only available with `raw=True`.
+
+## Rate limits and errors
+
+`_make_request` is overridden to always send GET requests, but it still uses the shared retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). HTTP 429 is retried up to four attempts with 2, 4 and 8 second pauses. The key is sent in the `Authorization` header.
+
+`search_concepts` and `get_concept_details` log errors and return `[]` / `None`. Unlike most adapters, both association methods do **not** catch errors: HTTP failures propagate as `aiohttp.ClientResponseError`.
+
+## See also
+
+- [Open Targets adapter](opentargets_adapter.md): target–disease evidence without an API key
+- [UMLS adapter](umls_adapter.md): resolve the CUIs DisGeNET uses for diseases
+- [All adapters](../README.md)
+- [Configuration](../../getting-started/configuration.md): API keys

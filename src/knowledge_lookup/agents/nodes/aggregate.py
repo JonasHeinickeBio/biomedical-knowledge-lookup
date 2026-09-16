@@ -36,7 +36,7 @@ def _build_concept_report(concept: Any, idx: int) -> str:
     defs = concept.definitions
     if defs:
         for i, d in enumerate(defs[:3]):
-            lines.append(f"  Definition {i+1}: {d[:300]}")
+            lines.append(f"  Definition {i + 1}: {d[:300]}")
         if len(defs) > 3:
             lines.append(f"  ... ({len(defs) - 3} more definitions)")
 
@@ -151,7 +151,7 @@ def _build_cross_concept_analysis(concepts: list[Any]) -> str:
     if overlaps:
         lines.append("  Overlaps (concept found in multiple sources):")
         for label, sources in sorted(overlaps.items()):
-            lines.append(f"    - \"{label}\" found in: {', '.join(sources)}")
+            lines.append(f'    - "{label}" found in: {", ".join(sources)}')
 
     # UMLS CUI coverage
     umls_count = sum(

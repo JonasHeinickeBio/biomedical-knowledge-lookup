@@ -5,6 +5,7 @@ Tests real API calls to validate response structures and detect changes.
 """
 
 import pytest
+
 from knowledge_lookup.adapters.pubchem_adapter import PubChemAdapter
 from knowledge_lookup.models import KnowledgeSource
 

@@ -199,7 +199,7 @@ class MultiSourceAnnotator:
         results = []
 
         for i, sentence in enumerate(sentences):
-            logger.info(f"Annotating sentence {i+1}/{len(sentences)}")
+            logger.info(f"Annotating sentence {i + 1}/{len(sentences)}")
 
             result = await self.annotate_sentence(
                 sentence, sources, enable_cross_reference, majority_vote_threshold
@@ -750,7 +750,8 @@ class MultiSourceAnnotator:
             "source_concept_counts": source_concept_counts,
             "source_health": {
                 src.value: {
-                    "state": h.circuit_state.value if h.circuit_state is not None else "closed",
+                    # circuit_state is stored as a plain string (enum values are unwrapped)
+                    "state": getattr(h.circuit_state, "value", h.circuit_state or "CLOSED"),
                     "health_score": h.health_score,
                     "total_calls": h.total_calls,
                     "total_failures": h.total_failures,

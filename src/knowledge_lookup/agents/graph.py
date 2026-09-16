@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
@@ -47,12 +48,14 @@ from .routing import route_after_approval, route_after_refine, route_after_revie
 from .state import LookupWorkflowState
 
 
-def build_workflow_graph(checkpointer: InMemorySaver | None = None) -> Any:
+def build_workflow_graph(checkpointer: BaseCheckpointSaver | None = None) -> Any:
     """Build and compile the LangGraph workflow.
 
     Args:
         checkpointer: Optional checkpointer for state persistence.
-                      If None, creates an InMemorySaver.
+                      If None, creates a new InMemorySaver (use
+                      ``runners.get_default_checkpointer()`` to share state
+                      with ``run_workflow``/``resume_workflow``).
 
     Returns:
         Compiled StateGraph ready for invocation.

@@ -50,9 +50,9 @@ class TestAdapters:
         for source in expected_sources:
             assert source in ADAPTER_CLASSES, f"Missing adapter class for {source.value}"
             # Check that the value is a class (not instantiated)
-            assert callable(
-                ADAPTER_CLASSES[source]
-            ), f"Adapter class for {source.value} is not callable"
+            assert callable(ADAPTER_CLASSES[source]), (
+                f"Adapter class for {source.value} is not callable"
+            )
 
     def test_adapter_classes_coverage(self):
         """Test that ADAPTER_CLASSES covers all KnowledgeSource values."""

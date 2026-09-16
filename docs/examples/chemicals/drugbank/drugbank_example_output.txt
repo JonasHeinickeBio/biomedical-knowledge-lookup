@@ -1,12 +1,31 @@
-╔══════════════════════════════════════════════════════╗
-║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
-║  The adapter does not return valid search results.  ║
-╚══════════════════════════════════════════════════════╝
+The DRUGBANK adapter is available.
 
-Checking if Drugbank adapter is available...
-  ✓ Drugbank adapter is available
+Searching DRUGBANK for 'aspirin' ...
+Found 5 concept(s) in 1.9s
 
-Searching for 'aspirin' concepts in Drugbank...
+  1. Acetylsalicylic acid
+     ID:         DB00945
+     Type:       DRUG
+     Confidence: 0.9
 
-Found 0 results from Drugbank:
-  No results found for 'aspirin'
+  2. Phenylephrine
+     ID:         DB00388
+     Type:       DRUG
+     Confidence: 0.9
+
+  3. Caffeine
+     ID:         DB00201
+     Type:       DRUG
+     Confidence: 0.9
+
+  4. Acetaminophen
+     ID:         DB00316
+     Type:       DRUG
+     Confidence: 0.9
+
+  5. Citric acid
+     ID:         DB04272
+     Type:       DRUG
+     Confidence: 0.9
+
+Summary: search=5

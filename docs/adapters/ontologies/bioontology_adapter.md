@@ -1,115 +1,129 @@
-# BioOntology Adapter Documentation
+---
+description: Full NCBO BioPortal REST client - search, class details, Annotator and generic endpoints (API key required).
+---
 
-## Overview
-The BioOntology adapter provides access to the BioPortal ontology repository, offering comprehensive biomedical ontology services including concept search, term mapping, and ontology metadata.
+# BioOntology adapter
 
-## Key Functions
+A feature-rich client for the NCBO BioPortal REST API (`data.bioontology.org`). It supports search with any BioPortal parameter, class details with related resources, the Annotator for free text, and calls to any endpoint listed at the API root. It uses the same service and key as the [BioPortal adapter](bioportal_adapter.md), which only offers basic search.
 
-### Core Search Methods
+| | |
+|---|---|
+| Source | `KnowledgeSource.BIOONTOLOGY` |
+| Class | `knowledge_lookup.adapters.BioOntologyAdapter` |
+| Requires | `BIOPORTAL_API_KEY` |
+| Identifiers | class IRI plus ontology acronym, e.g. `http://purl.bioontology.org/ontology/MESH/D003920` in `MESH` |
+| Upstream API | `https://data.bioontology.org` |
 
-#### `search_concepts(query, limit=20, raw=False)` [async]
-Search for concepts across BioPortal ontologies.
+{% hint style="warning" %}
+**API key required.** The key is looked up as `get_api_key("bioontology")` and then `get_api_key("bioportal")`: `LookupConfig(api_keys={"bioportal": "..."})`, or the `BIOONTOLOGY_API_KEY` / `BIOPORTAL_API_KEY` environment variables. Without it `is_available()` is `False`.
 
-**Parameters:**
-- `query`: Search term for biomedical concepts
-- `limit`: Maximum results (default: 20, max: 50)
-- `raw`: Return raw API response instead of UnifiedConcepts
+Every request sends the key in an `Authorization: apikey token=…` header, and an `apikey` parameter passed by a caller is dropped, so the key never appears in request URLs or logs.
+{% endhint %}
 
-**Returns:** `List[UnifiedConcept]` - Ontology concepts matching the query
-
-**Example Data Structure:**
-```python
-{
-    'primary_id': 'http://purl.obolibrary.org/obo/DOID_162',
-    'primary_label': 'cancer',
-    'concept_type': ConceptType.DISEASE,
-    'definitions': ['A disease of cellular proliferation...'],
-    'categories': ['Disease Ontology (DO)'],
-    'identifiers': [ConceptIdentifier(
-        source='BioOntology',
-        identifier='DOID:162',
-        label='cancer',
-        url='https://bioportal.bioontology.org/ontologies/DOID/?p=classes&conceptid=DOID%3A162'
-    )]
-}
-```
-
-#### `get_concept_details(concept_id, raw=False)` [async]
-Get detailed information about a specific ontology concept.
-
-**Parameters:**
-- `concept_id`: Ontology concept URI or identifier
-- `raw`: Return raw API response
-
-**Returns:** `UnifiedConcept` or `None` - Detailed concept information
-
-### Utility Methods
-
-#### `get_analytics()` [async]
-Get usage analytics and statistics for BioPortal.
-
-**Returns:** `Dict` - Analytics data including:
-- Ontology usage statistics
-- Search metrics
-- API usage patterns
-
-## Data Types and Structures
-
-### UnifiedConcept Fields for BioOntology
-- `primary_id`: Ontology URI (e.g., 'http://purl.obolibrary.org/obo/DOID_162')
-- `primary_label`: Preferred term label
-- `concept_type`: DISEASE, GENE, ANATOMY, etc. (auto-detected)
-- `definitions`: Concept definitions and descriptions
-- `categories`: Ontology source names
-- `identifiers`: BioPortal identifiers with URLs
-- `synonyms`: Alternative terms and synonyms
-
-### Raw API Response Fields
-- `id`: Concept URI
-- `prefLabel`: Preferred label
-- `definition`: Concept definition
-- `synonym`: List of synonyms
-- `links`: Related concept links
-- `ontology`: Source ontology information
-
-## Supported Ontologies
-BioPortal hosts 800+ biomedical ontologies including:
-- **DOID**: Human Disease Ontology
-- **GO**: Gene Ontology
-- **HP**: Human Phenotype Ontology
-- **MONDO**: Mondo Disease Ontology
-- **UBERON**: Uber-anatomy ontology
-- **CL**: Cell Ontology
-- **CHEBI**: Chemical Entities of Biological Interest
-
-## Error Handling
-- API key validation and availability checks
-- HTTP error handling with aiohttp
-- Graceful degradation on API failures
-- Comprehensive logging of search operations
-
-## Usage Examples
+## Quick example
 
 ```python
-# Initialize adapter
-config = LookupConfig()
-adapter = BioOntologyAdapter(config)
+import asyncio
 
-# Search for disease concepts
-diseases = await adapter.search_concepts('diabetes', limit=10)
+from knowledge_lookup.adapters import BioOntologyAdapter
+from knowledge_lookup.models import LookupConfig
 
-# Get detailed concept information
-concept = await adapter.get_concept_details('http://purl.obolibrary.org/obo/DOID_9351')
+MESH_DM = "http://purl.bioontology.org/ontology/MESH/D003920"
 
-# Raw API response
-raw_results = await adapter.search_concepts('cancer', raw=True)
+
+async def main():
+    async with BioOntologyAdapter(LookupConfig()) as adapter:
+        if not adapter.is_available():
+            raise SystemExit("Set BIOPORTAL_API_KEY to use BioOntology")
+
+        hits = await adapter.search_concepts("diabetes", limit=3, extra_params={"ontologies": "MESH"})
+        for concept in hits:
+            print(concept.primary_id, concept.primary_label, concept.semantic_types)
+
+        dm = await adapter.get_concept_details(MESH_DM, ontology="MESH", fetch_related=False)
+        print(dm.primary_label, dm.definitions[0][:50])
+
+        for ann in await adapter.annotate("insulin resistance in obesity", ontologies="MESH"):
+            print(ann["annotatedClass"]["@id"])
+
+
+asyncio.run(main())
 ```
 
-## Configuration
-Requires BioPortal API key in configuration:
+Output:
+
+```
+http://purl.bioontology.org/ontology/MESH/D003920 Diabetes Mellitus ['T047']
+http://purl.bioontology.org/ontology/MESH/D048909 Diabetes Complications ['T047']
+http://purl.bioontology.org/ontology/MESH/D016640 Diabetes, Gestational ['T047']
+Diabetes Mellitus A heterogeneous group of disorders characterized b
+http://purl.bioontology.org/ontology/MESH/D007333
+http://purl.bioontology.org/ontology/MESH/D009765
+```
+
+## Searching
+
 ```python
-config = LookupConfig()
-config.api_keys['bioontology'] = 'your_api_key_here'
-# or
-config.api_keys['bioportal'] = 'your_api_key_here'
+async def search_concepts(
+    query: str,
+    limit: int = 20,
+    raw: bool = False,
+    extra_params: dict[str, Any] | None = None,
+    **kwargs,  # include, page, pagesize, include_views, display_context, display_links, format
+) -> list
 ```
+
+Calls `/search` with `q` and `pagesize=min(limit, 50)`. Pass other BioPortal search parameters through `extra_params`, for example `{"ontologies": "MESH,SNOMEDCT"}` or `{"require_exact_match": "true"}`. With `raw=True` you get the raw `collection` items instead of concepts.
+
+| Field | Value |
+|---|---|
+| `primary_id` | class IRI (`@id`) |
+| `primary_label` | `prefLabel` |
+| `concept_type` | `UNKNOWN` |
+| `synonyms`, `definitions` | from `synonym` and `definition` |
+| `categories` | UMLS CUIs (`cui`), plus `obsolete` for obsolete classes |
+| `semantic_types` | UMLS TUIs (`semanticType`), e.g. `['T047']` |
+| `confidence_score` | `0.8` |
+
+## Concept details
+
+```python
+async def get_concept_details(
+    concept_id: str,
+    ontology: str | None = None,   # e.g. "MESH"; inferred from BioPortal/OBO PURLs if omitted
+    fetch_related: bool = True,
+    extra_params: dict[str, Any] | None = None,
+    use_auth_header: bool = False,
+    minimal: bool = False,
+    raw: bool = False,
+    **kwargs,
+)
+```
+
+- `ontology` is the BioPortal acronym. When omitted it is inferred from BioPortal PURLs (`http://purl.bioontology.org/ontology/MESH/D003920` → `MESH`, `…/ontology/LNC/…` → `LOINC`) and OBO PURLs (`http://purl.obolibrary.org/obo/DOID_9351` → `DOID`), so `CentralKnowledgeLookup.get_concept_details(iri)` works for those IRIs. For any other IRI pass `ontology=`; without it the call logs a `ValueError` and returns `None`.
+- IRIs are URL-encoded into `/ontologies/{ontology}/classes/{iri}`.
+- With `fetch_related=True` (the default) the adapter follows the class links `children`, `parents`, `ancestors`, `descendants`, `tree`, `notes`, `mappings` and `instances`, one request each. It stores the responses in `source_data["bioontology_<name>"]`, not in `parents` / `children`.
+- `minimal=True` returns a dict with `id`, `label`, `synonyms`, `definition` and `obsolete`. `raw=True` returns the JSON.
+- `use_auth_header` is accepted for backward compatibility only: the key is always sent as a header.
+
+## Source-specific methods
+
+| Method | Purpose |
+|---|---|
+| `annotate(text, ontologies=None, longest_only=True, extra_params=None)` | BioPortal Annotator: returns the raw annotation list (`annotatedClass`, `annotations` with text positions) |
+| `batch_annotate(texts, ontologies=None, longest_only=True, extra_params=None)` | runs `annotate` for every text concurrently; returns one annotation list per text, in input order (`[]` for a text whose request failed) |
+| `get_analytics(ontology=None, month=None, year=None, extra_params=None)` | `/analytics` with the given `ontology`, `month` and `year` filters |
+| `fetch_api_endpoints()` | reads the link map at the API root and caches it; also available as the `endpoints` property |
+| `call_endpoint(endpoint_name, params=None)` | GET any endpoint from that map by name, e.g. `"ontologies"` |
+| `parse_minimal_metadata(concept_details)` | static helper behind `minimal=True` |
+
+## Rate limits and errors
+
+`_make_request` is overridden: it goes through the shared retry (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)) but returns `{}` on any error. Methods therefore return empty results instead of raising. Failed requests are logged at `ERROR` with the API key redacted; request URLs are logged only at `DEBUG`.
+
+## See also
+
+- [BioPortal adapter](bioportal_adapter.md)
+- [UMLS adapter](../core/umls_adapter.md)
+- [All adapters](../README.md)
+- [Configuration](../../getting-started/configuration.md): API keys

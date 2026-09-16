@@ -10,6 +10,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from knowledge_lookup.core.expansion_store import (
     ORIGIN_ABBREVIATION,
     ORIGIN_LONG_FORM,
@@ -311,3 +312,121 @@ class TestExpandAndSearch:
 
         assert trace.run_id is None
         assert not db_path.exists()
+
+
+class _RecordingAbbreviationSource:
+    """Records every label it is asked about and how many calls overlap."""
+
+    def __init__(self, delay: float = 0.0) -> None:
+        self.asked: list[str] = []
+        self.delay = delay
+        self.in_flight = 0
+        self.peak = 0
+
+    async def expand(self, term: str) -> list[tuple[str, str]]:
+        import asyncio
+
+        self.asked.append(term)
+        self.in_flight += 1
+        self.peak = max(self.peak, self.in_flight)
+        await asyncio.sleep(self.delay)
+        self.in_flight -= 1
+        return []
+
+
+def _lookup_finding(n_concepts: int) -> MagicMock:
+    return _mock_lookup(
+        lambda query, **kw: _result(query, [_concept(f"concept {i}") for i in range(n_concepts)])
+    )
+
+
+class TestAbbreviationLookupBounds:
+    """Regression: every concept was sent to the abbreviation source, one at a time, uncapped."""
+
+    @pytest.mark.asyncio
+    async def test_lookups_per_round_are_capped(self):
+        source = _RecordingAbbreviationSource()
+
+        await expand_and_search(
+            _lookup_finding(30),
+            "seed",
+            abbreviation_sources=[source],
+            max_abbreviation_lookups=4,
+            persist=False,
+        )
+
+        assert source.asked == ["concept 0", "concept 1", "concept 2", "concept 3"]
+
+    @pytest.mark.asyncio
+    async def test_default_cap(self):
+        from knowledge_lookup.core.term_expansion import DEFAULT_MAX_ABBREVIATION_LOOKUPS
+
+        source = _RecordingAbbreviationSource()
+
+        await expand_and_search(
+            _lookup_finding(30), "seed", abbreviation_sources=[source], persist=False
+        )
+
+        assert len(source.asked) == DEFAULT_MAX_ABBREVIATION_LOOKUPS
+
+    @pytest.mark.asyncio
+    async def test_lookups_run_concurrently_within_the_limit(self):
+        from knowledge_lookup.core.term_expansion import ABBREVIATION_LOOKUP_CONCURRENCY
+
+        source = _RecordingAbbreviationSource(delay=0.02)
+
+        await expand_and_search(
+            _lookup_finding(10), "seed", abbreviation_sources=[source], persist=False
+        )
+
+        assert len(source.asked) == 10
+        assert source.peak == ABBREVIATION_LOOKUP_CONCURRENCY
+
+    @pytest.mark.asyncio
+    async def test_each_label_is_asked_once_per_run(self):
+        async def side_effect(query, **kw):
+            if query == "copd":
+                return _result(
+                    query, [_concept("COPD", synonyms=["chronic obstructive pulmonary disease"])]
+                )
+            return _result(query, [_concept("Chronic obstructive pulmonary disease")])
+
+        source = _RecordingAbbreviationSource()
+
+        _, trace = await expand_and_search(
+            _mock_lookup(side_effect), "copd", abbreviation_sources=[source], persist=False
+        )
+
+        assert trace.rounds_run == 2
+        assert sorted(source.asked) == ["COPD", "Chronic obstructive pulmonary disease"]
+
+    @pytest.mark.asyncio
+    async def test_cached_answers_still_feed_later_rounds(self):
+        """A long form offered in round 0 but cut by max_terms_per_round comes back later."""
+
+        class LongForms:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            async def expand(self, term: str) -> list[tuple[str, str]]:
+                self.calls += 1
+                if term == "Seed":
+                    return [("long form a", ORIGIN_LONG_FORM), ("long form b", ORIGIN_LONG_FORM)]
+                return []
+
+        async def side_effect(query, **kw):
+            return _result(query, [_concept("Seed" if query == "seed" else f"hit {query}")])
+
+        source = LongForms()
+
+        _, trace = await expand_and_search(
+            _mock_lookup(side_effect),
+            "seed",
+            abbreviation_sources=[source],
+            max_rounds=3,
+            max_terms_per_round=1,
+            persist=False,
+        )
+
+        assert trace.terms_by_round == [["seed"], ["long form a"], ["long form b"]]
+        assert source.calls == 3  # "Seed", "hit long form a", "hit long form b"

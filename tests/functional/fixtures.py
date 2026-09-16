@@ -2,7 +2,6 @@
 Functional test fixtures for real-world API testing.
 """
 
-import asyncio
 import hashlib
 import json
 import os
@@ -11,6 +10,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import pytest_asyncio
+
 from knowledge_lookup.models import KnowledgeSource
 
 # Base directory for fixture storage
@@ -81,19 +82,13 @@ def requires_api(func: Callable) -> Callable:
     return pytest.mark.network(pytest.mark.api(func))
 
 
-@pytest.fixture(scope="session")
-def event_loop_policy():
-    """Use asyncio event loop policy for async tests."""
-    return asyncio.get_event_loop_policy()
-
-
 @pytest.fixture(scope="module")
 def api_responses_cache():
     """Shared cache for API responses within a test module."""
     return {}
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def recorded_api_response(api_responses_cache):
     """
     Fixture that records and validates real API responses.
@@ -171,7 +166,7 @@ async def recorded_api_response(api_responses_cache):
             pass
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def adapter_factory(lookup_config):
     """
     Factory fixture for creating adapters with proper configuration.

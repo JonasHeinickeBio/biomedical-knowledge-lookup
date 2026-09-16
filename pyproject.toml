@@ -1,12 +1,12 @@
 [project]
 name = "biomedical-knowledge-lookup"
-description = "Unified biological concept lookup across 29+ biomedical knowledge sources including BioPortal, OLS, UMLS, ChEMBL, DisGeNET, and more"
+description = "Unified biological concept lookup across 36 biomedical knowledge sources including BioPortal, OLS, UMLS, ChEMBL, DisGeNET, and more"
 authors = [
     { name = "Jonas Heinicke", email = "jonas.heinicke@helmholtz-hzi.de" },
 ]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.11,<4.0"
 # "version" is computed by poetry-dynamic-versioning from the nearest git tag
 # (see [tool.poetry-dynamic-versioning] below and the [tool.poetry] version
 # placeholder it reads/overwrites) — do not set it statically here.
@@ -17,31 +17,35 @@ urls = { Documentation = "https://jonasheinickeBio.github.io/biomedical-knowledg
 # guards its own import so `import knowledge_lookup` works without them and the
 # matching adapter/feature is simply disabled when absent.
 
+
 [project.optional-dependencies]
-export = ["pandas>=2.0.0,<3.0.0"]                       # export -> DataFrame / Excel
+export = ["pandas>=3.0.5,<4.0.0", "openpyxl>=3.1.5,<4.0.0"]  # export -> DataFrame / Excel
 chembl = ["chembl-webresource-client>=0.10.9,<0.11.0"]  # ChEMBL adapter
 bioservices = ["bioservices>=1.16.0,<2.0.0"]            # EUtils / QuickGO / UniChem adapters
 tyto = ["tyto>=1.4,<2.0"]                               # Tyto adapter (owlready2)
-agents = ["langgraph>=1.2.7,<2.0.0"]                    # LLM agent workflow (knowledge_lookup.agents)
+agents = ["langgraph>=1.2.11,<2.0.0"]                   # LLM agent workflow (knowledge_lookup.agents)
 umls = ["umls-python-client>=1.2.0,<2.0.0"]             # UMLS adapter
-curie = ["bioregistry>=0.11", "curies>=0.7", "pyobo>=0.10"]  # CURIE validation / normalization
+curie = ["bioregistry>=0.14.6", "curies>=0.15.1"]       # CURIE validation / normalization
+mcp = ["mcp>=2.2.0,<3.0.0"]                             # MCP server (knowledge_lookup.mcp_server)
 all = [
-    "pandas>=2.0.0,<3.0.0",
+    "pandas>=3.0.5,<4.0.0",
+    "openpyxl>=3.1.5,<4.0.0",
     "chembl-webresource-client>=0.10.9,<0.11.0",
     "bioservices>=1.16.0,<2.0.0",
     "tyto>=1.4,<2.0",
-    "langgraph>=1.2.7,<2.0.0",
+    "langgraph>=1.2.11,<2.0.0",
     "umls-python-client>=1.2.0,<2.0.0",
-    "bioregistry>=0.11",
-    "curies>=0.7",
-    "pyobo>=0.10",
+    "bioregistry>=0.14.6",
+    "curies>=0.15.1",
+    "mcp>=2.2.0,<3.0.0",
 ]
 
 [project.scripts]
 knowledge-lookup = "knowledge_lookup.__main__:app"
+knowledge-lookup-mcp = "knowledge_lookup.mcp_server:main"
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0"]
+requires = ["poetry-core>=2.4.1", "poetry-dynamic-versioning>=1.10.0"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 # Derives the package version from the nearest `vX.Y.Z` git tag (e.g. exactly
@@ -73,48 +77,41 @@ version = "0.0.0"
 [tool.poetry.dependencies]
 # core only — needed for `import knowledge_lookup` and the HTTP-only adapters.
 # Optional feature groups live in [project.optional-dependencies] above.
-python = ">=3.10,<4.0"
-aiohttp = "^3.9.0"
-requests = "^2.31.0"
-rdflib = "^7.0.0"
-pydantic = "^2.0.0"
-tenacity = "^8.2.0"
-backoff = "^2.2.0"
-python-dotenv = "^1.0.0"
-rich = "^13.0.0"
-typer = ">=0.12.0,<1.0.0"
+python = ">=3.11,<4.0"
+aiohttp = "^3.14.3"
+rdflib = "^7.6.0"
+pydantic = "^2.13.5"
+backoff = "^2.2.1"
+python-dotenv = "^1.2.3"
+rich = "^15.0.0"
+typer = ">=0.27.2,<1.0.0"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
-pytest-asyncio = "^0.21.0"
-pytest-cov = "^4.0.0"
-pytest-timeout = "^2.2.0"
-pytest-rerunfailures = "^14.0"  # absorbs live-API transient rate-limit blips in tests/functional
-ruff = "^0.1.0"
-mypy = "^1.0.0"
-jupyter = "^1.0.0"
-ipykernel = "^6.0.0"
-pre-commit = "^4.5.1"
-linkml = "^1.8.0"
-linkml-runtime = "^1.8.0"
-setuptools = "^82.0.1"
+pytest = "^9.1.1"
+pytest-asyncio = "^1.4.0"
+pytest-cov = "^7.1.0"
+pytest-timeout = "^2.4.0"
+pytest-rerunfailures = "^16.6.1"  # absorbs live-API transient rate-limit blips in tests/functional
+ruff = "^0.16.7"
+mypy = "^2.3.1"
+jupyter = "^1.1.1"
+ipykernel = "^7.3.0"
+pre-commit = "^4.6.2"
+linkml = "^1.11.1"
 # dev installs everything so the full test suite runs
-pandas = "^2.0.0"
+pandas = "^3.0.5"
+openpyxl = "^3.1.5"
 chembl-webresource-client = "^0.10.9"
 bioservices = "^1.16.0"
 tyto = "^1.4"
-langgraph = "^1.2.7"
-bioregistry = ">=0.11"
-curies = ">=0.7"
-pyobo = ">=0.10"
-
-[tool.poetry.group.docs.dependencies]
-sphinx = "^7.0.0"
-sphinx-rtd-theme = "^2.0.0"
+langgraph = "^1.2.11"
+bioregistry = ">=0.14.6"
+curies = ">=0.15.1"
+mcp = ">=2.2.0,<3.0.0"
 
 [tool.ruff]
 line-length = 99
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [
@@ -131,12 +128,15 @@ ignore = [
     "C901",  # too complex
     "E501",  # line too long (enforced by ruff format, not check)
     "UP007", # use X | Y for type annotations (generated model compatibility)
+    "UP045", # use X | None instead of Optional[X] (split out of UP007; same reason)
+    "UP042", # (str, Enum) -> StrEnum changes str() of members, which exports rely on
 ]
 
 [tool.pytest.ini_options]
 addopts = "-ra -q --strict-markers"
 testpaths = ["tests"]
 pythonpath = ["src"]
+asyncio_default_fixture_loop_scope = "function"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
@@ -147,7 +147,7 @@ markers = [
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 ignore_missing_imports = true
 omit = ["*/tests/*", "*/test_*.py", "*/__pycache__/*", "*/site-packages/*"]
 

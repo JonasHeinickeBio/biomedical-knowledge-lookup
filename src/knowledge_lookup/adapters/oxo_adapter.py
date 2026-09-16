@@ -213,22 +213,18 @@ class OxOAdapter(KnowledgeSourceAdapter):
         """
         Get available data sources in OxO
 
+        The current OxO service no longer has a ``/api/datasources`` endpoint
+        (it answers HTTP 400 "No static resource"), so there is nothing to
+        list. The method is kept for backward compatibility and always returns
+        an empty list without making a request.
+
         Returns:
-            List of available data sources with metadata
+            Empty list
         """
-        try:
-            response_data = await self._make_request(
-                f"{self.api_url}/datasources", params={"size": "1000"}
-            )
-
-            if "_embedded" in response_data and "datasources" in response_data["_embedded"]:
-                return response_data["_embedded"]["datasources"]
-
-            return []
-
-        except Exception as e:
-            logger.error(f"Error retrieving OxO datasources: {e}")
-            return []
+        logger.warning(
+            "OxO no longer provides a datasources endpoint; get_datasources() returns []"
+        )
+        return []
 
     def _parse_search_result(
         self, result: dict[str, Any], original_query: str | None = None
@@ -251,13 +247,10 @@ class OxOAdapter(KnowledgeSourceAdapter):
             if not concept_id:
                 return None
 
-            # Create unified concept using the correct constructor
+            # _create_concept already records the CURIE as the single OXO identifier
             concept = self._create_concept(
                 concept_id=concept_id, label=label or concept_id, concept_type=ConceptType.UNKNOWN
             )
-
-            # Add OxO as a source
-            concept.add_identifier(KnowledgeSource.OXO, concept_id, label)
 
             # Add cross-references from mappings
             mappings = self._extract_mappings(result)
@@ -376,14 +369,15 @@ class OxOAdapter(KnowledgeSourceAdapter):
         """
         Validate connection to OxO API
 
+        Uses ``GET /api/search``, which answers with an empty result page; the
+        former ``/api/datasources`` endpoint no longer exists.
+
         Returns:
             True if connection is successful
         """
         try:
-            response_data = await self._make_request(
-                f"{self.api_url}/datasources", params={"size": "1"}
-            )
-            return response_data is not None
+            response_data = await self._make_request(f"{self.api_url}/search")
+            return isinstance(response_data, dict) and "_embedded" in response_data
         except Exception as e:
             logger.error(f"OxO connection validation failed: {e}")
             return False
