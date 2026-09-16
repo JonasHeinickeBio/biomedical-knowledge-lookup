@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4
@@ -132,7 +132,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4
@@ -194,7 +194,7 @@ jobs:
         set -euo pipefail
         PR_NUMBER=$(gh pr list --base main --head staging --state open --json number --jq '.[0].number // empty')
         if [[ -z "$PR_NUMBER" ]]; then
-          PR_BODY="Automated promotion: every job in the Staging Gate (unit + integration across Python 3.10-3.12, blocking ruff/mypy, live-API functional tests, packaging smoke tests) passed on staging at ${{ github.sha }}. Merging this triggers release-draft.yml, which opens a draft GitHub Release for a maintainer to review before it is published (publishing it is what actually ships to PyPI; see publish.yml)."
+          PR_BODY="Automated promotion: every job in the Staging Gate (unit + integration across Python 3.11-3.13, blocking ruff/mypy, live-API functional tests, packaging smoke tests) passed on staging at ${{ github.sha }}. Merging this triggers release-draft.yml, which opens a draft GitHub Release for a maintainer to review before it is published (publishing it is what actually ships to PyPI; see publish.yml)."
           gh pr create --base main --head staging --title "Release: staging -> main" --body "$PR_BODY"
           PR_NUMBER=$(gh pr list --base main --head staging --state open --json number --jq '.[0].number')
         fi

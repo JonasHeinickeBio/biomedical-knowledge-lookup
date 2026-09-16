@@ -13,6 +13,7 @@ from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+from ..utils.redaction import redact
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,9 @@ class OMIMAdapter(KnowledgeSourceAdapter):
             return concepts
 
         except Exception as e:
-            logger.error(f"OMIM search failed for '{query}': {e}")
+            # OMIM takes the key as a query parameter, so request URLs (and the error
+            # messages that embed them) contain it: always redact before logging.
+            logger.error("OMIM search failed for '%s': %s", query, redact(e, self.api_key))
             return []
 
     async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
@@ -89,7 +92,11 @@ class OMIMAdapter(KnowledgeSourceAdapter):
             return self._convert_result_to_concept(entry_list[0].get("entry", entry_list[0]))
 
         except Exception as e:
-            logger.error(f"OMIM get_concept_details failed for '{concept_id}': {e}")
+            logger.error(
+                "OMIM get_concept_details failed for '%s': %s",
+                concept_id,
+                redact(e, self.api_key),
+            )
             return None
 
     def _convert_result_to_concept(self, item: dict[str, Any]) -> UnifiedConcept | None:

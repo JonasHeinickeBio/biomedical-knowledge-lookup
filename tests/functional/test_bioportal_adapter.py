@@ -8,6 +8,7 @@ Requires BIOPORTAL_API_KEY environment variable.
 import os
 
 import pytest
+
 from knowledge_lookup.adapters.bioportal_adapter import BioPortalAdapter
 from knowledge_lookup.models import KnowledgeSource
 

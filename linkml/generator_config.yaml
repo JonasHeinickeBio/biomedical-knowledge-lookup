@@ -6,10 +6,10 @@ settings:
   base_class: "pydantic.BaseModel"
   
   # Output directory for generated models
-  output_dir: "src/knowledge_lookup/generated_models"
-  
+  output_dir: "src/knowledge_lookup/models"
+
   # Import path for the base class
-  import_path: "biomedical_knowledge_lookup.generated_models.models"
+  import_path: "knowledge_lookup.models.biomedical_knowledge_models"
   
   # Add metadata to generated models
   add_metadata: true

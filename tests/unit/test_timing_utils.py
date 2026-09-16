@@ -3,6 +3,7 @@ Unit tests for timing utilities.
 """
 
 import sys
+
 import pytest
 
 pytestmark = pytest.mark.unit

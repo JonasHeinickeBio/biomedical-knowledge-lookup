@@ -1,14 +1,19 @@
-Checking if Ensembl adapter is available...
-  ✓ Ensembl adapter is available
+The ENSEMBL adapter is available.
 
-Searching for 'BRCA1' concepts in Ensembl...
+Searching ENSEMBL for 'TP53' ...
+Found 1 concept(s) in 8.9s
 
-Found 1 results from Ensembl:
+  1. TP53
+     ID:         ENSG00000141510
+     Type:       GENE
+     Confidence: 1.0
+     Definition: tumor protein p53 [Source:HGNC Symbol;Acc:HGNC:11998]
 
-  Concept 1:
-    Label: BRCA1
-    ID: ENSG00000012048
-    Type: ConceptType.GENE
-    Confidence: 1.0
-    Definitions (1):
-      - BRCA1 DNA repair associated [Source:HGNC Symbol;Acc:HGNC:1100]
+Fetching details for 'ENSG00000141510' ...
+  Label:      TP53
+  ID:         ENSG00000141510
+  Type:       GENE
+  Definition: tumor protein p53 [Source:HGNC Symbol;Acc:HGNC:11998]
+  Identifier: ENSG00000141510 (ENSEMBL)
+
+Summary: search=1 details=found

@@ -5,12 +5,40 @@ Integrates with Wikidata SPARQL endpoint for general biomedical knowledge lookup
 """
 
 import logging
+import re
 from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
 logger = logging.getLogger(__name__)
+
+# Wikidata item IDs are "Q" followed by digits; anything else could inject SPARQL.
+_QID_PATTERN = re.compile(r"Q\d+")
+
+
+def _sparql_string_literal(value: str) -> str:
+    """Return *value* as a double-quoted SPARQL string literal.
+
+    Escapes every character that could end the literal or break the query
+    (backslash, double quote, line breaks), so user input cannot inject SPARQL.
+    """
+    escaped = (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+        .replace("\b", "\\b")
+        .replace("\f", "\\f")
+    )
+    return f'"{escaped}"'
+
+
+def _binding_value(binding: Any, key: str) -> str:
+    """The ``value`` of *key* in a SPARQL JSON result row, or ``""``."""
+    cell = binding.get(key) if isinstance(binding, dict) else None
+    return cell.get("value", "") if isinstance(cell, dict) else ""
 
 
 class WikidataAdapter(KnowledgeSourceAdapter):
@@ -27,22 +55,35 @@ class WikidataAdapter(KnowledgeSourceAdapter):
         return True
 
     async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
-        """Search Wikidata for concepts."""
+        """Search Wikidata for concepts.
+
+        Each item is returned once. The "instance of" (P31) join yields one row
+        per value, so ``LIMIT`` is applied to items in a subquery and the rows are
+        merged by item, combining their instance-of labels into ``categories``.
+        """
         try:
-            # SPARQL query to search for items by label
+            # SPARQL query to search for items by label. The search text is passed
+            # as an escaped literal; ?ordinal keeps the EntitySearch ranking.
             sparql_query = f"""
-            SELECT DISTINCT ?item ?itemLabel ?itemDescription ?instanceOfLabel WHERE {{
-              SERVICE wikibase:mwapi {{
-                bd:serviceParam wikibase:api "EntitySearch" .
-                bd:serviceParam wikibase:endpoint "www.wikidata.org" .
-                bd:serviceParam mwapi:search "{query}" .
-                bd:serviceParam mwapi:language "en" .
-                ?item wikibase:apiOutputItem mwapi:item .
+            SELECT ?item ?itemLabel ?itemDescription ?instanceOfLabel ?ordinal WHERE {{
+              {{
+                SELECT ?item ?ordinal WHERE {{
+                  SERVICE wikibase:mwapi {{
+                    bd:serviceParam wikibase:api "EntitySearch" .
+                    bd:serviceParam wikibase:endpoint "www.wikidata.org" .
+                    bd:serviceParam mwapi:search {_sparql_string_literal(query)} .
+                    bd:serviceParam mwapi:language "en" .
+                    ?item wikibase:apiOutputItem mwapi:item .
+                    ?ordinal wikibase:apiOrdinal true .
+                  }}
+                }}
+                ORDER BY ?ordinal
+                LIMIT {int(limit)}
               }}
               OPTIONAL {{ ?item wdt:P31 ?instanceOf . }}
               SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
             }}
-            LIMIT {limit}
+            ORDER BY ?ordinal
             """
 
             params = {"query": sparql_query, "format": "json"}
@@ -54,12 +95,21 @@ class WikidataAdapter(KnowledgeSourceAdapter):
 
             data = await self._make_request(self.sparql_endpoint, params, headers=headers)
 
-            concepts = []
+            concepts: list[UnifiedConcept] = []
+            by_item: dict[str, UnifiedConcept] = {}
             if "results" in data and "bindings" in data["results"]:
                 for binding in data["results"]["bindings"]:
+                    item_uri = _binding_value(binding, "item")
+                    if item_uri in by_item:
+                        self._merge_instance_of(by_item[item_uri], binding)
+                        continue
+                    if len(concepts) >= limit:
+                        continue
                     concept = self._convert_wikidata_result_to_concept(binding)
                     if concept:
                         concepts.append(concept)
+                        if item_uri:
+                            by_item[item_uri] = concept
 
             logger.info(f"Wikidata search for '{query}' returned {len(concepts)} concepts")
             return concepts
@@ -68,12 +118,27 @@ class WikidataAdapter(KnowledgeSourceAdapter):
             logger.error(f"Wikidata search failed for '{query}': {e}")
             return []
 
+    def _merge_instance_of(self, concept: UnifiedConcept, binding: dict[str, Any]) -> None:
+        """Fold another search row for the same item into *concept*.
+
+        Adds the row's instance-of label to ``categories`` and, while the concept
+        type is still ``UNKNOWN``, derives the type from it.
+        """
+        instance_of = _binding_value(binding, "instanceOfLabel")
+        if not instance_of:
+            return
+        if concept.categories is not None and instance_of not in concept.categories:
+            concept.categories.append(instance_of)
+        current_type = getattr(concept.concept_type, "value", concept.concept_type)
+        if current_type == ConceptType.UNKNOWN.value:
+            concept.concept_type = self._determine_concept_type_from_instance_of(instance_of)
+
     async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed information from Wikidata."""
         try:
-            # concept_id should be Wikidata Q-ID (e.g., Q12136)
-            if not concept_id.startswith("Q"):
-                # Try to search for it first?
+            # concept_id must be a Wikidata Q-ID (e.g., Q12136); it is inserted
+            # into the query as wd:<id>, so reject anything else.
+            if not _QID_PATTERN.fullmatch(concept_id):
                 return None
 
             sparql_query = f"""
@@ -127,13 +192,11 @@ class WikidataAdapter(KnowledgeSourceAdapter):
 
             if "itemDescription" in result:
                 if concept.definitions is not None:
-                    if concept.definitions is not None:
-                        concept.definitions.append(result["itemDescription"]["value"])
+                    concept.definitions.append(result["itemDescription"]["value"])
 
             if instance_of:
                 if concept.categories is not None:
-                    if concept.categories is not None:
-                        concept.categories.append(instance_of)
+                    concept.categories.append(instance_of)
 
             concept.confidence_score = 0.7
             if isinstance(concept.source_data, dict):
@@ -172,30 +235,29 @@ class WikidataAdapter(KnowledgeSourceAdapter):
 
             if "itemDescription" in first:
                 if concept.definitions is not None:
-                    if concept.definitions is not None:
-                        concept.definitions.append(first["itemDescription"]["value"])
+                    concept.definitions.append(first["itemDescription"]["value"])
 
-            # Extract all identifiers and categories from bindings
+            def _add_category(category: str) -> None:
+                if concept.categories is not None and category not in concept.categories:
+                    concept.categories.append(category)
+
+            # Extract all identifiers and categories from bindings. The OPTIONAL
+            # joins repeat values across rows, so de-duplicate as we go.
+            umls_cuis: set[str] = set()
             for b in bindings:
-                if "umlsCui" in b:
+                if "umlsCui" in b and b["umlsCui"]["value"] not in umls_cuis:
+                    umls_cuis.add(b["umlsCui"]["value"])
                     concept.add_identifier(KnowledgeSource.UMLS, b["umlsCui"]["value"], label)
                 if "meshId" in b:
-                    concept.add_identifier(
-                        KnowledgeSource.UMLS, b["meshId"]["value"], label
-                    )  # MeSH is often in UMLS
+                    # MeSH descriptor IDs are not UMLS CUIs and there is no MeSH
+                    # KnowledgeSource, so keep them as a category like ICD-10.
+                    _add_category(f"MeSH: {b['meshId']['value']}")
                 if "icd10" in b:
-                    if concept.categories is not None:
-                        if concept.categories is not None:
-                            concept.categories.append(f"ICD-10: {b['icd10']['value']}")
+                    _add_category(f"ICD-10: {b['icd10']['value']}")
                 if "ncbiTaxonId" in b:
-                    if concept.categories is not None:
-                        if concept.categories is not None:
-                            concept.categories.append(f"NCBI Taxon: {b['ncbiTaxonId']['value']}")
+                    _add_category(f"NCBI Taxon: {b['ncbiTaxonId']['value']}")
                 if "instanceOfLabel" in b:
-                    cat = b["instanceOfLabel"]["value"]
-                    if concept.categories is not None and cat not in concept.categories:
-                        if concept.categories is not None:
-                            concept.categories.append(cat)
+                    _add_category(b["instanceOfLabel"]["value"])
 
             concept.confidence_score = 0.8
             if isinstance(concept.source_data, dict):

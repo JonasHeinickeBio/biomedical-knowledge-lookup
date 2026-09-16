@@ -1,154 +1,110 @@
 """
-UMLS Adapter Example — All Features
+UMLS example: every UMLS adapter feature.
 
-Demonstrates search, filtering, bulk search, mappings, relationships,
-and streaming iterators using the UMLS knowledge source.
+Covers the unified search, concept details, and the UMLS-specific adapter
+methods: source-restricted and semantic-type filtered search, bulk search,
+mappings to source vocabularies, relationships, and streaming iterators.
 
-Prerequisites:
-    Set UMLS_API_KEY in your environment or .env file.
+Requirements: the [umls] extra and the UMLS_API_KEY environment variable
+(a .env file in the working directory or a parent directory also works).
+
+Run from the repository root:
+
+    python docs/examples/core/umls/umls_example.py
+
+Hand-written; docs/examples/scripts/generate_all_examples.py does not overwrite it.
 """
 
 import asyncio
-import os
+import logging
 
-from knowledge_lookup import LookupConfig, create_knowledge_lookup
-from knowledge_lookup.models import KnowledgeSource
+from knowledge_lookup import KnowledgeSource, create_knowledge_lookup
+
+SOURCE = KnowledgeSource.UMLS
+METFORMIN = "C0025598"
 
 
-async def main():
-    # ------------------------------------------------------------------
-    # 1. Initialisation
-    # ------------------------------------------------------------------
-    api_key = os.environ.get("UMLS_API_KEY", "")
-    config = LookupConfig(
-        api_keys={"umls": api_key},
-    )
-    lookup = create_knowledge_lookup(
-        enabled_sources=[KnowledgeSource.UMLS],
-        api_keys=config.api_keys,
-    )
+def heading(title: str) -> None:
+    print(f"\n{'=' * 60}\n{title}\n{'=' * 60}")
 
-    if lookup is None:
-        print("✗ UMLS adapter unavailable (check UMLS_API_KEY)")
-        return
-    print("✓ UMLS adapter initialised\n")
 
-    # Get the adapter directly for advanced features requiring keyword-only params
-    adapter = lookup.adapters.get(KnowledgeSource.UMLS)
+async def main() -> None:
+    # The key is read from UMLS_API_KEY. To pass it explicitly instead, use
+    # create_knowledge_lookup(enabled_sources=[SOURCE], api_keys={"umls": "<key>"}).
+    lookup = create_knowledge_lookup(enabled_sources=[SOURCE])
+    try:
+        adapter = lookup.adapters.get(SOURCE)
+        if adapter is None:
+            print("SKIPPED: the UMLS adapter is not available.")
+            print("It needs the [umls] extra and the UMLS_API_KEY environment variable.")
+            print("\nSummary: skipped")
+            return
+        print("The UMLS adapter is available.")
 
-    # ------------------------------------------------------------------
-    # 2. Basic search (via CentralKnowledgeLookup unified API)
-    # ------------------------------------------------------------------
-    print("═" * 50)
-    print("1. BASIC SEARCH  (via CentralKnowledgeLookup)")
-    print("═" * 50)
-    results = await lookup.search_concepts("diabetes", sources=[KnowledgeSource.UMLS])
-    print(f"   Query: 'diabetes' → {len(results.concepts)} results\n")
-    for c in results.concepts[:3]:
-        print(f"   • {c.primary_id}: {c.primary_label}  [{c.concept_type.value}]")
-    print()
+        heading("1. Search through CentralKnowledgeLookup")
+        result = await lookup.search_concepts("diabetes", sources=[SOURCE], max_results=5)
+        print(f"'diabetes' -> {result.total_found} concept(s)")
+        for concept in result.concepts[:3]:
+            print(f"  {concept.primary_id}: {concept.primary_label} [{concept.concept_type}]")
 
-    # ------------------------------------------------------------------
-    # 3. Source-restricted search (sabs)
-    # ------------------------------------------------------------------
-    print("═" * 50)
-    print("2. SOURCE-RESTRICTED SEARCH  (sabs='SNOMEDCT_US')")
-    print("═" * 50)
-    if adapter:
-        concepts = await adapter.search_concepts(
-            "hypertension", limit=5, sabs="SNOMEDCT_US"
-        )
-        print(f"   Query: 'hypertension' (SNOMEDCT_US only) → {len(concepts)} results\n")
-        for c in concepts:
-            print(f"   • {c.primary_id}: {c.primary_label}")
-    print()
+        heading("2. Concept details")
+        details = await lookup.get_concept_details("C0011849", source=SOURCE)
+        if details is None:
+            print("C0011849 not found")
+        else:
+            print(f"{details.primary_id}: {details.primary_label} [{details.concept_type}]")
+            print(f"  {len(details.synonyms)} synonyms, {len(details.definitions)} definitions")
+            print(f"  Semantic types: {', '.join(details.semantic_types[:3])}")
 
-    # ------------------------------------------------------------------
-    # 4. Semantic-type filtered search (semantic_types)
-    # ------------------------------------------------------------------
-    print("═" * 50)
-    print("3. SEMANTIC-TYPE FILTER  (semantic_types='T047' = Disease)")
-    print("═" * 50)
-    if adapter:
-        concepts = await adapter.search_concepts(
-            "diabetes", limit=3, semantic_types="T047"
-        )
-        print(f"   Filtered to disease type → {len(concepts)} results\n")
-        for c in concepts:
-            print(f"   • {c.primary_id}: {c.primary_label}  [{c.concept_type.value}]")
-    print()
+        # The remaining features are UMLS-specific keyword arguments and methods,
+        # so they are called on the adapter itself.
+        heading("3. Source-restricted search (sabs='SNOMEDCT_US')")
+        concepts = await adapter.search_concepts("hypertension", limit=5, sabs="SNOMEDCT_US")
+        for concept in concepts:
+            print(f"  {concept.primary_id}: {concept.primary_label}")
 
-    # ------------------------------------------------------------------
-    # 5. Bulk search
-    # ------------------------------------------------------------------
-    print("═" * 50)
-    print("4. BULK SEARCH")
-    print("═" * 50)
-    if adapter:
-        bulk = await adapter.bulk_search(
-            ["metformin", "atorvastatin", "lisinopril"], limit=2
-        )
+        heading("4. Semantic-type filter (semantic_types='T047', Disease or Syndrome)")
+        concepts = await adapter.search_concepts("diabetes", limit=3, semantic_types="T047")
+        for concept in concepts:
+            print(f"  {concept.primary_id}: {concept.primary_label} [{concept.concept_type}]")
+
+        heading("5. Bulk search")
+        bulk = await adapter.bulk_search(["metformin", "atorvastatin", "lisinopril"], limit=2)
         for query, hits in bulk.items():
-            labels = [c.primary_label for c in hits]
-            print(f"   '{query}' → {labels}")
-    print()
+            print(f"  {query!r} -> {[concept.primary_label for concept in hits]}")
 
-    # ------------------------------------------------------------------
-    # 6. Mappings (CUI → source-specific IDs)
-    # ------------------------------------------------------------------
-    print("═" * 50)
-    print("5. MAPPINGS  (CUI → source-specific identifiers)")
-    print("═" * 50)
-    if adapter:
-        mappings = await adapter.get_mappings(
-            "C0025598", target_source="RXNORM", limit=5
-        )
-        print(f"   RXNORM mappings for C0025598 (metformin):\n")
-        for m in mappings:
-            print(f"   • {m['source']}: {m['source_id']}  —  {m.get('source_name', '')}")
-    print()
+        heading(f"6. Mappings: {METFORMIN} (metformin) -> RXNORM")
+        mappings = await adapter.get_mappings(METFORMIN, target_source="RXNORM", limit=5)
+        for mapping in mappings:
+            print(f"  {mapping['source']}: {mapping['source_id']} - {mapping['source_name']}")
 
-    # ------------------------------------------------------------------
-    # 7. Relationships
-    # ------------------------------------------------------------------
-    print("═" * 50)
-    print("6. RELATIONSHIPS  (parent / child relations)")
-    print("═" * 50)
-    if adapter:
-        rels = await adapter.get_relationships(
-            "C0025598", relation_labels="PAR", limit=5
-        )
-        print(f"   Parent relations for metformin:\n")
-        for r in rels:
+        heading("7. Parent relationships of metformin")
+        relations = await adapter.get_relationships(METFORMIN, relation_labels="PAR", limit=5)
+        for relation in relations:
             print(
-                f"   • {r['relation_label']} → "
-                f"{r.get('related_name', '?'):40s}  ({r['related_id']})"
+                f"  {relation['relation_label']} -> "
+                f"{relation['related_name'] or '?'} ({relation['related_id']})"
             )
-    print()
 
-    # ------------------------------------------------------------------
-    # 8. Streaming iterators
-    # ------------------------------------------------------------------
-    print("═" * 50)
-    print("7. STREAMING ITERATORS")
-    print("═" * 50)
-    if adapter:
-        def_count = 0
-        async for _ in adapter.iter_definitions("C0025598"):
-            def_count += 1
-        rel_count = 0
-        async for _ in adapter.iter_relations("C0025598", page_size=200):
-            rel_count += 1
-        print(f"   Definitions for metformin: {def_count}")
-        print(f"   Relations for metformin:   {rel_count}")
-    print()
+        heading("8. Streaming iterators")
+        definition_count = 0
+        async for _definition in adapter.iter_definitions(METFORMIN):
+            definition_count += 1
+        relation_count = 0
+        async for _relation in adapter.iter_relations(METFORMIN, page_size=200):
+            relation_count += 1
+        print(f"  Metformin definitions: {definition_count}")
+        print(f"  Metformin relations:   {relation_count}")
 
-    # ------------------------------------------------------------------
-    # 9. Cleanup
-    # ------------------------------------------------------------------
-    await lookup.close()
-    print("✓ Adapter closed — done.")
+        found = "found" if details else "not found"
+        print(f"\nSummary: search={result.total_found} details={found}")
+    finally:
+        await lookup.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    logging.basicConfig(level=logging.ERROR, format="%(levelname)s %(name)s: %(message)s")
+    try:
+        asyncio.run(main())
+    except Exception as exc:  # show a readable message instead of a traceback
+        raise SystemExit(f"ERROR: {type(exc).__name__}: {exc}") from None

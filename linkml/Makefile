@@ -7,7 +7,7 @@ all: generate-python
 
 # Generate Python Pydantic models from schema
 generate-python:
-	cd .. && poetry run linkml generate pydantic linkml/biomedical_knowledge_schema.yaml > src/knowledge_lookup/generated_models/biomedical_knowledge_models.py
+	cd .. && poetry run linkml generate pydantic linkml/biomedical_knowledge_schema.yaml > src/knowledge_lookup/models/biomedical_knowledge_models.py
 
 # Generate JSON Schema from LinkML
 generate-json:
@@ -33,7 +33,7 @@ generate-docs:
 
 # Clean generated files
 clean:
-	rm -f src/knowledge_lookup/generated_models/biomedical_knowledge_models.py
+	rm -f src/knowledge_lookup/models/biomedical_knowledge_models.py
 	rm -f linkml/*.json linkml/*.ttl
 	rm -f linkml/docs/*.html
 

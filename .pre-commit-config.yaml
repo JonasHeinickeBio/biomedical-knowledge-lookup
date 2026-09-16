@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
     -   id: trailing-whitespace
         files: ^src/
@@ -12,18 +12,18 @@ repos:
         files: ^src/
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.15
+    rev: v0.16.7
     hooks:
-    -   id: ruff
-        args: [--fix, --exit-non-zero-on-fix, "--ignore=UP007,E501"]
+    -   id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix, "--ignore=UP007,UP042,UP045,E501"]
         files: ^src/
     -   id: ruff-format
         files: ^src/
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
+    rev: v2.3.1
     hooks:
     -   id: mypy
-        additional_dependencies: [types-requests, types-setuptools, pydantic]
+        additional_dependencies: [pydantic]
         args: [--ignore-missing-imports]
         files: ^src/

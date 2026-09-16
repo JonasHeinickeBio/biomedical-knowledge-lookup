@@ -1,23 +1,43 @@
-Checking if Chembl adapter is available...
-  ✓ Chembl adapter is available
+The CHEMBL adapter is available.
 
-Searching for 'cancer' concepts in Chembl...
+Searching CHEMBL for 'aspirin' ...
+Found 5 concept(s) in 1.0s
 
-Found 2 results from Chembl:
+  1. ASPIRIN
+     ID:         CHEMBL25
+     Type:       CHEMICAL
+     Confidence: 0.0
+     Definition: Type: Small molecule
 
-  Concept 1:
-    Label: Metformin
-    ID: CHEMBL1234
-    Type: ConceptType.CHEMICAL
-    Confidence: 0.8
-    Definitions (1):
-      - A metabolic disorder characterized by high blood glucose
-    Mappings (2):
-      - Glucophage: Glucophage
-      - Dimethylbiguanide: Dimethylbiguanide
+  2. PHENYLASPIRINATE
+     ID:         CHEMBL163612
+     Type:       CHEMICAL
+     Confidence: 0.0
+     Definition: Type: Small molecule
 
-  Concept 2:
-    Label: Insulin
-    ID: CHEMBL5678
-    Type: ConceptType.CHEMICAL
-    Confidence: 0.8
+  3. BROMOASPIRIN
+     ID:         CHEMBL499817
+     Type:       CHEMICAL
+     Confidence: 0.0
+     Definition: Type: Small molecule
+
+  4. DIASPIRIN
+     ID:         CHEMBL1161014
+     Type:       CHEMICAL
+     Confidence: 0.0
+     Definition: Type: Small molecule
+
+  5. ASPIRIN DL-LYSINE
+     ID:         CHEMBL1697753
+     Type:       CHEMICAL
+     Confidence: 0.0
+     Definition: Type: Small molecule
+
+Fetching details for 'CHEMBL25' ...
+  Label:      ASPIRIN
+  ID:         CHEMBL25
+  Type:       CHEMICAL
+  Definition: Type: Small molecule
+  Identifier: CHEMBL25 (CHEMBL)
+
+Summary: search=5 details=found

@@ -1,12 +1,19 @@
-Checking if Pubchem adapter is available...
-  ✓ Pubchem adapter is available
+The PUBCHEM adapter is available.
 
-Searching for 'aspirin' concepts in Pubchem...
+Searching PUBCHEM for 'aspirin' ...
+Found 1 concept(s) in 2.7s
 
-Found 1 results from Pubchem:
+  1. Aspirin
+     ID:         2244
+     Type:       CHEMICAL
+     Confidence: 0.9
 
-  Concept 1:
-    Label: Aspirin
-    ID: 2244
-    Type: ConceptType.CHEMICAL
-    Confidence: 0.9
+Fetching details for '2244' ...
+  Label:      Aspirin
+  ID:         2244
+  Type:       CHEMICAL
+  Synonyms:   2-acetyloxybenzoic acid
+  Identifier: 2244 (PUBCHEM)
+  Identifier: BSYNRYMUTXBXSQ-UHFFFAOYSA-N (PUBCHEM)
+
+Summary: search=1 details=found

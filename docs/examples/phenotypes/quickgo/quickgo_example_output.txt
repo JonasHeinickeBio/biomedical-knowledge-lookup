@@ -1,12 +1,44 @@
-╔══════════════════════════════════════════════════════╗
-║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
-║  The adapter does not return valid search results.  ║
-╚══════════════════════════════════════════════════════╝
+The QUICKGO adapter is available.
 
-Checking if QuickGO adapter is available...
-  ✓ QuickGO adapter is available
+Searching QUICKGO for 'apoptosis' ...
+Found 5 concept(s) in 1.9s
 
-Searching for 'apoptosis' concepts in QuickGO...
+  1. execution phase of apoptosis
+     ID:         GO:0097194
+     Type:       BIOLOGICAL_PROCESS
+     Confidence: 0.0
+     Definition: A stage of the apoptotic process that starts with the controlled breakdown of the cell through [...]
 
-Found 0 results from QuickGO:
-  No results found for 'apoptosis'
+  2. lymphocyte apoptotic process
+     ID:         GO:0070227
+     Type:       BIOLOGICAL_PROCESS
+     Confidence: 0.0
+     Definition: Any apoptotic process in a lymphocyte, a leukocyte commonly found in the blood and lymph that [...]
+
+  3. hepatoblast apoptotic process
+     ID:         GO:1902489
+     Type:       BIOLOGICAL_PROCESS
+     Confidence: 0.0
+     Definition: Any apoptotic process in a hepatoblast.
+
+  4. oligodendrocyte apoptotic process
+     ID:         GO:0097252
+     Type:       BIOLOGICAL_PROCESS
+     Confidence: 0.0
+     Definition: Any apoptotic process in an oligodendrocyte. Oligodendrocytes belong to a class of large [...]
+
+  5. keratinocyte apoptotic process
+     ID:         GO:0097283
+     Type:       BIOLOGICAL_PROCESS
+     Confidence: 0.0
+     Definition: Any apoptotic process in a keratinocyte. A keratinocyte is an epidermal cell which synthesizes [...]
+
+Fetching details for 'GO:0006915' ...
+  Label:      apoptotic process
+  ID:         GO:0006915
+  Type:       BIOLOGICAL_PROCESS
+  Synonyms:   activation of apoptosis, apoptosis, apoptosis activator activity, apoptosis signaling, apoptotic cell death
+  Definition: A programmed cell death process which begins when a cell receives an internal (e.g. DNA damage) or external signal (e.g. an extracellular death ligand), and proceeds through a series of [...]
+  Identifier: GO:0006915 (QUICKGO)
+
+Summary: search=5 details=found

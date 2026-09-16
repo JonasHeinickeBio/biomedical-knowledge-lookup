@@ -247,10 +247,20 @@ async def filter_node(state: LookupWorkflowState) -> dict:
         }
 
     original_count = len(result.concepts)
-    result.concepts = _filter_and_rank_concepts(result.concepts)
-    result.total_found = len(result.concepts)
+    ranked = _filter_and_rank_concepts(result.concepts)
+    removed = original_count - len(ranked)
 
-    removed = original_count - len(result.concepts)
+    # Keep the best max_results concepts: the lookup merges results for every
+    # expanded term, and the per-concept nodes downstream (detail_gather,
+    # enrichment) issue network calls for each concept that remains.
+    max_results = state.get("max_results")
+    capped = 0
+    if max_results and len(ranked) > max_results:
+        capped = len(ranked) - max_results
+        ranked = ranked[:max_results]
+
+    result.concepts = ranked
+    result.total_found = len(result.concepts)
     result_dict = lookup_result_to_dict(result)
 
     n_boosted = sum(
@@ -267,6 +277,7 @@ async def filter_node(state: LookupWorkflowState) -> dict:
     step_parts = [
         f"{original_count}→{len(result.concepts)} concepts",
         f"removed {removed} non-clinical" if removed else "",
+        f"kept top {max_results} of {original_count - removed}" if capped else "",
         f"{n_boosted} clinical types boosted" if n_boosted else "",
     ]
 

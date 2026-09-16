@@ -1,36 +1,37 @@
-Checking if Pfam adapter is available...
-  ✓ Pfam adapter is available
+The PFAM adapter is available.
 
-Searching for 'BRCA1' concepts in Pfam...
+Searching PFAM for 'kinase' ...
+Found 5 concept(s) in 1.1s
 
-Found 6 results from Pfam:
+  1. Protein kinase domain
+     ID:         Pfam:PF00069
+     Type:       MOLECULAR_ENTITY
+     Confidence: 0.85
 
-  Concept 1:
-    Label: BRCA1 C Terminus (BRCT) domain
-    ID: Pfam:PF00533
-    Type: ConceptType.MOLECULAR_ENTITY
-    Confidence: 0.85
+  2. Phosphoglycerate kinase
+     ID:         Pfam:PF00162
+     Type:       MOLECULAR_ENTITY
+     Confidence: 0.85
 
-  Concept 2:
-    Label: Cofactor of BRCA1 (COBRA1)
-    ID: Pfam:PF06209
-    Type: ConceptType.PROTEIN
-    Confidence: 0.85
+  3. Pyruvate kinase, barrel domain
+     ID:         Pfam:PF00224
+     Type:       MOLECULAR_ENTITY
+     Confidence: 0.85
 
-  Concept 3:
-    Label: BRCA1-associated protein 2
-    ID: Pfam:PF07576
-    Type: ConceptType.PROTEIN
-    Confidence: 0.85
+  4. Thymidine kinase
+     ID:         Pfam:PF00265
+     Type:       PROTEIN
+     Confidence: 0.85
 
-  Concept 4:
-    Label: Ig-like domain from next to BRCA1 gene
-    ID: Pfam:PF16158
-    Type: ConceptType.MOLECULAR_ENTITY
-    Confidence: 0.85
+  5. GHMP kinases N terminal domain
+     ID:         Pfam:PF00288
+     Type:       MOLECULAR_ENTITY
+     Confidence: 0.85
 
-  Concept 5:
-    Label: BRCA1-A complex subunit Abraxas 1 MPN domain
-    ID: Pfam:PF21125
-    Type: ConceptType.MOLECULAR_ENTITY
-    Confidence: 0.85
+Fetching details for 'PF00069' ...
+  Label:      Protein kinase domain
+  ID:         Pfam:PF00069
+  Type:       MOLECULAR_ENTITY
+  Identifier: Pfam:PF00069 (PFAM)
+
+Summary: search=5 details=found

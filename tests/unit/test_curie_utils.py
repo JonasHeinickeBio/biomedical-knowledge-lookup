@@ -3,6 +3,7 @@ Unit tests for curie_utils module.
 """
 
 import pytest
+
 from knowledge_lookup.curie_utils import (
     concept_identifier_to_reference,
     normalize_curie,
@@ -47,7 +48,7 @@ class TestNormalization:
 
     def test_normalize_identifier_basic(self) -> None:
         """Identifier normalization keeps the local part unchanged for DOID."""
-        pytest.importorskip("pyobo", reason="normalize_identifier requires pyobo")
+        pytest.importorskip("curies", reason="normalize_identifier requires curies")
         assert normalize_identifier("doid", "9351") == "9351"
 
     def test_normalize_identifier_unknown_prefix(self) -> None:

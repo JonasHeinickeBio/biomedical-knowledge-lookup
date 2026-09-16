@@ -211,35 +211,55 @@ class TestOxOAdapter:
         assert mappings == {}
 
     @pytest.mark.asyncio
-    async def test_get_datasources_success(self, adapter):
-        """Test get_datasources."""
+    async def test_get_datasources_returns_empty_without_request(self, adapter):
+        """Regression: OxO removed /api/datasources (HTTP 400), so no request is made."""
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
-            mock_req.return_value = {
-                "_embedded": {
-                    "datasources": [
-                        {"id": "DOID", "name": "Disease Ontology"},
-                        {"id": "MONDO", "name": "MONDO"},
-                    ]
-                }
-            }
             datasources = await adapter.get_datasources()
-            assert len(datasources) == 2
+        assert datasources == []
+        mock_req.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_get_datasources_empty(self, adapter):
-        """Test get_datasources with no embedded datasources."""
-        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
-            mock_req.return_value = {}
-            datasources = await adapter.get_datasources()
-            assert datasources == []
-
-    @pytest.mark.asyncio
-    async def test_get_datasources_error(self, adapter):
-        """Test get_datasources error handling."""
-        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
-            mock_req.side_effect = Exception("API error")
-            datasources = await adapter.get_datasources()
-            assert datasources == []
+    async def test_search_real_response_single_identifier(self, adapter):
+        """Regression: the CURIE is recorded once under OXO, not twice."""
+        # Shaped like the live POST /api/search response for MONDO:0005148
+        response_data = {
+            "_embedded": {
+                "searchResults": [
+                    {
+                        "queryId": "MONDO:0005148",
+                        "querySource": "MONDO",
+                        "curie": "MONDO:0005148",
+                        "label": "type 2 diabetes mellitus",
+                        "mappingResponseList": [
+                            {
+                                "curie": "DOID:9352",
+                                "label": "type 2 diabetes mellitus",
+                                "sourcePrefixes": ["MONDO"],
+                                "targetPrefix": "DOID",
+                                "distance": 1,
+                            },
+                            {
+                                "curie": "UMLS:C0011860",
+                                "label": "Diabetes Mellitus, Non-Insulin-Dependent",
+                                "sourcePrefixes": ["MONDO"],
+                                "targetPrefix": "UMLS",
+                                "distance": 1,
+                            },
+                        ],
+                    }
+                ]
+            },
+            "_links": {"self": {"href": "/api/search"}},
+            "page": {"size": 20, "totalElements": 1, "totalPages": 1, "number": 0},
+        }
+        adapter.session = self._make_mock_session(response_data)
+        results = await adapter.search_concepts("MONDO:0005148", limit=5)
+        assert len(results) == 1
+        concept = results[0]
+        assert [(i.source, i.identifier) for i in concept.identifiers] == [
+            (KnowledgeSource.OXO, "MONDO:0005148")
+        ]
+        assert [m.to_concept.identifier for m in concept.mappings] == ["UMLS:C0011860"]
 
     def test_parse_search_result_full(self, adapter):
         """Test _parse_search_result with all fields."""
@@ -375,9 +395,23 @@ class TestOxOAdapter:
     async def test_validate_connection_success(self, adapter):
         """Test validate_connection."""
         with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
-            mock_req.return_value = {"_embedded": {"datasources": []}}
+            # Shaped like the live GET /api/search response
+            mock_req.return_value = {
+                "_embedded": {"searchResults": []},
+                "_links": {"self": {"href": "/api/search"}},
+                "page": {"size": 20, "totalElements": 0, "totalPages": 0, "number": 0},
+            }
             result = await adapter.validate_connection()
             assert result is True
+            # Regression: /api/datasources answers HTTP 400, so /api/search is used
+            assert mock_req.call_args.args[0] == "https://www.ebi.ac.uk/spot/oxo/api/search"
+
+    @pytest.mark.asyncio
+    async def test_validate_connection_unexpected_body(self, adapter):
+        """validate_connection is False when the body is not an OxO result page."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {}
+            assert await adapter.validate_connection() is False
 
     @pytest.mark.asyncio
     async def test_validate_connection_error(self, adapter):

@@ -1,190 +1,81 @@
-# HGNC Adapter
+---
+description: HGNC approved human gene symbols and names, with NCBI Gene, UniProt and Ensembl cross-references.
+---
 
-## Overview
+# HGNC adapter
 
-The HGNC Adapter provides access to the HUGO Gene Nomenclature Committee (HGNC) database, which provides official gene symbols and names for human genes. It ensures standardized gene nomenclature and provides comprehensive cross-references to other databases.
+Searches the HUGO Gene Nomenclature Committee database and fetches approved human gene records. Full records include aliases, previous symbols, locus, gene groups and cross-references to NCBI Gene, UniProt and Ensembl, which makes this a good hub for normalising human gene names.
 
-### Purpose
-- Retrieve official human gene symbols and names
-- Access gene cross-references across multiple databases
-- Get gene aliases and previous symbols
-- Support standardized gene annotation
+| | |
+|---|---|
+| Source | `KnowledgeSource.HGNC` |
+| Class | `knowledge_lookup.adapters.HGNCAdapter` |
+| Requires | none |
+| Identifiers | `HGNC:1100` or an approved symbol such as `BRCA1` |
+| Upstream API | `https://rest.genenames.org` |
 
-### Scope
-- Official human gene nomenclature
-- Gene symbols, names, and descriptions
-- Alias symbols and previous symbols
-- Gene locations and locus types
-- Cross-references to Ensembl, NCBI, UniProt, and other databases
-- Gene groups and families
-
-## Key Features
-
-- **Gene Symbol Search**: Search for genes by symbol, name, or alias
-- **Official Nomenclature**: Access approved HGNC gene symbols
-- **Alias Resolution**: Retrieve all gene aliases and previous symbols
-- **Cross-Database References**: Access Ensembl, NCBI Gene, UniProt, and other IDs
-- **Gene Location**: Retrieve chromosomal locations and locus information
-- **Gene Groups**: Access gene family and group classifications
-
-## API Information
-
-### Endpoint
-- **Base URL**: `https://rest.genenames.org`
-
-### Authentication
-- **Required**: No
-- **API Key**: Not required (public service)
-
-### Environment Variables
-- None required
-
-## Key Methods
-
-### `search_concepts(query, limit=20) -> list[UnifiedConcept]`
-
-Search HGNC for genes matching the query (symbol, name, or alias).
-
-**Parameters:**
-- `query` (str): Search term (gene symbol, name, or alias)
-- `limit` (int): Maximum number of results (default: 20)
-
-**Returns:**
-- List of `UnifiedConcept` objects representing gene entries
-
-**Example:**
-```python
-concepts = await adapter.search_concepts("BRCA1")
-```
-
-### `get_concept_details(concept_id) -> UnifiedConcept | None`
-
-Get detailed information about a specific HGNC gene entry.
-
-**Parameters:**
-- `concept_id` (str): HGNC ID (e.g., "HGNC:1100") or gene symbol
-
-**Returns:**
-- `UnifiedConcept` with full gene details, or `None` if not found
-
-**Example:**
-```python
-gene = await adapter.get_concept_details("HGNC:1100")
-```
-
-## Configuration
-
-The adapter requires no special configuration beyond the base `LookupConfig`.
+## Quick example
 
 ```python
-from knowledge_lookup.adapters.hgnc_adapter import HGNCAdapter
+import asyncio
+
+from knowledge_lookup.adapters import HGNCAdapter
 from knowledge_lookup.models import LookupConfig
 
-config = LookupConfig()
-adapter = HGNCAdapter(config)
+
+async def main():
+    async with HGNCAdapter(LookupConfig()) as adapter:
+        for concept in await adapter.search_concepts("BRCA1", limit=3):
+            print(concept.primary_id, concept.primary_label)
+
+        brca1 = await adapter.get_concept_details("HGNC:1100")
+        print(brca1.primary_label, brca1.synonyms)
+        print([(i.source, i.identifier) for i in brca1.identifiers])
+
+
+asyncio.run(main())
 ```
 
-## Usage Examples
+Output:
 
-### Basic Search
-```python
-from knowledge_lookup.adapters.hgnc_adapter import HGNCAdapter
-
-adapter = HGNCAdapter(config)
-
-# Search for BRCA1 gene
-results = await adapter.search_concepts("BRCA1", limit=5)
-
-for concept in results:
-    print(f"Gene: {concept.primary_label}")
-    print(f"Name: {concept.primary_id}")
-    print(f"Location: {concept.categories}")
+```
+HGNC:1100 BRCA1
+HGNC:25829 ABRAXAS1
+HGNC:20691 NBR2
+BRCA1 DNA repair associated ['BRCA1', 'RNF53', 'BRCC1', 'PPP1R53', 'FANCS']
+[('HGNC', 'HGNC:1100'), ('NCBI', '672'), ('UNIPROT', 'P38398'), ('ENSEMBL', 'ENSG00000012048')]
 ```
 
-### Get Gene Details
-```python
-# Get detailed information for a specific gene
-gene = await adapter.get_concept_details("HGNC:1100")
+## Searching
 
-if gene:
-    print(f"Symbol: {gene.primary_label}")
-    print(f"Name: {gene.primary_id}")
-    print(f"Location: {gene.categories}")
-    print(f"Locus Type: {gene.semantic_types}")
-    print(f"Synonyms: {gene.synonyms}")
-    print(f"Aliases: {gene.synonyms}")
-```
+`search_concepts(query, limit)` calls `/search/{query}`, which matches symbols, aliases, previous symbols and names. HGNC search documents only contain the HGNC ID, the symbol and a score, so search results are thin:
 
-### Search by Alias
-```python
-# Search using an alias
-results = await adapter.search_concepts("BRCC1")
-```
+- `primary_id` is the HGNC ID and `primary_label` the symbol
+- `synonyms` is `[symbol]`
+- `concept_type` is `GENE`, `confidence_score` `0.9`
+- there are no cross-references
 
-### Search by Location
-```python
-# Search for genes on chromosome 17
-results = await adapter.search_concepts("17q")
-```
+Call `get_concept_details` for the full record.
 
-## Error Handling
+## Concept details
 
-The adapter implements comprehensive error handling:
+`get_concept_details(concept_id)` uses `/fetch/hgnc_id/{id}` when the ID starts with `HGNC:` (case-insensitive) and `/fetch/symbol/{symbol}` otherwise. Only current approved symbols resolve.
 
-- **Search Failures**: Returns empty list on error with logging
-- **Invalid IDs**: Returns `None` for non-existent gene IDs
-- **Network Errors**: Caught and logged, returns appropriate fallback
-- **Data Parsing Errors**: Graceful handling with `logger.error` logging
+| Field | Value |
+|---|---|
+| `primary_label` | approved gene name |
+| `synonyms` | approved symbol, alias symbols, previous symbols |
+| `categories` | `locus:<location>` and gene group names |
+| `semantic_types` | `[locus_type]`, e.g. `gene with protein product` |
+| `identifiers` | `HGNC`, plus `NCBI` (Entrez Gene), `UNIPROT` and `ENSEMBL` with URLs |
+| `sources` | `['HGNC']` |
+| `source_data[HGNC]` | full HGNC record |
 
-```python
-try:
-    results = await adapter.search_concepts("BRCA1")
-    if not results:
-        logger.info("No HGNC entries found for 'BRCA1'")
-except Exception as e:
-    logger.error(f"HGNC search failed: {e}")
-```
+## Rate limits and errors
 
-## Rate Limiting
+Uses the shared HTTP retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). Errors are logged; search returns `[]` and details return `None`.
 
-**HGNC API Rate Limits:**
-- Free tier: No strict limits published
-- Recommended: 3-5 requests per second
+## See also
 
-The adapter includes built-in rate limiting via the base class `KnowledgeSourceAdapter`. Implementations should:
-- Respect HGNC's rate limits
-- Implement request throttling for bulk operations
-- Consider caching for frequently accessed genes
-
-```python
-# The adapter automatically handles rate limiting through the base class
-```
-
-## Data Model Mapping
-
-| HGNC Field | UnifiedConcept Mapping |
-|-----------|----------------------|
-| `hgnc_id` | `primary_id` (as `HGNC:{id}`) |
-| `name` | `primary_label` |
-| `symbol` | `synonyms.append(symbol)` |
-| `alias_symbol` | `synonyms.extend(alias_symbol)` |
-| `prev_symbol` | `synonyms.extend(prev_symbol)` |
-| `location` | `categories.append("locus:{location}")` |
-| `gene_group` | `categories.extend(gene_group)` |
-| `locus_type` | `semantic_types.append(locus_type)` |
-| `entrez_id` | `add_identifier(NCBI, entrez_id)` |
-| `ensembl_gene_id` | `add_identifier(ENSEMBL, ensembl_id)` |
-| `uniprot_ids` | `add_identifier(UNIPROT, uid)` |
-
-## Related Adapters
-
-- **Ensembl Adapter**: For genome coordinates and gene models
-- **NCBI EUtils Adapter**: For Entrez Gene data
-- **Uniprot Adapter**: For protein-level data
-- **OMIM Adapter**: For disease associations
-
-## References
-
-- [HGNC REST API Documentation](https://www.genenames.org/help/rest/)
-- [HGNC Website](https://www.genenames.org/)
-- [HGNC Help](https://www.genenames.org/help/)
+- [Ensembl adapter](ensembl_adapter.md), [UniProt adapter](../core/uniprot_adapter.md)
+- [All adapters](../README.md)

@@ -21,7 +21,9 @@ def route_after_review(state: LookupWorkflowState) -> str:
     score = state.get("review_score")
     threshold = state.get("auto_approve_threshold")
     iteration = state.get("iteration") or 0
-    max_iter = state.get("max_iterations") or 3
+    max_iter = state.get("max_iterations")
+    if max_iter is None:  # an explicit 0 must not fall back to the default
+        max_iter = 3
 
     if score is None:
         score = 0.0

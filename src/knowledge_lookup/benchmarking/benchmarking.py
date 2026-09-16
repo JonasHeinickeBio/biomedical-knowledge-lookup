@@ -173,6 +173,6 @@ class KnowledgeLookupBenchmarker:
 
         for name, stats in sorted(summary["by_name"].items()):
             print(
-                f"{name:<40} | {stats['count']:<6} | {stats['avg_time']:<10.3f} | {stats['avg_found']:<10.1f} | {stats['success_rate']*100:.1f}%"  # noqa: E501
+                f"{name:<40} | {stats['count']:<6} | {stats['avg_time']:<10.3f} | {stats['avg_found']:<10.1f} | {stats['success_rate'] * 100:.1f}%"  # noqa: E501
             )
         print("=" * 80 + "\n")

@@ -517,3 +517,24 @@ class TestOLSDetermineConceptType:
 
     def test_unknown(self, adapter):
         assert adapter._determine_concept_type_from_ontology("unknown") == ConceptType.UNKNOWN
+
+
+def test_subclass_tags_identifiers_with_its_own_source(lookup_config):
+    """Regression: the converters use get_source(), not a hardcoded KnowledgeSource.OLS."""
+
+    class OtherOLSAdapter(OLSAdapter):
+        def get_source(self):
+            return KnowledgeSource.EBIOLS
+
+    adapter = OtherOLSAdapter(lookup_config)
+    iri = "http://purl.obolibrary.org/obo/DOID_162"
+    search_hit = adapter._convert_ols_result_to_concept(
+        {"iri": iri, "label": "cancer", "short_form": "DOID_162"}
+    )
+    term = adapter._convert_ols_concept_to_unified({"iri": iri, "label": "cancer"})
+
+    for concept in (search_hit, term):
+        assert concept is not None
+        assert {i.source for i in concept.identifiers} == {KnowledgeSource.EBIOLS}
+        assert KnowledgeSource.EBIOLS in concept.source_data
+        assert KnowledgeSource.OLS not in concept.source_data

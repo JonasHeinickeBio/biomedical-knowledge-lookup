@@ -10,7 +10,12 @@ from .ols_adapter import OLSAdapter
 
 
 class EBIOLSAdapter(OLSAdapter):
-    """Adapter for EMBL-EBI OLS."""
+    """Adapter for EMBL-EBI OLS.
+
+    Only the source differs from :class:`OLSAdapter`: the inherited converters
+    tag identifiers and ``source_data`` with :meth:`get_source`, so concepts from
+    this adapter are recorded under ``EBIOLS``.
+    """
 
     def get_source(self) -> KnowledgeSource:
         return KnowledgeSource.EBIOLS

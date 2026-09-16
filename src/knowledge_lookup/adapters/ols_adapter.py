@@ -91,7 +91,7 @@ class OLSAdapter(KnowledgeSourceAdapter):
             )
 
             # Add OLS identifier
-            concept.add_identifier(KnowledgeSource.OLS, concept_id, label, concept_id)
+            concept.add_identifier(self.get_source(), concept_id, label, concept_id)
 
             # Add synonyms
             if "synonym" in result:
@@ -120,11 +120,11 @@ class OLSAdapter(KnowledgeSourceAdapter):
 
             # Add short form (often more readable ID)
             if "short_form" in result:
-                concept.add_identifier(KnowledgeSource.OLS, result["short_form"], label)
+                concept.add_identifier(self.get_source(), result["short_form"], label)
 
             concept.confidence_score = 0.8
             if isinstance(concept.source_data, dict):
-                concept.source_data[KnowledgeSource.OLS] = result
+                concept.source_data[self.get_source()] = result
 
             return concept
 
@@ -146,7 +146,7 @@ class OLSAdapter(KnowledgeSourceAdapter):
             )
 
             # Add OLS identifier
-            concept.add_identifier(KnowledgeSource.OLS, concept_id, label, concept_id)
+            concept.add_identifier(self.get_source(), concept_id, label, concept_id)
 
             # Add synonyms
             if "synonyms" in data:
@@ -194,7 +194,7 @@ class OLSAdapter(KnowledgeSourceAdapter):
 
             concept.confidence_score = 0.85
             if isinstance(concept.source_data, dict):
-                concept.source_data[KnowledgeSource.OLS] = data
+                concept.source_data[self.get_source()] = data
 
             return concept
 

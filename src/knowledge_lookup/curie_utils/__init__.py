@@ -1,7 +1,7 @@
 """
 Curies integration utilities for CURIE validation and normalization.
 
-This module provides utilities for integrating `curies` and `pyobo` for:
+This module provides utilities for integrating `curies` and `bioregistry` for:
 - CURIE validation and normalization
 - Reference model conversion
 - Prefix validation via bioregistry

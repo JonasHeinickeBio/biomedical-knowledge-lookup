@@ -1,12 +1,11 @@
-Checking if Zooma adapter is available...
-  ✓ Zooma adapter is available
+The ZOOMA adapter is available.
 
-Searching for 'cancer' concepts in Zooma...
+Searching ZOOMA for 'breast cancer' ...
+Found 1 concept(s) in 1.2s
 
-Found 1 results from Zooma:
+  1. breast cancer
+     ID:         http://purl.obolibrary.org/obo/MONDO_0004989
+     Type:       UNKNOWN
+     Confidence: 0.9
 
-  Concept 1:
-    Label: cancer
-    ID: http://purl.obolibrary.org/obo/MONDO_0004992
-    Type: ConceptType.UNKNOWN
-    Confidence: 0.9
+Summary: search=1

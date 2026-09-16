@@ -400,14 +400,23 @@ class LookupConfig(_LookupConfig):
         return super().__getattribute__(name)
 
     def get_api_key(self, service: str) -> str | None:
-        """Get API key: check dict-storage, then string field, then env vars."""
+        """Get the API key for *service*: the ``api_keys`` dict, a JSON object stored in
+        the generated string field, then ``{SERVICE}_API_KEY`` environment variables.
+
+        A plain string in the generated field is never returned: it used to be handed
+        to every service, sending one provider's key to all the others."""
         if self._api_keys_dict:
             key = self._api_keys_dict.get(service)
             if key:
                 return key
         raw_api_keys = object.__getattribute__(self, "api_keys")
-        if raw_api_keys:
-            return raw_api_keys
+        if isinstance(raw_api_keys, str) and raw_api_keys.strip().startswith("{"):
+            try:
+                mapped = json.loads(raw_api_keys).get(service)
+            except (ValueError, AttributeError):
+                mapped = None
+            if mapped:
+                return str(mapped)
         try:
             import os
 

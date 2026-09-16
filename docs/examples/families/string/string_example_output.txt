@@ -1,12 +1,12 @@
-╔══════════════════════════════════════════════════════╗
-║  ⚠️  THIS ADAPTER IS NOT YET WORKING                 ║
-║  The adapter does not return valid search results.  ║
-╚══════════════════════════════════════════════════════╝
+The STRING adapter is available.
 
-Checking if STRING adapter is available...
-  ✓ STRING adapter is available
+Searching STRING for 'TP53' ...
+Found 1 concept(s) in 1.3s
 
-Searching for 'TP53' concepts in STRING...
+  1. TP53
+     ID:         STRING:9606.ENSP00000269305
+     Type:       PROTEIN
+     Confidence: 0.8
+     Definition: Cellular tumor antigen p53; Acts as a tumor suppressor in many tumor types; induces growth [...]
 
-Found 0 results from STRING:
-  No results found for 'TP53'
+Summary: search=1

@@ -5,6 +5,7 @@ Tests real API calls to validate response structures and detect changes.
 """
 
 import pytest
+
 from knowledge_lookup.adapters.hpo_adapter import HPOAdapter
 from knowledge_lookup.models import KnowledgeSource
 
