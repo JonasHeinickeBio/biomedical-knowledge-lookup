@@ -47,12 +47,29 @@ from .expansion_store import (
     STOP_MAX_ROUNDS,
     ExpansionStore,
 )
+from .source_routing import options_for_concept_type, route_sources
 
 if TYPE_CHECKING:
     from ..models import ConceptType, KnowledgeSource, LookupConfig, LookupResult
     from .central_lookup import CentralKnowledgeLookup
 
 logger = logging.getLogger(__name__)
+
+
+def _as_concept_type(value: object) -> ConceptType | None:
+    """Best-effort coerce a concept's ``concept_type`` (enum member or raw
+    string after model regen) to a :class:`ConceptType`, or ``None`` when it
+    is empty/unrecognised — routing then treats the term as unclassified."""
+    from ..models import ConceptType
+
+    if value is None or value == "":
+        return None
+    if isinstance(value, ConceptType):
+        return value
+    try:
+        return ConceptType(str(value).upper())
+    except ValueError:
+        return None
 
 
 class AbbreviationSource(Protocol):
@@ -319,6 +336,7 @@ async def expand_and_search(
     max_abbreviation_lookups: int = DEFAULT_MAX_ABBREVIATION_LOOKUPS,
     store: ExpansionStore | None = None,
     persist: bool = True,
+    route: bool = True,
 ) -> tuple[LookupResult, ExpansionTrace]:
     """Search *query*, then iteratively expand via synonyms and
     long-form matches discovered in the results so far.
@@ -367,6 +385,16 @@ async def expand_and_search(
     term_origin: dict[str, tuple[str, str | None]] = {
         query.strip().lower(): (ORIGIN_ORIGINAL, None)
     }
+
+    # Source-aware routing: send each term only to the sources suited to its
+    # concept type. Only narrows an *unpinned* fan-out — a caller that passed
+    # an explicit ``sources`` list keeps full control, so routing stands down.
+    # The seed's type is only knowable when exactly one was requested.
+    available_sources = list(lookup.adapters.keys())
+    apply_routing = route and sources is None
+    seed_type = concept_types[0] if concept_types and len(concept_types) == 1 else None
+    term_type: dict[str, ConceptType | None] = {query.strip().lower(): seed_type}
+
     terms_by_round: list[list[str]] = []
     all_concepts: list[Any] = []
     exec_time_total = 0.0
@@ -381,11 +409,21 @@ async def expand_and_search(
     while round_terms and round_num < max_rounds:
 
         async def _search(term: str) -> Any:
+            term_sources: list[KnowledgeSource] | None
+            term_options: dict[KnowledgeSource, dict[str, Any]] | None
+            if apply_routing:
+                ct = term_type.get(term.strip().lower())
+                term_sources = route_sources(ct, available_sources)
+                term_options = options_for_concept_type(ct)
+            else:
+                term_sources = sources
+                term_options = None
             return await lookup.search_concepts(
                 term,
                 concept_types=concept_types,
-                sources=sources,
+                sources=term_sources,
                 max_results=max_results,
+                source_options=term_options,
             )
 
         results = await asyncio.gather(*[_search(t) for t in round_terms], return_exceptions=True)
@@ -423,7 +461,7 @@ async def expand_and_search(
         # so feeding one back into a search risks dragging the whole
         # expansion off-topic. Long-form/synonym candidates don't carry that
         # risk to nearly the same degree and are searched as before.
-        next_terms: dict[str, tuple[str, str, str | None]] = {}
+        next_terms: dict[str, tuple[str, str, str | None, ConceptType | None]] = {}
         abbreviations_found: dict[str, tuple[str, str, str | None]] = {}
 
         # Ask the abbreviation sources about concept labels not asked yet in this
@@ -439,11 +477,12 @@ async def expand_and_search(
 
         for concept in all_concepts:
             concept_id = getattr(concept, "primary_id", None)
+            concept_ct = _as_concept_type(getattr(concept, "concept_type", None))
             for syn in concept.synonyms or []:
                 syn = (syn or "").strip()
                 key = syn.lower()
                 if syn and key not in tried and key not in next_terms:
-                    next_terms[key] = (syn, ORIGIN_SYNONYM, concept_id)
+                    next_terms[key] = (syn, ORIGIN_SYNONYM, concept_id, concept_ct)
 
             label = (concept.primary_label or "").strip()
             if not label:
@@ -457,7 +496,7 @@ async def expand_and_search(
                     if key not in abbreviations_found:
                         abbreviations_found[key] = (candidate, origin, concept_id)
                 elif key not in next_terms:
-                    next_terms[key] = (candidate, origin, concept_id)
+                    next_terms[key] = (candidate, origin, concept_id, concept_ct)
 
         if abbreviations_found:
             for key in abbreviations_found:
@@ -470,9 +509,10 @@ async def expand_and_search(
             break
 
         capped = list(next_terms.values())[:max_terms_per_round]
-        for term, origin, concept_id in capped:
+        for term, origin, concept_id, ct in capped:
             term_origin[term.lower()] = (origin, concept_id)
-        round_terms = [t for t, _, _ in capped]
+            term_type[term.lower()] = ct
+        round_terms = [t for t, _, _, _ in capped]
         round_num += 1
 
     if store and run_id is not None:

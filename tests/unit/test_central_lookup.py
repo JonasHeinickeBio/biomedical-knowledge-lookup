@@ -1195,3 +1195,79 @@ class TestTimeoutsAndOpenBreakers:
         concept = await lookup.get_concept_details("HP:1", source=HPO)
 
         assert concept.primary_id == "HP:1"
+
+
+class _OptionAwareAdapter:
+    """Minimal adapter whose ``search_concepts`` accepts keyword-only options."""
+
+    source = KnowledgeSource.KEGG
+
+    def __init__(self) -> None:
+        self.calls: list[tuple] = []
+        self.kwargs: list[dict] = []
+
+    def get_rate_limit(self) -> float:
+        return 0.0
+
+    async def search_concepts(self, query, limit, *, databases=None, organism="hsa"):
+        self.calls.append((query, limit))
+        self.kwargs.append({"databases": databases, "organism": organism})
+        return []
+
+
+class _KwargsAdapter:
+    """Adapter that swallows any keyword options via ``**kwargs``."""
+
+    source = KnowledgeSource.OLS
+
+    def __init__(self) -> None:
+        self.kwargs: list[dict] = []
+
+    def get_rate_limit(self) -> float:
+        return 0.0
+
+    async def search_concepts(self, query, limit, **kwargs):
+        self.kwargs.append(kwargs)
+        return []
+
+
+class TestSourceOptions:
+    """Per-source keyword options are forwarded only where the signature accepts them."""
+
+    def test_filter_keeps_supported_drops_unsupported(self):
+        kept = CentralKnowledgeLookup._filter_supported_options(
+            _OptionAwareAdapter(), {"databases": ["gene"], "bogus": 1}
+        )
+        assert kept == {"databases": ["gene"]}
+
+    def test_filter_passes_everything_through_var_kwargs(self):
+        opts = {"anything": 1, "databases": ["x"]}
+        assert (
+            CentralKnowledgeLookup._filter_supported_options(_KwargsAdapter(), opts) == opts
+        )
+
+    @pytest.mark.asyncio
+    async def test_search_forwards_supported_options_to_adapter(self):
+        lookup = CentralKnowledgeLookup(auto_initialize=False)
+        adapter = _OptionAwareAdapter()
+        lookup.adapters[KnowledgeSource.KEGG] = adapter
+
+        await lookup.search_concepts(
+            "TP53",
+            sources=[KnowledgeSource.KEGG],
+            parallel=False,
+            source_options={KnowledgeSource.KEGG: {"databases": ["gene"], "nope": 1}},
+        )
+
+        assert adapter.kwargs == [{"databases": ["gene"], "organism": "hsa"}]
+
+    @pytest.mark.asyncio
+    async def test_search_without_options_calls_plain_signature(self):
+        lookup = CentralKnowledgeLookup(auto_initialize=False)
+        adapter = _OptionAwareAdapter()
+        lookup.adapters[KnowledgeSource.KEGG] = adapter
+
+        await lookup.search_concepts("TP53", sources=[KnowledgeSource.KEGG], parallel=False)
+
+        assert adapter.calls == [("TP53", 50)]
+        assert adapter.kwargs == [{"databases": None, "organism": "hsa"}]

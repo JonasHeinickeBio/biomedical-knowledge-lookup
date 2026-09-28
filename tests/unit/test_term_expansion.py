@@ -25,7 +25,7 @@ from knowledge_lookup.core.term_expansion import (
     merge_concept_fields,
     merge_concept_results,
 )
-from knowledge_lookup.models import KnowledgeSource, LookupResult, UnifiedConcept
+from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupResult, UnifiedConcept
 
 pytestmark = pytest.mark.unit
 
@@ -430,3 +430,98 @@ class TestAbbreviationLookupBounds:
 
         assert trace.terms_by_round == [["seed"], ["long form a"], ["long form b"]]
         assert source.calls == 3  # "Seed", "hit long form a", "hit long form b"
+
+
+class TestSourceAwareRouting:
+    """Routing narrows *where* each term is searched, by its concept type."""
+
+    def _typed_concept(
+        self, label: str, concept_type: ConceptType, synonyms: list[str] | None = None
+    ) -> UnifiedConcept:
+        c = _concept(label, synonyms=synonyms)
+        c.concept_type = concept_type
+        return c
+
+    def _multi_lookup(self, side_effect) -> MagicMock:
+        lookup = MagicMock()
+        lookup.search_concepts = AsyncMock(side_effect=side_effect)
+        lookup.adapters = {
+            KnowledgeSource.KEGG: MagicMock(),
+            KnowledgeSource.UNIPROT: MagicMock(),
+            KnowledgeSource.DRUGBANK: MagicMock(),
+        }
+        lookup.config = MagicMock()
+        return lookup
+
+    @pytest.mark.asyncio
+    async def test_routed_synonym_uses_type_sources_and_options(self):
+        async def side_effect(query, **kw):
+            if query == "tp53":
+                return _result(
+                    query,
+                    [self._typed_concept("TP53", ConceptType.GENE, synonyms=["tumor protein p53"])],
+                )
+            return _result(query, [self._typed_concept("Tumor protein p53", ConceptType.GENE)])
+
+        lookup = self._multi_lookup(side_effect)
+
+        await expand_and_search(lookup, "tp53", abbreviation_sources=[], persist=False)
+
+        # round 0 (seed, unclassified) fans out to every available source
+        seed_call = lookup.search_concepts.await_args_list[0].kwargs
+        assert seed_call["sources"] == [
+            KnowledgeSource.KEGG,
+            KnowledgeSource.UNIPROT,
+            KnowledgeSource.DRUGBANK,
+        ]
+        assert seed_call["source_options"] == {}
+
+        # round 1 inherits the GENE type from the concept that produced it:
+        # DrugBank is dropped and KEGG is told to search gene records
+        syn_call = lookup.search_concepts.await_args_list[1].kwargs
+        assert syn_call["sources"] == [KnowledgeSource.KEGG, KnowledgeSource.UNIPROT]
+        assert syn_call["source_options"] == {KnowledgeSource.KEGG: {"databases": ["gene", "pathway"]}}
+
+    @pytest.mark.asyncio
+    async def test_explicit_sources_disable_routing(self):
+        async def side_effect(query, **kw):
+            if query == "tp53":
+                return _result(
+                    query,
+                    [self._typed_concept("TP53", ConceptType.GENE, synonyms=["tumor protein p53"])],
+                )
+            return _result(query, [self._typed_concept("Tumor protein p53", ConceptType.GENE)])
+
+        lookup = self._multi_lookup(side_effect)
+
+        await expand_and_search(
+            lookup,
+            "tp53",
+            sources=[KnowledgeSource.DRUGBANK],
+            abbreviation_sources=[],
+            persist=False,
+        )
+
+        for call in lookup.search_concepts.await_args_list:
+            assert call.kwargs["sources"] == [KnowledgeSource.DRUGBANK]
+            assert call.kwargs["source_options"] is None
+
+    @pytest.mark.asyncio
+    async def test_route_false_passes_sources_through_unchanged(self):
+        async def side_effect(query, **kw):
+            if query == "tp53":
+                return _result(
+                    query,
+                    [self._typed_concept("TP53", ConceptType.GENE, synonyms=["tumor protein p53"])],
+                )
+            return _result(query, [self._typed_concept("Tumor protein p53", ConceptType.GENE)])
+
+        lookup = self._multi_lookup(side_effect)
+
+        await expand_and_search(
+            lookup, "tp53", route=False, abbreviation_sources=[], persist=False
+        )
+
+        for call in lookup.search_concepts.await_args_list:
+            assert call.kwargs["sources"] is None
+            assert call.kwargs["source_options"] is None
