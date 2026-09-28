@@ -11,6 +11,7 @@ from .multi_source_annotator import (
     MultiSourceAnnotator,
     SourceAnnotation,
 )
+from .source_routing import options_for_concept_type, route_sources
 
 __all__ = [
     "CentralKnowledgeLookup",
@@ -20,4 +21,6 @@ __all__ = [
     "SourceAnnotation",
     "ConceptAgreement",
     "MultiSourceAnnotationResult",
+    "route_sources",
+    "options_for_concept_type",
 ]

@@ -7,6 +7,7 @@ Unified interface for querying multiple biological knowledge sources.
 import asyncio
 import csv
 import functools
+import inspect
 import json
 import logging
 import time
@@ -297,6 +298,7 @@ class CentralKnowledgeLookup:
         sources: list[KnowledgeSource] | None = None,
         max_results: int = 50,
         parallel: bool = True,
+        source_options: "dict[KnowledgeSource, dict[str, Any]] | None" = None,
     ) -> LookupResult:
         """
         Search for concepts across multiple knowledge sources.
@@ -307,6 +309,11 @@ class CentralKnowledgeLookup:
             sources: Specific sources to query (if None, uses all available)
             max_results: Maximum total results to return
             parallel: Whether to query sources in parallel
+            source_options: Optional per-source keyword arguments passed to
+                ``adapter.search_concepts`` (e.g. ``{KEGG: {"databases":
+                ["gene"]}}``). Options an adapter's signature does not accept
+                are silently ignored, so this is safe to pass with a mixed
+                source set. See :mod:`knowledge_lookup.core.source_routing`.
 
         Returns:
             LookupResult with unified concepts from all sources
@@ -325,9 +332,13 @@ class CentralKnowledgeLookup:
 
         # Query sources
         if parallel and len(query_sources) > 1:
-            concepts = await self._search_parallel(query, query_sources, max_results)
+            concepts = await self._search_parallel(
+                query, query_sources, max_results, source_options
+            )
         else:
-            concepts = await self._search_sequential(query, query_sources, max_results)
+            concepts = await self._search_sequential(
+                query, query_sources, max_results, source_options
+            )
 
         # Process results
         for source, source_concepts in concepts.items():
@@ -390,6 +401,7 @@ class CentralKnowledgeLookup:
         max_terms_per_round: int = 10,
         abbreviation_sources: "list[AbbreviationSource] | None" = None,
         persist: bool = True,
+        route: bool = True,
     ) -> LookupResult:
         """
         Search for concepts, then iteratively widen the search using
@@ -426,6 +438,12 @@ class CentralKnowledgeLookup:
                 source(s) (defaults to a single UMLS-backed source)
             persist: Whether to record the expansion trail durably (default
                 on); set False to skip persistence for a one-off call
+            route: When True (default) and *sources* is not given, each search
+                term is sent only to the sources suited to its concept type
+                (with adapter-specific options, e.g. KEGG's ``databases``)
+                rather than fanned out uniformly — see
+                :mod:`knowledge_lookup.core.source_routing`. Ignored when
+                *sources* is set explicitly.
 
         Returns:
             LookupResult merged across every term searched in every round
@@ -442,6 +460,7 @@ class CentralKnowledgeLookup:
             max_terms_per_round=max_terms_per_round,
             abbreviation_sources=abbreviation_sources,
             persist=persist,
+            route=route,
         )
         return result
 
@@ -660,7 +679,11 @@ class CentralKnowledgeLookup:
         return sorted(unique_similar, key=lambda c: c.confidence_score or 0, reverse=True)[:10]  # type: ignore[return-value]
 
     async def _search_parallel(
-        self, query: str, sources: list[KnowledgeSource], max_results: int
+        self,
+        query: str,
+        sources: list[KnowledgeSource],
+        max_results: int,
+        source_options: "dict[KnowledgeSource, dict[str, Any]] | None" = None,
     ) -> dict[KnowledgeSource, list[UnifiedConcept] | Exception]:
         """Search sources in parallel, each bounded by the per-source timeout."""
         per_source_limit = max(1, max_results // len(sources))
@@ -669,7 +692,10 @@ class CentralKnowledgeLookup:
         # The timeout lives inside each coroutine, so every source gets the full
         # timeout from the start instead of from when the previous one finished.
         outcomes = await asyncio.gather(
-            *(self._search_source_bounded(source, query, per_source_limit) for source in active),
+            *(
+                self._search_source_bounded(source, query, per_source_limit, source_options)
+                for source in active
+            ),
             return_exceptions=True,
         )
 
@@ -682,7 +708,11 @@ class CentralKnowledgeLookup:
         return results
 
     async def _search_sequential(
-        self, query: str, sources: list[KnowledgeSource], max_results: int
+        self,
+        query: str,
+        sources: list[KnowledgeSource],
+        max_results: int,
+        source_options: "dict[KnowledgeSource, dict[str, Any]] | None" = None,
     ) -> dict[KnowledgeSource, list[UnifiedConcept] | Exception]:
         """Search sources one after another, each bounded by the per-source timeout."""
         results: dict[KnowledgeSource, list[UnifiedConcept] | Exception] = {}
@@ -690,7 +720,9 @@ class CentralKnowledgeLookup:
 
         for source in sources:
             try:
-                concepts = await self._search_source_bounded(source, query, per_source_limit)
+                concepts = await self._search_source_bounded(
+                    source, query, per_source_limit, source_options
+                )
                 results[source] = concepts
             except Exception as e:
                 results[source] = e
@@ -698,7 +730,11 @@ class CentralKnowledgeLookup:
         return results
 
     async def _search_source_bounded(
-        self, source: KnowledgeSource, query: str, limit: int
+        self,
+        source: KnowledgeSource,
+        query: str,
+        limit: int,
+        source_options: "dict[KnowledgeSource, dict[str, Any]] | None" = None,
     ) -> list[UnifiedConcept]:
         """Search one source unless its circuit breaker is open, within ``timeout_per_source``.
 
@@ -708,7 +744,7 @@ class CentralKnowledgeLookup:
         """
         return await self._call_source_bounded(
             source,
-            functools.partial(self._search_single_source, source, query, limit),
+            functools.partial(self._search_single_source, source, query, limit, source_options),
             self.config.timeout_per_source,
         )
 
@@ -756,9 +792,19 @@ class CentralKnowledgeLookup:
             raise  # a TimeoutError raised by the adapter itself
 
     async def _search_single_source(
-        self, source: KnowledgeSource, query: str, limit: int
+        self,
+        source: KnowledgeSource,
+        query: str,
+        limit: int,
+        source_options: "dict[KnowledgeSource, dict[str, Any]] | None" = None,
     ) -> list[UnifiedConcept]:
-        """Search a single knowledge source."""
+        """Search a single knowledge source.
+
+        Per-source keyword options (see :meth:`search_concepts`) are forwarded
+        only when the adapter's ``search_concepts`` actually accepts them: any
+        key that is not a named parameter (and for which the method has no
+        ``**kwargs``) is dropped, so a mixed source set never raises.
+        """
         if source not in self.adapters:
             raise ValueError(f"Adapter for {source.value} not available")
 
@@ -769,7 +815,39 @@ class CentralKnowledgeLookup:
         if rate_limit > 0:
             await asyncio.sleep(1.0 / rate_limit)
 
+        options = (source_options or {}).get(source) or {}
+        if options:
+            options = self._filter_supported_options(adapter, options)
+        if options:
+            return await adapter.search_concepts(query, limit, **options)
         return await adapter.search_concepts(query, limit)
+
+    @staticmethod
+    def _filter_supported_options(
+        adapter: KnowledgeSourceAdapter, options: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Keep only *options* the adapter's ``search_concepts`` can accept."""
+        try:
+            sig = inspect.signature(adapter.search_concepts)
+        except (TypeError, ValueError):  # pragma: no cover - exotic callables
+            return {}
+        params = sig.parameters.values()
+        if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params):
+            return dict(options)
+        named = {
+            name
+            for name, p in sig.parameters.items()
+            if p.kind in (p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)
+        }
+        accepted = {k: v for k, v in options.items() if k in named}
+        dropped = set(options) - set(accepted)
+        if dropped:
+            logger.debug(
+                "Dropping unsupported search options %s for %s",
+                sorted(dropped),
+                adapter.source.value,
+            )
+        return accepted
 
     def _deduplicate_concepts(self, concepts: list[UnifiedConcept]) -> list[UnifiedConcept]:
         """Remove duplicate concepts and merge those with the same normalized label."""

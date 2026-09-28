@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **KEGG adapter expansion** (`knowledge_lookup.adapters.kegg_adapter`): the
+  KEGG adapter now covers the full REST surface (`find`, `get`, `link`) rather
+  than diseases and drugs alone. `search_concepts()` gained keyword-only
+  `databases` and `organism` options and can search pathways, genes, compounds,
+  glycans, enzymes, reactions, orthology, networks, diseases and drugs (the
+  default stays `disease` + `drug` for backward compatibility; gene searches are
+  organism-scoped, default `hsa`); `supported_databases()` lists them.
+  `get_concept_details()` resolves any KEGG id form (curie, `path:`/`ds:`/`dr:`
+  prefixed, bare accession, EC number), and `get_mappings()` and
+  `get_relationships()` are now implemented via per-entry `DBLINKS` and the
+  `link` operation (gene ↔ pathway). New live integration test
+  `tests/integration/test_kegg_realworld.py` exercises a CoQ10 (`C11378`)
+  lookup end to end.
+- **Source-aware term-expansion routing** (`knowledge_lookup.core.source_routing`):
+  iterative expansion now classifies each harvested term by `ConceptType` and
+  sends it to the databases that actually hold that kind of concept, instead of
+  asking every adapter. `route_sources()` narrows the adapter fan-out per term
+  (e.g. a gene to KEGG + UniProt, a drug to KEGG + DrugBank), while
+  `options_for_concept_type()` supplies adapter-specific keyword options (KEGG
+  `databases`, e.g. `["gene", "pathway"]` for genes). Options are threaded
+  through `CentralKnowledgeLookup.search_concepts()` via a new `source_options`
+  argument and delivered only to adapters whose signature accepts them
+  (capability-gated), so other adapters are unaffected. Routing only ever
+  narrows: a caller's explicit `sources=` wins (routing auto-disables), and an
+  unclassified term or empty intersection falls back to all available sources.
+  `search_concepts_expanded()` gained a `route` flag (default on) to control it.
 
 ## [2.0.0] - 2026-09-16
 

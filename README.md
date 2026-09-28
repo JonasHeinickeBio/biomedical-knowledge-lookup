@@ -233,7 +233,7 @@ as environment variables, for example with `claude mcp add ... -e UMLS_API_KEY=.
 | Name | Description | Requires |
 |------|-------------|----------|
 | `REACTOME` | Reactome pathways, e.g. `R-HSA-1640170` | — |
-| `KEGG` | KEGG diseases, drugs and pathways | — |
+| `KEGG` | KEGG pathways, genes, compounds, diseases and drugs | — |
 
 **Ontologies, terminologies and mappings**
 
