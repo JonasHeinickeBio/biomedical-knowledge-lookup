@@ -141,6 +141,93 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
             logger.error(f"Failed to get Open Targets concept details for '{concept_id}': {e}")
             return None
 
+    async def get_relationships(self, concept_id: str, limit: int = 20) -> list[dict[str, Any]]:
+        """Return target<->disease associations as relationship edges.
+
+        Direction is inferred from the id like :meth:`get_concept_details`:
+        Ensembl gene ids (``ENSG...``) expand to their associated *diseases*
+        (``associated_with_disease``); EFO/MONDO/Orphanet/HP disease ids expand
+        to their associated *targets* (``associated_with_gene``). Edges use the
+        shared relationship shape (``{relation_label, related_id, related_name,
+        source, score}``) where ``score`` is the overall Open Targets
+        association score. Degrades to ``[]`` on any failure.
+        """
+        cid = concept_id.strip()
+        if not cid:
+            return []
+        is_target = cid.upper().startswith("ENSG")
+
+        if is_target:
+            query_str = """
+            query TargetDiseases($ensemblId: String!, $size: Int!) {
+              target(ensemblId: $ensemblId) {
+                associatedDiseases(page: {index: 0, size: $size}) {
+                  edges {
+                    score
+                    disease { id name }
+                  }
+                }
+              }
+            }
+            """
+            variables = {"ensemblId": cid, "size": max(1, min(limit, 1000))}
+            container, entity_key, relation_label = "target", "disease", "associated_with_disease"
+        else:
+            query_str = """
+            query DiseaseTargets($efoId: String!, $size: Int!) {
+              disease(efoId: $efoId) {
+                associatedTargets(page: {index: 0, size: $size}) {
+                  edges {
+                    score
+                    target { id approvedSymbol }
+                  }
+                }
+              }
+            }
+            """
+            variables = {
+                "efoId": self._normalize_disease_id(cid),
+                "size": max(1, min(limit, 1000)),
+            }
+            container, entity_key, relation_label = "disease", "target", "associated_with_gene"
+
+        try:
+            data = await self._make_request(
+                self.base_url, json_data={"query": query_str, "variables": variables}
+            )
+            self._log_graphql_errors(data, f"relationships '{concept_id}'")
+
+            entity = (data.get("data") or {}).get(container) or {}
+            field = "associatedDiseases" if is_target else "associatedTargets"
+            edges = ((entity.get(field) or {}).get("edges") or [])[:limit]
+
+            relationships: list[dict[str, Any]] = []
+            for edge in edges:
+                entity_data = edge.get(entity_key) or {}
+                related_id = (entity_data.get("id") or "").strip()
+                if is_target:
+                    related_name = (entity_data.get("name") or "").strip()
+                else:
+                    related_name = (entity_data.get("approvedSymbol") or "").strip()
+                if not related_id:
+                    continue
+                relationships.append(
+                    {
+                        "relation_label": relation_label,
+                        "related_id": related_id,
+                        "related_name": related_name or related_id,
+                        "source": "Open Targets",
+                        "score": edge.get("score"),
+                    }
+                )
+
+            logger.info(f"Open Targets found {len(relationships)} relationships for '{cid}'")
+            return relationships
+
+        except Exception as e:
+            logger.error(f"Open Targets get_relationships failed for '{concept_id}': {e}")
+            return []
+
     @staticmethod
     def _normalize_disease_id(concept_id: str) -> str:
         """Turn CURIE-style disease IDs (``MONDO:0004979``) into Open Targets IDs."""

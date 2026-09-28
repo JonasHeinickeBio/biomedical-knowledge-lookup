@@ -578,6 +578,45 @@ class TestRelationshipConceptTypeInference:
             == ConceptType.GENE
         )
 
+    def test_has_gene_maps_to_gene(self):
+        assert (
+            _infer_related_concept_type(
+                {"relation_label": "has_gene", "source": "DisGeNET"}, ConceptType.DISEASE
+            )
+            == ConceptType.GENE
+        )
+
+    def test_associated_with_disease_maps_to_disease(self):
+        assert (
+            _infer_related_concept_type(
+                {"relation_label": "associated_with_disease", "source": "Open Targets"},
+                ConceptType.GENE,
+            )
+            == ConceptType.DISEASE
+        )
+
+    def test_phenotype_maps_to_phenotype(self):
+        assert (
+            _infer_related_concept_type(
+                {"relation_label": "has_phenotype", "source": "HPO"}, ConceptType.DISEASE
+            )
+            == ConceptType.PHENOTYPE
+        )
+
+    def test_drug_maps_to_drug(self):
+        assert (
+            _infer_related_concept_type(
+                {"relation_label": "targets_drug", "source": "CHEMBL"}, ConceptType.PROTEIN
+            )
+            == ConceptType.DRUG
+        )
+
+    def test_protein_label_maps_to_protein(self):
+        assert (
+            _infer_related_concept_type({"relation_label": "binds_protein", "source": ""}, None)
+            == ConceptType.PROTEIN
+        )
+
     def test_unknown_falls_back_to_source_type(self):
         assert (
             _infer_related_concept_type(

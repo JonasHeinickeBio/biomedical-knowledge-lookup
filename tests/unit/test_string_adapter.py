@@ -273,6 +273,7 @@ class TestSTRINGAdapter:
         assert all(r["relation_label"] == "interaction" for r in rels)
         assert all(r["source"] == "STRING" for r in rels)
         assert rels[0]["related_id"] == "9606.ENSP00000340989"
+        assert rels[0]["score"] == 0.999
 
     @pytest.mark.asyncio
     async def test_get_relationships_handles_partner_on_either_side(self, adapter):

@@ -148,6 +148,7 @@ class STRINGAdapter(KnowledgeSourceAdapter):
                         "related_id": related_id or related_name,
                         "related_name": related_name,
                         "source": "STRING",
+                        "score": interaction.get("score"),
                     }
                 )
             return relationships
