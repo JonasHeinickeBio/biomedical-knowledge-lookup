@@ -109,6 +109,52 @@ class STRINGAdapter(KnowledgeSourceAdapter):
             logger.error(f"STRING get_concept_details failed for '{concept_id}': {e}")
             return None
 
+    async def get_relationships(self, concept_id: str, limit: int = 10) -> list[dict[str, Any]]:
+        """Return a protein's top STRING interaction partners as edges.
+
+        Uses the STRING ``interaction_partners`` endpoint (only edges
+        involving this protein). ``concept_id`` is a STRING concept id
+        (``STRING:<stringId>``) or a bare STRING id. Returns the same
+        ``{relation_label, related_id, related_name, source}`` shape as the
+        KEGG/UMLS adapters so the shared relationship-expansion source can
+        consume it; degrades to ``[]`` on any failure.
+        """
+        protein_id = concept_id.replace("STRING:", "").strip()
+        if not protein_id:
+            return []
+        try:
+            url = f"{self.base_url}/json/interaction_partners"
+            params = {"identifiers": protein_id, "species": 9606, "limit": limit}
+            data = await self._make_request(url, params)
+            if not isinstance(data, list):
+                return []
+
+            relationships: list[dict[str, Any]] = []
+            for interaction in data[:limit]:
+                partner_a = interaction.get("preferredName_A", "")
+                partner_b = interaction.get("preferredName_B", "")
+                string_a = interaction.get("stringId_A", "")
+                string_b = interaction.get("stringId_B", "")
+                # The query protein is side A; fall back to name comparison
+                if string_a == protein_id:
+                    related_name, related_id = partner_b, string_b
+                else:
+                    related_name, related_id = partner_a, string_a
+                if not related_name or related_name == partner_a == partner_b:
+                    continue
+                relationships.append(
+                    {
+                        "relation_label": "interaction",
+                        "related_id": related_id or related_name,
+                        "related_name": related_name,
+                        "source": "STRING",
+                    }
+                )
+            return relationships
+        except Exception as e:
+            logger.warning(f"STRING get_relationships failed for '{concept_id}': {e}")
+            return []
+
     async def _add_interaction_partners(self, concept: UnifiedConcept, string_id: str) -> None:
         """Fetch top interaction partners and attach them to the concept."""
         try:

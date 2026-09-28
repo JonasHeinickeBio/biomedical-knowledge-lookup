@@ -242,6 +242,72 @@ class TestSTRINGAdapter:
         assert result.related == []
 
     @pytest.mark.asyncio
+    async def test_get_relationships_returns_partner_edges(self, adapter):
+        """get_relationships exposes interaction partners as edge dicts
+        (same shape as KEGG/UMLS) with the query protein on side A."""
+        partners = [
+            {
+                "stringId_A": "9606.ENSP00000269305",
+                "stringId_B": "9606.ENSP00000340989",
+                "preferredName_A": "TP53",
+                "preferredName_B": "SFN",
+                "score": 0.999,
+            },
+            {
+                "stringId_A": "9606.ENSP00000269305",
+                "stringId_B": "9606.ENSP00000263253",
+                "preferredName_A": "TP53",
+                "preferredName_B": "EP300",
+                "score": 0.998,
+            },
+        ]
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = partners
+            rels = await adapter.get_relationships("STRING:9606.ENSP00000269305", limit=5)
+
+        url, params = mock_req.call_args.args
+        assert url.endswith("/json/interaction_partners")
+        assert params["identifiers"] == "9606.ENSP00000269305"
+        assert params["limit"] == 5
+        assert [r["related_name"] for r in rels] == ["SFN", "EP300"]
+        assert all(r["relation_label"] == "interaction" for r in rels)
+        assert all(r["source"] == "STRING" for r in rels)
+        assert rels[0]["related_id"] == "9606.ENSP00000340989"
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_handles_partner_on_either_side(self, adapter):
+        """When the query protein appears on side B, side A becomes the target."""
+        partners = [
+            {
+                "stringId_A": "9606.ENSP00000340989",
+                "stringId_B": "9606.ENSP00000269305",
+                "preferredName_A": "SFN",
+                "preferredName_B": "TP53",
+                "score": 0.9,
+            },
+        ]
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = partners
+            rels = await adapter.get_relationships("STRING:9606.ENSP00000269305")
+        assert rels[0]["related_name"] == "SFN"
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_empty_on_non_list(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"error": "boom"}
+            assert await adapter.get_relationships("STRING:9606.ENSP00000269305") == []
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_degrades_on_error(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = Exception("network down")
+            assert await adapter.get_relationships("STRING:9606.ENSP00000269305") == []
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_blank_id_returns_empty(self, adapter):
+        assert await adapter.get_relationships("STRING:") == []
+
+    @pytest.mark.asyncio
     async def test_get_mappings_default(self, adapter):
         """Test get_mappings returns empty list by default."""
         mappings = await adapter.get_mappings("STRING:9606.ENSP00000269305")

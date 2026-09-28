@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 if TYPE_CHECKING:
-    from .term_expansion import AbbreviationSource
+    from .term_expansion import AbbreviationSource, RelationshipSource
 
 # Keep these imports at top for E402 compliance
 from ..adapters import ADAPTER_CLASSES
@@ -400,6 +400,8 @@ class CentralKnowledgeLookup:
         max_rounds: int = 3,
         max_terms_per_round: int = 10,
         abbreviation_sources: "list[AbbreviationSource] | None" = None,
+        relationships: bool = False,
+        relationship_sources: "list[RelationshipSource] | None" = None,
         persist: bool = True,
         route: bool = True,
     ) -> LookupResult:
@@ -425,6 +427,15 @@ class CentralKnowledgeLookup:
         — see :func:`knowledge_lookup.core.term_expansion.expand_and_search`
         for the full iteration/persistence design.
 
+        With ``relationships=True`` the expansion also traverses *relationship*
+        edges — a gene's pathways (KEGG), a protein's interaction partners
+        (STRING) and a term's semantic parents/children (UMLS) — and searches
+        the named targets, so a single seed term grows a real relationship
+        network rather than only a synonym set. Off by default (released
+        behaviour); the edges are persisted alongside the term trail. Pass
+        *relationship_sources* to customise; otherwise the KEGG/UMLS/STRING
+        adapters are used.
+
         Args:
             query: Search term or phrase
             concept_types: Filter by specific concept types
@@ -436,6 +447,12 @@ class CentralKnowledgeLookup:
                 searched in each subsequent round
             abbreviation_sources: Override the default abbreviation/long-form
                 source(s) (defaults to a single UMLS-backed source)
+            relationships: When True, also expand via relationship edges
+                (KEGG pathways, STRING interaction partners, UMLS semantic
+                relations) and search the named targets (default False)
+            relationship_sources: Override the relationship source(s) used when
+                *relationships* is True (defaults to a KEGG/UMLS/STRING-backed
+                source); ignored when *relationships* is False
             persist: Whether to record the expansion trail durably (default
                 on); set False to skip persistence for a one-off call
             route: When True (default) and *sources* is not given, each search
@@ -448,7 +465,10 @@ class CentralKnowledgeLookup:
         Returns:
             LookupResult merged across every term searched in every round
         """
-        from .term_expansion import expand_and_search
+        from .term_expansion import default_relationship_sources, expand_and_search
+
+        if relationships and relationship_sources is None:
+            relationship_sources = default_relationship_sources(self)
 
         result, _trace = await expand_and_search(
             self,
@@ -459,6 +479,7 @@ class CentralKnowledgeLookup:
             max_rounds=max_rounds,
             max_terms_per_round=max_terms_per_round,
             abbreviation_sources=abbreviation_sources,
+            relationship_sources=relationship_sources,
             persist=persist,
             route=route,
         )
