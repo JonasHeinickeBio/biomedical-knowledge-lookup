@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [2.2.0] - 2026-09-28
+
 ### Added
 - **Relationship-aware term expansion** (`CentralKnowledgeLookup.search_concepts_expanded()`,
   `knowledge_lookup.core.term_expansion`): expansion can now harvest genuinely
