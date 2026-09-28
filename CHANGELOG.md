@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **KEGG adapter expansion** (`knowledge_lookup.adapters.kegg_adapter`): the
+  KEGG adapter now covers the full REST surface (`find`, `get`, `link`) rather
+  than diseases and drugs alone. `search_concepts()` gained keyword-only
+  `databases` and `organism` options and can search pathways, genes, compounds,
+  glycans, enzymes, reactions, orthology, networks, diseases and drugs (the
+  default stays `disease` + `drug` for backward compatibility; gene searches are
+  organism-scoped, default `hsa`); `supported_databases()` lists them.
+  `get_concept_details()` resolves any KEGG id form (curie, `path:`/`ds:`/`dr:`
+  prefixed, bare accession, EC number), and `get_mappings()` and
+  `get_relationships()` are now implemented via per-entry `DBLINKS` and the
+  `link` operation (gene ↔ pathway). New live integration test
+  `tests/integration/test_kegg_realworld.py` exercises a CoQ10 (`C11378`)
+  lookup end to end.
 
 ## [2.0.0] - 2026-09-16
 

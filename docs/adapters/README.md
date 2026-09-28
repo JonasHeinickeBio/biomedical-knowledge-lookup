@@ -198,7 +198,7 @@ Pages are grouped by category.
 
 | Adapter | Covers | Identifier example | Requires |
 |---|---|---|---|
-| [KEGG](pathways/kegg_adapter.md) | KEGG diseases and drugs | `H00409`, `D00944` | none |
+| [KEGG](pathways/kegg_adapter.md) | KEGG pathways, genes, compounds, diseases, drugs | `hsa00010`, `C11378`, `H00409` | none |
 | [Reactome](pathways/reactome_adapter.md) | Reactome pathways and reactions | `R-HSA-109581` | none |
 
 ### Literature

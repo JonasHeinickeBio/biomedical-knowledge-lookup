@@ -1,79 +1,231 @@
----
-description: KEGG DISEASE and DRUG entries through the KEGG REST API.
----
+# KEGG Adapter
 
-# KEGG adapter
+## Overview
 
-Searches the KEGG DISEASE and DRUG databases by keyword and fetches entries by KEGG ID. Pathway, gene and compound entries are not covered despite the "pathways" category.
+The KEGG Adapter provides access to the Kyoto Encyclopedia of Genes and Genomes
+(KEGG) via the public REST API at `https://rest.kegg.jp`. It supports the `find`,
+`get`, and `link` REST operations, covering pathways, genes, compounds, enzymes,
+reactions, orthology, networks, glycans, diseases and drugs.
 
-| | |
-|---|---|
-| Source | `KnowledgeSource.KEGG` |
-| Class | `knowledge_lookup.adapters.KEGGAdapter` |
-| Requires | none |
-| Identifiers | disease `H00409`, drug `D00944` |
-| Upstream API | `https://rest.kegg.jp` |
+### Purpose
+- Search across multiple KEGG databases in a single call
+- Retrieve full entry records for any KEGG identifier
+- Resolve cross-database references (`DBLINKS`) as concept mappings
+- Traverse `gene ⇄ pathway` links as concept relationships
+- Support pathway analysis and systems biology workflows
 
-## Quick example
+### Scope
+- Biological pathways (metabolism, signaling, cellular processes)
+- Organism-specific and reference (`map/ko`) pathway identifiers
+- Genes (organism-scoped, default human `hsa`), KEGG Orthology (KO) groups
+- Compounds, glycans, enzymes (EC numbers) and reactions
+- Human diseases and drug information
+- BRITE functional hierarchies and disease/drug networks
+
+## Key Features
+
+- **Multi-database search**: query any of 10 KEGG `find` databases
+- **Organism-scoped gene search**: `gene` searches respect an organism code
+- **Full record retrieval**: `get` parsing of KEGG flat-text entries
+- **Cross-references**: `DBLINKS` blocks become concept mappings
+- **Relationship traversal**: `link` operation for gene/pathway relations
+- **No authentication**: KEGG is a free public service
+
+## API Information
+
+### Endpoint
+- **Base URL**: `https://rest.kegg.jp`
+
+### Authentication
+- **Required**: No
+- **API Key**: Not required (public service)
+
+### Environment Variables
+- None required
+
+## Supported Databases
+
+`KEGGAdapter.supported_databases()` returns the databases accepted by the
+`databases` argument of `search_concepts`:
+
+| Database     | Concept type        | Notes                              |
+|--------------|---------------------|------------------------------------|
+| `pathway`    | `PATHWAY`           | reference + organism maps          |
+| `gene`       | `GENE`              | organism-scoped (`organism` arg)   |
+| `compound`   | `CHEMICAL`          |                                    |
+| `glycan`     | `CHEMICAL`          |                                    |
+| `enzyme`     | `MOLECULAR_FUNCTION`| EC numbers                         |
+| `reaction`   | `BIOLOGICAL_PROCESS`|                                    |
+| `orthology`  | `GENE`              | KO groups                          |
+| `network`    | `PATHWAY`           | disease/drug networks              |
+| `disease`    | `DISEASE`           | default search                     |
+| `drug`       | `DRUG`              | default search                     |
+
+`search_concepts` defaults to `("disease", "drug")` to keep orchestrated
+lookups precise; pass `databases=[...]` to widen the search.
+
+## Key Methods
+
+### `search_concepts(query, limit=20, *, databases=None, organism="hsa") -> list[UnifiedConcept]`
+
+Search KEGG using the `find` operation across one or more databases.
+
+**Parameters:**
+- `query` (str): Search term (name, keyword, or chemical formula). URL-encoded
+  automatically, so multi-word queries such as `"Coenzyme Q10"` work.
+- `limit` (int): Maximum number of results across all selected databases
+  (default: 20).
+- `databases` (list[str] | None): Databases to search (see table above).
+  Defaults to `("disease", "drug")`. Unknown names are skipped with a warning.
+- `organism` (str): Organism code used for organism-scoped databases such as
+  `gene` (default `"hsa"`). Note that plain `find/gene` is rejected by KEGG
+  (HTTP 400); the organism code is required and applied automatically.
+
+**Returns:**
+- List of `UnifiedConcept` objects with `concept_type` set per database.
+
+**Example:**
+```python
+concepts = await adapter.search_concepts("diabetes", databases=["pathway"])
+genes = await adapter.search_concepts("INS", databases=["gene"], organism="hsa")
+```
+
+### `get_concept_details(concept_id) -> UnifiedConcept | None`
+
+Retrieve and parse a full KEGG entry via the `get` operation. Accepts bare or
+prefixed identifiers and resolves the correct KEGG entry internally.
+
+**Parameters:**
+- `concept_id` (str): KEGG ID, e.g. `"H00001"`, `"D00001"`, `"C01405"`,
+  `"hsa:1953"`, `"hsa00010"`, `"path:hsa00010"`, `"2.7.1.1"`, `"K00844"`.
+
+**Returns:**
+- `UnifiedConcept` with parsed fields, or `None` if the ID cannot be resolved.
+
+**Example:**
+```python
+entry = await adapter.get_concept_details("hsa00010")
+```
+
+### `get_mappings(concept_id) -> list[dict]`
+
+Parse the `DBLINKS` block of an entry into cross-database reference dicts
+(KEGG's `conv` operation only supports whole-database conversions).
+
+**Returns:** list of `{fromId, toId, fromSource, toSource, mappingType, confidence}`.
 
 ```python
-import asyncio
+mappings = await adapter.get_mappings("C11378")  # CoQ10 → PubChem, ChEBI, ...
+```
 
-from knowledge_lookup.adapters import KEGGAdapter
+### `get_relationships(concept_id) -> list[dict]`
+
+Traverse KEGG `link` relations. Supported entry types:
+
+- **gene** → linked pathways (`relation_label="in_pathway"`, source
+  `KEGG_PATHWAY`)
+- **pathway** → member genes (`relation_label="has_gene"`, source `KEGG_GENE`)
+
+Other entry types return `[]` without a network call.
+
+```python
+rels = await adapter.get_relationships("hsa:3939")  # gene → pathways
+```
+
+## Configuration
+
+```python
+from knowledge_lookup.adapters.kegg_adapter import KEGGAdapter
 from knowledge_lookup.models import LookupConfig
 
-
-async def main():
-    async with KEGGAdapter(LookupConfig()) as adapter:
-        for concept in await adapter.search_concepts("metformin", limit=3):
-            print(concept.primary_id, concept.primary_label, concept.concept_type)
-
-        for kegg_id in ("H00409", "D00944"):
-            entry = await adapter.get_concept_details(kegg_id)
-            print(entry.primary_id, entry.primary_label, entry.concept_type)
-
-
-asyncio.run(main())
+adapter = KEGGAdapter(LookupConfig())
 ```
 
-Output:
+## Usage Examples
 
+### Multi-database search
+```python
+results = await adapter.search_concepts(
+    "ubiquinone",
+    databases=["compound", "pathway"],
+    limit=10,
+)
+for concept in results:
+    print(concept.primary_id, concept.primary_label, concept.concept_type)
 ```
-D00944 Metformin hydrochloride (JP19/USP) DRUG
-D04966 Metformin (USAN/INN) DRUG
-D09744 Pioglitazone hydrochloride and metformin hydrochloride (JP19) DRUG
-H00409 Type 2 diabetes mellitus DISEASE
-D00944 Metformin hydrochloride (JP19/USP) DRUG
+
+### Get entry details
+```python
+entry = await adapter.get_concept_details("C11378")  # Coenzyme Q10
+if entry:
+    print(entry.primary_label)   # Ubiquinone-10
+    print(entry.synonyms)        # ['Ubidecarenone', 'Coenzyme Q10', ...]
 ```
 
-## Searching
+### Cross-references and relationships
+```python
+mappings = await adapter.get_mappings("C11378")
+pathways = await adapter.get_relationships("hsa:3939")  # LDHA -> pathways
+```
 
-`search_concepts(query, limit)` calls `/find/disease/{query}` and, if that yields fewer than `limit` entries, `/find/drug/{query}` for the rest. Diseases therefore come first.
+## Real-World Example: Coenzyme Q10 (CoQ10)
 
-| Field | Value |
-|---|---|
-| `primary_id` | KEGG ID without the `ds:`/`dr:` prefix |
-| `primary_label` | first name (text before the first `;`) |
-| `concept_type` | `DISEASE` or `DRUG` |
-| `identifiers` | one `KEGG` identifier (no URL) |
-| `confidence_score` | `0.8` |
+Coenzyme Q10 is catalogued by KEGG as **Ubiquinone-10** (compound `C11378`).
+KEGG's `find` matches the full names (`"ubiquinone-10"`, `"Coenzyme Q10"`) but
+**not** the `"CoQ10"` abbreviation — a useful reminder to try synonyms.
 
-## Concept details
+```python
+# 1. Resolve the compound by synonym
+hits = await adapter.search_concepts("Coenzyme Q10", databases=["compound"])
+coq10 = next(c for c in hits if c.primary_id == "C11378")
 
-`get_concept_details(kegg_id)` treats IDs starting with `H` as diseases (`/get/ds:<id>`) and everything else as drugs (`/get/dr:<id>`). Pathway IDs such as `hsa04210` therefore return `None`. The flat file is parsed for:
+# 2. Full record + synonyms
+entry = await adapter.get_concept_details("C11378")
+print(entry.synonyms)  # includes 'Coenzyme Q10', 'Ubidecarenone'
 
-- `primary_label`: first `NAME`
-- `definitions`: the first `DESCRIPTION` line
-- `concept_type`: `DISEASE` for `H…`, `DRUG` for `D…`
-- identifier URL `https://www.kegg.jp/dbget-bin/www_bget?<id>`
-- `confidence_score` `1.0`, and the full text in `source_data[KEGG]["raw_text"]`
+# 3. External cross-references
+for m in await adapter.get_mappings("C11378"):
+    print(m["toSource"], m["toId"])  # PubChem, CAS, ChEBI, LIPIDMAPS, ...
+```
 
-## Rate limits and errors
+Compounds have no `link` relations, so `get_relationships("C11378")` returns
+`[]`; use gene/pathway entries for relationship traversal.
 
-Text requests use `_make_request_text` with the shared retry and circuit breaker (see [Rate limits, retries and circuit breakers](../README.md#rate-limits-retries-and-circuit-breakers)). A search makes up to two requests. Errors are logged; search returns `[]` and details return `None`. KEGG's REST API is provided for academic use.
+## Error Handling
 
-## See also
+- **Search failures**: return an empty list, error logged.
+- **Invalid/unresolvable IDs**: `get_concept_details` returns `None`;
+  `get_mappings`/`get_relationships` return `[]` (no network call).
+- **Network errors**: caught, logged, and reported via the circuit breaker.
+- **Parsing errors**: handled gracefully with `logger.error`.
 
-- [Reactome adapter](reactome_adapter.md): pathways
-- [ChEMBL adapter](../core/chembl_adapter.md), [Mondo adapter](../core/mondo_adapter.md)
-- [All adapters](../README.md)
+## Rate Limiting
+
+KEGG is a free service that asks callers to stay under ~10 requests/second.
+The adapter enforces per-source rate limiting via the base class
+`KnowledgeSourceAdapter` and honours the shared `CircuitBreaker`.
+
+## Data Model Mapping
+
+| KEGG source                | UnifiedConcept mapping                          |
+|----------------------------|-------------------------------------------------|
+| entry ID                   | `primary_id`                                    |
+| `NAME` (first)             | `primary_label`                                 |
+| `NAME` (remaining)         | `synonyms`                                      |
+| `DESCRIPTION` / `COMMENT`  | `definitions`                                   |
+| `ENTRY` type token / ID    | `concept_type` (see database table)             |
+| `DBLINKS` block            | `mappings` (via `get_mappings`)                 |
+| `link` results             | relationships (via `get_relationships`)         |
+| full entry text            | `source_data["KEGG"]`                           |
+
+## Related Adapters
+
+- **Reactome Adapter**: curated human pathway reactions
+- **GeneOntology Adapter**: functional annotations
+- **UniProt Adapter**: protein–pathway mappings
+- **ChEMBL / DrugBank Adapters**: detailed drug chemistry
+
+## References
+
+- [KEGG REST API documentation](https://rest.kegg.jp/info/rest)
+- [KEGG website](https://www.kegg.jp/)

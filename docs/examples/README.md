@@ -131,7 +131,7 @@ identifier used by the example. A dash in "Needs" means the source is a public A
 
 | Source | What it shows | Query / identifier | Needs |
 | --- | --- | --- | --- |
-| [KEGG](pathways/kegg/kegg_example.py) | KEGG diseases and drugs | `diabetes` / `H00409` | - |
+| [KEGG](pathways/kegg/kegg_example.py) | KEGG pathways, genes, compounds, diseases, drugs | `diabetes` / `C11378` | - |
 | [Reactome](pathways/reactome/reactome_example.py) | Reactome pathways and reactions | `apoptosis` / `R-HSA-109581` | - |
 
 ### Ontology services
