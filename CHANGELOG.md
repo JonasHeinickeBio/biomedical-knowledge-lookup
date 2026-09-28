@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [2.1.0] - 2026-09-28
+
 ### Added
 - **KEGG adapter expansion** (`knowledge_lookup.adapters.kegg_adapter`): the
   KEGG adapter now covers the full REST surface (`find`, `get`, `link`) rather
