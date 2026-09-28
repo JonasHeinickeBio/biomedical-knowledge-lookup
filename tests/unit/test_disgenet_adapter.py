@@ -260,11 +260,70 @@ class TestDisGeNETAdapter:
         assert len(mappings) == 0
 
     @pytest.mark.asyncio
-    async def test_get_relationships_default(self, adapter):
-        """Test get_relationships returns empty list by default."""
-        relationships = await adapter.get_relationships("TEST:001")
-        assert isinstance(relationships, list)
-        assert len(relationships) == 0
+    async def test_get_relationships_degrades_on_error(self, adapter_with_api_key):
+        """A request failure yields no edges rather than aborting expansion."""
+        with patch.object(
+            adapter_with_api_key,
+            "_make_request",
+            new_callable=AsyncMock,
+            side_effect=Exception("boom"),
+        ):
+            assert await adapter_with_api_key.get_relationships("MONDO_0004979") == []
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_empty_without_payload(self, adapter_with_api_key):
+        """An unknown disease (empty payload) yields no edges; query is disease-scoped."""
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            mock_req.return_value = _response()
+            assert await adapter_with_api_key.get_relationships("MONDO_0004979") == []
+        assert mock_req.call_args.args[1] == {"disease": "MONDO_0004979"}
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_maps_gene_edges(self, adapter_with_api_key):
+        """Gene-disease rows become ``has_gene`` edges keyed on the NCBI id."""
+        rows = [
+            {"symbolOfGene": "BRCA1", "geneNcbiID": 672, "score": 0.9},
+            {"symbolOfGene": "BRCA2", "geneNcbiID": 675, "score": 0.8},
+        ]
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            mock_req.return_value = _response(*rows)
+            rels = await adapter_with_api_key.get_relationships("mondo:0004979")
+        assert mock_req.call_args.args[1] == {"disease": "MONDO_0004979"}
+        assert [r["related_id"] for r in rels] == ["672", "675"]
+        assert [r["related_name"] for r in rels] == ["BRCA1", "BRCA2"]
+        assert all(r["relation_label"] == "has_gene" for r in rels)
+        assert all(r["source"] == "DisGeNET" for r in rels)
+        assert rels[0]["score"] == 0.9
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_dedups_and_falls_back_to_symbol(self, adapter_with_api_key):
+        """Duplicate genes collapse; rows without an NCBI id fall back to the symbol."""
+        rows = [
+            {"symbolOfGene": "TP53", "geneNcbiID": 7157, "score": 0.9},
+            {"symbolOfGene": "TP53", "geneNcbiID": 7157, "score": 0.7},
+            {"symbolOfGene": "X", "geneNcbiID": None, "score": 0.1},
+        ]
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            mock_req.return_value = _response(*rows)
+            rels = await adapter_with_api_key.get_relationships("UMLS_C0004096")
+        assert [r["related_id"] for r in rels] == ["7157", "X"]
+        assert rels[1]["related_name"] == "X"
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_respects_limit(self, adapter_with_api_key):
+        rows = [{"symbolOfGene": f"G{i}", "geneNcbiID": i, "score": 0.5} for i in range(5)]
+        with patch.object(
+            adapter_with_api_key, "_make_request", new_callable=AsyncMock
+        ) as mock_req:
+            mock_req.return_value = _response(*rows)
+            rels = await adapter_with_api_key.get_relationships("C0004096", limit=2)
+        assert len(rels) == 2
 
     @pytest.mark.asyncio
     async def test_context_manager(self, adapter):

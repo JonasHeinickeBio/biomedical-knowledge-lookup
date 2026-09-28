@@ -242,6 +242,51 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
             parsed_results.append(parsed)
         return parsed_results
 
+    async def get_relationships(self, concept_id: str, limit: int = 20) -> list[dict[str, Any]]:
+        """Return genes associated with a DisGeNET disease concept.
+
+        DisGeNET concepts are disease-centric (``UMLS_C...`` / ``MONDO_...``),
+        so this wraps :meth:`get_gene_disease_associations` and emits
+        ``has_gene`` edges in the shared relationship shape
+        (``{relation_label, related_id, related_name, source, score}``) that the
+        relationship-expansion source consumes. Degrades to ``[]`` on a missing
+        key, an unknown disease or any request failure.
+        """
+        disease_id = self._normalize_disease_id(concept_id)
+        if not disease_id:
+            return []
+        try:
+            rows = await self.get_gene_disease_associations({"disease": disease_id})
+        except Exception as e:  # noqa: BLE001 - best-effort, never abort the caller
+            logger.warning(f"DisGeNET get_relationships failed for '{concept_id}': {e}")
+            return []
+        if not rows:
+            return []
+
+        relationships: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for row in rows:
+            symbol = (row.get("gene_symbol") or "").strip()
+            ncbi_id = row.get("gene_ncbi_id")
+            related_id = (str(ncbi_id).strip() if ncbi_id else symbol) or symbol
+            if not related_id or related_id in seen:
+                continue
+            seen.add(related_id)
+            relationships.append(
+                {
+                    "relation_label": "has_gene",
+                    "related_id": related_id,
+                    "related_name": symbol or related_id,
+                    "source": "DisGeNET",
+                    "score": row.get("score"),
+                }
+            )
+            if len(relationships) >= limit:
+                break
+
+        logger.info(f"DisGeNET found {len(relationships)} relationships for '{concept_id}'")
+        return relationships
+
     async def get_gene_disease_associations_evidence(
         self, params: dict[str, Any], raw: bool = False
     ) -> Any | None:

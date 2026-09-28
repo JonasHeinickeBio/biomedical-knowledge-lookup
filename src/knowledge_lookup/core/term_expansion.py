@@ -240,8 +240,16 @@ def _infer_related_concept_type(
         return ConceptType.PATHWAY
     if "gene" in label or hint.endswith("_GENE"):
         return ConceptType.GENE
-    if "interaction" in label or hint == "STRING":
+    if "interaction" in label or "protein" in label or hint == "STRING":
         return ConceptType.PROTEIN
+    if "phenotype" in label:
+        return ConceptType.PHENOTYPE
+    if "disease" in label:
+        return ConceptType.DISEASE
+    if "drug" in label or "molecule" in label:
+        return ConceptType.DRUG
+    if "chemical" in label or "compound" in label:
+        return ConceptType.CHEMICAL
     return source_ct
 
 
@@ -250,8 +258,9 @@ class AdapterRelationshipSource:
 
     For each concept, looks up the adapter(s) named in its ``sources`` and, for
     any that implement a ``get_relationships(concept_id)`` method (currently
-    KEGG's gene<->pathway ``link``, UMLS semantic relations and STRING's
-    interaction partners), calls it with the concept's primary id and
+    KEGG's gene<->pathway ``link``, UMLS semantic relations, STRING's
+    interaction partners, DisGeNET disease->gene associations and Open Targets
+    target<->disease associations), calls it with the concept's primary id and
     normalises the returned dicts into :class:`RelatedTerm`. Adapters without
     the method, or a concept with no matching adapter, contribute nothing. All
     failures degrade to ``[]`` — this never raises.
@@ -312,7 +321,7 @@ class AdapterRelationshipSource:
 def default_relationship_sources(
     lookup: CentralKnowledgeLookup,
 ) -> list[RelationshipSource]:
-    """The default relationship sources: KEGG/UMLS/STRING via their adapters."""
+    """The default relationship sources: KEGG/UMLS/STRING/DisGeNET/Open Targets via their adapters."""
     return [AdapterRelationshipSource(lookup)]
 
 

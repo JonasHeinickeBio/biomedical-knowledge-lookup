@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Relationship-aware term expansion** (`CentralKnowledgeLookup.search_concepts_expanded()`,
+  `knowledge_lookup.core.term_expansion`): expansion can now harvest genuinely
+  *related* concepts, not just synonyms and long-form variants, by walking each
+  result's own relationship edges. A new `AdapterRelationshipSource` calls a
+  `get_relationships(concept_id)` method on any adapter that implements it and
+  folds the returned `{relation_label, related_id, related_name, source, score}`
+  edges into the next search round, so searching a disease also explores its
+  associated genes and a gene its interacting partners. Implemented for
+  **KEGG** (gene ↔ pathway `link`), **UMLS** (semantic relations), **STRING**
+  (interaction partners, now carrying the combined interaction `score`),
+  **DisGeNET** (`get_gene_disease_associations` → `has_gene` edges, NCBI id
+  falling back to symbol) and **Open Targets** (target ↔ disease associations,
+  direction inferred from the id: `ENSG…` → `associated_with_disease`, disease
+  CURIE → `associated_with_gene`). `_infer_related_concept_type()` classifies
+  each edge (gene, disease, phenotype, protein, drug, chemical, pathway) so the
+  routed follow-up searches hit the right sources. Adapters without the method,
+  a concept with no matching adapter, and any failed lookup contribute nothing:
+  the source never raises and degrades to no expansion.
 
 ## [2.1.0] - 2026-09-28
 

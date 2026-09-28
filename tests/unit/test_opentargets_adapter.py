@@ -139,11 +139,92 @@ class TestOpenTargetsAdapter:
         assert len(mappings) == 0
 
     @pytest.mark.asyncio
-    async def test_get_relationships_default(self, adapter):
-        """Test get_relationships returns empty list by default."""
-        relationships = await adapter.get_relationships("TEST:001")
-        assert isinstance(relationships, list)
-        assert len(relationships) == 0
+    @patch(MAKE_REQUEST)
+    async def test_get_relationships_target_expands_to_diseases(self, mock_make_request, adapter):
+        """An Ensembl target id yields ``associated_with_disease`` edges."""
+        mock_make_request.return_value = {
+            "data": {
+                "target": {
+                    "associatedDiseases": {
+                        "edges": [
+                            {"score": 0.5, "disease": {"id": "MONDO_0004979", "name": "asthma"}},
+                            {"score": 0.2, "disease": {"id": "EFO_0003767", "name": ""}},
+                        ]
+                    }
+                }
+            }
+        }
+        rels = await adapter.get_relationships("ENSG00000141510", limit=5)
+
+        payload = mock_make_request.call_args.kwargs["json_data"]
+        assert payload["variables"]["ensemblId"] == "ENSG00000141510"
+        assert "associatedDiseases" in payload["query"]
+        assert [r["related_id"] for r in rels] == ["MONDO_0004979", "EFO_0003767"]
+        assert rels[0]["related_name"] == "asthma"
+        assert rels[1]["related_name"] == "EFO_0003767"  # blank name falls back to id
+        assert all(r["relation_label"] == "associated_with_disease" for r in rels)
+        assert all(r["source"] == "Open Targets" for r in rels)
+        assert rels[0]["score"] == 0.5
+
+    @pytest.mark.asyncio
+    @patch(MAKE_REQUEST)
+    async def test_get_relationships_disease_expands_to_targets(self, mock_make_request, adapter):
+        """A CURIE disease id yields ``associated_with_gene`` edges (efoId normalized)."""
+        mock_make_request.return_value = {
+            "data": {
+                "disease": {
+                    "associatedTargets": {
+                        "edges": [
+                            {
+                                "score": 0.7,
+                                "target": {
+                                    "id": "ENSG00000141510",
+                                    "approvedSymbol": "TP53",
+                                },
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+        rels = await adapter.get_relationships("MONDO:0004979")
+
+        payload = mock_make_request.call_args.kwargs["json_data"]
+        assert payload["variables"]["efoId"] == "MONDO_0004979"
+        assert "associatedTargets" in payload["query"]
+        assert rels[0]["related_id"] == "ENSG00000141510"
+        assert rels[0]["related_name"] == "TP53"
+        assert rels[0]["relation_label"] == "associated_with_gene"
+        assert rels[0]["source"] == "Open Targets"
+        assert rels[0]["score"] == 0.7
+
+    @pytest.mark.asyncio
+    @patch(MAKE_REQUEST)
+    async def test_get_relationships_degrades_on_error(self, mock_make_request, adapter):
+        mock_make_request.side_effect = Exception("network down")
+        assert await adapter.get_relationships("ENSG00000141510") == []
+
+    @pytest.mark.asyncio
+    @patch(MAKE_REQUEST)
+    async def test_get_relationships_graphql_errors_empty(self, mock_make_request, adapter):
+        mock_make_request.return_value = {"errors": [{"message": "boom"}]}
+        assert await adapter.get_relationships("MONDO_0004979") == []
+
+    @pytest.mark.asyncio
+    @patch(MAKE_REQUEST)
+    async def test_get_relationships_skips_edges_without_id(self, mock_make_request, adapter):
+        mock_make_request.return_value = {
+            "data": {
+                "target": {
+                    "associatedDiseases": {"edges": [{"score": 0.1, "disease": {"id": ""}}]}
+                }
+            }
+        }
+        assert await adapter.get_relationships("ENSG00000141510") == []
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_blank_id_returns_empty(self, adapter):
+        assert await adapter.get_relationships("   ") == []
 
     @pytest.mark.asyncio
     async def test_context_manager(self, adapter):
