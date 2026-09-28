@@ -101,3 +101,122 @@ class TestExpansionStore:
         assert nested.exists()
         run_id = store.start_run("q")
         assert store.get_run(run_id) is not None
+
+
+class TestRelationshipEdges:
+    """The schema-version-2 ``relationship_edges`` table: durable, per-run,
+    round-ordered, and recording nameless (unsearchable) edges too."""
+
+    def test_record_and_get_edges_round_trip(self, store):
+        run_id = store.start_run("tp53")
+        store.record_relationship_edges(
+            run_id,
+            0,
+            [
+                {
+                    "source_concept_id": "KEGG:hsa:7157",
+                    "source_concept_label": "TP53",
+                    "relation_label": "gene_pathway",
+                    "related_id": "path:hsa04110",
+                    "related_name": "Cell cycle",
+                    "related_source": "KEGG_PATHWAY",
+                    "concept_type": "pathway",
+                    "searched": True,
+                }
+            ],
+        )
+        store.finish_run(run_id, 1, STOP_FIXED_POINT)
+
+        edges = store.get_relationship_edges(run_id)
+        assert len(edges) == 1
+        edge = edges[0]
+        assert edge["round"] == 0
+        assert edge["source_concept_id"] == "KEGG:hsa:7157"
+        assert edge["relation_label"] == "gene_pathway"
+        assert edge["related_id"] == "path:hsa04110"
+        assert edge["related_name"] == "Cell cycle"
+        assert edge["concept_type"] == "pathway"
+        assert edge["searched"] == 1
+
+    def test_nameless_edge_recorded_as_unsearched(self, store):
+        """KEGG ``link`` yields a bare accession with no name; it is still
+        stored, just flagged ``searched`` false with a null name."""
+        run_id = store.start_run("tp53")
+        store.record_relationship_edges(
+            run_id,
+            0,
+            [
+                {
+                    "source_concept_id": "KEGG:hsa:7157",
+                    "source_concept_label": "TP53",
+                    "relation_label": "gene_pathway",
+                    "related_id": "path:hsa04110",
+                    "related_name": None,
+                    "related_source": "KEGG_PATHWAY",
+                    "concept_type": "pathway",
+                    "searched": False,
+                }
+            ],
+        )
+        edges = store.get_relationship_edges(run_id)
+        assert edges[0]["related_name"] is None
+        assert edges[0]["searched"] == 0
+
+    def test_edges_ordered_by_round_then_insertion(self, store):
+        run_id = store.start_run("q")
+        store.record_relationship_edges(
+            run_id,
+            1,
+            [
+                {
+                    "source_concept_id": "c1",
+                    "relation_label": "r",
+                    "related_id": "second",
+                    "searched": False,
+                }
+            ],
+        )
+        store.record_relationship_edges(
+            run_id,
+            0,
+            [
+                {
+                    "source_concept_id": "c0",
+                    "relation_label": "r",
+                    "related_id": "first",
+                    "searched": False,
+                }
+            ],
+        )
+        edges = store.get_relationship_edges(run_id)
+        assert [e["related_id"] for e in edges] == ["first", "second"]
+        assert [e["round"] for e in edges] == [0, 1]
+
+    def test_edges_scoped_to_run(self, store):
+        run_a = store.start_run("a")
+        run_b = store.start_run("b")
+        store.record_relationship_edges(
+            run_a,
+            0,
+            [{"source_concept_id": "x", "relation_label": "r", "related_id": "only-a"}],
+        )
+        assert store.get_relationship_edges(run_b) == []
+        assert len(store.get_relationship_edges(run_a)) == 1
+
+    def test_empty_edge_list_is_noop(self, store):
+        run_id = store.start_run("q")
+        store.record_relationship_edges(run_id, 0, [])
+        assert store.get_relationship_edges(run_id) == []
+
+    def test_edges_durable_across_reopen(self, tmp_path):
+        db = tmp_path / "rel.db"
+        s1 = ExpansionStore(db)
+        run_id = s1.start_run("tp53")
+        s1.record_relationship_edges(
+            run_id,
+            0,
+            [{"source_concept_id": "c", "relation_label": "r", "related_id": "path:hsa04110"}],
+        )
+        del s1
+        s2 = ExpansionStore(db)
+        assert len(s2.get_relationship_edges(run_id)) == 1

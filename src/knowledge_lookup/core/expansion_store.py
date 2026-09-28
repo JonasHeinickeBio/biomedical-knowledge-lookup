@@ -21,13 +21,14 @@ from pathlib import Path
 from typing import Any
 
 _DEFAULT_DB_PATH = Path.home() / ".cache" / "knowledge-lookup" / "expansion_history.db"
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 
 # origin values recorded per discovered term
 ORIGIN_ORIGINAL = "original"
 ORIGIN_SYNONYM = "synonym"
 ORIGIN_ABBREVIATION = "abbreviation"
 ORIGIN_LONG_FORM = "long_form"
+ORIGIN_RELATIONSHIP = "relationship"
 
 # stop_reason values recorded per finished run
 STOP_MAX_ROUNDS = "max_rounds"
@@ -150,6 +151,74 @@ class ExpansionStore:
             finally:
                 conn.close()
 
+    def record_relationship_edges(
+        self, run_id: int, round_num: int, edges: list[dict[str, Any]]
+    ) -> None:
+        """Record relationship edges discovered in one expansion round.
+
+        Parameters
+        ----------
+        run_id :
+            The run id returned by :meth:`start_run`.
+        round_num :
+            The round in which the edges were harvested (the round whose
+            concepts produced them).
+        edges :
+            Edge dicts with keys ``source_concept_id``,
+            ``source_concept_label``, ``relation_label``, ``related_id``,
+            ``related_name``, ``related_source``, ``concept_type`` and
+            ``searched`` (bool: whether the related name was fed back into a
+            later search round). Edges without a name (e.g. KEGG's
+            ``link`` output) are still recorded, just with ``searched`` false.
+        """
+        if not edges:
+            return
+        with self._lock:
+            conn = self._connect()
+            try:
+                conn.executemany(
+                    "INSERT INTO relationship_edges "
+                    "(run_id, round, source_concept_id, source_concept_label, "
+                    "relation_label, related_id, related_name, related_source, "
+                    "concept_type, searched, discovered_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        (
+                            run_id,
+                            round_num,
+                            e.get("source_concept_id"),
+                            e.get("source_concept_label"),
+                            e.get("relation_label"),
+                            e.get("related_id"),
+                            e.get("related_name"),
+                            e.get("related_source"),
+                            e.get("concept_type"),
+                            1 if e.get("searched") else 0,
+                            _now(),
+                        )
+                        for e in edges
+                    ],
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+    def get_relationship_edges(self, run_id: int) -> list[dict[str, Any]]:
+        """Fetch every relationship edge recorded for a run, in round order."""
+        with self._lock:
+            conn = self._connect()
+            try:
+                rows = conn.execute(
+                    "SELECT round, source_concept_id, source_concept_label, relation_label, "
+                    "related_id, related_name, related_source, concept_type, searched, "
+                    "discovered_at FROM relationship_edges WHERE run_id = ? "
+                    "ORDER BY round, id",
+                    (run_id,),
+                ).fetchall()
+                return [dict(row) for row in rows]
+            finally:
+                conn.close()
+
     def find_runs_for_query(self, original_query: str, limit: int = 20) -> list[dict[str, Any]]:
         """Find past runs for the same original query (most recent first)."""
         with self._lock:
@@ -197,6 +266,22 @@ class ExpansionStore:
                     discovered_at      TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_terms_run ON expansion_terms(run_id);
+
+                CREATE TABLE IF NOT EXISTS relationship_edges (
+                    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+                    run_id                INTEGER NOT NULL REFERENCES expansion_runs(id),
+                    round                 INTEGER NOT NULL,
+                    source_concept_id     TEXT,
+                    source_concept_label  TEXT,
+                    relation_label        TEXT,
+                    related_id            TEXT,
+                    related_name          TEXT,
+                    related_source        TEXT,
+                    concept_type          TEXT,
+                    searched              INTEGER NOT NULL DEFAULT 0,
+                    discovered_at         TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_edges_run ON relationship_edges(run_id);
 
                 CREATE TABLE IF NOT EXISTS _meta (
                     key   TEXT PRIMARY KEY,

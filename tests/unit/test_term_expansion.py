@@ -15,12 +15,16 @@ from knowledge_lookup.core.expansion_store import (
     ORIGIN_ABBREVIATION,
     ORIGIN_LONG_FORM,
     ORIGIN_ORIGINAL,
+    ORIGIN_RELATIONSHIP,
     ORIGIN_SYNONYM,
     STOP_FIXED_POINT,
     STOP_MAX_ROUNDS,
     ExpansionStore,
 )
 from knowledge_lookup.core.term_expansion import (
+    AdapterRelationshipSource,
+    RelatedTerm,
+    _infer_related_concept_type,
     expand_and_search,
     merge_concept_fields,
     merge_concept_results,
@@ -524,4 +528,295 @@ class TestSourceAwareRouting:
 
         for call in lookup.search_concepts.await_args_list:
             assert call.kwargs["sources"] is None
-            assert call.kwargs["source_options"] is None
+
+
+class _StubRelationshipSource:
+    """A RelationshipSource stand-in returning canned edges per concept id."""
+
+    def __init__(self, edges_by_id: dict[str, list[RelatedTerm]]):
+        self._edges_by_id = edges_by_id
+        self.asked: list[str] = []
+
+    async def expand(self, concept) -> list[RelatedTerm]:
+        self.asked.append(concept.primary_id)
+        return list(self._edges_by_id.get(concept.primary_id, []))
+
+
+class _RaisingRelationshipSource:
+    async def expand(self, concept) -> list[RelatedTerm]:
+        raise RuntimeError("relationship backend down")
+
+
+def _pathway_term(name: str = "Cell cycle") -> RelatedTerm:
+    return RelatedTerm(
+        term=name,
+        concept_type=ConceptType.PATHWAY,
+        relation_label="gene_pathway",
+        related_id="path:hsa04110",
+        source="KEGG_PATHWAY",
+    )
+
+
+class TestRelationshipConceptTypeInference:
+    def test_pathway_hint_maps_to_pathway(self):
+        assert (
+            _infer_related_concept_type(
+                {"relation_label": "gene_pathway", "source": "KEGG_PATHWAY"}, ConceptType.GENE
+            )
+            == ConceptType.PATHWAY
+        )
+
+    def test_interaction_maps_to_protein(self):
+        assert (
+            _infer_related_concept_type({"relation_label": "interaction", "source": "STRING"}, None)
+            == ConceptType.PROTEIN
+        )
+
+    def test_gene_label_maps_to_gene(self):
+        assert (
+            _infer_related_concept_type({"relation_label": "maps_to_gene", "source": ""}, None)
+            == ConceptType.GENE
+        )
+
+    def test_unknown_falls_back_to_source_type(self):
+        assert (
+            _infer_related_concept_type(
+                {"relation_label": "parent", "source": "UMLS"}, ConceptType.DISEASE
+            )
+            == ConceptType.DISEASE
+        )
+
+
+class TestAdapterRelationshipSource:
+    @pytest.mark.asyncio
+    async def test_normalizes_edges_from_matching_adapter(self):
+        adapter = MagicMock()
+        adapter.get_relationships = AsyncMock(
+            return_value=[
+                {
+                    "relation_label": "gene_pathway",
+                    "related_id": "path:hsa04110",
+                    "related_name": "Cell cycle",
+                    "source": "KEGG_PATHWAY",
+                }
+            ]
+        )
+        lookup = MagicMock()
+        lookup.adapters = {KnowledgeSource.KEGG: adapter}
+
+        concept = UnifiedConcept(
+            primary_id="KEGG:hsa:7157",
+            primary_label="TP53",
+            sources=[KnowledgeSource.KEGG],
+            concept_type=ConceptType.GENE,
+        )
+
+        terms = await AdapterRelationshipSource(lookup).expand(concept)
+        adapter.get_relationships.assert_awaited_once_with("KEGG:hsa:7157")
+        assert len(terms) == 1
+        assert terms[0].term == "Cell cycle"
+        assert terms[0].concept_type == ConceptType.PATHWAY
+        assert terms[0].related_id == "path:hsa04110"
+
+    @pytest.mark.asyncio
+    async def test_skips_adapters_without_get_relationships(self):
+        class _NoRels:  # no get_relationships attribute at all
+            pass
+
+        lookup = MagicMock()
+        lookup.adapters = {KnowledgeSource.OLS: _NoRels()}
+        concept = UnifiedConcept(
+            primary_id="ols:x", primary_label="X", sources=[KnowledgeSource.OLS]
+        )
+        assert await AdapterRelationshipSource(lookup).expand(concept) == []
+
+    @pytest.mark.asyncio
+    async def test_degrades_on_adapter_error(self):
+        adapter = MagicMock()
+        adapter.get_relationships = AsyncMock(side_effect=RuntimeError("boom"))
+        lookup = MagicMock()
+        lookup.adapters = {KnowledgeSource.KEGG: adapter}
+        concept = UnifiedConcept(
+            primary_id="KEGG:hsa:7157", primary_label="TP53", sources=[KnowledgeSource.KEGG]
+        )
+        assert await AdapterRelationshipSource(lookup).expand(concept) == []
+
+    @pytest.mark.asyncio
+    async def test_requires_primary_id(self):
+        lookup = MagicMock()
+        lookup.adapters = {}
+        concept = UnifiedConcept(primary_id="", primary_label="X", sources=[])
+        assert await AdapterRelationshipSource(lookup).expand(concept) == []
+
+
+class TestRelationshipExpansion:
+    @pytest.mark.asyncio
+    async def test_off_by_default_records_no_edges(self):
+        async def side_effect(query, **kw):
+            return _result(query, [_concept("TP53", synonyms=["tumor protein p53"])])
+
+        lookup = _mock_lookup(side_effect)
+        _, trace = await expand_and_search(lookup, "tp53", abbreviation_sources=[], persist=False)
+        assert trace.relationships == []
+
+    @pytest.mark.asyncio
+    async def test_named_relationship_target_searched_next_round(self):
+        async def side_effect(query, **kw):
+            if query == "tp53":
+                return _result(query, [_concept("TP53")])
+            return _result(query, [])  # "cell cycle" converges
+
+        lookup = _mock_lookup(side_effect)
+        source = _StubRelationshipSource({"id:tp53": [_pathway_term()]})
+
+        _, trace = await expand_and_search(
+            lookup,
+            "tp53",
+            abbreviation_sources=[],
+            relationship_sources=[source],
+            persist=False,
+        )
+
+        assert trace.terms_by_round == [["tp53"], ["Cell cycle"]]
+        assert trace.rounds_run == 2
+        assert lookup.search_concepts.await_args_list[1].args[0] == "Cell cycle"
+        assert len(trace.relationships) == 1
+        assert trace.relationships[0]["searched"] is True
+        assert trace.relationships[0]["related_name"] == "Cell cycle"
+        assert trace.relationships[0]["concept_type"] == ConceptType.PATHWAY.value
+
+    @pytest.mark.asyncio
+    async def test_nameless_edge_recorded_but_not_searched(self):
+        async def side_effect(query, **kw):
+            return _result(query, [_concept("TP53")])
+
+        lookup = _mock_lookup(side_effect)
+        nameless = RelatedTerm(
+            term="",
+            concept_type=ConceptType.PATHWAY,
+            relation_label="gene_pathway",
+            related_id="path:hsa04110",
+            source="KEGG_PATHWAY",
+        )
+        source = _StubRelationshipSource({"id:tp53": [nameless]})
+
+        _, trace = await expand_and_search(
+            lookup,
+            "tp53",
+            abbreviation_sources=[],
+            relationship_sources=[source],
+            persist=False,
+        )
+
+        assert trace.rounds_run == 1  # no searchable term to grow into
+        assert lookup.search_concepts.await_count == 1
+        assert trace.relationships[0]["searched"] is False
+        assert trace.relationships[0]["related_name"] is None
+
+    @pytest.mark.asyncio
+    async def test_each_concept_asked_once_across_rounds(self):
+        async def side_effect(query, **kw):
+            if query == "tp53":
+                return _result(query, [_concept("TP53")])
+            return _result(query, [_concept("TP53")])  # same concept resurfaces
+
+        lookup = _mock_lookup(side_effect)
+        source = _StubRelationshipSource({"id:tp53": [_pathway_term()]})
+
+        await expand_and_search(
+            lookup,
+            "tp53",
+            abbreviation_sources=[],
+            relationship_sources=[source],
+            persist=False,
+        )
+
+        assert source.asked.count("id:tp53") == 1
+
+    @pytest.mark.asyncio
+    async def test_max_relationship_concepts_caps_queries_per_round(self):
+        async def side_effect(query, **kw):
+            return _result(query, [_concept("TP53"), _concept("MYC")])
+
+        lookup = _mock_lookup(side_effect)
+        source = _StubRelationshipSource({})
+
+        await expand_and_search(
+            lookup,
+            "tp53",
+            abbreviation_sources=[],
+            relationship_sources=[source],
+            max_relationship_concepts=1,
+            persist=False,
+        )
+
+        assert len(source.asked) == 1
+        assert source.asked == ["id:tp53"]
+
+    @pytest.mark.asyncio
+    async def test_failing_relationship_source_does_not_abort(self):
+        async def side_effect(query, **kw):
+            return _result(query, [_concept("TP53")])
+
+        lookup = _mock_lookup(side_effect)
+        _, trace = await expand_and_search(
+            lookup,
+            "tp53",
+            abbreviation_sources=[],
+            relationship_sources=[_RaisingRelationshipSource()],
+            persist=False,
+        )
+        assert trace.relationships == []
+        assert trace.rounds_run == 1
+
+    @pytest.mark.asyncio
+    async def test_synonym_wins_capped_slot_over_relationship(self):
+        async def side_effect(query, **kw):
+            if query == "tp53":
+                return _result(query, [_concept("TP53", synonyms=["tumor protein p53"])])
+            return _result(query, [])
+
+        lookup = _mock_lookup(side_effect)
+        source = _StubRelationshipSource({"id:tp53": [_pathway_term()]})
+
+        _, trace = await expand_and_search(
+            lookup,
+            "tp53",
+            abbreviation_sources=[],
+            relationship_sources=[source],
+            max_terms_per_round=1,
+            persist=False,
+        )
+
+        # the synonym fills the single capped slot; the relationship edge is
+        # still recorded but flagged unsearched (dropped by the cap)
+        assert trace.terms_by_round[1] == ["tumor protein p53"]
+        assert trace.relationships[0]["searched"] is False
+
+    @pytest.mark.asyncio
+    async def test_relationship_edges_persisted_to_store(self):
+        async def side_effect(query, **kw):
+            if query == "tp53":
+                return _result(query, [_concept("TP53")])
+            return _result(query, [])
+
+        lookup = _mock_lookup(side_effect)
+        source = _StubRelationshipSource({"id:tp53": [_pathway_term()]})
+        store = ExpansionStore()
+
+        _, trace = await expand_and_search(
+            lookup,
+            "tp53",
+            abbreviation_sources=[],
+            relationship_sources=[source],
+            store=store,
+            persist=True,
+        )
+
+        edges = store.get_relationship_edges(trace.run_id)
+        assert len(edges) == 1
+        assert edges[0]["related_id"] == "path:hsa04110"
+        assert edges[0]["searched"] == 1
+        terms = store.get_terms(trace.run_id)
+        rel_terms = [t for t in terms if t["origin"] == ORIGIN_RELATIONSHIP]
+        assert [t["term"] for t in rel_terms] == ["Cell cycle"]

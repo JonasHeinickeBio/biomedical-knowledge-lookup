@@ -42,6 +42,7 @@ from .expansion_store import (
     ORIGIN_ABBREVIATION,
     ORIGIN_LONG_FORM,
     ORIGIN_ORIGINAL,
+    ORIGIN_RELATIONSHIP,
     ORIGIN_SYNONYM,
     STOP_FIXED_POINT,
     STOP_MAX_ROUNDS,
@@ -189,6 +190,133 @@ class UMLSAbbreviationSource:
 
 
 @dataclass
+class RelatedTerm:
+    """One relationship target harvested from a concept.
+
+    ``term`` is a human-readable name that can be fed back into a later
+    search round (empty when the source only yields an accession, e.g. KEGG's
+    ``link`` output); ``concept_type`` is the inferred type of the *target* so
+    routing can send it to the right sources; the remaining fields describe the
+    edge itself and are persisted verbatim.
+    """
+
+    term: str
+    concept_type: ConceptType | None
+    relation_label: str
+    related_id: str
+    source: str | None = None
+
+
+class RelationshipSource(Protocol):
+    """A pluggable source of relationship edges for a concept.
+
+    Mirrors :class:`AbbreviationSource`: implementations must never raise for
+    a "no data" case — return ``[]`` — so a missing extra/API key/network
+    failure degrades to "no expansion from this source" rather than aborting
+    the whole search. Takes the whole *concept* (not just a label) because
+    relationship lookups are keyed by the concept's identifier.
+    """
+
+    async def expand(self, concept: Any) -> list[RelatedTerm]:
+        """Return :class:`RelatedTerm` edges discovered for *concept*."""
+        ...
+
+
+def _infer_related_concept_type(
+    rel: dict[str, Any], source_ct: ConceptType | None
+) -> ConceptType | None:
+    """Infer the :class:`ConceptType` of a relationship *target*.
+
+    Uses the relation label and target source hint first (KEGG's gene<->pathway
+    links carry an unambiguous ``source``/``relation_label``), then falls back
+    to the source concept's own type (a reasonable default for ontological
+    relations such as UMLS parent/child).
+    """
+    from ..models import ConceptType
+
+    label = (rel.get("relation_label") or "").lower()
+    hint = (rel.get("source") or "").upper()
+    if "pathway" in label or "PATHWAY" in hint:
+        return ConceptType.PATHWAY
+    if "gene" in label or hint.endswith("_GENE"):
+        return ConceptType.GENE
+    if "interaction" in label or hint == "STRING":
+        return ConceptType.PROTEIN
+    return source_ct
+
+
+class AdapterRelationshipSource:
+    """Harvest relationship edges by delegating to a concept's own adapter.
+
+    For each concept, looks up the adapter(s) named in its ``sources`` and, for
+    any that implement a ``get_relationships(concept_id)`` method (currently
+    KEGG's gene<->pathway ``link``, UMLS semantic relations and STRING's
+    interaction partners), calls it with the concept's primary id and
+    normalises the returned dicts into :class:`RelatedTerm`. Adapters without
+    the method, or a concept with no matching adapter, contribute nothing. All
+    failures degrade to ``[]`` — this never raises.
+    """
+
+    def __init__(self, lookup: CentralKnowledgeLookup, limit_per_concept: int = 10) -> None:
+        self._lookup = lookup
+        self._limit_per_concept = limit_per_concept
+
+    async def expand(self, concept: Any) -> list[RelatedTerm]:
+        from ..models import KnowledgeSource
+
+        primary_id = getattr(concept, "primary_id", None)
+        if not primary_id:
+            return []
+        source_ct = _as_concept_type(getattr(concept, "concept_type", None))
+
+        sources = getattr(concept, "sources", None) or []
+        targets: list[KnowledgeSource] = []
+        for s in sources:
+            try:
+                targets.append(s if isinstance(s, KnowledgeSource) else KnowledgeSource(str(s)))
+            except ValueError:
+                continue
+
+        results: list[RelatedTerm] = []
+        for source in targets:
+            adapter = self._lookup.adapters.get(source)
+            get_relationships = getattr(adapter, "get_relationships", None)
+            if get_relationships is None:
+                continue
+            try:
+                rels = await get_relationships(primary_id)
+            except Exception as exc:  # noqa: BLE001 - best-effort, never abort the caller
+                logger.debug(
+                    "AdapterRelationshipSource: get_relationships failed for %s (%s): %s",
+                    primary_id,
+                    source,
+                    exc,
+                )
+                continue
+            for rel in (rels or [])[: self._limit_per_concept]:
+                related_id = str(rel.get("related_id") or "").strip()
+                if not related_id:
+                    continue
+                results.append(
+                    RelatedTerm(
+                        term=(rel.get("related_name") or "").strip(),
+                        concept_type=_infer_related_concept_type(rel, source_ct),
+                        relation_label=rel.get("relation_label") or "",
+                        related_id=related_id,
+                        source=rel.get("source"),
+                    )
+                )
+        return results
+
+
+def default_relationship_sources(
+    lookup: CentralKnowledgeLookup,
+) -> list[RelationshipSource]:
+    """The default relationship sources: KEGG/UMLS/STRING via their adapters."""
+    return [AdapterRelationshipSource(lookup)]
+
+
+@dataclass
 class ExpansionTrace:
     """A summary of one :func:`expand_and_search` call, for callers that
     want the trail without querying :class:`ExpansionStore` directly."""
@@ -197,6 +325,7 @@ class ExpansionTrace:
     rounds_run: int
     stop_reason: str
     terms_by_round: list[list[str]] = field(default_factory=list)
+    relationships: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def all_terms_tried(self) -> list[str]:
@@ -323,6 +452,64 @@ async def _ask_abbreviation_sources(
         answers[label].extend(pairs)
 
 
+#: Default number of concepts the relationship sources are asked about in one
+#: expansion round. Concepts are taken in result order; the rest wait for a
+#: later round. Relationship calls are the most expensive part of expansion
+#: (a network round-trip per concept per relationship-capable adapter), so this
+#: is deliberately modest and only active when relationship sources are passed.
+DEFAULT_MAX_RELATIONSHIP_CONCEPTS = 10
+
+#: Relationship-source calls running at the same time.
+RELATIONSHIP_LOOKUP_CONCURRENCY = 3
+
+
+def _unqueried_relationship_concepts(
+    concepts: list[Any], answers: dict[str, list[RelatedTerm]]
+) -> list[Any]:
+    """Distinct concepts (by ``primary_id``) not yet asked about, in order."""
+    out: list[Any] = []
+    seen: set[str] = set()
+    for concept in concepts:
+        pid = getattr(concept, "primary_id", None)
+        if pid and pid not in answers and pid not in seen:
+            seen.add(pid)
+            out.append(concept)
+    return out
+
+
+async def _ask_relationship_sources(
+    sources: list[RelationshipSource],
+    concepts: list[Any],
+    answers: dict[str, list[RelatedTerm]],
+) -> None:
+    """Ask every relationship source about each of *concepts*.
+
+    At most :data:`RELATIONSHIP_LOOKUP_CONCURRENCY` calls run at a time; a
+    failing source contributes nothing. Results are stored in *answers* keyed by
+    the concept's ``primary_id``.
+    """
+    semaphore = asyncio.Semaphore(RELATIONSHIP_LOOKUP_CONCURRENCY)
+
+    async def _ask(source: RelationshipSource, concept: Any) -> list[RelatedTerm]:
+        async with semaphore:
+            try:
+                return list(await source.expand(concept))
+            except Exception as exc:  # noqa: BLE001 - one bad source shouldn't stop expansion
+                logger.debug(
+                    "expand_and_search: relationship source failed for %r: %s",
+                    getattr(concept, "primary_id", None),
+                    exc,
+                )
+                return []
+
+    calls = [(concept, source) for concept in concepts for source in sources]
+    results = await asyncio.gather(*(_ask(source, concept) for concept, source in calls))
+    for concept in concepts:
+        answers.setdefault(getattr(concept, "primary_id", ""), [])
+    for (concept, _source), rels in zip(calls, results, strict=True):
+        answers[getattr(concept, "primary_id", "")].extend(rels)
+
+
 async def expand_and_search(
     lookup: CentralKnowledgeLookup,
     query: str,
@@ -334,6 +521,8 @@ async def expand_and_search(
     max_terms_per_round: int = 10,
     abbreviation_sources: list[AbbreviationSource] | None = None,
     max_abbreviation_lookups: int = DEFAULT_MAX_ABBREVIATION_LOOKUPS,
+    relationship_sources: list[RelationshipSource] | None = None,
+    max_relationship_concepts: int = DEFAULT_MAX_RELATIONSHIP_CONCEPTS,
     store: ExpansionStore | None = None,
     persist: bool = True,
     route: bool = True,
@@ -368,11 +557,30 @@ async def expand_and_search(
     call, and about at most *max_abbreviation_lookups* not-yet-asked labels per
     round (in result order), with up to :data:`ABBREVIATION_LOOKUP_CONCURRENCY`
     calls at a time. Answers are reused in later rounds.
+
+    When *relationship_sources* is provided (it is ``None`` — i.e. off — by
+    default, so released behaviour is unchanged), each not-yet-asked concept is
+    queried for relationship edges and the *named* targets (e.g. a gene's
+    pathways, a protein's interaction partners, a disease's parent/child terms)
+    are fed back into later rounds as new search terms with origin
+    ``ORIGIN_RELATIONSHIP``, growing a real relationship network rather than
+    just a synonym set. Edges without a searchable name (e.g. KEGG's bare
+    accessions) are still recorded in *store* but never searched. At most
+    *max_relationship_concepts* not-yet-asked concepts are queried per round,
+    with up to :data:`RELATIONSHIP_LOOKUP_CONCURRENCY` calls at a time; every
+    edge is written to *store* and summarised in the returned trace. Pass
+    :func:`default_relationship_sources` to enable the KEGG/UMLS/STRING
+    relationship adapters.
     """
     from ..models import LookupResult
 
     # label -> (candidate, origin) pairs from the abbreviation sources
     abbreviation_answers: dict[str, list[tuple[str, str]]] = {}
+
+    # primary_id -> harvested relationship edges (RelatedTerm) for concepts the
+    # relationship sources have already been asked about this run.
+    relationship_answers: dict[str, list[RelatedTerm]] = {}
+    all_relationship_edges: list[dict[str, Any]] = []
 
     if abbreviation_sources is None:
         abbreviation_sources = [UMLSAbbreviationSource(lookup.config)]
@@ -504,6 +712,49 @@ async def expand_and_search(
             if store and run_id is not None:
                 store.record_terms(run_id, round_num + 1, list(abbreviations_found.values()))
 
+        # Harvest relationship edges from concepts not yet asked about. Named
+        # targets become next-round search terms (origin relationship), so the
+        # run grows a real network instead of only a synonym set; every edge is
+        # recorded whether or not its target is searchable. Done after synonyms
+        # so a cheaper synonym wins a capped slot over a relationship target.
+        relationship_records: list[dict[str, Any]] = []
+        if relationship_sources:
+            to_ask = _unqueried_relationship_concepts(all_concepts, relationship_answers)
+            asked = to_ask[: max(0, max_relationship_concepts)]
+            if asked:
+                await _ask_relationship_sources(relationship_sources, asked, relationship_answers)
+            for concept in asked:
+                pid = getattr(concept, "primary_id", "") or ""
+                if not pid:
+                    continue
+                src_label = (getattr(concept, "primary_label", "") or "").strip()
+                for edge in relationship_answers.get(pid, []):
+                    name = edge.term.strip()
+                    key = name.lower()
+                    searchable = (
+                        bool(name)
+                        and key not in tried
+                        and key not in next_terms
+                        and len(next_terms) < max_terms_per_round
+                    )
+                    if searchable:
+                        next_terms[key] = (name, ORIGIN_RELATIONSHIP, pid, edge.concept_type)
+                    relationship_records.append(
+                        {
+                            "source_concept_id": pid,
+                            "source_concept_label": src_label,
+                            "relation_label": edge.relation_label,
+                            "related_id": edge.related_id,
+                            "related_name": name or None,
+                            "related_source": edge.source,
+                            "concept_type": getattr(edge.concept_type, "value", edge.concept_type),
+                            "searched": searchable,
+                        }
+                    )
+            if store and run_id is not None:
+                store.record_relationship_edges(run_id, round_num, relationship_records)
+            all_relationship_edges.extend(relationship_records)
+
         if not next_terms:
             stop_reason = STOP_FIXED_POINT
             break
@@ -536,5 +787,6 @@ async def expand_and_search(
         rounds_run=len(terms_by_round),
         stop_reason=stop_reason,
         terms_by_round=terms_by_round,
+        relationships=all_relationship_edges,
     )
     return merged, trace
