@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [2.3.0] - 2026-09-29
+
 ### Added
 - **Class → member term expansion.** A hierarchy-only relationship source
   (`hierarchy_relationship_sources`, restricted to taxonomic *is-a* edges) lets a
@@ -37,7 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A synonym-rich expansion round can no longer starve relationship traversal:
   when relationship sources are active a slot of each capped round is reserved so
   a class term reliably searches the members its relations point to.
-
 
 ## [2.2.0] - 2026-09-28
 
