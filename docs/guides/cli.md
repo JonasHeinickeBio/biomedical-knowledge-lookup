@@ -34,6 +34,9 @@ knowledge-lookup search "diabetes mellitus" -s OLS -o csv > diabetes.csv
 | `--limit`, `-l` | `10` | Maximum number of results in total, split across the selected sources (passed to `search_concepts(max_results=...)`) |
 | `--output`, `-o` | `table` | `table`, `json` or `csv` |
 | `--partial`, `-p` | off | Partial (fuzzy) matching in the UMLS adapter. Applies when UMLS is selected or no source is given, and then returns UMLS results only. |
+| `--expand`, `-e` | off | Iteratively widen the search with synonyms and long forms (uses `search_concepts_expanded`). See [Term expansion](term-expansion.md). |
+| `--relationships` | off | With `--expand`, also traverse relationship targets (pathways, interactions, class members). Implies `--expand`. |
+| `--expand-hierarchy` | off | With `--expand`, traverse only taxonomic class↔member edges (OLS, UMLS). Implies `--expand`. |
 | `--cache-dir` | none | Directory for an on-disk cache, set up with `init_cache(disk_cache_dir=...)` before the search; without it the cache is in memory only. Only adapters that use the shared cache store entries there (currently UniChem); most searches are not cached. |
 
 {% hint style="info" %}
@@ -83,6 +86,7 @@ knowledge-lookup workflow "seizure" -s HPO --format json --format csv --export-p
 | `--max-iter` | `3` | Maximum lookup passes (initial search plus refinements) |
 | `--auto-approve` | `0.8` | Review score at or above which results are exported without asking |
 | `--type`, `-t` | none | Concept types to keep, e.g. `DISEASE` (repeatable) |
+| `--relationships` | off | Run the workflow's expansion pass with relationship edges (interactions, pathways, class members) |
 
 The command prints the review score, a concept map (term, UMLS CUI, ontology IDs, type), strengths, weaknesses and suggestions. If the score is below `--auto-approve`, the workflow pauses and asks `Do you approve these results?`:
 

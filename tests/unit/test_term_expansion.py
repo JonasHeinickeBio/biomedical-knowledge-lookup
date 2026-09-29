@@ -24,10 +24,17 @@ from knowledge_lookup.core.expansion_store import (
 from knowledge_lookup.core.term_expansion import (
     AdapterRelationshipSource,
     RelatedTerm,
+    _hierarchy_edges_from_concept,
     _infer_related_concept_type,
+    _native_id_for_source,
+    associative_relationship_sources,
+    default_relationship_sources,
     expand_and_search,
+    hierarchy_relationship_sources,
+    is_taxonomic_relation,
     merge_concept_fields,
     merge_concept_results,
+    relevance_rank,
 )
 from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupResult, UnifiedConcept
 
@@ -859,3 +866,379 @@ class TestRelationshipExpansion:
         terms = store.get_terms(trace.run_id)
         rel_terms = [t for t in terms if t["origin"] == ORIGIN_RELATIONSHIP]
         assert [t["term"] for t in rel_terms] == ["Cell cycle"]
+
+    @pytest.mark.asyncio
+    async def test_relationship_gets_reserved_slot_in_synonym_rich_round(self):
+        """A synonym-heavy concept must not starve relationship targets.
+
+        Before the reserve logic a synonym-rich round filled every capped slot
+        with synonyms, so a class term's hierarchy members (surfaced as
+        relationship edges) were never searched. The round now reserves part of
+        its budget for relationship targets, so the member still gets searched.
+        """
+
+        async def side_effect(query, **kw):
+            return _result(query, [])
+
+        lookup = _mock_lookup(side_effect)
+        concept = _concept(
+            "TP53", synonyms=["alpha synonym", "beta synonym", "gamma synonym"]
+        )
+
+        async def first_only(query, **kw):
+            if query == "tp53":
+                return _result(query, [concept])
+            return _result(query, [])
+
+        lookup.search_concepts = AsyncMock(side_effect=first_only)
+        source = _StubRelationshipSource({"id:tp53": [_pathway_term()]})
+
+        _, trace = await expand_and_search(
+            lookup,
+            "tp53",
+            abbreviation_sources=[],
+            relationship_sources=[source],
+            max_terms_per_round=4,  # synonym_cap == 2, so one synonym is dropped
+            persist=False,
+        )
+
+        next_round = trace.terms_by_round[1]
+        # only two synonyms fit the cap ...
+        assert "alpha synonym" in next_round
+        assert "beta synonym" in next_round
+        assert "gamma synonym" not in next_round
+        # ... and the relationship target still claims a reserved slot
+        assert "Cell cycle" in next_round
+        assert trace.relationships[0]["searched"] is True
+
+
+class TestTaxonomicRelationClassification:
+    def test_ols_narrower_broader_are_taxonomic(self):
+        assert is_taxonomic_relation("has_narrower")
+        assert is_taxonomic_relation("has_broader")
+
+    def test_umls_parent_child_are_taxonomic(self):
+        assert is_taxonomic_relation("parent")
+        assert is_taxonomic_relation("child")
+        assert is_taxonomic_relation("child_tree_number")
+
+    def test_is_a_variants_are_taxonomic(self):
+        assert is_taxonomic_relation("ISA")  # case-insensitive
+        assert is_taxonomic_relation(" subclass_of ")  # whitespace-trimmed
+
+    def test_associative_labels_are_not_taxonomic(self):
+        assert not is_taxonomic_relation("interaction")
+        assert not is_taxonomic_relation("pathway")
+        assert not is_taxonomic_relation("associated_with")
+
+    def test_none_and_blank_are_not_taxonomic(self):
+        assert not is_taxonomic_relation(None)
+        assert not is_taxonomic_relation("")
+        assert not is_taxonomic_relation("   ")
+
+
+class TestNativeIdForSource:
+    def test_prefers_url_identifier_for_source(self):
+        concept = UnifiedConcept(
+            primary_id="SNOMED:123", primary_label="X", sources=[KnowledgeSource.OLS]
+        )
+        concept.add_identifier(KnowledgeSource.OLS, "OBA:0000001")
+        concept.add_identifier(KnowledgeSource.OLS, "http://purl.obolibrary.org/obo/OBA_0000001")
+        assert (
+            _native_id_for_source(concept, KnowledgeSource.OLS)
+            == "http://purl.obolibrary.org/obo/OBA_0000001"
+        )
+
+    def test_falls_back_to_first_when_no_url(self):
+        concept = UnifiedConcept(
+            primary_id="UMLS:C001", primary_label="X", sources=[KnowledgeSource.UMLS]
+        )
+        concept.add_identifier(KnowledgeSource.UMLS, "C0011849")
+        assert _native_id_for_source(concept, KnowledgeSource.UMLS) == "C0011849"
+
+    def test_returns_none_when_source_has_no_identifier(self):
+        concept = UnifiedConcept(
+            primary_id="KEGG:hsa:7157", primary_label="TP53", sources=[KnowledgeSource.KEGG]
+        )
+        concept.add_identifier(KnowledgeSource.KEGG, "hsa:7157")
+        assert _native_id_for_source(concept, KnowledgeSource.STRING) is None
+
+
+class TestHierarchyEdgesFromConcept:
+    def test_children_and_parents_become_directed_edges(self):
+        concept = UnifiedConcept(
+            primary_id="ols:cytokine",
+            primary_label="cytokine",
+            sources=[KnowledgeSource.OLS],
+            concept_type=ConceptType.CYTOKINE,
+        )
+        concept.children = ["Interleukin 6", "Interferon-gamma"]
+        concept.parents = ["Cytokine family"]
+        edges = _hierarchy_edges_from_concept(concept, ConceptType.CYTOKINE)
+        assert {e.term for e in edges if e.relation_label == "has_narrower"} == {
+            "Interleukin 6",
+            "Interferon-gamma",
+        }
+        assert {e.term for e in edges if e.relation_label == "has_broader"} == {"Cytokine family"}
+        assert all(e.source == "OLS" for e in edges)
+        assert all(e.concept_type == ConceptType.CYTOKINE for e in edges)
+
+    def test_skips_blank_and_bare_iri_labels(self):
+        concept = UnifiedConcept(
+            primary_id="ols:x", primary_label="x", sources=[KnowledgeSource.OLS]
+        )
+        concept.children = ["", "http://purl.obolibrary.org/obo/OBA_1", "Named Child"]
+        concept.parents = []
+        edges = _hierarchy_edges_from_concept(concept, None)
+        assert [e.term for e in edges] == ["Named Child"]
+
+
+class TestAdapterRelationshipSourceAllowlist:
+    @pytest.mark.asyncio
+    async def test_skips_adapters_outside_allowed_sources(self):
+        ols = MagicMock()
+        ols.get_relationships = AsyncMock(
+            return_value=[
+                {"relation_label": "has_narrower", "related_id": "n1", "related_name": "IL6"}
+            ]
+        )
+        string = MagicMock()
+        string.get_relationships = AsyncMock(return_value=[])
+        lookup = MagicMock()
+        lookup.adapters = {KnowledgeSource.OLS: ols, KnowledgeSource.STRING: string}
+        concept = UnifiedConcept(
+            primary_id="ols:cytokine",
+            primary_label="cytokine",
+            sources=[KnowledgeSource.OLS, KnowledgeSource.STRING],
+            concept_type=ConceptType.CYTOKINE,
+        )
+        terms = await AdapterRelationshipSource(
+            lookup, allowed_sources={KnowledgeSource.OLS}
+        ).expand(concept)
+        ols.get_relationships.assert_awaited()
+        string.get_relationships.assert_not_awaited()
+        assert [t.term for t in terms] == ["IL6"]
+
+    @pytest.mark.asyncio
+    async def test_native_id_preferred_over_primary_id(self):
+        ols = MagicMock()
+        ols.get_relationships = AsyncMock(return_value=[])
+        lookup = MagicMock()
+        lookup.adapters = {KnowledgeSource.OLS: ols}
+        concept = UnifiedConcept(
+            primary_id="SNOMED:999",  # merged winner the OLS adapter can't use
+            primary_label="cytokine",
+            sources=[KnowledgeSource.OLS],
+            concept_type=ConceptType.CYTOKINE,
+        )
+        concept.add_identifier(KnowledgeSource.OLS, "http://purl.obolibrary.org/obo/OBA_1")
+        await AdapterRelationshipSource(lookup, allowed_sources={KnowledgeSource.OLS}).expand(
+            concept
+        )
+        ols.get_relationships.assert_awaited_once_with(
+            "http://purl.obolibrary.org/obo/OBA_1"
+        )
+
+    @pytest.mark.asyncio
+    async def test_relation_labels_filter_drops_non_matching_edges(self):
+        ols = MagicMock()
+        ols.get_relationships = AsyncMock(
+            return_value=[
+                {"relation_label": "has_narrower", "related_id": "n1", "related_name": "IL6"},
+                {"relation_label": "interaction", "related_id": "n2", "related_name": "TNF"},
+            ]
+        )
+        lookup = MagicMock()
+        lookup.adapters = {KnowledgeSource.OLS: ols}
+        concept = UnifiedConcept(
+            primary_id="ols:cytokine",
+            primary_label="cytokine",
+            sources=[KnowledgeSource.OLS],
+            concept_type=ConceptType.CYTOKINE,
+        )
+        terms = await AdapterRelationshipSource(
+            lookup, allowed_sources={KnowledgeSource.OLS}, relation_labels={"has_narrower"}
+        ).expand(concept)
+        assert [t.term for t in terms] == ["IL6"]
+
+    def test_hierarchy_factory_restricts_to_ols_umls_taxonomic(self):
+        lookup = MagicMock()
+        lookup.adapters = {}
+        (src,) = hierarchy_relationship_sources(lookup)
+        assert src._allowed_sources == {KnowledgeSource.OLS, KnowledgeSource.UMLS}
+        assert "has_narrower" in src._relation_labels
+        assert "interaction" not in src._relation_labels
+
+    def test_associative_factory_restricts_to_associative_sources(self):
+        lookup = MagicMock()
+        lookup.adapters = {}
+        (src,) = associative_relationship_sources(lookup)
+        assert src._allowed_sources == {
+            KnowledgeSource.STRING,
+            KnowledgeSource.KEGG,
+            KnowledgeSource.DISGENET,
+            KnowledgeSource.OPENTARGETS,
+        }
+        assert "interaction" in src._relation_labels
+        assert "has_narrower" not in src._relation_labels
+
+    def test_default_factory_is_unrestricted(self):
+        lookup = MagicMock()
+        lookup.adapters = {}
+        (src,) = default_relationship_sources(lookup)
+        assert src._allowed_sources is None
+        assert src._relation_labels is None
+
+
+class TestMergeConceptTypeHandling:
+    def test_same_label_same_type_merges(self):
+        target = [
+            UnifiedConcept(
+                primary_id="a", primary_label="IL6", sources=[KnowledgeSource.OLS],
+                concept_type=ConceptType.PROTEIN,
+            )
+        ]
+        merge_concept_results(
+            target,
+            [
+                UnifiedConcept(
+                    primary_id="b", primary_label="IL6", sources=[KnowledgeSource.UMLS],
+                    concept_type=ConceptType.PROTEIN,
+                )
+            ],
+        )
+        assert len(target) == 1
+        assert target[0].has_source(KnowledgeSource.OLS)
+        assert target[0].has_source(KnowledgeSource.UMLS)
+
+    def test_same_label_different_type_keeps_both(self):
+        target = [
+            UnifiedConcept(
+                primary_id="a", primary_label="cytokine", sources=[KnowledgeSource.OLS],
+                concept_type=ConceptType.PROTEIN,
+            )
+        ]
+        merge_concept_results(
+            target,
+            [
+                UnifiedConcept(
+                    primary_id="b", primary_label="cytokine", sources=[KnowledgeSource.OLS],
+                    concept_type=ConceptType.BIOLOGICAL_PROCESS,
+                )
+            ],
+        )
+        assert len(target) == 2  # homonym kept, not merged
+
+    def test_unknown_type_merges_with_concrete(self):
+        target = [
+            UnifiedConcept(
+                primary_id="a", primary_label="X", sources=[KnowledgeSource.OLS],
+                concept_type=ConceptType.UNKNOWN,
+            )
+        ]
+        merge_concept_results(
+            target,
+            [
+                UnifiedConcept(
+                    primary_id="b", primary_label="X", sources=[KnowledgeSource.OLS],
+                    concept_type=ConceptType.PROTEIN,
+                )
+            ],
+        )
+        assert len(target) == 1
+
+    def test_merge_adopts_concrete_type_when_target_unknown(self):
+        target = UnifiedConcept(
+            primary_id="a", primary_label="X", sources=[KnowledgeSource.OLS],
+            concept_type=ConceptType.UNKNOWN,
+        )
+        source = UnifiedConcept(
+            primary_id="b", primary_label="X", sources=[KnowledgeSource.UMLS],
+            concept_type=ConceptType.PROTEIN,
+        )
+        merge_concept_fields(target, source)
+        assert target.concept_type == ConceptType.PROTEIN
+
+    def test_merge_does_not_overwrite_concrete_target_type(self):
+        target = UnifiedConcept(
+            primary_id="a", primary_label="X", sources=[KnowledgeSource.OLS],
+            concept_type=ConceptType.GENE,
+        )
+        source = UnifiedConcept(
+            primary_id="b", primary_label="X", sources=[KnowledgeSource.UMLS],
+            concept_type=ConceptType.PROTEIN,
+        )
+        merge_concept_fields(target, source)
+        assert target.concept_type == ConceptType.GENE
+
+
+class TestRelevanceRank:
+    def test_searched_members_rank_above_full_text_noise(self):
+        concepts = [
+            _concept("The Barbara Ann Karmanos Cancer Institute"),
+            _concept("cancer"),
+            _concept("digestive system cancer"),
+            _concept("Cancer Survivors"),
+        ]
+        ordered = relevance_rank(
+            concepts,
+            "cancer",
+            [["cancer"], ["digestive system cancer"]],
+        )
+        labels = [c.primary_label for c in ordered]
+        # The query and the searched member lead; lexical noise sinks to the end.
+        assert labels[0] == "cancer"
+        assert labels[1] == "digestive system cancer"
+        assert labels[-1] == "The Barbara Ann Karmanos Cancer Institute"
+
+    def test_nothing_is_dropped(self):
+        concepts = [_concept("cancer"), _concept("unrelated widget")]
+        ordered = relevance_rank(concepts, "cancer", [["cancer"]])
+        assert len(ordered) == len(concepts)
+        assert {c.primary_label for c in ordered} == {"cancer", "unrelated widget"}
+
+    def test_short_input_returned_unchanged(self):
+        single = [_concept("cancer")]
+        assert relevance_rank(single, "cancer", [["cancer"]]) is single
+        assert relevance_rank([], "cancer", [["cancer"]]) == []
+
+    def test_no_anchor_tokens_keeps_order(self):
+        concepts = [_concept("X Y"), _concept("A B")]
+        # All tokens too short / stopwords -> no anchors -> original order.
+        assert relevance_rank(concepts, "a", [["a"]]) == concepts
+
+    def test_relationship_members_beat_token_overlap(self):
+        cytokine = _concept("cytokine")
+        noise = _concept("Cytokine-containing product")
+        # A hierarchy member sharing no token with the class name; only the
+        # relationship provenance identifies it as the relevant hit.
+        member = _concept("Interleukin-12", concept_id="obo:NCIT_C16139")
+        generic = _concept("Signaling Pathway")
+        concepts = [noise, generic, member, cytokine]
+        ordered = relevance_rank(
+            concepts,
+            "cytokine",
+            [["cytokine"], ["Interleukin-12"]],
+            member_ids={"obo:NCIT_C16139"},
+        )
+        labels = [c.primary_label for c in ordered]
+        assert labels[0] == "cytokine"
+        # The member outranks the token-overlap noise and the generic term.
+        assert labels[1] == "Interleukin-12"
+        assert labels.index("Interleukin-12") < labels.index("Cytokine-containing product")
+
+    def test_membership_boost_is_id_or_label(self):
+        member_by_label = _concept("Interferon-gamma", concept_id="obo:X1")
+        member_by_id = _concept("Unrelated Name", concept_id="obo:X2")
+        other = _concept("gamma secretase")
+        ordered = relevance_rank(
+            [other, member_by_id, member_by_label],
+            "cytokine",
+            [["cytokine"]],
+            member_ids={"obo:X2"},
+            member_labels={"interferon gamma"},
+        )
+        labels = [c.primary_label for c in ordered]
+        # Both members outrank the non-member regardless of how each was tagged.
+        assert set(labels[:2]) == {"Interferon-gamma", "Unrelated Name"}
+        assert labels[-1] == "gamma secretase"

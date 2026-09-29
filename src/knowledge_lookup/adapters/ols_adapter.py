@@ -65,6 +65,26 @@ class OLSAdapter(KnowledgeSourceAdapter):
                     # Get the first match
                     term_data = data["_embedded"]["terms"][0]
                     concept = self._convert_ols_concept_to_unified(term_data)
+                    if concept is not None:
+                        links = term_data.get("_links", {}) or {}
+                        child_labels = [
+                            label
+                            for _iri, label in await self._fetch_linked_terms(
+                                (links.get("children") or {}).get("href")
+                            )
+                            if label
+                        ]
+                        parent_labels = [
+                            label
+                            for _iri, label in await self._fetch_linked_terms(
+                                (links.get("parents") or {}).get("href")
+                            )
+                            if label
+                        ]
+                        if child_labels:
+                            concept.children = child_labels
+                        if parent_labels:
+                            concept.parents = parent_labels
                     return concept
 
             return None
@@ -72,6 +92,62 @@ class OLSAdapter(KnowledgeSourceAdapter):
         except Exception as e:
             logger.error(f"Failed to get OLS concept details for '{concept_id}': {e}")
             return None
+
+    async def _fetch_linked_terms(
+        self, href: str | None, limit: int = 20
+    ) -> list[tuple[str, str]]:
+        """Follow an OLS ``_links`` hierarchy href (children/parents/...) and
+        return ``(iri, label)`` pairs. Any failure degrades to ``[]``."""
+        if not href:
+            return []
+        try:
+            base = href.split("?", 1)[0]
+            data = await self._make_request(base, {"size": max(1, min(limit, 200)), "page": 0})
+        except Exception as e:
+            logger.debug(f"OLS linked-terms request failed for {href}: {e}")
+            return []
+        terms = (data.get("_embedded") or {}).get("terms") or []
+        return [(t.get("iri", ""), t.get("label", "")) for t in terms if t.get("iri")]
+
+    async def get_relationships(self, concept_id: str, limit: int = 10) -> list[dict[str, Any]]:
+        """Return direct hierarchy neighbours of an OLS term as relationship
+        edges.
+
+        Resolves the term's ``_links.children``/``_links.parents`` (the API
+        supplies ready-to-follow hrefs, so no endpoint guessing) and returns
+        them in the adapter relationship shape. Narrower terms become
+        ``has_narrower`` (a class->member edge for class terms), broader terms
+        ``has_broader``. Non-IRI ids and any failure return ``[]``.
+        """
+        if not concept_id or "http" not in concept_id:
+            return []
+        try:
+            data = await self._make_request(f"{self.base_url}/terms", {"iri": concept_id})
+            terms = (data.get("_embedded") or {}).get("terms") or []
+            if not terms:
+                return []
+            links = terms[0].get("_links", {}) or {}
+        except Exception as e:
+            logger.error(f"OLS get_relationships failed for '{concept_id}': {e}")
+            return []
+
+        rels: list[dict[str, Any]] = []
+        for key, label in (("children", "has_narrower"), ("parents", "has_broader")):
+            href = (links.get(key) or {}).get("href")
+            for iri, name in await self._fetch_linked_terms(href, limit=limit):
+                if not name:
+                    continue
+                rels.append(
+                    {
+                        "relation_label": label,
+                        "related_id": iri,
+                        "related_name": name,
+                        "source": "OLS",
+                    }
+                )
+                if len(rels) >= limit:
+                    return rels
+        return rels
 
     def _convert_ols_result_to_concept(self, result: dict[str, Any]) -> UnifiedConcept | None:
         """Convert OLS search result to unified concept."""

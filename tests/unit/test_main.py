@@ -417,3 +417,61 @@ class TestWorkflowCLI:
         assert result.exit_code == 0, result.output
         assert "Do you approve" not in result.output
         resume.assert_not_awaited()
+
+
+class TestSearchExpansionFlags:
+    """The --expand / --relationships / --expand-hierarchy flag wiring."""
+
+    @pytest.fixture
+    def runner(self):
+        return CliRunner()
+
+    def _mock_lookup(self):
+        from knowledge_lookup.models import LookupResult
+
+        lookup = AsyncMock()
+        lookup.search_concepts.return_value = LookupResult(query="q", concepts=[])
+        lookup.search_concepts_expanded.return_value = LookupResult(query="q", concepts=[])
+        return lookup
+
+    def test_plain_search_uses_search_concepts(self, runner):
+        lookup = self._mock_lookup()
+        with patch("knowledge_lookup.__main__.CentralKnowledgeLookup", return_value=lookup):
+            result = runner.invoke(main.app, ["search", "q"])
+        assert result.exit_code == 0
+        lookup.search_concepts.assert_awaited_once()
+        lookup.search_concepts_expanded.assert_not_awaited()
+
+    def test_expand_flag_uses_expanded_without_relationships(self, runner):
+        lookup = self._mock_lookup()
+        with patch("knowledge_lookup.__main__.CentralKnowledgeLookup", return_value=lookup):
+            result = runner.invoke(main.app, ["search", "q", "--expand"])
+        assert result.exit_code == 0
+        lookup.search_concepts.assert_not_awaited()
+        lookup.search_concepts_expanded.assert_awaited_once()
+        assert not lookup.search_concepts_expanded.await_args.kwargs.get("relationships")
+
+    def test_relationships_flag_requests_relationships_with_default_sources(self, runner):
+        lookup = self._mock_lookup()
+        with patch("knowledge_lookup.__main__.CentralKnowledgeLookup", return_value=lookup):
+            result = runner.invoke(main.app, ["search", "q", "--relationships"])
+        assert result.exit_code == 0
+        kwargs = lookup.search_concepts_expanded.await_args.kwargs
+        assert kwargs.get("relationships") is True
+        # no explicit sources -> central builds the unrestricted default set
+        assert kwargs.get("relationship_sources") is None
+
+    def test_expand_hierarchy_flag_passes_taxonomic_sources(self, runner):
+        from knowledge_lookup.core.term_expansion import AdapterRelationshipSource
+        from knowledge_lookup.models import KnowledgeSource
+
+        lookup = self._mock_lookup()
+        with patch("knowledge_lookup.__main__.CentralKnowledgeLookup", return_value=lookup):
+            result = runner.invoke(main.app, ["search", "q", "--expand-hierarchy"])
+        assert result.exit_code == 0
+        kwargs = lookup.search_concepts_expanded.await_args.kwargs
+        assert kwargs.get("relationships") is True
+        sources = kwargs.get("relationship_sources")
+        assert sources and len(sources) == 1
+        assert isinstance(sources[0], AdapterRelationshipSource)
+        assert sources[0]._allowed_sources == {KnowledgeSource.OLS, KnowledgeSource.UMLS}

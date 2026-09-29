@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Class → member term expansion.** A hierarchy-only relationship source
+  (`hierarchy_relationship_sources`, restricted to taxonomic *is-a* edges) lets a
+  class term surface its own members — searching "cytokine" now reaches
+  interleukins, interferons and chemokines rather than stalling on synonyms.
+  `is_taxonomic_relation()` classifies `has_narrower`/`has_broader` (OLS) and
+  parent/child (UMLS) edges as class↔member, distinguishing them from the
+  associative edges (STRING interactions, KEGG memberships, disease/gene
+  associations) collected by the complementary `associative_relationship_sources`.
+- **OLS `get_relationships`.** The OLS adapter now walks `has_narrower` /
+  `has_broader` (and reports the same edges from `get_concept_details`), giving
+  the hierarchy expansion a real class/member graph to traverse.
+- **CLI expansion controls** (`knowledge-lookup search`): `--expand`/`-e` runs
+  iterative term expansion, `--relationships` adds associative edges, and
+  `--expand-hierarchy` traverses only taxonomic class↔member edges (both imply
+  `--expand`). The LangGraph workflow gained an `include_relationships` flag
+  threaded through `state`/`runners`.
+- **Relevance ranking of expanded results** (`relevance_rank`). Expanded searches
+  are ordered so `--limit`/`max_results` truncates the noisiest full-text matches
+  instead of the relevant hits: the query concept first, then concepts reached
+  through a harvested relationship edge (the class→member results, which carry no
+  token overlap with the class name yet are the point of the expansion), then
+  concepts equal to a searched synonym/long-form term, then everything else by how
+  much of its label the searched tokens cover. Ordering only — nothing is dropped
+  and ties keep their original sequence.
+
+### Fixed
+- A synonym-rich expansion round can no longer starve relationship traversal:
+  when relationship sources are active a slot of each capped round is reserved so
+  a class term reliably searches the members its relations point to.
+
 
 ## [2.2.0] - 2026-09-28
 

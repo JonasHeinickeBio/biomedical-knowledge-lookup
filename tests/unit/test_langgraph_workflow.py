@@ -424,13 +424,64 @@ class TestExpandNode:
 
         assert result["expanded_search_terms"] == ["aspirin"]
 
+    def test_expand_node_passes_default_relationship_sources_when_flagged(self):
+        from unittest.mock import AsyncMock, patch
+
+        from knowledge_lookup.agents.nodes.expand import expand_node
+        from knowledge_lookup.core.term_expansion import ExpansionTrace
+
+        state = _make_state(
+            query="cytokine", expanded_search_terms=["cytokine"], include_relationships=True
+        )
+        trace = ExpansionTrace(
+            run_id=1, rounds_run=1, stop_reason="fixed_point", terms_by_round=[["cytokine"]]
+        )
+        sentinel = object()
+        expand = AsyncMock(return_value=(_make_lookup_result(), trace))
+        with (
+            patch("knowledge_lookup.agents.nodes.expand.expand_and_search", new=expand),
+            patch(
+                "knowledge_lookup.agents.nodes.expand.default_relationship_sources",
+                return_value=[sentinel],
+            ) as factory,
+            patch("knowledge_lookup.agents.nodes.expand.CentralKnowledgeLookup") as mock_ckl,
+        ):
+            mock_ckl.return_value.close = AsyncMock()
+            asyncio.run(expand_node(state))
+
+        factory.assert_called_once()
+        assert expand.await_args.kwargs["relationship_sources"] == [sentinel]
+
+    def test_expand_node_omits_relationship_sources_by_default(self):
+        from unittest.mock import AsyncMock, patch
+
+        from knowledge_lookup.agents.nodes.expand import expand_node
+        from knowledge_lookup.core.term_expansion import ExpansionTrace
+
+        state = _make_state(query="copd", expanded_search_terms=["copd"])
+        trace = ExpansionTrace(
+            run_id=1, rounds_run=1, stop_reason="fixed_point", terms_by_round=[["copd"]]
+        )
+        expand = AsyncMock(return_value=(_make_lookup_result(), trace))
+        with (
+            patch("knowledge_lookup.agents.nodes.expand.expand_and_search", new=expand),
+            patch(
+                "knowledge_lookup.agents.nodes.expand.default_relationship_sources"
+            ) as factory,
+            patch("knowledge_lookup.agents.nodes.expand.CentralKnowledgeLookup") as mock_ckl,
+        ):
+            mock_ckl.return_value.close = AsyncMock()
+            asyncio.run(expand_node(state))
+
+        factory.assert_not_called()
+        assert expand.await_args.kwargs["relationship_sources"] is None
+
     def test_expand_node_reports_error_without_raising(self):
         from unittest.mock import AsyncMock, patch
 
         from knowledge_lookup.agents.nodes.expand import expand_node
 
         state = _make_state(query="x", expanded_search_terms=["x"])
-
         with (
             patch(
                 "knowledge_lookup.agents.nodes.expand.expand_and_search",
@@ -490,6 +541,39 @@ def stub_network_nodes(monkeypatch):
         "knowledge_lookup.agents.nodes.review.load_llm_config", lambda: dict(_NO_LLM)
     )
     return lookups
+
+
+class TestInitialStateRelationships:
+    def test_include_relationships_defaults_false(self):
+        from knowledge_lookup.agents.runners import _initial_state
+
+        state = _initial_state(
+            "cytokine",
+            max_results=10,
+            sources=None,
+            concept_types=None,
+            export_formats=None,
+            export_path=None,
+            max_iterations=3,
+            auto_approve_threshold=0.8,
+        )
+        assert state["include_relationships"] is False
+
+    def test_include_relationships_is_plumbed(self):
+        from knowledge_lookup.agents.runners import _initial_state
+
+        state = _initial_state(
+            "cytokine",
+            max_results=10,
+            sources=None,
+            concept_types=None,
+            export_formats=None,
+            export_path=None,
+            max_iterations=3,
+            auto_approve_threshold=0.8,
+            include_relationships=True,
+        )
+        assert state["include_relationships"] is True
 
 
 class TestRunnersPauseResume:

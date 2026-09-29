@@ -72,6 +72,26 @@ def search(
     partial: bool = typer.Option(
         False, "--partial", "-p", help="Enable partial/fuzzy matching (UMLS adapter)"
     ),
+    expand: bool = typer.Option(
+        False,
+        "--expand",
+        "-e",
+        help="Iteratively expand the query with synonyms/long-forms discovered from results "
+        "and search each new term (uses search_concepts_expanded)",
+    ),
+    relationships: bool = typer.Option(
+        False,
+        "--relationships",
+        help="With --expand, also traverse relationship edges (STRING interactions, KEGG "
+        "pathways, DisGeNET/Open Targets associations) and search their named targets "
+        "(implies --expand)",
+    ),
+    expand_hierarchy: bool = typer.Option(
+        False,
+        "--expand-hierarchy",
+        help="With --expand, traverse only taxonomic class<->member edges (OLS narrower/"
+        "broader, UMLS parent/child) so a class term surfaces its members (implies --expand)",
+    ),
 ):
     """
     Search for biological concepts across knowledge sources.
@@ -119,6 +139,31 @@ def search(
                         result = LookupResult(query=query)
                         result.add_concepts(umls_concepts, KnowledgeSource.UMLS)
                         return result
+                if expand or relationships or expand_hierarchy:
+                    if expand_hierarchy:
+                        from knowledge_lookup.core.term_expansion import (
+                            hierarchy_relationship_sources,
+                        )
+
+                        return await lkp.search_concepts_expanded(
+                            query=query,
+                            sources=source_enums,
+                            max_results=limit,
+                            relationships=True,
+                            relationship_sources=hierarchy_relationship_sources(lkp),
+                        )
+                    if relationships:
+                        return await lkp.search_concepts_expanded(
+                            query=query,
+                            sources=source_enums,
+                            max_results=limit,
+                            relationships=True,
+                        )
+                    return await lkp.search_concepts_expanded(
+                        query=query,
+                        sources=source_enums,
+                        max_results=limit,
+                    )
                 return await lkp.search_concepts(
                     query=query,
                     sources=source_enums,
@@ -249,6 +294,11 @@ def workflow(
     concept_types: list[str] | None = typer.Option(
         None, "--type", "-t", help="Filter by concept types"
     ),
+    relationships: bool = typer.Option(
+        False,
+        "--relationships",
+        help="Expand the search with relationship edges (interactions, pathways, class members)",
+    ),
 ):
     """
     Run the intelligent agent workflow with review and approval.
@@ -284,6 +334,7 @@ def workflow(
             export_path=export_path,
             max_iterations=max_iterations,
             auto_approve_threshold=auto_approve,
+            include_relationships=relationships,
         )
 
     result = asyncio.run(_run())
