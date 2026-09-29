@@ -44,6 +44,9 @@ class LookupWorkflowState(TypedDict):
     normalized_query: str  # Cleaned/normalized version of the query
     original_query: str  # Original query as provided
     expanded_search_terms: list[str]  # Flat list of ALL search variants (searched in parallel)
+    include_relationships: (
+        bool  # Opt-in relationship-edge expansion (interactions, pathways, class members)
+    )
     is_german: bool  # Whether the query appears to be German
     quality_score: float | None  # Quality gate score (0-1)
     quality_details: dict | None  # Quality breakdown

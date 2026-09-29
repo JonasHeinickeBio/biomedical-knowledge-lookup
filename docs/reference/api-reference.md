@@ -35,7 +35,7 @@ Attributes: `config`, `adapters` (`dict[KnowledgeSource, KnowledgeSourceAdapter]
 | Method | Returns | Guide |
 | --- | --- | --- |
 | *async* `search_concepts(query, concept_types=None, sources=None, max_results=50, parallel=True)` | `LookupResult` | [Searching concepts](../guides/searching-concepts.md) |
-| *async* `search_concepts_expanded(query, concept_types=None, sources=None, max_results=50, max_rounds=3, max_terms_per_round=10, abbreviation_sources=None, persist=True)` | `LookupResult` | [Term expansion](../guides/term-expansion.md) |
+| *async* `search_concepts_expanded(query, concept_types=None, sources=None, max_results=50, max_rounds=3, max_terms_per_round=10, abbreviation_sources=None, relationships=False, relationship_sources=None, persist=True, route=True)` | `LookupResult` | [Term expansion](../guides/term-expansion.md) |
 | *async* `get_concept_details(concept_id, source=None, timeout=None)` | `UnifiedConcept \| None` | [Searching concepts](../guides/searching-concepts.md) |
 | *async* `find_mappings(concept_id, target_sources=None)` | `list[ConceptIdentifier]` | [Searching concepts](../guides/searching-concepts.md) |
 | *async* `get_concept_hierarchy(concept_id, levels=1, direction="both")` | `dict[str, list[UnifiedConcept]]` with `parents`, `children`, `siblings` | [Searching concepts](../guides/searching-concepts.md) |
@@ -100,10 +100,16 @@ Module `knowledge_lookup.core.term_expansion`:
 
 | Name | Description |
 | --- | --- |
-| *async* `expand_and_search(lookup, query, *, concept_types=None, sources=None, max_results=50, max_rounds=3, max_terms_per_round=10, abbreviation_sources=None, store=None, persist=True)` | Returns `tuple[LookupResult, ExpansionTrace]` |
-| `ExpansionTrace` | Dataclass: `run_id`, `rounds_run`, `stop_reason`, `terms_by_round`, property `all_terms_tried` |
+| *async* `expand_and_search(lookup, query, *, concept_types=None, sources=None, max_results=50, max_rounds=3, max_terms_per_round=10, abbreviation_sources=None, relationship_sources=None, max_relationship_concepts=10, store=None, persist=True, route=True)` | Returns `tuple[LookupResult, ExpansionTrace]` |
+| `ExpansionTrace` | Dataclass: `run_id`, `rounds_run`, `stop_reason`, `terms_by_round`, `relationships`, property `all_terms_tried` |
 | `AbbreviationSource` | Protocol with *async* `expand(term) -> list[tuple[str, str]]` |
 | `UMLSAbbreviationSource(config=None)` | Default abbreviation source; *async* `expand(term)`, *async* `close()` |
+| `RelationshipSource` | Protocol with *async* `expand(concept) -> list[RelatedTerm]` |
+| `RelatedTerm` | Dataclass: `term`, `concept_type`, `relation_label`, `related_id`, `source` |
+| `AdapterRelationshipSource(lookup, limit_per_concept=10, relation_labels=None, allowed_sources=None)` | Harvests edges from adapters exposing `get_relationships()`; *async* `expand(concept)` |
+| `default_relationship_sources(lookup)` | Default sources: KEGG, UMLS, STRING, DisGeNET, Open Targets |
+| `hierarchy_relationship_sources(lookup)` | Taxonomic class↔member edges only (OLS, UMLS) |
+| `associative_relationship_sources(lookup)` | Interactions/pathways/associations only (STRING, KEGG, DisGeNET, Open Targets) |
 | `merge_concept_results(target, new_concepts)` | Merge concept lists in place by normalized label |
 
 Module `knowledge_lookup.core.expansion_store`:

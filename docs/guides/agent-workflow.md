@@ -80,6 +80,7 @@ asyncio.run(main())
 | `export_path` | `<temp dir>/knowledge_lookup_export` | Directory for exported files, named after the query |
 | `max_iterations` | `3` | Maximum number of lookup passes (initial search plus refinements) |
 | `auto_approve_threshold` | `0.8` | Review score at or above which results are exported without asking |
+| `include_relationships` | `False` | Include relationship-edge expansion (interactions, pathways, class members) in the `expand` step; CLI: `--relationships` |
 | `checkpointer` | shared in-memory saver | LangGraph checkpointer that stores paused runs; see [Approval and refinement](#approval-and-refinement) |
 
 The returned `dict` contains `thread_id`, `status`, `approval_request`, `result` (a `LookupResult` or `None`), `review_score`, `review_summary`, `review_strengths`, `review_weaknesses`, `review_suggestions`, `concept_map`, `llm_explanation`, `aggregated_context`, `export_paths`, `errors`, `steps` (one record per executed node with `agent`, `action`, `timestamp` and `detail`) and `iteration`. `status` is `"completed"`, `"failed"` or, when the run paused for a decision, `"awaiting_approval"`.

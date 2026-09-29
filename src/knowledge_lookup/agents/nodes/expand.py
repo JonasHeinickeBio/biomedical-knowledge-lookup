@@ -34,7 +34,11 @@ from __future__ import annotations
 import asyncio
 
 from ...core.central_lookup import CentralKnowledgeLookup
-from ...core.term_expansion import AbbreviationSource, expand_and_search
+from ...core.term_expansion import (
+    AbbreviationSource,
+    default_relationship_sources,
+    expand_and_search,
+)
 from ...models import KnowledgeSource, LookupConfig
 from ..state import LookupWorkflowState, make_step
 from . import _limits
@@ -66,6 +70,12 @@ async def expand_node(state: LookupWorkflowState) -> dict:
         None if source_filter is None or KnowledgeSource.UMLS in source_filter else []
     )
     lookup = CentralKnowledgeLookup(config=config, auto_initialize=True)
+    # Relationship-edge expansion (interactions, pathways, associations, class
+    # members) is opt-in via the workflow state; off by default so the bounded
+    # quality pass stays cheap unless a caller asks for a relationship network.
+    relationship_sources = (
+        default_relationship_sources(lookup) if state.get("include_relationships") else None
+    )
     try:
         _, trace = await asyncio.wait_for(
             expand_and_search(
@@ -75,6 +85,7 @@ async def expand_node(state: LookupWorkflowState) -> dict:
                 max_rounds=_MAX_ROUNDS,
                 max_terms_per_round=_MAX_TERMS_PER_ROUND,
                 abbreviation_sources=abbreviation_sources,
+                relationship_sources=relationship_sources,
             ),
             timeout=_limits.EXPAND_TIMEOUT,
         )

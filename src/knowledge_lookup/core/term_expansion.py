@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -253,6 +254,110 @@ def _infer_related_concept_type(
     return source_ct
 
 
+#: Relation labels expressing a *taxonomic* (is-a / subclass) link between a
+#: broader class and a narrower member of that class — a "cytokine"->"interleukin
+#: 6" class/member edge. OLS contributes ``has_narrower``/``has_broader``;
+#: UMLS semantic relations contribute the parent/child and tree-number labels.
+TAXONOMIC_RELATION_LABELS: frozenset[str] = frozenset(
+    {
+        "has_narrower",
+        "has_broader",
+        "narrower",
+        "broader",
+        "narrower_than",
+        "broader_than",
+        "narrower_term",
+        "wider",
+        "parent",
+        "child",
+        "parents",
+        "children",
+        "has_parent",
+        "has_child",
+        "parent_tree_number",
+        "child_tree_number",
+        "isa",
+        "is_a",
+        "subclass_of",
+        "superclass_of",
+        "has_subclass",
+        "has_superclass",
+    }
+)
+
+#: Relation labels expressing an *associative* link — a gene's pathway, a
+#: protein's interaction partner, a disease's associated gene — i.e. a
+#: co-occurrence edge rather than a class/member one.
+ASSOCIATIVE_RELATION_LABELS: frozenset[str] = frozenset(
+    {
+        "interaction",
+        "interacts_with",
+        "partner",
+        "pathway",
+        "has_pathway",
+        "has_gene",
+        "gene",
+        "associated_with",
+        "association",
+        "disease",
+        "target",
+        "enzyme",
+        "compound",
+        "membership",
+        "member",
+    }
+)
+
+
+def is_taxonomic_relation(relation_label: str | None) -> bool:
+    """Whether *relation_label* denotes a class<->member (is-a) edge rather
+    than an associative one."""
+    return (relation_label or "").strip().lower() in TAXONOMIC_RELATION_LABELS
+
+
+def _native_id_for_source(concept: Any, source: Any) -> str | None:
+    """Return the identifier on *concept* that *source* keys on, if any.
+
+    Searches ``concept.identifiers`` for one whose ``source`` matches and, when
+    several exist (e.g. OLS stores both an IRI and a short form), prefers a
+    URL-shaped one — ontology/hierarchy adapters resolve IRIs, whereas gene-
+    and CUI-keyed adapters store a single id so the preference is a no-op for
+    them. Returns ``None`` when the concept carries no identifier for *source*.
+    """
+    candidates = [
+        str(ident.identifier)
+        for ident in (getattr(concept, "identifiers", None) or [])
+        if getattr(ident, "source", None) == source and getattr(ident, "identifier", None)
+    ]
+    for cand in candidates:
+        if cand.startswith("http"):
+            return cand
+    return candidates[0] if candidates else None
+
+
+def _hierarchy_edges_from_concept(
+    concept: Any, source_ct: ConceptType | None
+) -> list[RelatedTerm]:
+    """Turn a concept's pre-resolved ``children``/``parents`` label lists into
+    :class:`RelatedTerm` edges (skipping blanks and bare IRIs we cannot name)."""
+    edges: list[RelatedTerm] = []
+    for attr, label in (("children", "has_narrower"), ("parents", "has_broader")):
+        for value in getattr(concept, attr, None) or []:
+            name = (str(value) or "").strip()
+            if not name or name.startswith("http"):
+                continue
+            edges.append(
+                RelatedTerm(
+                    term=name,
+                    concept_type=source_ct,
+                    relation_label=label,
+                    related_id=name,
+                    source="OLS",
+                )
+            )
+    return edges
+
+
 class AdapterRelationshipSource:
     """Harvest relationship edges by delegating to a concept's own adapter.
 
@@ -266,16 +371,30 @@ class AdapterRelationshipSource:
     failures degrade to ``[]`` — this never raises.
     """
 
-    def __init__(self, lookup: CentralKnowledgeLookup, limit_per_concept: int = 10) -> None:
+    def __init__(
+        self,
+        lookup: CentralKnowledgeLookup,
+        limit_per_concept: int = 10,
+        relation_labels: set[str] | None = None,
+        allowed_sources: set[Any] | None = None,
+    ) -> None:
         self._lookup = lookup
         self._limit_per_concept = limit_per_concept
+        # When set, keep only edges whose relation_label is in this set
+        # (lower-cased). None keeps every edge.
+        self._relation_labels = (
+            {label.lower() for label in relation_labels} if relation_labels is not None else None
+        )
+        # When set, only *call* adapters whose source is in this set. This avoids
+        # firing (and paying for / erroring on) adapters that cannot contribute
+        # the requested edge type — e.g. hierarchy-only expansion need not query
+        # STRING/KEGG/Open Targets at all. None calls every available adapter.
+        self._allowed_sources = set(allowed_sources) if allowed_sources is not None else None
 
     async def expand(self, concept: Any) -> list[RelatedTerm]:
         from ..models import KnowledgeSource
 
         primary_id = getattr(concept, "primary_id", None)
-        if not primary_id:
-            return []
         source_ct = _as_concept_type(getattr(concept, "concept_type", None))
 
         sources = getattr(concept, "sources", None) or []
@@ -288,16 +407,27 @@ class AdapterRelationshipSource:
 
         results: list[RelatedTerm] = []
         for source in targets:
+            if self._allowed_sources is not None and source not in self._allowed_sources:
+                continue
             adapter = self._lookup.adapters.get(source)
             get_relationships = getattr(adapter, "get_relationships", None)
             if get_relationships is None:
                 continue
+            # Query the adapter with the identifier *it* understands, not the
+            # merged concept's primary id: a merged concept's ``primary_id`` is
+            # whichever source happened to win the merge (e.g. a SNOMED URI),
+            # while STRING keys on a gene symbol, UMLS on a CUI and OLS on an
+            # IRI. Resolve a native id from ``concept.identifiers`` for this
+            # source and fall back to ``primary_id`` only when none is present.
+            native_id = _native_id_for_source(concept, source) or primary_id
+            if not native_id:
+                continue
             try:
-                rels = await get_relationships(primary_id)
+                rels = await get_relationships(native_id)
             except Exception as exc:  # noqa: BLE001 - best-effort, never abort the caller
                 logger.debug(
                     "AdapterRelationshipSource: get_relationships failed for %s (%s): %s",
-                    primary_id,
+                    native_id,
                     source,
                     exc,
                 )
@@ -315,7 +445,60 @@ class AdapterRelationshipSource:
                         source=rel.get("source"),
                     )
                 )
+
+        # Ontology adapters that already resolved a hierarchy populate
+        # ``children``/``parents`` (a list of labels) on the concept itself;
+        # harvest those as edges too so a hierarchy obtained during a detail
+        # lookup expands even without a second ``get_relationships`` call.
+        results.extend(_hierarchy_edges_from_concept(concept, source_ct))
+        if self._relation_labels is not None:
+            results = [
+                r
+                for r in results
+                if (r.relation_label or "").strip().lower() in self._relation_labels
+            ]
         return results
+
+
+def hierarchy_relationship_sources(
+    lookup: CentralKnowledgeLookup,
+) -> list[RelationshipSource]:
+    """Relationship sources restricted to *taxonomic* class<->member edges — OLS
+    narrower/broader and UMLS parent/child — dropping associative links such as
+    STRING interaction partners or KEGG gene/pathway memberships. Used for a
+    hierarchy-only expansion (a class term surfacing its members and super/sub
+    classes) as opposed to the full associative network."""
+    from ..models import KnowledgeSource
+
+    return [
+        AdapterRelationshipSource(
+            lookup,
+            relation_labels=set(TAXONOMIC_RELATION_LABELS),
+            allowed_sources={KnowledgeSource.OLS, KnowledgeSource.UMLS},
+        )
+    ]
+
+
+def associative_relationship_sources(
+    lookup: CentralKnowledgeLookup,
+) -> list[RelationshipSource]:
+    """Relationship sources restricted to *associative* edges (interactions,
+    pathway memberships, disease/gene associations), dropping taxonomic
+    class/member edges. The complement of :func:`hierarchy_relationship_sources`."""
+    from ..models import KnowledgeSource
+
+    return [
+        AdapterRelationshipSource(
+            lookup,
+            relation_labels=set(ASSOCIATIVE_RELATION_LABELS),
+            allowed_sources={
+                KnowledgeSource.STRING,
+                KnowledgeSource.KEGG,
+                KnowledgeSource.DISGENET,
+                KnowledgeSource.OPENTARGETS,
+            },
+        )
+    ]
 
 
 def default_relationship_sources(
@@ -339,6 +522,29 @@ class ExpansionTrace:
     @property
     def all_terms_tried(self) -> list[str]:
         return [t for round_terms in self.terms_by_round for t in round_terms]
+
+
+def _concrete_concept_type(concept: Any) -> str | None:
+    """Return *concept*'s concept type as an upper-cased string, or ``None``
+    when it is unset or the placeholder ``UNKNOWN``."""
+    ct = getattr(concept, "concept_type", None)
+    value = getattr(ct, "value", ct)
+    if value is None:
+        return None
+    text = str(value).upper()
+    return None if text == "UNKNOWN" else text
+
+
+def _same_concept_type(a: Any, b: Any) -> bool:
+    """Whether two same-label concepts describe the same kind of thing, so they
+    are safe to merge. Concepts whose type is unset/UNKNOWN merge with anything;
+    two concepts with *different* concrete types (e.g. a physical entity vs a
+    physiological process sharing a label) are treated as homonyms."""
+    ta = _concrete_concept_type(a)
+    tb = _concrete_concept_type(b)
+    if ta is None or tb is None:
+        return True
+    return ta == tb
 
 
 def merge_concept_results(target: list[Any], new_concepts: list[Any]) -> None:
@@ -367,11 +573,21 @@ def merge_concept_results(target: list[Any], new_concepts: list[Any]) -> None:
             target.append(c)
         elif label in seen_labels:
             existing = next(
-                (ec for ec in target if (ec.primary_label or "").lower().strip() == label),
+                (
+                    ec
+                    for ec in target
+                    if (ec.primary_label or "").lower().strip() == label
+                    and _same_concept_type(ec, c)
+                ),
                 None,
             )
             if existing is not None:
                 merge_concept_fields(existing, c)
+            else:
+                # Same label, different concrete concept type: a homonym (e.g. a
+                # physical entity vs a process). Keep both rather than merging
+                # two unrelated meanings into one concept.
+                target.append(c)
 
 
 def merge_concept_fields(target: Any, source: Any) -> None:
@@ -410,6 +626,14 @@ def merge_concept_fields(target: Any, source: Any) -> None:
             target.sources = []
         if str(src) not in [str(x) for x in target.sources]:
             target.sources.append(src)
+
+    # Preserve a concrete concept type across the merge: a concept that came
+    # back as UNKNOWN (common for merged ontology terms) adopts the other's
+    # concrete type so downstream typing and routing are not lost.
+    if _concrete_concept_type(target) is None:
+        source_ct = _concrete_concept_type(source)
+        if source_ct is not None:
+            target.concept_type = source.concept_type
 
 
 #: Default number of concept labels the abbreviation sources are asked about in
@@ -519,6 +743,96 @@ async def _ask_relationship_sources(
         answers[getattr(concept, "primary_id", "")].extend(rels)
 
 
+_EXPANSION_STOPWORDS = frozenset(
+    {
+        "the",
+        "of",
+        "and",
+        "a",
+        "an",
+        "to",
+        "in",
+        "for",
+        "on",
+        "or",
+        "is",
+        "with",
+        "by",
+        "from",
+        "at",
+        "as",
+        "that",
+        "this",
+        "its",
+        "via",
+        "not",
+    }
+)
+
+
+def _normalize_term(text: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", (text or "").lower())).strip()
+
+
+def _expansion_tokens(text: str) -> set[str]:
+    return {
+        tok
+        for tok in re.split(r"[^a-z0-9]+", (text or "").lower())
+        if len(tok) > 2 and tok not in _EXPANSION_STOPWORDS
+    }
+
+
+def relevance_rank(
+    concepts: list[Any],
+    query: str,
+    terms_by_round: list[list[str]],
+    member_ids: set[str] | None = None,
+    member_labels: set[str] | None = None,
+) -> list[Any]:
+    """Order expanded concepts by relevance to what the search actually used.
+
+    Concepts are bucketed into tiers, earliest first: (1) the concept that equals
+    the query, (2) concepts reached through a harvested relationship edge — the
+    class->members a hierarchy search surfaces (e.g. interleukins for a "cytokine"
+    query), which carry no token overlap with the class name yet are the whole
+    point of the expansion, (3) concepts equal to one of the searched terms
+    (synonyms, long forms), and (4) everything else ordered by how much of their
+    label is covered by the tokens of the query and searched terms. Loose full-text
+    matches (for example "Cancer Survivors" for a "cancer" query) sink to the
+    bottom. Nothing is dropped and ties keep their original order, so
+    ``--limit``/``max_results`` truncate the noisiest results instead of the most
+    relevant members.
+    """
+    if len(concepts) < 2:
+        return concepts
+    anchors: set[str] = set()
+    exact: set[str] = set()
+    for text in [query, *(t for round_terms in terms_by_round for t in round_terms)]:
+        anchors |= _expansion_tokens(text)
+        normalized = _normalize_term(text)
+        if normalized:
+            exact.add(normalized)
+    if not anchors:
+        return concepts
+    member_ids = member_ids or set()
+    member_labels = member_labels or set()
+    query_norm = _normalize_term(query)
+
+    def rank_key(item: tuple[int, Any]) -> tuple[int, int, int, float, int]:
+        index, concept = item
+        label = str(getattr(concept, "primary_label", "") or "").strip().lower()
+        normalized = _normalize_term(label)
+        pid = str(getattr(concept, "primary_id", "") or "").strip()
+        tokens = _expansion_tokens(label)
+        coverage = (len(tokens & anchors) / len(tokens)) if tokens else 0.0
+        query_tier = 0 if normalized and normalized == query_norm else 1
+        member_tier = 0 if (normalized in member_labels or pid in member_ids) else 1
+        exact_tier = 0 if normalized in exact else 1
+        return (query_tier, member_tier, exact_tier, -coverage, index)
+
+    return [concept for _, concept in sorted(enumerate(concepts), key=rank_key)]
+
+
 async def expand_and_search(
     lookup: CentralKnowledgeLookup,
     query: str,
@@ -618,6 +932,8 @@ async def expand_and_search(
     sources_succeeded: set[str] = set()
     sources_failed: set[str] = set()
     errors: dict[str, str] = {}
+    member_ids: set[str] = set()
+    member_labels: set[str] = set()
 
     round_terms = [query]
     round_num = 0
@@ -669,7 +985,17 @@ async def expand_and_search(
                 sources_succeeded.add(str(s))
             for s in result.sources_failed or []:
                 sources_failed.add(str(s))
-            merge_concept_results(all_concepts, result.concepts or [])
+            concepts = result.concepts or []
+            merge_concept_results(all_concepts, concepts)
+            origin = term_origin.get(term.strip().lower(), (ORIGIN_ORIGINAL, None))[0]
+            if origin == ORIGIN_RELATIONSHIP:
+                for concept in concepts:
+                    pid = str(getattr(concept, "primary_id", "") or "").strip()
+                    if pid:
+                        member_ids.add(pid)
+                    normalized = _normalize_term(getattr(concept, "primary_label", "") or "")
+                    if normalized:
+                        member_labels.add(normalized)
 
         # Harvest next round's candidate terms from everything found so far.
         # Abbreviations are recorded but never searched: a bare abbreviation
@@ -692,13 +1018,26 @@ async def expand_and_search(
                 abbreviation_answers,
             )
 
+        # Reserve part of the capped round for relationship targets. When
+        # relationship sources are active, synonyms are held to the complement
+        # so a synonym-rich round can no longer leave zero slots for
+        # relationship edges (which is what stopped a class term like
+        # "cytokine" from ever searching the members its relations pointed to).
+        rel_reserve = max(1, max_terms_per_round // 2) if relationship_sources else 0
+        synonym_cap = max(1, max_terms_per_round - rel_reserve)
+
         for concept in all_concepts:
             concept_id = getattr(concept, "primary_id", None)
             concept_ct = _as_concept_type(getattr(concept, "concept_type", None))
             for syn in concept.synonyms or []:
                 syn = (syn or "").strip()
                 key = syn.lower()
-                if syn and key not in tried and key not in next_terms:
+                if (
+                    syn
+                    and key not in tried
+                    and key not in next_terms
+                    and len(next_terms) < synonym_cap
+                ):
                     next_terms[key] = (syn, ORIGIN_SYNONYM, concept_id, concept_ct)
 
             label = (concept.primary_label or "").strip()
@@ -712,7 +1051,7 @@ async def expand_and_search(
                 if origin == ORIGIN_ABBREVIATION:
                     if key not in abbreviations_found:
                         abbreviations_found[key] = (candidate, origin, concept_id)
-                elif key not in next_terms:
+                elif key not in next_terms and len(next_terms) < synonym_cap:
                     next_terms[key] = (candidate, origin, concept_id, concept_ct)
 
         if abbreviations_found:
@@ -724,42 +1063,55 @@ async def expand_and_search(
         # Harvest relationship edges from concepts not yet asked about. Named
         # targets become next-round search terms (origin relationship), so the
         # run grows a real network instead of only a synonym set; every edge is
-        # recorded whether or not its target is searchable. Done after synonyms
-        # so a cheaper synonym wins a capped slot over a relationship target.
+        # recorded whether or not its target is searchable. Targets are
+        # collected first and ranked, then fill the round's reserved slots:
+        # edges whose target carries a type *different* from its source concept
+        # (a class->member or gene->protein link) are the informative ones and
+        # outrank same-type siblings.
         relationship_records: list[dict[str, Any]] = []
         if relationship_sources:
             to_ask = _unqueried_relationship_concepts(all_concepts, relationship_answers)
             asked = to_ask[: max(0, max_relationship_concepts)]
             if asked:
                 await _ask_relationship_sources(relationship_sources, asked, relationship_answers)
+            ranked: list[tuple[int, str, str, str, ConceptType | None, dict[str, Any]]] = []
             for concept in asked:
                 pid = getattr(concept, "primary_id", "") or ""
                 if not pid:
                     continue
                 src_label = (getattr(concept, "primary_label", "") or "").strip()
+                src_ct = _as_concept_type(getattr(concept, "concept_type", None))
                 for edge in relationship_answers.get(pid, []):
                     name = edge.term.strip()
                     key = name.lower()
-                    searchable = (
-                        bool(name)
-                        and key not in tried
-                        and key not in next_terms
-                        and len(next_terms) < max_terms_per_round
-                    )
-                    if searchable:
-                        next_terms[key] = (name, ORIGIN_RELATIONSHIP, pid, edge.concept_type)
-                    relationship_records.append(
-                        {
-                            "source_concept_id": pid,
-                            "source_concept_label": src_label,
-                            "relation_label": edge.relation_label,
-                            "related_id": edge.related_id,
-                            "related_name": name or None,
-                            "related_source": edge.source,
-                            "concept_type": getattr(edge.concept_type, "value", edge.concept_type),
-                            "searched": searchable,
-                        }
-                    )
+                    record: dict[str, Any] = {
+                        "source_concept_id": pid,
+                        "source_concept_label": src_label,
+                        "relation_label": edge.relation_label,
+                        "related_id": edge.related_id,
+                        "related_name": name or None,
+                        "related_source": edge.source,
+                        "concept_type": getattr(edge.concept_type, "value", edge.concept_type),
+                        "searched": False,
+                    }
+                    relationship_records.append(record)
+                    if not name or key in tried or key in next_terms:
+                        continue
+                    if edge.concept_type is None:
+                        rank = 2
+                    elif edge.concept_type != src_ct:
+                        rank = 0
+                    else:
+                        rank = 1
+                    ranked.append((rank, key, name, pid, edge.concept_type, record))
+            ranked.sort(key=lambda item: item[0])
+            for _rank, key, name, pid, ct, record in ranked:
+                if len(next_terms) >= max_terms_per_round:
+                    break
+                if key in next_terms:
+                    continue
+                next_terms[key] = (name, ORIGIN_RELATIONSHIP, pid, ct)
+                record["searched"] = True
             if store and run_id is not None:
                 store.record_relationship_edges(run_id, round_num, relationship_records)
             all_relationship_edges.extend(relationship_records)
@@ -778,6 +1130,7 @@ async def expand_and_search(
     if store and run_id is not None:
         store.finish_run(run_id, rounds_run=len(terms_by_round), stop_reason=stop_reason)
 
+    all_concepts = relevance_rank(all_concepts, query, terms_by_round, member_ids, member_labels)
     merged = LookupResult(query=query, sources_queried=sources or list(lookup.adapters.keys()))
     merged.concepts = all_concepts
     merged.total_found = len(all_concepts)

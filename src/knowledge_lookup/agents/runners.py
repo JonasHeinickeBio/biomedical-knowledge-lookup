@@ -41,6 +41,7 @@ def _initial_state(
     export_path: str | None,
     max_iterations: int,
     auto_approve_threshold: float,
+    include_relationships: bool = False,
 ) -> LookupWorkflowState:
     return {
         "query": query,
@@ -68,6 +69,7 @@ def _initial_state(
         "normalized_query": "",
         "original_query": query,
         "expanded_search_terms": [],
+        "include_relationships": include_relationships,
         "is_german": False,
         "quality_score": None,
         "quality_details": None,
@@ -125,6 +127,7 @@ async def run_workflow(
     export_path: str | None = None,
     max_iterations: int = 3,
     auto_approve_threshold: float = 0.8,
+    include_relationships: bool = False,
     checkpointer: BaseCheckpointSaver | None = None,
 ) -> dict:
     """Run the full lookup-review-approval-export workflow.
@@ -138,6 +141,8 @@ async def run_workflow(
         export_path: Directory for export files.
         max_iterations: Maximum lookup passes (initial search + refinements).
         auto_approve_threshold: Score above which auto-approval triggers.
+        include_relationships: Enable relationship-edge expansion (interactions,
+            pathways, class members) during the search step.
         checkpointer: Checkpointer holding paused runs. Defaults to a
             process-wide in-memory saver; pass the same one to
             :func:`resume_workflow`.
@@ -162,6 +167,7 @@ async def run_workflow(
         export_path=export_path,
         max_iterations=max_iterations,
         auto_approve_threshold=auto_approve_threshold,
+        include_relationships=include_relationships,
     )
 
     # Run the graph to completion (or interrupt)

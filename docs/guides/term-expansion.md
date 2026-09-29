@@ -43,6 +43,8 @@ result = await lookup.search_concepts_expanded(
 | `max_rounds` | `3` | Maximum rounds including round 0; `1` means no expansion |
 | `max_terms_per_round` | `10` | Cap on newly discovered terms searched per round |
 | `abbreviation_sources` | `None` | `None` uses UMLS; `[]` disables abbreviation discovery; or pass your own sources |
+| `relationships` | `False` | Also expand through relationship edges (pathways, interactions, class members) |
+| `relationship_sources` | `None` | Override the relationship source(s) used when `relationships=True` |
 | `persist` | `True` | Record the run in the default `ExpansionStore` |
 
 ## Get the trail as well
@@ -99,6 +101,12 @@ The output looks like this (live data varies):
 | `all_terms_tried` | All searched terms, flattened |
 
 In the merged result, `execution_time` is the sum over all searches, and a term whose search raised shows up in `errors` under the key `expand_<term>`.
+
+## Result ordering
+
+Expanded results are relevance-ranked before they are returned. Concepts whose label equals the query or one of the searched terms (synonyms, long forms, relationship members) come first, then concepts whose label is largely covered by the tokens of those terms; loose full-text matches sink to the bottom. So a `cancer` query surfaces `cancer`, `digestive system cancer`, `respiratory system cancer` … ahead of `Cancer Survivors` or `…Cancer Institute`, and `max_results` / `--limit` truncates the noisiest hits instead of the members you were looking for.
+
+The ranking only **reorders** — no concept is dropped, and ties keep their original search order. A genuine synonym that shares no word with any searched term (e.g. `Malignant neoplasm of gastrointestinal tract` for `cancer`) is not removed; it simply ranks low, so raise `max_results` when you need full recall.
 
 ## Query the expansion history
 
@@ -180,9 +188,73 @@ asyncio.run(main())
 
 The built-in UMLS source is `UMLSAbbreviationSource(config=None)`; combine it with your own by passing both in the list.
 
+## Expand through relationships
+
+Synonyms widen a search horizontally — more names for the *same* concept. Relationship expansion widens it *structurally*: from a found concept it follows edges to **related** concepts and searches those names too, so one seed grows into a network. A gene surfaces its KEGG **pathways**, a protein its STRING **interaction partners**, a disease its DisGeNET/Open Targets **gene associations**, and an ontology term its UMLS/OLS **parents and children**.
+
+It is **off by default** (opt-in), because it issues extra requests per concept and can pull in far more than synonyms do.
+
+Pass `relationships=True` to `search_concepts_expanded()`:
+
+```python
+result = await lookup.search_concepts_expanded(
+    "IL6",
+    max_rounds=3,
+    relationships=True,
+)
+```
+
+Under the hood this uses `default_relationship_sources()`, which harvests edges from every adapter that implements `get_relationships()` — currently KEGG, UMLS, STRING, DisGeNET and Open Targets. Adapters without the method, a concept with no usable id, and any request failure all degrade to "no edges" — relationship expansion never aborts a search.
+
+### Hierarchy-only vs associative
+
+Sometimes you want *only* the taxonomic class↔member skeleton (a class term surfacing its members and super/sub classes) and none of the associative noise, or vice-versa. `expand_and_search()` takes `relationship_sources` directly so you can pick a narrower set of factories:
+
+| Factory | Keeps | Drops | Backed by adapters |
+| --- | --- | --- | --- |
+| `default_relationship_sources(lookup)` | everything | — | KEGG, UMLS, STRING, DisGeNET, Open Targets |
+| `hierarchy_relationship_sources(lookup)` | is-a / narrower–broader edges | interactions, pathway memberships | OLS, UMLS |
+| `associative_relationship_sources(lookup)` | interactions, pathways, associations | class / member edges | STRING, KEGG, DisGeNET, Open Targets |
+
+```python
+from knowledge_lookup.core.term_expansion import expand_and_search, hierarchy_relationship_sources
+
+result, trace = await expand_and_search(
+    lookup,
+    "cytokine",
+    max_rounds=3,
+    relationship_sources=hierarchy_relationship_sources(lookup),  # class -> members only
+)
+```
+
+Each factory returns one `AdapterRelationshipSource`, the workhorse adapter. Construct it directly for finer control: `AdapterRelationshipSource(lookup, limit_per_concept=10, relation_labels=..., allowed_sources=...)`. `relation_labels` keeps only edges whose label is in the set; `allowed_sources` restricts *which adapters are even called* (so a hierarchy-only pass never pays for a STRING round-trip).
+
+### Reserved slots (why a class term now reaches its members)
+
+Each expansion round is capped at `max_terms_per_round`. When relationship sources are active, **half the round is reserved for relationship targets** and synonyms are held to the complement (`synonym_cap`). Without this reservation a synonym-rich round could fill every slot and leave the class term's actual members unsearched. Reserved targets are then *ranked*: an edge whose target has a **different concept type** from its source (class→member, gene→protein) outranks a same-type sibling, because the cross-type link is the informative one. Every harvested edge is recorded — whether or not its target was searchable — so a later round or the store still shows it.
+
+### The trail
+
+`ExpansionTrace.relationships` lists the harvested edges as dicts (`source_concept_label`, `relation_label`, `related_name`, `related_source`, `concept_type`, `searched`). At most `max_relationship_concepts` (default 10) not-yet-asked-about concepts are queried for relationships per round. When persisted, edges also go to the store via `record_relationship_edges()`.
+
+### From the command line
+
+On the `search` command:
+
+* `--expand` runs iterative expansion (synonyms + long forms).
+* `--relationships` adds the full associative + hierarchical network (implies `--expand`).
+* `--expand-hierarchy` expands through taxonomic class↔member edges only (implies `--expand`).
+
+```bash
+knowledge-lookup search "IL6" --expand --relationships
+knowledge-lookup search "cytokine" --expand-hierarchy
+```
+
+The `workflow` command takes `--relationships` to run its expansion pass with relationship edges on.
+
 ## Where expansion is used
 
-* The [agent workflow](agent-workflow.md) runs an expansion pass (2 rounds, up to 8 terms per round) before its main lookup and persists it to the default store.
+* The [agent workflow](agent-workflow.md) runs an expansion pass (2 rounds, up to 8 terms per round) before its main lookup and persists it to the default store. Pass `--relationships` (`run_workflow(include_relationships=True)`) to include relationship edges in that pass.
 * The [MCP server](mcp-server.md) tool `biomed_search_concepts` expands when called with `expand_synonyms=true`. It records runs only when started with `--persist-expansions`.
 
 ## Next steps
