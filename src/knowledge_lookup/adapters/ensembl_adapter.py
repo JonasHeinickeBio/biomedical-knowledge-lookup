@@ -2,19 +2,35 @@
 Ensembl Genome Database Adapter
 
 Integrates with the Ensembl REST API (https://rest.ensembl.org) for gene and
-genomic feature lookup. Endpoints used: ``xrefs/symbol/:species/:symbol`` and
-``lookup/id/:id`` (see the "Cross References" and "Lookup" sections of
-https://rest.ensembl.org/).
+genomic feature lookup. Endpoints used (see https://rest.ensembl.org/ for the
+full catalog):
+
+- ``lookup/symbol/:species/:symbol`` and ``xrefs/symbol/:species/:symbol``
+  ("Lookup" / "Cross References") for :meth:`search_concepts`.
+- ``lookup/id/:id`` ("Lookup") for :meth:`get_concept_details`.
+- ``homology/id/:species/:id`` ("Comparative Genomics") for
+  :meth:`get_relationships` (orthologous genes).
+- ``xrefs/id/:id`` ("Cross References") for :meth:`get_mappings`
+  (cross-database identifiers).
 """
 
 import asyncio
 import logging
 from typing import Any
 
+import aiohttp
+
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
 logger = logging.getLogger(__name__)
+
+# Ensembl's REST service has been observed taking well over the shared
+# default per-request timeout (``LookupConfig.timeout_per_source``, 30s) to
+# answer even successful requests under load. Without a longer budget here, a
+# legitimately slow-but-succeeding response is cut off by aiohttp and then
+# retried by the shared retry logic, compounding the delay instead of helping.
+_MIN_TIMEOUT_SECONDS = 60.0
 
 
 class EnsemblAdapter(KnowledgeSourceAdapter):
@@ -29,6 +45,15 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
 
     def is_available(self) -> bool:
         return True
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """Like the base implementation, but with a longer floor on the
+        per-request timeout (see ``_MIN_TIMEOUT_SECONDS``)."""
+        if self.session is None or self.session.closed:
+            configured = self.config.timeout_per_source or 0.0
+            timeout = aiohttp.ClientTimeout(total=max(configured, _MIN_TIMEOUT_SECONDS))
+            self.session = aiohttp.ClientSession(timeout=timeout)
+        return self.session
 
     async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search Ensembl for genes.
@@ -112,6 +137,89 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
         except Exception as e:
             logger.error(f"Failed to get Ensembl concept details for '{concept_id}': {e}")
             return None
+
+    async def get_relationships(self, concept_id: str, limit: int = 10) -> list[dict[str, Any]]:
+        """Return orthologous genes as edges, via the ``homology/id`` endpoint.
+
+        ``concept_id`` must be an Ensembl gene ID (e.g. ``ENSG00000012048``).
+        Returns the same ``{relation_label, related_id, related_name, source}``
+        shape as the KEGG/STRING/WikiPathways adapters so the shared
+        relationship-expansion source can consume it; degrades to ``[]`` on
+        any failure. Ensembl's homology records name the target only by its
+        own stable ID (no gene symbol), so ``related_name`` falls back to
+        that ID.
+        """
+        gene_id = concept_id.strip()
+        if not gene_id:
+            return []
+        try:
+            url = f"{self.base_url}/homology/id/homo_sapiens/{gene_id}"
+            params = {"content-type": "application/json", "type": "orthologues"}
+            data = await self._make_request(url, params)
+
+            entries = data.get("data") if isinstance(data, dict) else None
+            if not entries:
+                return []
+            homologies = entries[0].get("homologies") or []
+
+            relationships: list[dict[str, Any]] = []
+            for homology in homologies[:limit]:
+                target = homology.get("target") or {}
+                related_id = (target.get("id") or "").strip()
+                if not related_id:
+                    continue
+                relationships.append(
+                    {
+                        "relation_label": "ortholog",
+                        "related_id": related_id,
+                        "related_name": related_id,
+                        "source": "Ensembl",
+                        "species": target.get("species"),
+                        "homology_type": homology.get("type"),
+                    }
+                )
+            return relationships
+        except Exception as e:
+            logger.warning(f"Ensembl get_relationships failed for '{concept_id}': {e}")
+            return []
+
+    async def get_mappings(self, concept_id: str) -> list[dict[str, Any]]:
+        """Return cross-database references for an Ensembl ID via ``xrefs/id``.
+
+        Uses the same ``{fromId, toId, fromSource, toSource, mappingType,
+        confidence}`` shape as :meth:`KEGGAdapter.get_mappings`. Degrades to
+        ``[]`` on any failure.
+        """
+        gene_id = concept_id.strip()
+        if not gene_id:
+            return []
+        try:
+            url = f"{self.base_url}/xrefs/id/{gene_id}"
+            params = {"content-type": "application/json"}
+            data = await self._make_request(url, params)
+            if not isinstance(data, list):
+                return []
+
+            mappings: list[dict[str, Any]] = []
+            for xref in data:
+                db_name = xref.get("dbname", "")
+                primary_id = xref.get("primary_id", "")
+                if not db_name or not primary_id:
+                    continue
+                mappings.append(
+                    {
+                        "fromId": gene_id,
+                        "toId": primary_id,
+                        "fromSource": "Ensembl",
+                        "toSource": db_name,
+                        "mappingType": "xref",
+                        "confidence": 0.9,
+                    }
+                )
+            return mappings
+        except Exception as e:
+            logger.warning(f"Ensembl get_mappings failed for '{concept_id}': {e}")
+            return []
 
     def _convert_ensembl_result_to_concept(self, result: dict[str, Any]) -> UnifiedConcept | None:
         """Convert Ensembl API result to unified concept."""

@@ -258,18 +258,111 @@ class TestEnsemblAdapter:
         adapter._convert_ensembl_result_to_concept(result)
 
     @pytest.mark.asyncio
-    async def test_get_mappings_default(self, adapter):
-        """Test get_mappings returns empty list by default."""
-        mappings = await adapter.get_mappings("TEST:001")
-        assert isinstance(mappings, list)
-        assert len(mappings) == 0
+    async def test_get_relationships_returns_ortholog_edges(self, adapter):
+        """get_relationships exposes homology/id orthologs as edge dicts (same
+        shape as KEGG/STRING/WikiPathways)."""
+        homology_data = {
+            "data": [
+                {
+                    "id": "ENSG00000012048",
+                    "homologies": [
+                        {
+                            "type": "ortholog_one2one",
+                            "target": {"id": "ENSMUSG00000017146", "species": "mus_musculus"},
+                        },
+                        {
+                            "type": "ortholog_one2many",
+                            "target": {"id": "ENSPTRG00000009123", "species": "pan_troglodytes"},
+                        },
+                    ],
+                }
+            ]
+        }
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = homology_data
+            rels = await adapter.get_relationships("ENSG00000012048", limit=5)
+
+        url, params = mock_req.call_args.args
+        assert url.endswith("/homology/id/homo_sapiens/ENSG00000012048")
+        assert params["type"] == "orthologues"
+        assert [r["related_id"] for r in rels] == ["ENSMUSG00000017146", "ENSPTRG00000009123"]
+        assert all(r["relation_label"] == "ortholog" for r in rels)
+        assert all(r["source"] == "Ensembl" for r in rels)
+        assert rels[0]["species"] == "mus_musculus"
+        assert rels[0]["homology_type"] == "ortholog_one2one"
 
     @pytest.mark.asyncio
-    async def test_get_relationships_default(self, adapter):
-        """Test get_relationships returns empty list by default."""
-        relationships = await adapter.get_relationships("TEST:001")
-        assert isinstance(relationships, list)
-        assert len(relationships) == 0
+    async def test_get_relationships_respects_limit(self, adapter):
+        homology_data = {
+            "data": [
+                {
+                    "homologies": [
+                        {"target": {"id": f"ENSG{i}", "species": "x"}} for i in range(5)
+                    ]
+                }
+            ]
+        }
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = homology_data
+            rels = await adapter.get_relationships("ENSG00000012048", limit=2)
+        assert len(rels) == 2
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_empty_on_no_data(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"data": []}
+            assert await adapter.get_relationships("ENSG00000012048") == []
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_degrades_on_error(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = Exception("network down")
+            assert await adapter.get_relationships("ENSG00000012048") == []
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_blank_id_returns_empty(self, adapter):
+        assert await adapter.get_relationships("   ") == []
+
+    @pytest.mark.asyncio
+    async def test_get_mappings_returns_xref_mappings(self, adapter):
+        """get_mappings exposes xrefs/id cross-references as mapping dicts
+        (same shape as KEGGAdapter.get_mappings)."""
+        xrefs_data = [
+            {"dbname": "HGNC", "primary_id": "HGNC:1100", "display_id": "BRCA1"},
+            {"dbname": "ArrayExpress", "primary_id": "ENSG00000012048", "display_id": "BRCA1"},
+            {"dbname": "", "primary_id": "should-be-skipped"},
+        ]
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = xrefs_data
+            mappings = await adapter.get_mappings("ENSG00000012048")
+
+        url = mock_req.call_args.args[0]
+        assert url.endswith("/xrefs/id/ENSG00000012048")
+        assert len(mappings) == 2
+        assert mappings[0] == {
+            "fromId": "ENSG00000012048",
+            "toId": "HGNC:1100",
+            "fromSource": "Ensembl",
+            "toSource": "HGNC",
+            "mappingType": "xref",
+            "confidence": 0.9,
+        }
+
+    @pytest.mark.asyncio
+    async def test_get_mappings_empty_on_non_list(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"error": "boom"}
+            assert await adapter.get_mappings("ENSG00000012048") == []
+
+    @pytest.mark.asyncio
+    async def test_get_mappings_degrades_on_error(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = Exception("network down")
+            assert await adapter.get_mappings("ENSG00000012048") == []
+
+    @pytest.mark.asyncio
+    async def test_get_mappings_blank_id_returns_empty(self, adapter):
+        assert await adapter.get_mappings("   ") == []
 
     @pytest.mark.asyncio
     async def test_context_manager(self, adapter):
