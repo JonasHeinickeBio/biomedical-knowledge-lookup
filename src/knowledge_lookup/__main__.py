@@ -7,7 +7,8 @@ A unified tool for biological concept lookup across multiple biomedical knowledg
 
 import asyncio
 import json
-from typing import cast
+import time
+from typing import Any, cast
 
 import typer
 from rich.console import Console
@@ -22,7 +23,7 @@ from knowledge_lookup import (
     __version__,
 )
 from knowledge_lookup.cache import init_cache
-from knowledge_lookup.mcp_server.sources import SOURCE_CATALOG
+from knowledge_lookup.mcp_server.sources import SOURCE_CATALOG, normalize_source_name
 
 try:
     from knowledge_lookup.adapters.umls_adapter import UMLSAdapter
@@ -43,7 +44,7 @@ def callback():
     """
     Biomedical Knowledge Lookup CLI
 
-    Search for biological concepts across 36 biomedical knowledge sources.
+    Search for biological concepts across 37 biomedical knowledge sources.
     """
     pass
 
@@ -518,6 +519,253 @@ def sources():
     console.print(
         f"\n[dim]{len(available)}/{len(SOURCE_CATALOG)} sources available in this environment[/dim]"
     )
+
+
+async def _time_call(coro: Any) -> tuple[bool, Any, float, str | None]:
+    """Await *coro*, returning ``(ok, result, elapsed_seconds, error_message)``."""
+    start = time.perf_counter()
+    try:
+        result = await coro
+        return True, result, time.perf_counter() - start, None
+    except Exception as e:  # noqa: BLE001 - reported to the user, not swallowed
+        return False, None, time.perf_counter() - start, str(e)
+
+
+async def _check_source(
+    lkp: CentralKnowledgeLookup,
+    source: KnowledgeSource,
+    query: str,
+    concept_id: str | None,
+    relationships: bool,
+    timeout: float,
+) -> dict[str, Any]:
+    """Exercise one adapter's live API: search -> details -> relationships.
+
+    Returns a dict with ``source``, ``available``, an ordered ``steps`` list of
+    ``(name, ok, detail, elapsed_seconds)`` tuples, and whichever raw results
+    were fetched (``search_concepts``, ``concept_details``, ``relationships``)
+    for the caller to print in detail mode.
+    """
+    result: dict[str, Any] = {"source": source, "available": False, "steps": []}
+
+    adapter = lkp._get_adapter(source)
+    if adapter is None:
+        result["steps"].append(("available", False, "no adapter configured/available", 0.0))
+        return result
+    result["available"] = True
+
+    target_id = concept_id
+    if target_id is None:
+        ok, concepts, elapsed, err = await _time_call(
+            asyncio.wait_for(adapter.search_concepts(query, limit=5), timeout)
+        )
+        count = len(concepts) if ok and concepts else 0
+        detail = f"{count} result(s)" if ok else (err or "failed")
+        result["steps"].append(("search_concepts", ok and count > 0, detail, elapsed))
+        result["search_concepts"] = concepts if ok else []
+        if ok and concepts:
+            target_id = concepts[0].primary_id
+
+    if target_id:
+        ok, concept, elapsed, err = await _time_call(
+            asyncio.wait_for(adapter.get_concept_details(target_id), timeout)
+        )
+        detail = (concept.primary_label if concept else "not found") if ok else (err or "failed")
+        result["steps"].append(
+            ("get_concept_details", ok and concept is not None, detail, elapsed)
+        )
+        result["concept_details"] = concept if ok else None
+
+        if relationships:
+            ok, rels, elapsed, err = await _time_call(
+                asyncio.wait_for(adapter.get_relationships(target_id), timeout)
+            )
+            detail = f"{len(rels)} edge(s)" if ok and rels is not None else (err or "failed")
+            result["steps"].append(("get_relationships", ok, detail, elapsed))
+            result["relationships"] = rels if ok else []
+    else:
+        result["steps"].append(
+            ("get_concept_details", False, "skipped (no id: search returned nothing)", 0.0)
+        )
+
+    return result
+
+
+def _check_passed(r: dict[str, Any]) -> bool:
+    return r["available"] and all(ok for _, ok, _, _ in r["steps"])
+
+
+def _print_check_detail(r: dict[str, Any], relationships: bool) -> None:
+    """Verbose, step-by-step report for a single source (the non-'all' path)."""
+    source = r["source"].value
+
+    if not r["available"]:
+        console.print(f"[red]✗ {source} has no adapter available in this environment.[/red]")
+        return
+
+    console.print(f"[bold blue]Checking {source}[/bold blue]")
+    for name, ok, detail, elapsed in r["steps"]:
+        icon = "[green]✓[/green]" if ok else "[red]✗[/red]"
+        console.print(f"  {icon} {name:<20} {escape(detail):<40} [dim]({elapsed:.2f}s)[/dim]")
+
+    concepts = r.get("search_concepts") or []
+    if concepts:
+        table = Table(title="search_concepts")
+        table.add_column("ID", style="cyan", no_wrap=True)
+        table.add_column("Name", style="bold")
+        table.add_column("Type", style="yellow")
+        for c in concepts:
+            table.add_row(c.primary_id, c.primary_label or "", str(c.concept_type or ""))
+        console.print(table)
+
+    concept = r.get("concept_details")
+    if concept:
+        table = Table(title="get_concept_details")
+        table.add_column("Field", style="cyan")
+        table.add_column("Value")
+        table.add_row("ID", concept.primary_id)
+        table.add_row("Label", concept.primary_label or "")
+        table.add_row("Type", str(concept.concept_type or ""))
+        if concept.definitions:
+            table.add_row("Definition", escape(concept.definitions[0][:200]))
+        confidence = f"{concept.confidence_score:.2f}" if concept.confidence_score else ""
+        table.add_row("Confidence", confidence)
+        console.print(table)
+
+    rels = r.get("relationships")
+    if relationships and rels:
+        table = Table(title="get_relationships")
+        table.add_column("Relation", style="yellow")
+        table.add_column("Related ID", style="cyan")
+        table.add_column("Related Name", style="bold")
+        table.add_column("Source", style="green")
+        for rel in rels[:10]:
+            table.add_row(
+                str(rel.get("relation_label", "")),
+                str(rel.get("related_id", "")),
+                str(rel.get("related_name", "")),
+                str(rel.get("source", "")),
+            )
+        console.print(table)
+
+    console.print(
+        f"\n[bold {'green' if _check_passed(r) else 'red'}]"
+        f"{'PASS' if _check_passed(r) else 'FAIL'}[/bold {'green' if _check_passed(r) else 'red'}]"
+    )
+
+
+def _print_check_table(results: list[dict[str, Any]]) -> None:
+    """Compact summary table for the 'all' path."""
+    step_names = ["search_concepts", "get_concept_details", "get_relationships"]
+
+    table = Table(title="Adapter Check Results")
+    table.add_column("Source", style="cyan", no_wrap=True)
+    table.add_column("Available", no_wrap=True)
+    for name in step_names:
+        table.add_column(name, no_wrap=True)
+    table.add_column("Time", no_wrap=True)
+    table.add_column("Notes", max_width=40)
+
+    for r in results:
+        if not r["available"]:
+            table.add_row(r["source"].value, "[red]no[/red]", "-", "-", "-", "-", "")
+            continue
+
+        steps_by_name = {name: (ok, detail, elapsed) for name, ok, detail, elapsed in r["steps"]}
+        row = [r["source"].value, "[green]yes[/green]"]
+        total_time = 0.0
+        note = ""
+        for name in step_names:
+            if name not in steps_by_name:
+                row.append("[dim]-[/dim]")
+                continue
+            ok, detail, elapsed = steps_by_name[name]
+            total_time += elapsed
+            row.append("[green]ok[/green]" if ok else "[red]fail[/red]")
+            if not ok:
+                note = detail
+        row.append(f"{total_time:.2f}s")
+        row.append(escape(note))
+        table.add_row(*row)
+
+    console.print(table)
+    passed = sum(1 for r in results if _check_passed(r))
+    console.print(f"\n[bold]{passed}/{len(results)} sources passed[/bold]")
+
+
+@app.command()
+def check(
+    source: str = typer.Argument(
+        ...,
+        help="Knowledge source to test (e.g. WIKIPATHWAYS, STRING), or 'all' to smoke-test "
+        "every source with an adapter",
+    ),
+    query: str = typer.Option(
+        "BRCA1", "--query", "-q", help="Search term used to drive the smoke test"
+    ),
+    concept_id: str | None = typer.Option(
+        None,
+        "--id",
+        help="Skip search_concepts and test get_concept_details/get_relationships on this "
+        "ID directly",
+    ),
+    relationships: bool = typer.Option(
+        True,
+        "--relationships/--no-relationships",
+        help="Also exercise get_relationships on the resolved concept",
+    ),
+    timeout: float = typer.Option(
+        20.0, "--timeout", help="Per-call timeout in seconds (applies to each step)"
+    ),
+):
+    """
+    Smoke-test one (or every) adapter end-to-end against its live API.
+
+    Runs ``search_concepts`` -> ``get_concept_details`` -> ``get_relationships``
+    (in that order, feeding each step's result into the next) and reports
+    per-step pass/fail, timing and a data preview. Use this to verify a new or
+    modified adapter actually works before wiring it deeper into the codebase,
+    instead of writing a throwaway script.
+
+    Examples:
+      knowledge-lookup check WIKIPATHWAYS --query "interleukin"
+      knowledge-lookup check STRING --id STRING:9606.ENSP00000269305
+      knowledge-lookup check all --query "diabetes" --no-relationships
+    """
+    lookup = CentralKnowledgeLookup()
+
+    if source.strip().lower() == "all":
+        targets = sorted(SOURCE_CATALOG.keys(), key=lambda s: s.value)
+    else:
+        try:
+            targets = [KnowledgeSource(normalize_source_name(source))]
+        except ValueError:
+            console.print(f"[red]Error:[/red] Unknown source '{source}'")
+            console.print(f"Available sources: {', '.join(s.value for s in SOURCE_CATALOG)}")
+            raise typer.Exit(1) from None
+
+    async def _run() -> list[dict[str, Any]]:
+        try:
+            results = []
+            for src in targets:
+                if len(targets) > 1:
+                    console.print(f"[dim]Checking {src.value}...[/dim]")
+                results.append(
+                    await _check_source(lookup, src, query, concept_id, relationships, timeout)
+                )
+            return results
+        finally:
+            await lookup.close()
+
+    results = asyncio.run(_run())
+
+    if len(targets) == 1:
+        _print_check_detail(results[0], relationships)
+    else:
+        _print_check_table(results)
+
+    if not all(_check_passed(r) for r in results):
+        raise typer.Exit(1)
 
 
 @app.command()
