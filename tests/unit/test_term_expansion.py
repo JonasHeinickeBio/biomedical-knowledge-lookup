@@ -1076,6 +1076,7 @@ class TestAdapterRelationshipSourceAllowlist:
         assert src._allowed_sources == {
             KnowledgeSource.STRING,
             KnowledgeSource.KEGG,
+            KnowledgeSource.WIKIPATHWAYS,
             KnowledgeSource.DISGENET,
             KnowledgeSource.OPENTARGETS,
         }

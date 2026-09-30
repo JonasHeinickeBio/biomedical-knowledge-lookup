@@ -118,6 +118,8 @@ enums:
         description: "Pfam"
       STRING:
         description: "STRING"
+      WIKIPATHWAYS:
+        description: "WikiPathways"
 
   ConceptType:
     description: "Types of biological concepts based on AID-PAIS ontology"

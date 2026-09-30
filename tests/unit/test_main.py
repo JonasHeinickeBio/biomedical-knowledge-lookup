@@ -83,7 +83,7 @@ class TestCLI:
             result = runner.invoke(main.app, ["sources"])
 
         assert result.exit_code == 0
-        assert len(SOURCE_CATALOG) == 36
+        assert len(SOURCE_CATALOG) == 37
         for source in SOURCE_CATALOG:
             assert source.value in result.output
         disgenet_row = next(line for line in result.output.splitlines() if "DISGENET" in line)
@@ -93,7 +93,7 @@ class TestCLI:
         assert " no " in disgenet_row
         hpo_row = next(line for line in result.output.splitlines() if " HPO " in line)
         assert " yes " in hpo_row
-        assert "1/36 sources available" in result.output
+        assert "1/37 sources available" in result.output
         assert "Total sources: 40" not in result.output
 
     def test_info_command(self, runner):
@@ -108,7 +108,7 @@ class TestCLI:
             result = runner.invoke(main.app, ["info"])
             assert result.exit_code == 0
             assert "Biomedical Knowledge Lookup" in result.output
-            assert "Available sources: 36/36" in result.output
+            assert "Available sources: 37/37" in result.output
 
     def test_info_counts_adapters_not_enum_members(self, runner):
         from knowledge_lookup.models import KnowledgeSource
@@ -119,7 +119,7 @@ class TestCLI:
             )
             result = runner.invoke(main.app, ["info"])
         assert result.exit_code == 0
-        assert "Available sources: 2/36" in result.output
+        assert "Available sources: 2/37" in result.output
 
     def test_callback_help(self, runner):
         result = runner.invoke(main.app, ["--help"])

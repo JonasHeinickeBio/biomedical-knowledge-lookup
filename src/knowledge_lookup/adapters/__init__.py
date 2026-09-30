@@ -38,6 +38,7 @@ from .tyto_adapter import TytoAdapter
 from .unichem_adapter import UniChemAdapter
 from .uniprot_adapter import UniProtAdapter
 from .wikidata_adapter import WikidataAdapter
+from .wikipathways_adapter import WikiPathwaysAdapter
 from .zooma_adapter import ZoomaAdapter
 
 # Adapters that need an optional extra. Each import fails cleanly when the
@@ -88,6 +89,7 @@ __all__ = [
     "InterProAdapter",
     "PfamAdapter",
     "STRINGAdapter",
+    "WikiPathwaysAdapter",
     "ADAPTER_CLASSES",
 ]
 
@@ -130,6 +132,7 @@ ADAPTER_CLASSES = {
     KnowledgeSource.INTERPRO: InterProAdapter,
     KnowledgeSource.PFAM: PfamAdapter,
     KnowledgeSource.STRING: STRINGAdapter,
+    KnowledgeSource.WIKIPATHWAYS: WikiPathwaysAdapter,
 }
 
 if ChEMBLAdapter is not None:
