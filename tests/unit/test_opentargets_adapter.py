@@ -146,7 +146,7 @@ class TestOpenTargetsAdapter:
             "data": {
                 "target": {
                     "associatedDiseases": {
-                        "edges": [
+                        "rows": [
                             {"score": 0.5, "disease": {"id": "MONDO_0004979", "name": "asthma"}},
                             {"score": 0.2, "disease": {"id": "EFO_0003767", "name": ""}},
                         ]
@@ -174,7 +174,7 @@ class TestOpenTargetsAdapter:
             "data": {
                 "disease": {
                     "associatedTargets": {
-                        "edges": [
+                        "rows": [
                             {
                                 "score": 0.7,
                                 "target": {
@@ -216,7 +216,7 @@ class TestOpenTargetsAdapter:
         mock_make_request.return_value = {
             "data": {
                 "target": {
-                    "associatedDiseases": {"edges": [{"score": 0.1, "disease": {"id": ""}}]}
+                    "associatedDiseases": {"rows": [{"score": 0.1, "disease": {"id": ""}}]}
                 }
             }
         }

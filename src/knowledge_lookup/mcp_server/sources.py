@@ -55,6 +55,7 @@ SourceName = Literal[
     "UNICHEM",
     "UNIPROT",
     "WIKIDATA",
+    "WIKIPATHWAYS",
     "ZOOMA",
 ]
 
@@ -121,6 +122,9 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
     KnowledgeSource.INTERPRO: SourceSpec("InterPro protein families and domains, e.g. IPR000719"),
     KnowledgeSource.PFAM: SourceSpec("Pfam protein families, e.g. PF00069"),
     KnowledgeSource.STRING: SourceSpec("STRING protein-protein interactions"),
+    KnowledgeSource.WIKIPATHWAYS: SourceSpec(
+        "WikiPathways community-curated pathways, e.g. WP4262"
+    ),
 }
 
 # Searched when a tool call names no sources: fast, keyless (or key-gated but
@@ -174,6 +178,8 @@ _EXTRA_PREFIX_ROUTES: dict[str, KnowledgeSource] = {
     "PFAM": KnowledgeSource.PFAM,
     "PDB": KnowledgeSource.PDB,
     "MIM": KnowledgeSource.OMIM,
+    "WIKIPATHWAYS": KnowledgeSource.WIKIPATHWAYS,
+    "WP": KnowledgeSource.WIKIPATHWAYS,
 }
 
 # Adapters whose get_concept_details wants the full CURIE ("HP:0001250"); the
@@ -197,6 +203,7 @@ _BARE_ID_PATTERNS: tuple[tuple[re.Pattern[str], KnowledgeSource], ...] = (
     (re.compile(r"^Q\d+$"), KnowledgeSource.WIKIDATA),
     (re.compile(r"^ENS[A-Z]*[EGPT]\d{11}(\.\d+)?$"), KnowledgeSource.ENSEMBL),
     (re.compile(r"^R-[A-Z]{3}-\d+(\.\d+)?$"), KnowledgeSource.REACTOME),
+    (re.compile(r"^WP\d+$", re.IGNORECASE), KnowledgeSource.WIKIPATHWAYS),
     (re.compile(r"^CHEMBL\d+$", re.IGNORECASE), KnowledgeSource.CHEMBL),
     (re.compile(r"^DB\d{5}$"), KnowledgeSource.DRUGBANK),
     (re.compile(r"^IPR\d{6}$"), KnowledgeSource.INTERPRO),

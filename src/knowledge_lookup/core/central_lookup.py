@@ -54,6 +54,8 @@ _CURIE_PREFIX_TO_SOURCE: dict[str, KnowledgeSource] = {
     "OMIM": KnowledgeSource.OMIM,
     "UMLS": KnowledgeSource.UMLS,
     "WIKIDATA": KnowledgeSource.WIKIDATA,
+    "WIKIPATHWAYS": KnowledgeSource.WIKIPATHWAYS,
+    "WP": KnowledgeSource.WIKIPATHWAYS,
 }
 
 # Optional imports for formatting

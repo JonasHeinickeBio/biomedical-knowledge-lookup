@@ -2,6 +2,7 @@
 Adapter for ChEMBL drug/compound database using chembl_webresource_client.
 """
 
+import asyncio
 import logging
 from concurrent.futures import Future, ThreadPoolExecutor, wait
 from typing import Any
@@ -45,6 +46,11 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
 
             self.ols_adapter = OLSAdapter(config)
             self.bioontology_adapter = BioOntologyAdapter(config)
+            # ChEMBL's drug/target "category" fields (drug_type, target_type, ...)
+            # repeat across results in one search (e.g. every drug in a batch can
+            # share drug_type "1"); memoize the OLS/BioOntology mapping per raw
+            # category so a search doesn't re-issue the same slow lookup per row.
+            self._category_ontology_cache: dict[str, str] = {}
         except Exception as e:
             self.logger.error(f"Error initializing ChEMBLAdapter: {e}")
 
@@ -55,6 +61,23 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             KnowledgeSource.CHEMBL
         """
         return KnowledgeSource.CHEMBL
+
+    async def close(self):
+        """Close this adapter's session plus the internal OLS/BioOntology
+        adapters' sessions (``map_category_to_ontology`` opens them, but they
+        are never registered with ``CentralKnowledgeLookup`` directly, so
+        nothing else closes them)."""
+        await super().close()
+        for adapter in (
+            getattr(self, "ols_adapter", None),
+            getattr(self, "bioontology_adapter", None),
+        ):
+            if adapter is None:
+                continue
+            try:
+                await adapter.close()
+            except Exception as e:
+                self.logger.error(f"Error closing ChEMBL's internal {adapter.source}: {e}")
 
     def check_api_status(self, timeout: float | None = None) -> dict:
         """
@@ -763,6 +786,12 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             self.logger.error(f"_parse_target_results error: {e}")
             return concepts
 
+    # Per-call bound on each OLS/BioOntology lookup inside map_category_to_ontology.
+    # OLS's full-text search can take 20s+ on a short, generic query (e.g. the raw
+    # numeric strings ChEMBL uses for drug_type/target_type); without a bound, one
+    # slow category blocks the whole search_concepts call.
+    _CATEGORY_MAPPING_TIMEOUT = 5.0
+
     async def map_category_to_ontology(self, category: str) -> str:
         """
         Map a ChEMBL category string to a unified KG ontology term using OLS and BioOntology adapters.  # noqa: E501
@@ -774,8 +803,10 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             Logs mapping attempts, errors, and fallbacks. Robust to normalization and empty input.
         Mapping Logic:
             - Normalizes input string
-            - Tries OLSAdapter for label/synonym match
-            - Falls back to BioOntologyAdapter if OLS fails
+            - Memoized per raw category for the life of this adapter instance
+            - Tries OLSAdapter for label/synonym match (bounded to
+              ``_CATEGORY_MAPPING_TIMEOUT`` seconds)
+            - Falls back to BioOntologyAdapter if OLS fails or times out
             - Returns original category if no match found
         """  # noqa: E501
         import logging
@@ -786,9 +817,27 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 logger.info(f"No category provided for ontology mapping: {category}")
                 return "unknown"
             norm_category = category.strip().lower()
+
+            if norm_category in self._category_ontology_cache:
+                return self._category_ontology_cache[norm_category]
+
+            result = await self._map_category_to_ontology_uncached(category, norm_category, logger)
+            self._category_ontology_cache[norm_category] = result
+            return result
+        except Exception as e:
+            logger.error(f"map_category_to_ontology failed for category '{category}': {e}")
+            return "unknown"
+
+    async def _map_category_to_ontology_uncached(
+        self, category: str, norm_category: str, logger: Any
+    ) -> str:
+        try:
             # Try OLS first
             try:
-                concepts = await self.ols_adapter.search_concepts(norm_category, limit=5)
+                concepts = await asyncio.wait_for(
+                    self.ols_adapter.search_concepts(norm_category, limit=5),
+                    timeout=self._CATEGORY_MAPPING_TIMEOUT,
+                )
                 for concept in concepts:
                     # Prefer exact label match
                     if (
@@ -808,7 +857,10 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 logger.error(f"OLS mapping error for category '{category}': {e}")
             # Fallback to BioOntology
             try:
-                concepts = await self.bioontology_adapter.search_concepts(norm_category, limit=5)
+                concepts = await asyncio.wait_for(
+                    self.bioontology_adapter.search_concepts(norm_category, limit=5),
+                    timeout=self._CATEGORY_MAPPING_TIMEOUT,
+                )
                 for concept in concepts:
                     if (
                         concept.primary_label

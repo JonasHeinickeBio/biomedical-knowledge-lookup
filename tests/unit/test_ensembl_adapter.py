@@ -47,8 +47,48 @@ class TestEnsemblAdapter:
         assert adapter.get_rate_limit() == 5.0
 
     @pytest.mark.asyncio
+    async def test_search_concepts_exact_symbol_match(self, adapter):
+        """An exact gene symbol resolves via lookup/symbol in one request,
+        without falling back to xrefs/symbol."""
+        data = {"id": "ENSG00000012048", "display_name": "BRCA1"}
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = data
+            results = await adapter.search_concepts("BRCA1", limit=10)
+
+        assert len(results) == 1
+        assert results[0].primary_id == "ENSG00000012048"
+        mock_req.assert_awaited_once()
+        url = mock_req.call_args.args[0]
+        assert url.endswith("/lookup/symbol/homo_sapiens/BRCA1")
+
+    @pytest.mark.asyncio
+    async def test_lookup_by_symbol_returns_concept(self, adapter):
+        data = {"id": "ENSG00000012048", "display_name": "BRCA1"}
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = data
+            concept = await adapter._lookup_by_symbol("BRCA1")
+        assert concept is not None
+        assert concept.primary_id == "ENSG00000012048"
+
+    @pytest.mark.asyncio
+    async def test_lookup_by_symbol_no_id_returns_none(self, adapter):
+        """A non-dict (e.g. the xrefs list shape) or missing-id response means
+        no exact match — the caller should fall back to xrefs/symbol."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = [{"id": "ENSG00000012048"}]
+            assert await adapter._lookup_by_symbol("BRCA1") is None
+
+    @pytest.mark.asyncio
+    async def test_lookup_by_symbol_error_returns_none(self, adapter):
+        """A 400 (no match) or any other failure degrades to None, not an exception."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = Exception("400 no valid lookup found")
+            assert await adapter._lookup_by_symbol("p53") is None
+
+    @pytest.mark.asyncio
     async def test_search_concepts_with_results(self, adapter):
-        """Test search_concepts when API returns a list with items (lines 41-44)."""
+        """Test search_concepts falls back to xrefs/symbol when lookup/symbol
+        finds no exact match, expanding each xref via get_concept_details."""
         ensembl_data = [
             {
                 "id": "ENSG00000139618",

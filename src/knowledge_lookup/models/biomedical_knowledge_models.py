@@ -287,6 +287,10 @@ class KnowledgeSource(str, Enum):
     """
     STRING
     """
+    WIKIPATHWAYS = "WIKIPATHWAYS"
+    """
+    WikiPathways
+    """
 
 
 class ConceptType(str, Enum):

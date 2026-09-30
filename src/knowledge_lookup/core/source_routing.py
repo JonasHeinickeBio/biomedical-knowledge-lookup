@@ -53,6 +53,7 @@ TYPE_SOURCE_MAP: dict[ConceptType, frozenset[KnowledgeSource]] = {
             KnowledgeSource.QUICKGO,
             KnowledgeSource.STRING,
             KnowledgeSource.OPENTARGETS,
+            KnowledgeSource.WIKIPATHWAYS,
             KnowledgeSource.UMLS,
             KnowledgeSource.OLS,
             KnowledgeSource.WIKIDATA,
@@ -157,6 +158,7 @@ TYPE_SOURCE_MAP: dict[ConceptType, frozenset[KnowledgeSource]] = {
         {
             KnowledgeSource.KEGG,
             KnowledgeSource.REACTOME,
+            KnowledgeSource.WIKIPATHWAYS,
             KnowledgeSource.QUICKGO,
             KnowledgeSource.GO,
             KnowledgeSource.GENEONTOLOGY,

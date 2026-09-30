@@ -162,7 +162,7 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
             query TargetDiseases($ensemblId: String!, $size: Int!) {
               target(ensemblId: $ensemblId) {
                 associatedDiseases(page: {index: 0, size: $size}) {
-                  edges {
+                  rows {
                     score
                     disease { id name }
                   }
@@ -177,7 +177,7 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
             query DiseaseTargets($efoId: String!, $size: Int!) {
               disease(efoId: $efoId) {
                 associatedTargets(page: {index: 0, size: $size}) {
-                  edges {
+                  rows {
                     score
                     target { id approvedSymbol }
                   }
@@ -199,11 +199,11 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
 
             entity = (data.get("data") or {}).get(container) or {}
             field = "associatedDiseases" if is_target else "associatedTargets"
-            edges = ((entity.get(field) or {}).get("edges") or [])[:limit]
+            rows = ((entity.get(field) or {}).get("rows") or [])[:limit]
 
             relationships: list[dict[str, Any]] = []
-            for edge in edges:
-                entity_data = edge.get(entity_key) or {}
+            for row in rows:
+                entity_data = row.get(entity_key) or {}
                 related_id = (entity_data.get("id") or "").strip()
                 if is_target:
                     related_name = (entity_data.get("name") or "").strip()
@@ -217,7 +217,7 @@ class OpenTargetsAdapter(KnowledgeSourceAdapter):
                         "related_id": related_id,
                         "related_name": related_name or related_id,
                         "source": "Open Targets",
-                        "score": edge.get("score"),
+                        "score": row.get("score"),
                     }
                 )
 
