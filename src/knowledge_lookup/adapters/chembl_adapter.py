@@ -821,9 +821,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             if norm_category in self._category_ontology_cache:
                 return self._category_ontology_cache[norm_category]
 
-            result = await self._map_category_to_ontology_uncached(
-                category, norm_category, logger
-            )
+            result = await self._map_category_to_ontology_uncached(category, norm_category, logger)
             self._category_ontology_cache[norm_category] = result
             return result
         except Exception as e:
