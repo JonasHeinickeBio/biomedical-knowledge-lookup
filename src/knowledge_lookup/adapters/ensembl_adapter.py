@@ -1,9 +1,13 @@
 """
 Ensembl Genome Database Adapter
 
-Integrates with Ensembl REST API for gene and genomic feature lookup.
+Integrates with the Ensembl REST API (https://rest.ensembl.org) for gene and
+genomic feature lookup. Endpoints used: ``xrefs/symbol/:species/:symbol`` and
+``lookup/id/:id`` (see the "Cross References" and "Lookup" sections of
+https://rest.ensembl.org/).
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -27,21 +31,45 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
         return True
 
     async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
-        """Search Ensembl for genes."""
+        """Search Ensembl for genes.
+
+        Ensembl has no free-text "search all" endpoint. This tries
+        ``lookup/symbol`` first: a single round trip that resolves an exact
+        canonical gene symbol (e.g. ``BRCA1``) directly to its record. Only
+        when that doesn't match (a synonym, display name, or other external
+        cross-reference rather than the canonical symbol) does it fall back
+        to ``xrefs/symbol`` + ``lookup/id`` for the broader synonym-aware
+        lookup, expanding any resulting hits concurrently rather than
+        one-by-one: Ensembl's REST service can take several seconds per
+        request under load, and a symbol can resolve to more than one object
+        (e.g. a gene plus an LRG record), so running them sequentially
+        multiplies that latency.
+        """
         try:
-            # Ensembl doesn't have a direct "search all" by name that's easy to use for all species
-            # We'll use the symbol lookup for human as a default or use the xrefs endpoint
+            exact = await self._lookup_by_symbol(query)
+            if exact is not None:
+                logger.info(f"Ensembl search for '{query}' returned 1 concept (exact symbol)")
+                return [exact]
+
+            # Fallback: xrefs/symbol resolves synonyms/display names to one or
+            # more Ensembl objects, each expanded via lookup/id.
             url = f"{self.base_url}/xrefs/symbol/homo_sapiens/{query}"
             params = {"content-type": "application/json"}
 
             data = await self._make_request(url, params)
 
             concepts: list[UnifiedConcept] = []
-            if isinstance(data, list):
-                for result in data[:limit]:
-                    concept = await self.get_concept_details(result.get("id", ""))
-                    if concept:
-                        concepts.append(concept)
+            if isinstance(data, list) and data:
+                ids = [result.get("id", "") for result in data[:limit] if result.get("id")]
+                details = await asyncio.gather(
+                    *(self.get_concept_details(gene_id) for gene_id in ids),
+                    return_exceptions=True,
+                )
+                for detail in details:
+                    if isinstance(detail, BaseException):
+                        logger.warning(f"Ensembl detail lookup failed during search: {detail}")
+                    elif detail:
+                        concepts.append(detail)
 
             logger.info(f"Ensembl search for '{query}' returned {len(concepts)} concepts")
             return concepts
@@ -49,6 +77,22 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
         except Exception as e:
             logger.error(f"Ensembl search failed for '{query}': {e}")
             return []
+
+    async def _lookup_by_symbol(self, symbol: str) -> UnifiedConcept | None:
+        """Exact-match gene symbol lookup via ``lookup/symbol`` — one fast
+        round trip covering the common case of searching by a canonical gene
+        symbol. Returns ``None`` for anything that isn't an exact match
+        (including synonyms) or on any request failure, so callers fall back
+        to ``xrefs/symbol``."""
+        try:
+            url = f"{self.base_url}/lookup/symbol/homo_sapiens/{symbol}"
+            params = {"content-type": "application/json", "expand": 1}
+            data = await self._make_request(url, params)
+            if data and "id" in data:
+                return self._convert_ensembl_result_to_concept(data)
+            return None
+        except Exception:
+            return None
 
     async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
         """Get detailed gene information from Ensembl."""
