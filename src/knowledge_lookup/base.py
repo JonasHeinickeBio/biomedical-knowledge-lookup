@@ -276,9 +276,13 @@ class KnowledgeSourceAdapter(ABC):
         url: str,
         params: dict | None = None,
         headers: dict | None = None,
-        json_data: dict | None = None,
+        json_data: dict | list | None = None,
     ) -> dict[str, Any]:
-        """Make HTTP request with smart retry and error handling."""
+        """Make HTTP request with smart retry and error handling.
+
+        Pass ``json_data`` (a JSON object *or array*) to send a POST request
+        instead of a GET.
+        """
         request_headers = headers or {}
         if "User-Agent" not in request_headers:
             request_headers["User-Agent"] = "AID-PAIS-Knowledge-Lookup/1.0"

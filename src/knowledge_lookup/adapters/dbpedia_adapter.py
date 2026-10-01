@@ -75,7 +75,7 @@ class DBpediaAdapter(KnowledgeSourceAdapter):
         url: str,
         params: dict[Any, Any] | None = None,
         headers: dict[Any, Any] | None = None,
-        json_data: dict[Any, Any] | None = None,
+        json_data: dict[Any, Any] | list[Any] | None = None,
     ) -> dict[str, Any]:
         """
         Make an async HTTP request to DBpedia, logging URL, params, and errors.

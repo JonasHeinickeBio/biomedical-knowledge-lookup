@@ -36,7 +36,7 @@ class STRINGAdapter(KnowledgeSourceAdapter):
         url: str,
         params: dict | None = None,
         headers: dict | None = None,
-        json_data: dict | None = None,
+        json_data: dict | list | None = None,
     ) -> Any:
         """GET a STRING JSON endpoint with the shared retry and circuit breaker.
 

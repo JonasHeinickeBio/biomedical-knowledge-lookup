@@ -293,6 +293,7 @@ ASSOCIATIVE_RELATION_LABELS: frozenset[str] = frozenset(
         "interaction",
         "interacts_with",
         "partner",
+        "ortholog",
         "pathway",
         "has_pathway",
         "has_gene",
