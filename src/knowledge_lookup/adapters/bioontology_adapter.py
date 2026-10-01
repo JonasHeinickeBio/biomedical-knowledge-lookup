@@ -74,7 +74,7 @@ class BioOntologyAdapter(KnowledgeSourceAdapter):
         url: str,
         params: dict[Any, Any] | None = None,
         headers: dict[Any, Any] | None = None,
-        json_data: dict[Any, Any] | None = None,
+        json_data: dict[Any, Any] | list[Any] | None = None,
         use_auth_header: bool = True,
     ) -> dict[str, Any]:
         """

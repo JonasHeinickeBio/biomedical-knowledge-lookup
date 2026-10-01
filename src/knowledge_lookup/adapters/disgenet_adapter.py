@@ -140,7 +140,7 @@ class DisGeNETAdapter(KnowledgeSourceAdapter):
         url: str,
         params: dict | None = None,
         headers: dict | None = None,
-        json_data: dict | None = None,
+        json_data: dict | list | None = None,
     ) -> dict[str, Any]:
         """Make HTTP request with smart retry and DisGeNET rate-limit awareness.
 
