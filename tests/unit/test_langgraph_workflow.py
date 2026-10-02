@@ -537,9 +537,11 @@ def stub_network_nodes(monkeypatch):
     for name in ("expand_node", "detail_gather_node", "enrichment_node"):
         monkeypatch.setattr(graph_module, name, passthrough)
     monkeypatch.setattr(graph_module, "lookup_node", fake_lookup)
+    # review, classify and followup all reach the LLM through agents.config
     monkeypatch.setattr(
         "knowledge_lookup.agents.nodes.review.load_llm_config", lambda: dict(_NO_LLM)
     )
+    monkeypatch.setattr("knowledge_lookup.agents.config.load_llm_config", lambda: dict(_NO_LLM))
     return lookups
 
 

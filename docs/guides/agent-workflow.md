@@ -13,8 +13,9 @@ pip install "biomedical-knowledge-lookup[agents]"
 ## Pipeline
 
 ```
-START -> preprocess -> expand -> lookup -> filter -> quality_gate -> detail_gather
-      -> enrichment -> aggregate -> review
+START -> preprocess -> classify -> expand -> lookup -> filter -> quality_gate
+quality_gate -> followup -> lookup (focused pass) -> filter -> quality_gate   gap found and rounds left
+quality_gate -> detail_gather -> enrichment -> relationships -> evidence -> aggregate -> review
 
 review   -> prune -> export -> END            score >= auto_approve_threshold, or iteration >= max_iterations
 review   -> approval                          otherwise
@@ -26,18 +27,22 @@ approval -> END                               {"approved": False, "refine": Fals
 | Node | What it does |
 | --- | --- |
 | `preprocess` | Splits comma-separated queries into terms and adds variants: normalized text, umlaut expansions and German compound splits |
-| `expand` | Runs [term expansion](term-expansion.md) on the original query against the selected sources (2 rounds, up to 8 new terms per round) and adds the discovered terms; UMLS abbreviation lookups run only when UMLS is selected (or no sources are given). The run is recorded in the `ExpansionStore` |
+| `classify` | Infers the concept type(s) the query is about (gene, drug, disease, pathway, ...) from identifier prefixes, gene-symbol shape, drug-name suffixes and keywords, and records them as `inferred_concept_types`. Only when no rule fires and an LLM is configured, the LLM is asked. A `concept_types` filter is used as given |
+| `expand` | Runs [term expansion](term-expansion.md) on the original query against the selected sources (2 rounds, up to 8 new terms per round) and adds the discovered terms; UMLS abbreviation lookups run only when UMLS is selected (or no sources are given). The run is recorded in the `ExpansionStore`. With `include_relationships`, the relationship edges it finds are kept in `relationship_edges` |
 | `lookup` | Searches all terms (5 at a time) against the selected sources and merges the results; increments `iteration` |
 | `filter` | Removes non-clinical concepts (questionnaire items, measurement scales, geographic locations), boosts clinically relevant types, re-ranks and keeps the best `max_results` concepts |
 | `quality_gate` | Scores the filtered results, focusing on UMLS CUI coverage and source diversity |
-| `detail_gather` | Searches each concept label in the available cross-reference sources (OLS, UMLS, BioPortal, Wikidata, MONDO, HPO) to collect identifiers, definitions and synonyms |
+| `followup` | The autonomous loop. Looks for gaps in the filtered results (see [Autonomous follow-up](#autonomous-follow-up)) and plans a focused second search; `lookup` runs it without using up `max_iterations` |
+| `detail_gather` | Searches each concept label in the cross-reference sources that suit its type, to collect identifiers, definitions and synonyms. Always OLS, UMLS, BioPortal and Wikidata, plus up to four type-specific ones (HGNC, UniProt and Ensembl for a gene; ChEMBL, PubChem and DrugBank for a drug; MONDO and HPO for a disease or when the type is unknown). At most 8 sources per label |
 | `enrichment` | Looks up each concept label in UMLS and attaches its CUI; skipped when UMLS is not available |
-| `aggregate` | Builds a text report of all concepts for the review |
+| `relationships` | With `include_relationships`, asks the relationship-capable adapters (KEGG, UMLS, STRING, DisGeNET, Open Targets, OLS, WikiPathways, Ensembl) for the edges of the top 10 concepts, using the identifier each source understands (also those only added as cross-references). Stored in `relationship_edges` |
+| `evidence` | With `include_evidence`, fetches the top three Europe PMC papers for each of the top five concepts into `literature_evidence` |
+| `aggregate` | Builds a text report of all concepts, plus the relationship edges and literature evidence when present, for the review |
 | `review` | Builds a concept map (term, UMLS CUI, ontology IDs, type) and scores the results with an LLM, or with rules when no LLM is available |
 | `approval` | Pauses for a human decision (LangGraph `interrupt`) |
 | `refine` | Appends the user's notes to the query and rebuilds the search terms from it, as `preprocess` does, so the next `lookup` searches the refined text. Without new notes the same terms are searched again. Review suggestions are shown in the step detail and never added to the query |
 | `prune` | Drops intermediate state before export |
-| `export` | Writes JSON, CSV and/or Turtle files |
+| `export` | Writes JSON, CSV and/or Turtle files; the JSON file has an `expansion` object with the inferred types, follow-up rounds, relationship edges and literature evidence |
 
 ## Run the workflow from Python
 
@@ -68,7 +73,7 @@ asyncio.run(main())
 ```
 {% endcode %}
 
-`run_workflow(query, *, max_results=50, sources=None, concept_types=None, export_formats=None, export_path=None, max_iterations=3, auto_approve_threshold=0.8, checkpointer=None)`:
+`run_workflow(query, *, max_results=50, sources=None, concept_types=None, export_formats=None, export_path=None, max_iterations=3, auto_approve_threshold=0.8, include_relationships=False, include_evidence=False, max_auto_rounds=1, checkpointer=None)`:
 
 | Argument | Default | Meaning |
 | --- | --- | --- |
@@ -80,18 +85,33 @@ asyncio.run(main())
 | `export_path` | `<temp dir>/knowledge_lookup_export` | Directory for exported files, named after the query |
 | `max_iterations` | `3` | Maximum number of lookup passes (initial search plus refinements) |
 | `auto_approve_threshold` | `0.8` | Review score at or above which results are exported without asking |
-| `include_relationships` | `False` | Include relationship-edge expansion (interactions, pathways, class members) in the `expand` step; CLI: `--relationships` |
+| `include_relationships` | `False` | Include relationship-edge expansion (interactions, pathways, class members) in the `expand` step and harvest the edges of the final concepts in `relationships`; CLI: `--relationships` |
+| `include_evidence` | `False` | Attach Europe PMC papers for the leading concepts; CLI: `--evidence` |
+| `max_auto_rounds` | `1` | Autonomous follow-up rounds; `0` turns the loop off; CLI: `--auto-rounds` |
 | `checkpointer` | shared in-memory saver | LangGraph checkpointer that stores paused runs; see [Approval and refinement](#approval-and-refinement) |
 
-The returned `dict` contains `thread_id`, `status`, `approval_request`, `result` (a `LookupResult` or `None`), `review_score`, `review_summary`, `review_strengths`, `review_weaknesses`, `review_suggestions`, `concept_map`, `llm_explanation`, `aggregated_context`, `export_paths`, `errors`, `steps` (one record per executed node with `agent`, `action`, `timestamp` and `detail`) and `iteration`. `status` is `"completed"`, `"failed"` or, when the run paused for a decision, `"awaiting_approval"`.
+The returned `dict` contains `thread_id`, `status`, `approval_request`, `result` (a `LookupResult` or `None`), `review_score`, `review_summary`, `review_strengths`, `review_weaknesses`, `review_suggestions`, `concept_map`, `llm_explanation`, `aggregated_context`, `export_paths`, `errors`, `steps` (one record per executed node with `agent`, `action`, `timestamp` and `detail`), `iteration`, `auto_rounds` (follow-up rounds run), `inferred_concept_types`, `relationship_edges` and `literature_evidence`. `status` is `"completed"`, `"failed"` or, when the run paused for a decision, `"awaiting_approval"`.
 
 {% hint style="info" %}
-**Runtime.** Each network step has a time budget: `expand` 45 s, `lookup` 60 s, `detail_gather` 45 s and `enrichment` 30 s (single cross-reference or UMLS searches time out after 15 s). Work that has not finished by then is dropped and noted in `steps` and `errors`, and the workflow continues with what it has. `sources` restricts `expand` and `lookup`; `detail_gather` and `enrichment` still query their cross-reference sources and UMLS when those are available. A query against one or two sources usually finishes in well under a minute; for example `"seizure"` with `sources=["HPO"]` took about 30 to 40 seconds including an LLM review. Without `sources`, every available adapter is searched and a run takes longer.
+**Runtime.** Each network step has a time budget: `expand` 45 s, `lookup` 60 s (also for a follow-up pass), `detail_gather` 45 s, `enrichment` 30 s, `relationships` 30 s and `evidence` 30 s (single cross-reference or UMLS searches time out after 15 s). Work that has not finished by then is dropped and noted in `steps` and `errors`, and the workflow continues with what it has. `sources` restricts `expand` and `lookup`; `detail_gather` and `enrichment` still query their cross-reference sources and UMLS when those are available. A query against one or two sources usually finishes in well under a minute; for example `"seizure"` with `sources=["HPO"]` took about 30 to 40 seconds including an LLM review. Without `sources`, every available adapter is searched and a run takes longer.
 {% endhint %}
+
+## Autonomous follow-up
+
+`quality_gate` only scores; `followup` acts on what is missing. After the filtered results are scored it diagnoses them:
+
+| Gap | Meaning |
+| --- | --- |
+| `empty` | Nothing was found |
+| `thin` | Fewer than 3 concepts survived filtering |
+| `failed_sources` | Some queried sources failed; they are retried for the original query (within your `sources`) |
+| `single_source` | Every concept came from one source although several were queried |
+
+If there is a gap and `max_auto_rounds` is not used up, the node plans up to 6 *probes* from what the run already knows, in this order: synonyms of the five leading concepts, their narrower and broader terms, named relationship targets that `expand` did not get to search, and, only for `empty` or `thin` results, suggestions from the configured LLM. Terms already searched are never repeated, and your `sources` selection is never widened. `lookup` runs the probes as a focused pass: it searches only them, merges the findings into the concepts found so far and does not use up `max_iterations`. Then `filter` and `quality_gate` run again, so a second round is possible when `max_auto_rounds` allows it. A refinement from the approval gate starts a new search and resets the follow-up count. When there is nothing new to try, the step `no_action` is recorded and the workflow carries on.
 
 ## LLM review
 
-The review step uses the first LLM backend it finds in the environment:
+The review step, and the optional `classify` and `followup` suggestions, use the first LLM backend they find in the environment:
 
 | Backend | API key | Other variables (defaults) |
 | --- | --- | --- |
@@ -99,7 +119,7 @@ The review step uses the first LLM backend it finds in the environment:
 | OpenAI or any OpenAI-compatible API | `OPENAI_API_KEY` | `OPENAI_API_BASE`, `OPENAI_MODEL` (`gpt-4o-mini`) |
 | Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_MODEL` (`claude-sonnet-4-20250514`) |
 
-`load_llm_config()` shows which backend was picked. When a backend is configured, the LLM call is retried up to three times; if no backend is configured or all attempts fail, a rule-based review produces the score, strengths, weaknesses and suggestions instead. The concept map is always built by rules from the data.
+`load_llm_config()` shows which backend was picked. When a backend is configured, the LLM call is retried up to three times; if no backend is configured or all attempts fail, a rule-based review produces the score, strengths, weaknesses and suggestions instead. `classify` and `followup` use the LLM only as a fallback and work without one. The concept map is always built by rules from the data.
 
 ## Approval and refinement
 
@@ -146,6 +166,7 @@ The `workflow` command runs the same graph and asks for approval on the terminal
 
 ```bash
 knowledge-lookup workflow "seizure" --source HPO --format json --format csv --export-path results/ --auto-approve 0
+knowledge-lookup workflow "TP53" --relationships --evidence --auto-rounds 2
 ```
 
 See [Command-line interface](cli.md) for all options.

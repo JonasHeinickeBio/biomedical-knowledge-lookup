@@ -3,6 +3,11 @@
 Searches ALL expanded query variants (from preprocess) independently
 against ALL configured sources. Results from all variants are merged
 and deduplicated in a single pass.
+
+When ``followup_pending`` is set (by the ``followup`` node) the node instead
+runs a *focused* pass: it searches only the planned ``followup_probes`` (a
+term, optionally with its own sources), merges what they find into the
+existing result, and does not count against ``max_iterations``.
 """
 
 from __future__ import annotations
@@ -14,7 +19,12 @@ from typing import Any
 from ...core.central_lookup import CentralKnowledgeLookup
 from ...core.term_expansion import merge_concept_results
 from ...models import KnowledgeSource, LookupConfig, LookupResult
-from ..state import LookupWorkflowState, lookup_result_to_dict, make_step
+from ..state import (
+    LookupWorkflowState,
+    dict_to_lookup_result,
+    lookup_result_to_dict,
+    make_step,
+)
 from . import _limits
 
 logger = logging.getLogger(__name__)
@@ -36,6 +46,11 @@ def _get_search_terms(state: LookupWorkflowState) -> list[str]:
     return terms if terms else [query]
 
 
+def resolve_probe_sources(names: list[str] | None) -> list[KnowledgeSource]:
+    """Map a probe's source names to :class:`KnowledgeSource` members (unknown ones dropped)."""
+    return _limits.resolve_sources(names) or []
+
+
 async def lookup_node(state: LookupWorkflowState) -> dict:
     """Execute knowledge lookup across configured sources.
 
@@ -45,8 +60,12 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
     query = state["query"]
     iteration = state["iteration"]
 
-    # Get all search terms (expanded from preprocess or comma-split)
-    search_terms = _get_search_terms(state)
+    followup = bool(state.get("followup_pending"))
+    probes = [p for p in (state.get("followup_probes") or []) if p.get("term")]
+
+    # Get all search terms (expanded from preprocess or comma-split); a
+    # follow-up pass searches only its planned probes.
+    search_terms = [p["term"] for p in probes] if followup else _get_search_terms(state)
 
     source_filter = _limits.resolve_sources(state.get("source_filter"))
 
@@ -86,12 +105,27 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
                     pass
             concept_types = resolved_types if resolved_types else None
 
+        # A probe may name its own sources; those the user did not select (or
+        # that failed to initialise) are dropped, falling back to the selection.
+        def _probe_sources(probe: dict) -> list[KnowledgeSource] | None:
+            wanted = resolve_probe_sources(probe.get("sources"))
+            if not wanted:
+                return sources
+            allowed = [s for s in wanted if s in lookup.adapters]
+            if source_filter is not None:
+                allowed = [s for s in allowed if s in source_filter]
+            return allowed or sources
+
+        term_sources: list[list[KnowledgeSource] | None] = (
+            [_probe_sources(p) for p in probes] if followup else [sources] * len(search_terms)
+        )
+
         # Search the expanded terms concurrently, within the node's time budget
-        async def _search_term(term: str) -> LookupResult:
+        async def _search_term(term: str, term_srcs: list[KnowledgeSource] | None) -> LookupResult:
             return await lookup.search_concepts(
                 query=term,
                 concept_types=concept_types,
-                sources=sources,
+                sources=term_srcs,
                 max_results=state["max_results"],
                 parallel=True,
             )
@@ -99,15 +133,25 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
         gather_results, _ = await _limits.gather_bounded(
             []
             if unavailable_error
-            else [functools.partial(_search_term, t) for t in search_terms],
+            else [
+                functools.partial(_search_term, t, srcs)
+                for t, srcs in zip(search_terms, term_sources, strict=True)
+            ],
             timeout=_limits.LOOKUP_TIMEOUT,
         )
 
-        # Merge results across all terms
+        # Merge results across all terms (a follow-up pass merges into the
+        # concepts found so far)
         all_concepts: list[Any] = []
         exec_time_total = 0.0
         sources_succeeded_union: set[str] = set()
         sources_failed_union: set[str] = set()
+        previous = dict_to_lookup_result(state.get("lookup_result")) if followup else None
+        if previous is not None:
+            all_concepts = list(previous.concepts or [])
+            exec_time_total = previous.execution_time or 0.0
+            sources_succeeded_union = {str(s) for s in previous.sources_succeeded or []}
+            sources_failed_union = {str(s) for s in previous.sources_failed or []}
         errors_combined: dict[str, str] = {}
         term_report: list[str] = []
 
@@ -178,10 +222,16 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
         n_concepts = len(all_concepts)
         n_sources = len(sources_succeeded_union)
 
-        step_detail = (
-            f"Found {n_concepts} concepts from {n_sources} sources "
-            f"({n_terms} search term(s), iter {iteration + 1})"
-        )
+        if followup:
+            step_detail = (
+                f"Follow-up round {state.get('auto_round') or 1}: now {n_concepts} concepts "
+                f"from {n_sources} sources ({n_terms} focused search(es))"
+            )
+        else:
+            step_detail = (
+                f"Found {n_concepts} concepts from {n_sources} sources "
+                f"({n_terms} search term(s), iter {iteration + 1})"
+            )
         if n_terms > 1:
             term_detail = " | ".join(term_report[:10])
             if len(term_report) > 10:
@@ -190,11 +240,21 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
 
         result_dict = lookup_result_to_dict(merged)
 
+        new_errors = unavailable_error + list(errors_combined.values())
+        if followup:
+            return {
+                "lookup_result": result_dict,
+                "status": "searching",
+                "followup_pending": False,
+                "followup_probes": [],
+                "errors": list(state.get("errors") or []) + new_errors,
+                "steps": [make_step("LookupAgent", "followup_search", step_detail)],
+            }
         return {
             "lookup_result": result_dict,
             "status": "searching",  # Will be evaluated by quality_gate
             "iteration": iteration + 1,
-            "errors": unavailable_error + list(errors_combined.values()),
+            "errors": new_errors,
             "steps": [make_step("LookupAgent", "search", step_detail)],
         }
 

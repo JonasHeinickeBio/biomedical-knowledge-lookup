@@ -51,6 +51,18 @@ class LookupWorkflowState(TypedDict):
     quality_score: float | None  # Quality gate score (0-1)
     quality_details: dict | None  # Quality breakdown
 
+    # ── Agentic expansion (autonomous gap-filling, relationships, evidence) ─
+    inferred_concept_types: list[str]  # ConceptType names the classify node inferred
+    max_auto_rounds: int  # Autonomous follow-up rounds allowed (0 disables the loop)
+    auto_round: int  # Follow-up rounds already run
+    followup_pending: bool  # Set by followup, consumed by the next lookup pass
+    followup_probes: list[dict]  # [{"term": str, "sources": [str] | None, "reason": str}]
+    relationship_edges: list[dict]  # Edges harvested by expand / relationships
+    include_evidence: bool  # Opt-in literature evidence (Europe PMC) for top concepts
+    literature_evidence: list[
+        dict
+    ]  # [{concept, concept_id, papers: [{id, title, year, journal}]}]
+
     # ── Business (produced by workflow nodes) ────────────────────────────
     # Lookup & enrichment
     lookup_result: dict | None  # Serialized LookupResult (Pydantic)

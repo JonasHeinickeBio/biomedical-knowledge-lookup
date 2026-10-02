@@ -123,6 +123,14 @@ async def export_node(state: LookupWorkflowState) -> dict:
                     "suggestions": state.get("review_suggestions", []),
                 }
 
+                # Agentic expansion output (empty unless the run produced it)
+                data["expansion"] = {
+                    "inferred_concept_types": state.get("inferred_concept_types") or [],
+                    "auto_rounds": state.get("auto_round") or 0,
+                    "relationship_edges": state.get("relationship_edges") or [],
+                    "literature_evidence": state.get("literature_evidence") or [],
+                }
+
                 with open(path, "w") as f:
                     json.dump(data, f, indent=2)
                 paths.append(path)

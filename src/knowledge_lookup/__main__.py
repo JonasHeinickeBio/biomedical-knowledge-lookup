@@ -300,6 +300,18 @@ def workflow(
         "--relationships",
         help="Expand the search with relationship edges (interactions, pathways, class members)",
     ),
+    evidence: bool = typer.Option(
+        False,
+        "--evidence",
+        help="Attach top Europe PMC papers for the leading concepts",
+    ),
+    auto_rounds: int = typer.Option(
+        1,
+        "--auto-rounds",
+        min=0,
+        help="Autonomous follow-up searches when results are empty, thin or a source failed "
+        "(0 disables)",
+    ),
 ):
     """
     Run the intelligent agent workflow with review and approval.
@@ -313,13 +325,16 @@ def workflow(
       knowledge-lookup workflow "BRCA1, BRCA2, TP53" --limit 10 --auto-approve 0.7
 
     The workflow performs:
-    1. Parallel lookup across knowledge sources
-    2. Cross-source detail gathering (IDs, definitions, types, synonyms)
-    3. UMLS CUI enrichment
-    4. LLM-powered quality review (or rule-based fallback)
-    5. Human approval gate (or auto-approve if score is high enough)
-    6. Optional refinement rounds based on feedback
-    7. Export to configured formats with concept map output
+    1. Query classification (gene, drug, disease, ...) to pick suited sources
+    2. Parallel lookup across knowledge sources, with autonomous follow-up
+       searches when results are empty or thin
+    3. Type-aware cross-source detail gathering (IDs, definitions, types, synonyms)
+    4. UMLS CUI enrichment
+    5. Optional relationship edges (--relationships) and literature evidence (--evidence)
+    6. LLM-powered quality review (or rule-based fallback)
+    7. Human approval gate (or auto-approve if score is high enough)
+    8. Optional refinement rounds based on feedback
+    9. Export to configured formats with concept map output
     """
     from knowledge_lookup.agents import resume_workflow, run_workflow
 
@@ -336,6 +351,8 @@ def workflow(
             max_iterations=max_iterations,
             auto_approve_threshold=auto_approve,
             include_relationships=relationships,
+            include_evidence=evidence,
+            max_auto_rounds=auto_rounds,
         )
 
     result = asyncio.run(_run())
@@ -454,6 +471,22 @@ def _print_review(result: dict, auto_approve: float) -> None:
         console.print(f"\n[bold {color}]Review Score: {score:.2f}[/bold {color}]")
         if result.get("review_summary"):
             console.print(f"[dim]{result['review_summary']}[/dim]")
+
+    # Show what the agentic expansion did
+    if result.get("inferred_concept_types"):
+        console.print(
+            f"[dim]Inferred type(s): {', '.join(result['inferred_concept_types'])}[/dim]"
+        )
+    if result.get("auto_rounds"):
+        console.print(f"[dim]Autonomous follow-up round(s): {result['auto_rounds']}[/dim]")
+    if result.get("relationship_edges"):
+        console.print(f"[dim]Relationship edges: {len(result['relationship_edges'])}[/dim]")
+    evidence = result.get("literature_evidence") or []
+    if evidence:
+        papers = sum(len(e.get("papers") or []) for e in evidence)
+        console.print(
+            f"[dim]Literature evidence: {papers} paper(s) for {len(evidence)} concept(s)[/dim]"
+        )
 
     # Show concept map
     if concept_map:

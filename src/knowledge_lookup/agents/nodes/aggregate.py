@@ -198,6 +198,39 @@ def _build_summary_statistics(concepts: list[Any], query: str) -> str:
     return "\n".join(lines)
 
 
+_MAX_EDGES_SHOWN = 25
+
+
+def _build_relationship_section(edges: list[dict[str, Any]]) -> str:
+    """Relationship edges harvested for the concepts, for the reviewer."""
+    if not edges:
+        return ""
+    lines = [f"## Relationship Network ({len(edges)} edge(s))"]
+    for edge in edges[:_MAX_EDGES_SHOWN]:
+        target = edge.get("related_name") or edge.get("related_id") or "?"
+        via = f" [{edge['related_source']}]" if edge.get("related_source") else ""
+        lines.append(
+            f"  - {edge.get('source_concept_label') or edge.get('source_concept_id')} "
+            f"--{edge.get('relation_label') or 'related_to'}--> {target}{via}"
+        )
+    if len(edges) > _MAX_EDGES_SHOWN:
+        lines.append(f"  ... (+{len(edges) - _MAX_EDGES_SHOWN} more)")
+    return "\n".join(lines)
+
+
+def _build_evidence_section(evidence: list[dict[str, Any]]) -> str:
+    """Literature support for the leading concepts, for the reviewer."""
+    if not evidence:
+        return ""
+    lines = ["## Literature Evidence (Europe PMC)"]
+    for entry in evidence:
+        lines.append(f"  {entry.get('concept')}:")
+        for paper in entry.get("papers") or []:
+            meta = ", ".join(str(x) for x in (paper.get("journal"), paper.get("year")) if x)
+            lines.append(f"    - {paper.get('title')}" + (f" ({meta})" if meta else ""))
+    return "\n".join(lines)
+
+
 async def aggregate_node(state: LookupWorkflowState) -> dict:
     """Aggregate all concept details into a comprehensive text report.
 
@@ -224,12 +257,22 @@ async def aggregate_node(state: LookupWorkflowState) -> dict:
 
     cross_analysis = _build_cross_concept_analysis(concepts)
 
+    extras = "".join(
+        f"\n{section}\n"
+        for section in (
+            _build_relationship_section(state.get("relationship_edges") or []),
+            _build_evidence_section(state.get("literature_evidence") or []),
+        )
+        if section
+    )
+
     # Combine into final context
     context = (
         f"# Biomedical Knowledge Lookup Report\n\n"
         f"{summary_stats}\n\n"
         f"{concepts_section}\n\n"
         f"{cross_analysis}\n"
+        f"{extras}"
     )
 
     return {

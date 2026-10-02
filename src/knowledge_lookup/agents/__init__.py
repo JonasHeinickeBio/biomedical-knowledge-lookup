@@ -4,7 +4,11 @@ Agent Workflow Package
 Provides an intelligent agent workflow for biomedical knowledge lookup built on LangGraph:
 
 - **LangGraph Workflow**: StateGraph with human-in-the-loop interrupts
+- **Classify Node**: Infers the concept type(s) of the query to pick suited sources
 - **Lookup Node**: Orchestrates searches via CentralKnowledgeLookup
+- **Followup Node**: Autonomous gap analysis (empty/thin results, failed sources) that
+  plans a focused re-search from synonyms, hierarchy, relationship targets and LLM hints
+- **Relationships / Evidence Nodes**: Opt-in relationship edges and Europe PMC papers
 - **Review Node**: LLM-powered quality assessment (Blablador/OpenAI) with rule-based fallback
 - **Approval Node**: Human-in-the-loop via LangGraph interrupt()
 - **Refine Node**: Query refinement based on feedback
@@ -32,7 +36,11 @@ Module Structure::
     ├── runners.py       # High-level run_workflow / resume_workflow
     └── nodes/
         ├── __init__.py  # Re-exports all nodes
-        ├── lookup.py    # Knowledge source search
+        ├── classify.py  # Concept-type inference
+        ├── lookup.py    # Knowledge source search (and focused follow-up pass)
+        ├── followup.py  # Autonomous gap analysis and follow-up planning
+        ├── relationships.py  # Relationship edges of the final concepts
+        ├── evidence.py  # Europe PMC literature evidence
         ├── review.py    # LLM + rule-based quality review
         ├── approval.py  # Human-in-the-loop interrupt
         ├── refine.py    # Query refinement

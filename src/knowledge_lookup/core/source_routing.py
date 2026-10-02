@@ -28,10 +28,26 @@ that policy lives in the caller (see ``term_expansion.expand_and_search``).
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 
 from ..models import ConceptType, KnowledgeSource
 
 logger = logging.getLogger(__name__)
+
+
+def as_concept_type(value: object) -> ConceptType | None:
+    """Best-effort coerce a concept's ``concept_type`` (enum member or raw
+    string after model regen) to a :class:`ConceptType`, or ``None`` when it
+    is empty/unrecognised — routing then treats the term as unclassified."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, ConceptType):
+        return value
+    try:
+        return ConceptType(str(value).upper())
+    except ValueError:
+        return None
+
 
 #: Curated ``ConceptType`` -> sources that are useful for it.
 #:
@@ -329,8 +345,95 @@ def options_for_concept_type(
     return {}
 
 
+#: Generalist sources worth asking for *every* concept when cross-referencing:
+#: broad ontology/knowledge-graph services that carry identifiers for most types.
+GENERAL_XREF_SOURCES: tuple[KnowledgeSource, ...] = (
+    KnowledgeSource.OLS,
+    KnowledgeSource.UMLS,
+    KnowledgeSource.BIOPORTAL,
+    KnowledgeSource.WIKIDATA,
+)
+
+#: The fixed cross-reference set the agent workflow used before type-aware
+#: selection existed; still used for concepts whose type is unknown.
+LEGACY_XREF_SOURCES: tuple[KnowledgeSource, ...] = (
+    *GENERAL_XREF_SOURCES,
+    KnowledgeSource.MONDO,
+    KnowledgeSource.HPO,
+)
+
+#: Specialist sources eligible for cross-referencing, most authoritative first
+#: (this order decides which ones survive the per-label cap). Literature sources
+#: (Europe PMC, E-utilities) are deliberately absent: they return papers, not
+#: identifiers for a concept.
+_SPECIALIST_XREF_ORDER: tuple[KnowledgeSource, ...] = (
+    KnowledgeSource.MONDO,
+    KnowledgeSource.HPO,
+    KnowledgeSource.HGNC,
+    KnowledgeSource.UNIPROT,
+    KnowledgeSource.ENSEMBL,
+    KnowledgeSource.MYGENEINFO,
+    KnowledgeSource.CHEMBL,
+    KnowledgeSource.PUBCHEM,
+    KnowledgeSource.DRUGBANK,
+    KnowledgeSource.UNICHEM,
+    KnowledgeSource.KEGG,
+    KnowledgeSource.REACTOME,
+    KnowledgeSource.WIKIPATHWAYS,
+    KnowledgeSource.QUICKGO,
+    KnowledgeSource.GENEONTOLOGY,
+    KnowledgeSource.OPENTARGETS,
+    KnowledgeSource.OMIM,
+    KnowledgeSource.DISGENET,
+    KnowledgeSource.STRING,
+    KnowledgeSource.INTERPRO,
+    KnowledgeSource.PFAM,
+    KnowledgeSource.PDB,
+    KnowledgeSource.DBPEDIA,
+)
+
+#: Upper bound on cross-reference sources queried per concept label. Every
+#: adapter call sleeps for its rate limit, so this keeps one label's fan-out small.
+MAX_XREF_SOURCES_PER_LABEL = 8
+
+
+def cross_reference_sources(
+    concept_type: ConceptType | None,
+    available_sources: Iterable[KnowledgeSource],
+    *,
+    limit: int = MAX_XREF_SOURCES_PER_LABEL,
+) -> list[KnowledgeSource]:
+    """Sources to ask when cross-referencing one concept of *concept_type*.
+
+    The generalists (:data:`GENERAL_XREF_SOURCES`) come first, then the
+    specialists :data:`TYPE_SOURCE_MAP` lists for the type, in
+    ``_SPECIALIST_XREF_ORDER`` — so a gene is cross-referenced against HGNC,
+    UniProt and Ensembl and a drug against ChEMBL, PubChem and DrugBank rather
+    than a fixed disease-oriented set. Unknown or unmapped types get
+    :data:`LEGACY_XREF_SOURCES`. Only sources in *available_sources* are
+    returned, at most *limit* of them.
+    """
+    available = set(available_sources)
+    mapped = (
+        _sources_for_type(concept_type)
+        if concept_type is not None and concept_type != ConceptType.UNKNOWN
+        else None
+    )
+    ordered: list[KnowledgeSource] = list(GENERAL_XREF_SOURCES)
+    if mapped is None:
+        ordered.extend(s for s in LEGACY_XREF_SOURCES if s not in ordered)
+    else:
+        ordered.extend(s for s in _SPECIALIST_XREF_ORDER if s in mapped and s not in ordered)
+    return [s for s in ordered if s in available][: max(0, limit)]
+
+
 __all__ = [
     "TYPE_SOURCE_MAP",
+    "as_concept_type",
+    "GENERAL_XREF_SOURCES",
+    "LEGACY_XREF_SOURCES",
+    "MAX_XREF_SOURCES_PER_LABEL",
     "route_sources",
+    "cross_reference_sources",
     "options_for_concept_type",
 ]

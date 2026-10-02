@@ -1,6 +1,7 @@
 """Safeguards that bound the workflow's network fan-out.
 
-The network nodes (``expand``, ``lookup``, ``detail_gather``, ``enrichment``)
+The network nodes (``expand``, ``lookup``, ``detail_gather``, ``enrichment``,
+``relationships``, ``evidence``)
 each issue one search per term, concept or source, and every adapter call
 sleeps for its rate limit (1 s by default). Unbounded, these multiply —
 expansion terms x sources x concepts — and a small query could run for many
@@ -28,9 +29,15 @@ EXPAND_TIMEOUT = 45.0
 LOOKUP_TIMEOUT = 60.0
 DETAIL_GATHER_TIMEOUT = 45.0
 ENRICHMENT_TIMEOUT = 30.0
+RELATIONSHIPS_TIMEOUT = 30.0
+EVIDENCE_TIMEOUT = 30.0
 
 # Timeout for a single per-concept search in detail_gather / enrichment.
 CALL_TIMEOUT = 15.0
+
+# Concepts (taken in rank order) the relationships / evidence nodes look at.
+MAX_RELATIONSHIP_CONCEPTS = 10
+MAX_EVIDENCE_CONCEPTS = 5
 
 # Searches a node runs at the same time.
 MAX_CONCURRENCY = 5

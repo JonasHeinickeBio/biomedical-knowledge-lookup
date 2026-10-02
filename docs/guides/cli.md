@@ -86,7 +86,9 @@ knowledge-lookup workflow "seizure" -s HPO --format json --format csv --export-p
 | `--max-iter` | `3` | Maximum lookup passes (initial search plus refinements) |
 | `--auto-approve` | `0.8` | Review score at or above which results are exported without asking |
 | `--type`, `-t` | none | Concept types to keep, e.g. `DISEASE` (repeatable) |
-| `--relationships` | off | Run the workflow's expansion pass with relationship edges (interactions, pathways, class members) |
+| `--relationships` | off | Run the workflow's expansion pass with relationship edges (interactions, pathways, class members) and harvest the edges of the final concepts |
+| `--evidence` | off | Attach the top Europe PMC papers for the leading concepts |
+| `--auto-rounds` | `1` | Autonomous follow-up searches when results are empty, thin or a source failed; `0` turns them off |
 
 The command prints the review score, a concept map (term, UMLS CUI, ontology IDs, type), strengths, weaknesses and suggestions. If the score is below `--auto-approve`, the workflow pauses and asks `Do you approve these results?`:
 

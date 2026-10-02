@@ -2,8 +2,9 @@
 
 Flow::
 
-    START → preprocess → expand → lookup → filter → quality_gate → detail_gather
-    → enrichment → aggregate → review
+    START → preprocess → classify → expand → lookup → filter → quality_gate
+    → {followup → {lookup | detail_gather} | detail_gather}
+    → enrichment → relationships → evidence → aggregate → review
     → {approval | prune}
     → {prune | refine | END}
     → {prune → export → END}
@@ -11,6 +12,8 @@ Flow::
 Key design:
 - **preprocess** generates expanded search terms (direct, umlaut-expanded,
   normalized, German compound splits) — searched in parallel
+- **classify** infers the concept type(s) the query is about (rules, then an
+  optional LLM) so later nodes pick sources that suit it
 - **expand** iteratively discovers synonym and abbreviation/long-form
   variants from real search results (not just string transforms) and adds
   them to the same search-term list; the full discovery trail is durably
@@ -18,6 +21,12 @@ Key design:
 - **filter** removes non-clinical concepts (questionnaires, measurement
   scales, geographic locations) and boosts clinical types
 - **quality_gate** scores the filtered results
+- **followup** (autonomous, bounded by ``max_auto_rounds``) diagnoses gaps —
+  empty/thin results, failed sources — and plans a focused re-search from
+  synonyms, hierarchy labels, relationship targets and LLM suggestions, which
+  ``lookup`` runs without using up ``max_iterations``
+- **detail_gather** cross-references each concept in the sources that suit its type
+- **relationships** / **evidence** (opt-in) add relationship edges and Europe PMC papers
 - **review** (LLM-powered) provides the final quality judgment
 """
 
@@ -32,19 +41,29 @@ from langgraph.graph import END, START, StateGraph
 from .nodes import (
     aggregate_node,
     approval_node,
+    classify_node,
     detail_gather_node,
     enrichment_node,
+    evidence_node,
     expand_node,
     export_node,
     filter_node,
+    followup_node,
     lookup_node,
     preprocess_node,
     prune_node,
     quality_gate_node,
     refine_node,
+    relationships_node,
     review_node,
 )
-from .routing import route_after_approval, route_after_refine, route_after_review
+from .routing import (
+    route_after_approval,
+    route_after_followup,
+    route_after_quality_gate,
+    route_after_refine,
+    route_after_review,
+)
 from .state import LookupWorkflowState
 
 
@@ -67,12 +86,16 @@ def build_workflow_graph(checkpointer: BaseCheckpointSaver | None = None) -> Any
 
     # Add nodes
     builder.add_node("preprocess", preprocess_node)
+    builder.add_node("classify", classify_node)
     builder.add_node("expand", expand_node)
     builder.add_node("lookup", lookup_node)
     builder.add_node("filter", filter_node)
     builder.add_node("quality_gate", quality_gate_node)
+    builder.add_node("followup", followup_node)
     builder.add_node("detail_gather", detail_gather_node)
     builder.add_node("enrichment", enrichment_node)
+    builder.add_node("relationships", relationships_node)
+    builder.add_node("evidence", evidence_node)
     builder.add_node("aggregate", aggregate_node)
     builder.add_node("review", review_node)
     builder.add_node("approval", approval_node)
@@ -80,17 +103,33 @@ def build_workflow_graph(checkpointer: BaseCheckpointSaver | None = None) -> Any
     builder.add_node("prune", prune_node)
     builder.add_node("export", export_node)
 
-    # Sequential: preprocess → expand → lookup → filter → quality_gate → detail_gather
+    # Sequential: preprocess → classify → expand → lookup → filter → quality_gate
     builder.add_edge(START, "preprocess")
-    builder.add_edge("preprocess", "expand")
+    builder.add_edge("preprocess", "classify")
+    builder.add_edge("classify", "expand")
     builder.add_edge("expand", "lookup")
     builder.add_edge("lookup", "filter")
     builder.add_edge("filter", "quality_gate")
-    builder.add_edge("quality_gate", "detail_gather")
 
-    # Sequential: details → UMLS CUI enrichment → aggregate → review
+    # Autonomous loop: a gap in the results → followup plans focused probes →
+    # lookup runs them → filter → quality_gate re-checks (bounded by max_auto_rounds)
+    builder.add_conditional_edges(
+        "quality_gate",
+        route_after_quality_gate,
+        {"followup": "followup", "detail_gather": "detail_gather"},
+    )
+    builder.add_conditional_edges(
+        "followup",
+        route_after_followup,
+        {"lookup": "lookup", "detail_gather": "detail_gather"},
+    )
+
+    # Sequential: details → UMLS CUI enrichment → relationships → evidence
+    # → aggregate → review
     builder.add_edge("detail_gather", "enrichment")
-    builder.add_edge("enrichment", "aggregate")
+    builder.add_edge("enrichment", "relationships")
+    builder.add_edge("relationships", "evidence")
+    builder.add_edge("evidence", "aggregate")
     builder.add_edge("aggregate", "review")
 
     # Conditional: review → approval (human) or prune → export (auto)
