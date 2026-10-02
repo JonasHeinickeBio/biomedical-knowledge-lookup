@@ -21,7 +21,7 @@ from knowledge_lookup.agents.nodes.classify import (
     classify_node,
     infer_concept_types,
 )
-from knowledge_lookup.agents.routing import route_after_followup, route_after_quality_gate
+from knowledge_lookup.agents.routing import route_after_detail_gather, route_after_followup
 from knowledge_lookup.agents.state import (
     LookupWorkflowState,
     dict_to_lookup_result,
@@ -203,6 +203,79 @@ class TestCrossReferenceSources:
         assert result["steps"][0]["agent"] == "DetailGatherAgent"
 
 
+class TestDetailGatherIsIncremental:
+    @staticmethod
+    def _run(state):
+        from knowledge_lookup.agents.nodes.detail_gather import detail_gather_node
+
+        searched: list[str] = []
+
+        async def search(query, sources, **kwargs):
+            searched.append(query)
+            return LookupResult(query=query)
+
+        instance = MagicMock()
+        instance.search_concepts = search
+        instance.close = AsyncMock()
+
+        def factory(config, auto_initialize):
+            instance.adapters = dict.fromkeys(config.enabled_sources or [], object())
+            return instance
+
+        with patch(
+            "knowledge_lookup.agents.nodes.detail_gather.CentralKnowledgeLookup",
+            MagicMock(side_effect=factory),
+        ):
+            return asyncio.run(detail_gather_node(state)), set(searched)
+
+    def test_records_the_labels_it_cross_referenced(self):
+        state = _state(lookup_result=_result([_concept("Seizure"), _concept("Fit")]))
+        update, searched = self._run(state)
+        assert searched == {"Seizure", "Fit"}
+        assert update["xref_labels"] == ["fit", "seizure"]
+
+    def test_second_pass_only_searches_new_labels(self):
+        state = _state(
+            lookup_result=_result([_concept("Seizure"), _concept("Convulsion")]),
+            xref_labels=["seizure"],
+        )
+        update, searched = self._run(state)
+        assert searched == {"Convulsion"}
+        assert update["xref_labels"] == ["convulsion", "seizure"]
+
+    def test_nothing_new_builds_no_adapters(self):
+        state = _state(lookup_result=_result([_concept("Seizure")]), xref_labels=["Seizure"])
+        update, searched = self._run(state)
+        assert searched == set()
+        assert update["steps"][0]["action"] == "skip"
+        assert "already cross-referenced" in update["steps"][0]["detail"]
+        assert "xref_labels" not in update
+
+    def test_labels_that_timed_out_are_retried_next_pass(self, monkeypatch):
+        from knowledge_lookup.agents.nodes.detail_gather import detail_gather_node
+
+        monkeypatch.setattr("knowledge_lookup.agents.nodes._limits.DETAIL_GATHER_TIMEOUT", 0.2)
+
+        async def slow(*args, **kwargs):
+            await asyncio.sleep(30)
+
+        instance = MagicMock()
+        instance.search_concepts = slow
+        instance.close = AsyncMock()
+
+        def factory(config, auto_initialize):
+            instance.adapters = dict.fromkeys(config.enabled_sources or [], object())
+            return instance
+
+        state = _state(lookup_result=_result([_concept("Seizure")]))
+        with patch(
+            "knowledge_lookup.agents.nodes.detail_gather.CentralKnowledgeLookup",
+            MagicMock(side_effect=factory),
+        ):
+            update = asyncio.run(detail_gather_node(state))
+        assert update["xref_labels"] == []
+
+
 # ---------------------------------------------------------------------------
 # classify
 # ---------------------------------------------------------------------------
@@ -337,12 +410,12 @@ class TestNeedsFollowup:
         assert not followup_mod.needs_followup(_state(lookup_result=_result([]), status="failed"))
 
     def test_routing(self):
-        assert route_after_quality_gate(_state(lookup_result=_result([]))) == "followup"
+        assert route_after_detail_gather(_state(lookup_result=_result([]))) == "followup"
         healthy = _result([_concept(f"c{i}") for i in range(4)])
-        assert route_after_quality_gate(_state(lookup_result=healthy)) == "detail_gather"
+        assert route_after_detail_gather(_state(lookup_result=healthy)) == "enrichment"
         assert route_after_followup({"followup_pending": True}) == "lookup"  # type: ignore[arg-type]
-        assert route_after_followup({"followup_pending": False}) == "detail_gather"  # type: ignore[arg-type]
-        assert route_after_followup({}) == "detail_gather"  # type: ignore[arg-type]
+        assert route_after_followup({"followup_pending": False}) == "enrichment"  # type: ignore[arg-type]
+        assert route_after_followup({}) == "enrichment"  # type: ignore[arg-type]
 
 
 class TestFollowupNode:
@@ -481,7 +554,7 @@ class TestFollowupNode:
         assert update["followup_probes"] == []
         assert update["auto_round"] == 1
         assert update["steps"][0]["action"] == "no_action"
-        assert route_after_followup({**state, **update}) == "detail_gather"  # type: ignore[arg-type]
+        assert route_after_followup({**state, **update}) == "enrichment"  # type: ignore[arg-type]
 
     def test_term_list_parsing(self):
         assert followup_mod._parse_term_list(None) == []
@@ -942,8 +1015,12 @@ class TestGraph:
         names = set(graph.nodes)
         assert {"classify", "followup", "relationships", "evidence"} <= names
         edges = {(e.source, e.target) for e in graph.edges}
-        assert ("quality_gate", "followup") in edges
+        assert ("quality_gate", "followup") not in edges  # the decision comes after detail_gather
+        assert ("quality_gate", "detail_gather") in edges
+        assert ("detail_gather", "followup") in edges
+        assert ("detail_gather", "enrichment") in edges
         assert ("followup", "lookup") in edges
+        assert ("followup", "enrichment") in edges
         assert ("enrichment", "relationships") in edges
         assert ("relationships", "evidence") in edges
 
@@ -963,6 +1040,9 @@ class TestGraph:
         agents = [s["agent"] for s in result["steps"]]
         assert agents.count("FollowupAgent") == 1
         assert agents.index("ClassifyAgent") < agents.index("FollowupAgent")
+        # the planner runs after cross-referencing, which runs again after the follow-up
+        assert agents.index("FollowupAgent") > agents.index("Stub")  # detail_gather stub ran first
+        assert agents.count("Stub") >= 4
         assert len(result["result"].concepts) == 4
 
     def test_max_auto_rounds_zero_disables_the_loop(self, stubbed_graph, tmp_path):
@@ -995,6 +1075,7 @@ class TestGraph:
         )
         assert state["max_auto_rounds"] == 1
         assert state["auto_round"] == 0
+        assert state["xref_labels"] == []
         assert state["include_evidence"] is False
         assert state["relationship_edges"] == []
         assert state["literature_evidence"] == []

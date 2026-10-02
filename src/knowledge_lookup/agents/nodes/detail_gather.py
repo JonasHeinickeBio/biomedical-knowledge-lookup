@@ -140,9 +140,24 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
             "steps": [make_step("DetailGatherAgent", "skip", "No concepts to process")],
         }
 
+    # Labels cross-referenced on an earlier pass (the autonomous follow-up runs
+    # this node again over the merged result) are not searched a second time.
+    done = {str(label).strip().lower() for label in state.get("xref_labels") or []}
+    pending = [c for c in result.concepts if (c.primary_label or "").strip().lower() not in done]
+    if not pending:
+        return {
+            "steps": [
+                make_step(
+                    "DetailGatherAgent",
+                    "skip",
+                    f"All {len(done)} label(s) already cross-referenced",
+                )
+            ]
+        }
+
     # Build adapters only for the sources these concepts' types call for.
     wanted: list[KnowledgeSource] = []
-    for concept in result.concepts:
+    for concept in pending:
         for src in _label_sources(concept, ADAPTER_CLASSES.keys()):
             if src not in wanted:
                 wanted.append(src)
@@ -169,7 +184,7 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
         seen_labels: dict[str, int] = {}  # label_lower -> index in concepts
         for i, c in enumerate(concepts):
             label = (c.primary_label or "").strip().lower()
-            if label and label not in seen_labels:
+            if label and label not in seen_labels and label not in done:
                 seen_labels[label] = i
 
         unique_labels = [(concepts[idx].primary_label, idx) for label, idx in seen_labels.items()]
@@ -202,7 +217,8 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
         # For each unique label, merge what the cross-sources returned
         for (label_text, concept_idx), per_source_results in zip(labels, gathered, strict=True):
             if not isinstance(per_source_results, list):
-                continue  # not finished within the budget, or failed
+                continue  # not finished within the budget, or failed: retried next pass
+            done.add(str(label_text).strip().lower())
 
             concept = concepts[concept_idx]
 
@@ -312,6 +328,7 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
 
         return {
             "lookup_result": enriched_dict,
+            "xref_labels": sorted(done),
             "steps": [make_step("DetailGatherAgent", "cross_search", step_detail)],
         }
 

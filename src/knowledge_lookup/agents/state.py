@@ -55,6 +55,7 @@ class LookupWorkflowState(TypedDict):
     inferred_concept_types: list[str]  # ConceptType names the classify node inferred
     max_auto_rounds: int  # Autonomous follow-up rounds allowed (0 disables the loop)
     auto_round: int  # Follow-up rounds already run
+    xref_labels: list[str]  # Lowercased labels detail_gather already cross-referenced
     followup_pending: bool  # Set by followup, consumed by the next lookup pass
     followup_probes: list[dict]  # [{"term": str, "sources": [str] | None, "reason": str}]
     relationship_edges: list[dict]  # Edges harvested by expand / relationships

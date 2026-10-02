@@ -234,6 +234,55 @@ class TestFollowupLive:
         assert len(after) > len(before), f"follow-up found nothing new for {query!r}"
 
     @pytest.mark.asyncio
+    async def test_disease_followup_is_built_from_cross_referenced_synonyms(self, monkeypatch):
+        """Why the decision sits after detail_gather: raw disease hits carry no synonyms."""
+        monkeypatch.setattr("knowledge_lookup.agents.nodes.followup.call_llm", _no_llm_answer)
+        query = "Dravet syndrome"
+        state = _state(query, source_filter=["HPO", "OLS", "MONDO"], max_results=20)
+        state.update(await lookup_node(state))
+
+        def exact(result):
+            return [
+                c
+                for c in result.concepts
+                if query.lower()
+                in {str(n).lower() for n in (c.primary_label, *(c.synonyms or []))}
+            ]
+
+        raw = dict_to_lookup_result(state["lookup_result"])
+        if not exact(raw):
+            pytest.skip(f"no exact {query!r} concept in the search results")
+        raw_synonyms = sum(len(c.synonyms or []) for c in exact(raw))
+
+        state.update(await detail_gather_node(state))
+        gathered = dict_to_lookup_result(state["lookup_result"])
+        best = max(exact(gathered), key=lambda c: len(c.synonyms or []))
+        print(
+            f"\n  synonyms on the exact match: {raw_synonyms} before -> {len(best.synonyms or [])} after"
+        )
+        if not best.synonyms:
+            pytest.skip("cross-reference sources added no synonyms for this concept")
+
+        gathered.concepts = [best]  # stage the gap
+        state["lookup_result"] = lookup_result_to_dict(gathered)
+        gaps = diagnose(state)
+        assert "thin" in gaps, gaps
+        probes = await plan_probes(state, gaps)
+        terms = [p["term"] for p in probes]
+        print(f"  probes built from them: {terms}")
+        assert terms, f"no probes although the concept has synonyms {best.synonyms[:5]}"
+        assert all("Barrett" not in t for t in terms)  # stays on topic
+
+        # a second cross-reference pass over the merged result only pays for new labels
+        state.update(await followup_node(state))
+        merged = await lookup_node(state)
+        state.update(merged)
+        second = await detail_gather_node(state)
+        done_before = len(state.get("xref_labels") or [])
+        print(f"  xref labels remembered: {done_before} -> {len(second.get('xref_labels', []))}")
+        assert set(state.get("xref_labels") or []) <= set(second.get("xref_labels", []))
+
+    @pytest.mark.asyncio
     async def test_llm_recovers_a_misspelled_query(self):
         """No result for the typo -> the LLM suggests a spelling -> the focused pass finds it."""
         _need_llm()

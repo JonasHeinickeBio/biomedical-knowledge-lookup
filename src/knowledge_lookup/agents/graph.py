@@ -3,8 +3,8 @@
 Flow::
 
     START → preprocess → classify → expand → lookup → filter → quality_gate
-    → {followup → {lookup | detail_gather} | detail_gather}
-    → enrichment → relationships → evidence → aggregate → review
+    → detail_gather → {followup → {lookup | enrichment} | enrichment}
+    → relationships → evidence → aggregate → review
     → {approval | prune}
     → {prune | refine | END}
     → {prune → export → END}
@@ -21,11 +21,13 @@ Key design:
 - **filter** removes non-clinical concepts (questionnaires, measurement
   scales, geographic locations) and boosts clinical types
 - **quality_gate** scores the filtered results
-- **followup** (autonomous, bounded by ``max_auto_rounds``) diagnoses gaps —
+- **detail_gather** cross-references each concept in the sources that suit its type
+  (labels already done are skipped when the follow-up loop comes back through it)
+- **followup** (after detail_gather, so it sees the synonyms and hierarchy the
+  cross-references added; autonomous, bounded by ``max_auto_rounds``) diagnoses gaps —
   empty/thin results, failed sources — and plans a focused re-search from
   synonyms, hierarchy labels, relationship targets and LLM suggestions, which
   ``lookup`` runs without using up ``max_iterations``
-- **detail_gather** cross-references each concept in the sources that suit its type
 - **relationships** / **evidence** (opt-in) add relationship edges and Europe PMC papers
 - **review** (LLM-powered) provides the final quality judgment
 """
@@ -59,8 +61,8 @@ from .nodes import (
 )
 from .routing import (
     route_after_approval,
+    route_after_detail_gather,
     route_after_followup,
-    route_after_quality_gate,
     route_after_refine,
     route_after_review,
 )
@@ -111,22 +113,23 @@ def build_workflow_graph(checkpointer: BaseCheckpointSaver | None = None) -> Any
     builder.add_edge("lookup", "filter")
     builder.add_edge("filter", "quality_gate")
 
-    # Autonomous loop: a gap in the results → followup plans focused probes →
-    # lookup runs them → filter → quality_gate re-checks (bounded by max_auto_rounds)
+    builder.add_edge("quality_gate", "detail_gather")
+
+    # Autonomous loop: a gap in the cross-referenced results → followup plans
+    # focused probes → lookup runs them → filter → quality_gate → detail_gather
+    # (new labels only) → the gap is re-checked (bounded by max_auto_rounds)
     builder.add_conditional_edges(
-        "quality_gate",
-        route_after_quality_gate,
-        {"followup": "followup", "detail_gather": "detail_gather"},
+        "detail_gather",
+        route_after_detail_gather,
+        {"followup": "followup", "enrichment": "enrichment"},
     )
     builder.add_conditional_edges(
         "followup",
         route_after_followup,
-        {"lookup": "lookup", "detail_gather": "detail_gather"},
+        {"lookup": "lookup", "enrichment": "enrichment"},
     )
 
-    # Sequential: details → UMLS CUI enrichment → relationships → evidence
-    # → aggregate → review
-    builder.add_edge("detail_gather", "enrichment")
+    # Sequential: UMLS CUI enrichment → relationships → evidence → aggregate → review
     builder.add_edge("enrichment", "relationships")
     builder.add_edge("relationships", "evidence")
     builder.add_edge("evidence", "aggregate")

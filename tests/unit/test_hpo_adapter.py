@@ -78,6 +78,10 @@ class TestHPOAdapter:
             ("HP:0001250", "HP:0001250"),
             ('"quoted" [x]', "quoted x"),
             ("()", ""),
+            ("Fundación Síndrome de Dravet", "Fundacion Sindrome de Dravet"),
+            ("Müller", "Muller"),
+            ("p53遺伝子", "p53"),
+            ("遺伝子", ""),
         ],
     )
     def test_sanitize_query(self, raw, cleaned):

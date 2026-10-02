@@ -13,9 +13,11 @@ pip install "biomedical-knowledge-lookup[agents]"
 ## Pipeline
 
 ```
-START -> preprocess -> classify -> expand -> lookup -> filter -> quality_gate
-quality_gate -> followup -> lookup (focused pass) -> filter -> quality_gate   gap found and rounds left
-quality_gate -> detail_gather -> enrichment -> relationships -> evidence -> aggregate -> review
+START -> preprocess -> classify -> expand -> lookup -> filter -> quality_gate -> detail_gather
+
+detail_gather -> followup -> lookup (focused pass) -> filter -> quality_gate -> detail_gather   gap found and rounds left
+detail_gather -> enrichment -> relationships -> evidence -> aggregate -> review
+followup      -> enrichment                                                                    nothing new to try
 
 review   -> prune -> export -> END            score >= auto_approve_threshold, or iteration >= max_iterations
 review   -> approval                          otherwise
@@ -32,8 +34,8 @@ approval -> END                               {"approved": False, "refine": Fals
 | `lookup` | Searches all terms (5 at a time) against the selected sources and merges the results; increments `iteration` |
 | `filter` | Removes non-clinical concepts (questionnaire items, measurement scales, geographic locations), boosts clinically relevant types, re-ranks and keeps the best `max_results` concepts |
 | `quality_gate` | Scores the filtered results, focusing on UMLS CUI coverage and source diversity |
-| `followup` | The autonomous loop. Looks for gaps in the filtered results (see [Autonomous follow-up](#autonomous-follow-up)) and plans a focused second search; `lookup` runs it without using up `max_iterations` |
-| `detail_gather` | Searches each concept label in the cross-reference sources that suit its type, to collect identifiers, definitions and synonyms. Always OLS, UMLS, BioPortal and Wikidata, plus up to four type-specific ones (HGNC, UniProt and Ensembl for a gene; ChEMBL, PubChem and DrugBank for a drug; MONDO and HPO for a disease or when the type is unknown). At most 8 sources per label |
+| `followup` | The autonomous loop. Runs after `detail_gather`, looks for gaps in the cross-referenced results (see [Autonomous follow-up](#autonomous-follow-up)) and plans a focused second search; `lookup` runs it without using up `max_iterations` |
+| `detail_gather` | Searches each concept label in the cross-reference sources that suit its type, to collect identifiers, definitions and synonyms. Always OLS, UMLS, BioPortal and Wikidata, plus up to four type-specific ones (HGNC, UniProt and Ensembl for a gene; ChEMBL, PubChem and DrugBank for a drug; MONDO and HPO for a disease or when the type is unknown). At most 8 sources per label. Labels already cross-referenced are skipped when the follow-up loop comes back through this step |
 | `enrichment` | Looks up each concept label in UMLS and attaches its CUI; skipped when UMLS is not available |
 | `relationships` | With `include_relationships`, asks the relationship-capable adapters (KEGG, UMLS, STRING, DisGeNET, Open Targets, OLS, WikiPathways, Ensembl) for the edges of the top 10 concepts, using the identifier each source understands (also those only added as cross-references). Stored in `relationship_edges` |
 | `evidence` | With `include_evidence`, fetches the top three Europe PMC papers for each of the top five concepts into `literature_evidence` |
@@ -98,7 +100,7 @@ The returned `dict` contains `thread_id`, `status`, `approval_request`, `result`
 
 ## Autonomous follow-up
 
-`quality_gate` only scores; `followup` acts on what is missing. After the filtered results are scored it diagnoses them:
+`quality_gate` only scores; `followup` acts on what is missing. It runs after `detail_gather` because raw search hits, disease names in particular, often carry no synonyms or hierarchy, while the cross-reference step adds them (for "Dravet syndrome", 0 synonyms before and 3 after, including the abbreviation `SMEI`), so the plan is built from richer concepts. It diagnoses the results:
 
 | Gap | Meaning |
 | --- | --- |
@@ -107,7 +109,7 @@ The returned `dict` contains `thread_id`, `status`, `approval_request`, `result`
 | `failed_sources` | Some queried sources failed; they are retried for the original query (within your `sources`) |
 | `single_source` | Every concept came from one source although several were queried |
 
-If there is a gap and `max_auto_rounds` is not used up, the node plans up to 6 *probes* from what the run already knows, in this order: synonyms of the five leading concepts, their narrower and broader terms, named relationship targets that `expand` did not get to search, and, only for `empty` or `thin` results, suggestions from the configured LLM. Terms already searched are never repeated, and your `sources` selection is never widened. `lookup` runs the probes as a focused pass: it searches only them, merges the findings into the concepts found so far and does not use up `max_iterations`. Then `filter` and `quality_gate` run again, so a second round is possible when `max_auto_rounds` allows it. A refinement from the approval gate starts a new search and resets the follow-up count. When there is nothing new to try, the step `no_action` is recorded and the workflow carries on.
+If there is a gap and `max_auto_rounds` is not used up, the node plans up to 6 *probes* from what the run already knows, in this order: synonyms of the five leading concepts, their narrower and broader terms, named relationship targets that `expand` did not get to search, and, only for `empty` or `thin` results, suggestions from the configured LLM. Terms already searched are never repeated, and your `sources` selection is never widened. `lookup` runs the probes as a focused pass: it searches only them, merges the findings into the concepts found so far and does not use up `max_iterations`. Then `filter`, `quality_gate` and `detail_gather` run again (`detail_gather` only searches the labels the focused pass added), so a second round is possible when `max_auto_rounds` allows it. A refinement from the approval gate starts a new search and resets the follow-up count. When there is nothing new to try, the step `no_action` is recorded and the workflow carries on.
 
 ## LLM review
 

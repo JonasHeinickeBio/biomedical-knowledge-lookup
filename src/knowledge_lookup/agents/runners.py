@@ -78,6 +78,7 @@ def _initial_state(
         "inferred_concept_types": [],
         "max_auto_rounds": max_auto_rounds,
         "auto_round": 0,
+        "xref_labels": [],
         "followup_pending": False,
         "followup_probes": [],
         "relationship_edges": [],

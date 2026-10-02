@@ -4,6 +4,13 @@
 results have a *gap* it plans a focused second search by itself, instead of
 waiting for a human to type refinement notes.
 
+It runs right after ``detail_gather`` on purpose: raw search hits (disease names
+in particular) often carry no synonyms or hierarchy, while the cross-reference
+step adds them, so the plan is built from richer concepts. The loop is
+``detail_gather -> followup -> lookup -> filter -> quality_gate -> detail_gather``;
+``detail_gather`` skips labels it already cross-referenced, so a second round only
+pays for the concepts the focused search added.
+
 Gaps it recognises (:func:`diagnose`):
 
 ``empty``
