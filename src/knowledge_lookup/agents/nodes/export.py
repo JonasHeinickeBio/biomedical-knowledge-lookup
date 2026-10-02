@@ -12,27 +12,18 @@ import json
 import os
 import tempfile
 
-from ...models import KnowledgeSource
 from ..state import LookupWorkflowState, dict_to_lookup_result, make_step
+from ._cui import preferred_umls_cui
 
 
 def _get_umls_cui(concept) -> str | None:
     """Extract UMLS CUI from a concept's identifiers, if any."""
-    if not concept.identifiers:
-        return None
-    for ident in concept.identifiers:
-        if ident.source == KnowledgeSource.UMLS:
-            return ident.identifier
-    return None
+    return preferred_umls_cui(concept.identifiers)
 
 
 def _get_umls_cui_from_dict(concept_dict: dict) -> str | None:
     """Extract UMLS CUI from a serialized concept dict."""
-    identifiers = concept_dict.get("identifiers") or []
-    for ident in identifiers:
-        if ident.get("source") == KnowledgeSource.UMLS.value:
-            return ident.get("identifier")
-    return None
+    return preferred_umls_cui(concept_dict.get("identifiers"))
 
 
 def _get_ontology_ids_list(concept) -> list[str]:

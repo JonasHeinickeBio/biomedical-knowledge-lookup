@@ -372,6 +372,37 @@ class TestRankingLive:
         assert after[0] == "TP53"
 
 
+class TestCuiChoiceLive:
+    @pytest.mark.asyncio
+    async def test_the_reported_cui_is_the_umls_match_for_the_label(self):
+        """Not an arbitrary one of the many CUIs the cross-references list."""
+        from knowledge_lookup.agents.nodes._cui import preferred_umls_cui
+        from knowledge_lookup.agents.nodes.detail_gather import best_label_hit
+        from knowledge_lookup.agents.nodes.review import _rule_based_concept_map
+
+        _need_env("UMLS_API_KEY")
+        sources = ["HGNC", "OLS", "UNIPROT", "UMLS"]
+        state = _state("TP53", source_filter=sources, max_results=6, xref_labels=[])
+        state.update(await lookup_node(state))
+        state.update(await detail_gather_node(state))
+        concepts = dict_to_lookup_result(state["lookup_result"]).concepts
+        tp53 = next((c for c in concepts if c.primary_label == "TP53"), None)
+        if tp53 is None:
+            pytest.skip("no concept labelled TP53 in the live results")
+
+        hits = await _search("TP53", [KnowledgeSource.UMLS], max_results=3)
+        expected = best_label_hit("TP53", hits.concepts).primary_id
+        chosen = preferred_umls_cui(tp53.identifiers)
+        n_umls = sum(
+            1 for i in tp53.identifiers if str(getattr(i.source, "value", i.source)) == "UMLS"
+        )
+        print(f"\n  TP53: {n_umls} UMLS ids, chose {chosen}; UMLS's own match is {expected}")
+        assert chosen == expected
+
+        concept_map, _ = _rule_based_concept_map(dict_to_lookup_result(state["lookup_result"]))
+        assert {m["term"]: m["umls_cui"] for m in concept_map}["TP53"] == chosen
+
+
 class TestUMLSLive:
     @pytest.mark.asyncio
     async def test_curie_prefixed_cui_is_accepted(self):

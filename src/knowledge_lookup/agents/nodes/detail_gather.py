@@ -28,6 +28,7 @@ from ...core.source_routing import LEGACY_XREF_SOURCES, as_concept_type, cross_r
 from ...models import ConceptIdentifier, KnowledgeSource, LookupConfig
 from ..state import LookupWorkflowState, dict_to_lookup_result, lookup_result_to_dict, make_step
 from . import _limits
+from ._cui import rank_umls_identifiers
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,17 @@ _PER_LABEL_TIMEOUT = _limits.CALL_TIMEOUT
 # Fallback cross-reference sources for concepts whose type is unknown (the
 # fixed set used before type-aware selection); see ``cross_reference_sources``.
 _CROSS_SOURCES = list(LEGACY_XREF_SOURCES)
+
+
+def best_label_hit(label: str, hits: list[Any]) -> Any | None:
+    """The hit that best answers a search for *label*: the first whose label equals
+    it (ignoring case and spacing), else the first hit (sources rank by relevance)."""
+    wanted = " ".join(str(label).lower().split())
+    usable = [h for h in hits if getattr(h, "primary_id", None)]
+    for hit in usable:
+        if " ".join(str(hit.primary_label or "").lower().split()) == wanted:
+            return hit
+    return usable[0] if usable else None
 
 
 def _label_sources(concept: Any, available: Iterable[KnowledgeSource]) -> list[KnowledgeSource]:
@@ -242,7 +254,7 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
             # 1. Collect all ontology IDs
             cross_ids = _collect_ontology_ids(all_found)
             for src_name, ids in cross_ids.items():
-                for cid in ids:
+                for cid in sorted(ids):  # sets iterate in a different order every run
                     # UMLS identifiers must be bare CUIs: cross-reference sources
                     # write them as "UMLS:C..." CURIEs, which the UMLS API rejects
                     # (404) when relationships are later asked for.
@@ -265,10 +277,29 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
                             ConceptIdentifier(
                                 source=ks,
                                 identifier=cid,
-                                label=label_text,
+                                # a cross-referenced CUI is not known to name this concept;
+                                # labelling it with the concept's label would say it is
+                                label=None if ks == KnowledgeSource.UMLS else label_text,
                             )
                         )
                         total_cross_refs += 1
+
+            # 1b. Order the concept's UMLS CUIs: its own record, then the top UMLS
+            # hit for its label, then the rest — so "the" CUI is the same every run
+            umls_hits = next(
+                (
+                    found
+                    for src, found in zip(
+                        label_sources[concept_idx], per_source_results, strict=True
+                    )
+                    if src == KnowledgeSource.UMLS
+                ),
+                [],
+            )
+            hit = best_label_hit(label_text, umls_hits)
+            rank_umls_identifiers(
+                concept, hit.primary_id if hit else None, hit.primary_label if hit else None
+            )
 
             # 2. Merge definitions (from any source)
             new_defs = _collect_text_fields(all_found, "definitions")

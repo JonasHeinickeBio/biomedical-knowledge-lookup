@@ -11,6 +11,7 @@ import logging
 from typing import Any
 
 from ..state import LookupWorkflowState, dict_to_lookup_result, make_step
+from ._cui import preferred_umls_cui
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +63,7 @@ def _build_concept_report(concept: Any, idx: int) -> str:
         lines.append(f"  Categories:  {'; '.join(str(c) for c in cats[:5])}")
 
     # UMLS CUI
-    umls_cui = None
-    for ident in concept.identifiers or []:
-        if str(ident.source).upper() in ("UMLS",):
-            umls_cui = ident.identifier
-            break
+    umls_cui = preferred_umls_cui(concept.identifiers)
     if umls_cui:
         lines.append(f"  UMLS CUI:    {umls_cui}")
     else:

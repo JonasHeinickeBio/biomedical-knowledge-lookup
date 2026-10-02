@@ -25,6 +25,7 @@ import re
 from ...models import LookupResult
 from ..config import call_llm, load_llm_config
 from ..state import LookupWorkflowState, dict_to_lookup_result, make_step
+from ._cui import preferred_umls_cui
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +47,10 @@ def _rule_based_concept_map(result: LookupResult) -> tuple[list[dict], str]:
                 )
             )
             id_str = f"{src}:{ident.identifier}"
-            if src == "UMLS":
-                umls_cui = ident.identifier
-            else:
+            if src != "UMLS":
                 ontology_ids.append(id_str)
+        # the first UMLS identifier is the preferred one (see _cui.rank_umls_identifiers)
+        umls_cui = preferred_umls_cui(c.identifiers)
         if c.primary_id:
             pid = c.primary_id
             if not any(pid.endswith(id.split(":")[-1]) for id in ontology_ids):
