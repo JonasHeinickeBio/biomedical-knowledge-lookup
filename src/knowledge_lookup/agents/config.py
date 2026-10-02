@@ -66,8 +66,8 @@ def load_llm_config() -> dict[str, str | None]:
     return {"backend": None, "api_key": None, "base_url": None, "model": None}
 
 
-#: Token budget for the short structured replies (a JSON list) the classify and
-#: followup nodes ask for. Reasoning models spend part of ``max_tokens`` thinking
+#: Token budget for the short structured replies (a JSON list) the followup
+#: node asks for. Reasoning models spend part of ``max_tokens`` thinking
 #: before they answer and return *no* content when it runs out, so a budget sized
 #: for the visible answer alone (tens of tokens) makes every such call fail.
 SHORT_REPLY_MAX_TOKENS = 600

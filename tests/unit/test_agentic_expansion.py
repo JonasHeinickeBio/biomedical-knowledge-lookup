@@ -16,11 +16,6 @@ import pytest
 
 from knowledge_lookup.agents.nodes import followup as followup_mod
 from knowledge_lookup.agents.nodes._edges import merge_edges
-from knowledge_lookup.agents.nodes.classify import (
-    _parse_llm_types,
-    classify_node,
-    infer_concept_types,
-)
 from knowledge_lookup.agents.routing import route_after_detail_gather, route_after_followup
 from knowledge_lookup.agents.state import (
     LookupWorkflowState,
@@ -377,88 +372,15 @@ class TestExactMatchRanking:
         assert self._filtered(concepts, query="zzz", original_query="zzz") == ["a", "c", "b"]
 
 
-# ---------------------------------------------------------------------------
-# classify
-# ---------------------------------------------------------------------------
-
-
-class TestClassify:
-    @pytest.mark.parametrize(
-        ("query", "expected"),
-        [
-            ("HP:0001250", [ConceptType.PHENOTYPE]),
-            ("GO:0006915", [ConceptType.BIOLOGICAL_PROCESS]),
-            ("ENSG00000141510", [ConceptType.GENE]),
-            ("P04637", [ConceptType.PROTEIN]),
-            ("R-HSA-109581", [ConceptType.PATHWAY]),
-            ("CHEMBL25", [ConceptType.DRUG]),
-            ("TP53", [ConceptType.GENE]),
-            ("imatinib", [ConceptType.DRUG]),
-            ("trastuzumab", [ConceptType.DRUG]),
-            ("type 2 diabetes mellitus", [ConceptType.DISEASE]),
-            ("apoptosis signaling pathway", [ConceptType.PATHWAY]),
-            ("insulin receptor", [ConceptType.PROTEIN]),
-            ("headache", [ConceptType.SYMPTOM]),
-            ("BRCA1, imatinib", [ConceptType.GENE, ConceptType.DRUG]),
-            ("BRCA1, TP53", [ConceptType.GENE]),
-        ],
-    )
-    def test_rules(self, query, expected):
-        assert infer_concept_types(query) == expected
-
-    @pytest.mark.parametrize("query", ["COPD", "xyzzy", "", "  ,  "])
-    def test_ambiguous_or_empty_queries_infer_nothing(self, query):
-        assert infer_concept_types(query) == []
-
-    def test_node_uses_rules(self):
-        update = asyncio.run(classify_node(_state(query="TP53", original_query="TP53")))
-        assert update["inferred_concept_types"] == ["GENE"]
-        assert update["steps"][0]["agent"] == "ClassifyAgent"
-        assert "by rules" in update["steps"][0]["detail"]
-
-    def test_node_prefers_the_concept_type_filter(self):
-        state = _state(
-            query="TP53", original_query="TP53", concept_type_filter=["disease", "bogus"]
-        )
-        update = asyncio.run(classify_node(state))
-        assert update["inferred_concept_types"] == ["DISEASE"]
-
-    def test_node_falls_back_to_the_llm(self):
-        llm = AsyncMock(return_value='Sure: ["gene", "PROTEIN", "nonsense", "UNKNOWN"]')
-        state = _state(query="EGFR", original_query="EGFR")
-        with patch("knowledge_lookup.agents.nodes.classify.call_llm", llm):
-            update = asyncio.run(classify_node(state))
-        assert update["inferred_concept_types"] == ["GENE", "PROTEIN"]
-        assert "by LLM" in update["steps"][0]["detail"]
-
-    def test_llm_calls_leave_room_for_reasoning_models(self):
+class TestLlmBudget:
+    def test_followup_leaves_room_for_reasoning_models(self):
         """A budget of tens of tokens makes reasoning models return no content at all."""
         from knowledge_lookup.agents.config import SHORT_REPLY_MAX_TOKENS
-
-        llm = AsyncMock(return_value='["GENE"]')
-        with patch("knowledge_lookup.agents.nodes.classify.call_llm", llm):
-            asyncio.run(classify_node(_state(query="EGFR", original_query="EGFR")))
-        assert llm.await_args.kwargs["max_tokens"] == SHORT_REPLY_MAX_TOKENS >= 500
 
         llm = AsyncMock(return_value='["fits"]')
         with patch.object(followup_mod, "call_llm", llm):
             asyncio.run(followup_mod.plan_probes(_state(lookup_result=_result([])), ["empty"]))
-        assert llm.await_args.kwargs["max_tokens"] == SHORT_REPLY_MAX_TOKENS
-
-    def test_node_without_llm_or_rule_infers_nothing(self):
-        update = asyncio.run(classify_node(_state(query="COPD", original_query="COPD")))
-        assert update["inferred_concept_types"] == []
-        assert "No concept type inferred" in update["steps"][0]["detail"]
-
-    def test_parse_llm_types_is_forgiving(self):
-        assert _parse_llm_types(None) == []
-        assert _parse_llm_types("no list here") == []
-        assert _parse_llm_types("[not json]") == []
-        assert _parse_llm_types('["DRUG","DRUG","GENE","PATHWAY","DISEASE"]') == [
-            ConceptType.DRUG,
-            ConceptType.GENE,
-            ConceptType.PATHWAY,
-        ]
+        assert llm.await_args.kwargs["max_tokens"] == SHORT_REPLY_MAX_TOKENS >= 500
 
 
 # ---------------------------------------------------------------------------
@@ -750,6 +672,119 @@ class TestFocusedLookup:
 # ---------------------------------------------------------------------------
 # expand: keeps relationship edges; refine: resets the follow-up budget
 # ---------------------------------------------------------------------------
+
+
+class TestCriticalReviewRegressions:
+    """Bugs a critical review found in the first version of the follow-up loop."""
+
+    # -- 1. a refinement was never cross-referenced -----------------------------------
+
+    def test_a_fresh_lookup_resets_xref_labels_so_a_refinement_is_cross_referenced(self):
+        from knowledge_lookup.agents.nodes.lookup import lookup_node
+
+        ckl = _fake_lookup([KnowledgeSource.OLS], {"seizure": [_concept("Seizure")]}, [])
+        # round 1 already cross-referenced "seizure"; the human refines and lookup re-runs
+        state = _state(expanded_search_terms=["seizure"], iteration=1, xref_labels=["seizure"])
+        with patch("knowledge_lookup.agents.nodes.lookup.CentralKnowledgeLookup", ckl):
+            update = asyncio.run(lookup_node(state))
+
+        assert update["xref_labels"] == []
+        state.update(update)
+        _, searched = TestDetailGatherIsIncremental._run(state)
+        assert searched == {"Seizure"}  # the rebuilt concept is cross-referenced again
+
+    def test_a_followup_pass_keeps_xref_labels(self):
+        from knowledge_lookup.agents.nodes.lookup import lookup_node
+
+        ckl = _fake_lookup([KnowledgeSource.OLS], {"Fit": [_concept("Fit")]}, [])
+        state = _state(
+            lookup_result=_result([_concept("Seizure")]),
+            xref_labels=["seizure"],
+            followup_pending=True,
+            followup_probes=[{"term": "Fit", "sources": None, "reason": "synonym"}],
+        )
+        with patch("knowledge_lookup.agents.nodes.lookup.CentralKnowledgeLookup", ckl):
+            update = asyncio.run(lookup_node(state))
+        assert "xref_labels" not in update  # earlier concepts keep their cross-references
+
+    # -- 2. relevance was judged against every expanded term ---------------------------
+
+    def test_relevance_is_judged_against_the_query_not_the_expanded_terms(self):
+        carcinoma = _concept("Hepatocellular carcinoma", synonyms=["HCC", "liver cancer"])
+        state = _state(
+            query="TP53",
+            original_query="TP53",
+            # what expand really adds for TP53
+            expanded_search_terms=["TP53", "Hepatocellular Carcinoma", "protein_coding_gene"],
+            lookup_result=_result([carcinoma]),
+        )
+        assert asyncio.run(followup_mod.plan_probes(state, ["thin"])) == []
+
+    def test_refinement_notes_do_count_as_what_the_user_asked(self):
+        carcinoma = _concept("Hepatocellular carcinoma", synonyms=["HCC", "liver cancer"])
+        state = _state(
+            query="TP53 hepatocellular",  # the original query plus the user's note
+            original_query="TP53",
+            expanded_search_terms=["TP53"],
+            lookup_result=_result([carcinoma]),
+        )
+        terms = [p["term"] for p in asyncio.run(followup_mod.plan_probes(state, ["thin"]))]
+        assert terms == ["HCC", "liver cancer"]
+
+    # -- 3. a successful retry left the source marked as failed ------------------------
+
+    @staticmethod
+    def _retry(retry_succeeds: bool, extra_failed=()):
+        from knowledge_lookup.agents.nodes.lookup import lookup_node
+
+        previous = _result(
+            [_concept("A")],
+            queried=[KnowledgeSource.HPO, KnowledgeSource.OLS, KnowledgeSource.MONDO],
+            failed=[KnowledgeSource.HPO, *extra_failed],
+        )
+
+        async def search(query, concept_types=None, sources=None, max_results=50, parallel=True):
+            result = LookupResult(query=query, sources_queried=sources)
+            if retry_succeeds:
+                result.add_concepts([_concept("B")], KnowledgeSource.HPO)
+            else:
+                result.add_error("HPO", "still down")
+            return result
+
+        instance = MagicMock(adapters=dict.fromkeys(list(KnowledgeSource)[:6], object()))
+        instance.search_concepts = search
+        instance.close = AsyncMock()
+        state = _state(
+            lookup_result=previous,
+            followup_pending=True,
+            followup_probes=[{"term": "seizure", "sources": ["HPO"], "reason": "retry"}],
+            auto_round=1,
+        )
+        with patch(
+            "knowledge_lookup.agents.nodes.lookup.CentralKnowledgeLookup",
+            MagicMock(return_value=instance),
+        ):
+            update = asyncio.run(lookup_node(state))
+        return dict_to_lookup_result(update["lookup_result"])
+
+    def test_a_successful_retry_clears_the_failure(self):
+        merged = self._retry(retry_succeeds=True)
+        assert KnowledgeSource.HPO.value not in {str(s) for s in merged.sources_failed or []}
+        assert KnowledgeSource.HPO.value in {str(s) for s in merged.sources_succeeded or []}
+
+    def test_a_retry_that_fails_again_stays_failed(self):
+        merged = self._retry(retry_succeeds=False)
+        assert KnowledgeSource.HPO.value in {str(s) for s in merged.sources_failed or []}
+
+    def test_sources_that_were_not_retried_stay_failed(self):
+        merged = self._retry(retry_succeeds=True, extra_failed=[KnowledgeSource.MONDO])
+        failed = {str(s) for s in merged.sources_failed or []}
+        assert failed == {KnowledgeSource.MONDO.value}
+
+    def test_diagnose_no_longer_reports_failed_sources_after_a_successful_retry(self):
+        merged = self._retry(retry_succeeds=True)
+        state = _state(lookup_result=lookup_result_to_dict(merged))
+        assert "failed_sources" not in followup_mod.diagnose(state)
 
 
 class TestExpandAndRefine:
@@ -1057,14 +1092,12 @@ class TestReporting:
         state = _state(
             lookup_result=_result([_concept("TP53")]),
             export_path=str(tmp_path),
-            inferred_concept_types=["GENE"],
             auto_round=1,
             relationship_edges=edges,
             literature_evidence=[{"concept": "TP53", "papers": []}],
         )
         update = asyncio.run(export_node(state))
         data = json.loads(open(update["export_paths"][0]).read())
-        assert data["expansion"]["inferred_concept_types"] == ["GENE"]
         assert data["expansion"]["auto_rounds"] == 1
         assert data["expansion"]["relationship_edges"] == edges
 
@@ -1114,7 +1147,8 @@ class TestGraph:
 
         graph = build_workflow_graph().get_graph()
         names = set(graph.nodes)
-        assert {"classify", "followup", "relationships", "evidence"} <= names
+        assert {"followup", "relationships", "evidence"} <= names
+        assert "classify" not in names
         edges = {(e.source, e.target) for e in graph.edges}
         assert ("quality_gate", "followup") not in edges  # the decision comes after detail_gather
         assert ("quality_gate", "detail_gather") in edges
@@ -1137,10 +1171,8 @@ class TestGraph:
         assert {p["term"] for p in stubbed_graph[1]["probes"]} == {"Fit", "Convulsion"}
         assert result["auto_rounds"] == 1
         assert result["iteration"] == 1  # the follow-up did not use up max_iterations
-        assert result["inferred_concept_types"] == ["SYMPTOM"]
         agents = [s["agent"] for s in result["steps"]]
         assert agents.count("FollowupAgent") == 1
-        assert agents.index("ClassifyAgent") < agents.index("FollowupAgent")
         # the planner runs after cross-referencing, which runs again after the follow-up
         assert agents.index("FollowupAgent") > agents.index("Stub")  # detail_gather stub ran first
         assert agents.count("Stub") >= 4
@@ -1180,4 +1212,3 @@ class TestGraph:
         assert state["include_evidence"] is False
         assert state["relationship_edges"] == []
         assert state["literature_evidence"] == []
-        assert state["inferred_concept_types"] == []

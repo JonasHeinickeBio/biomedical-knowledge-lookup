@@ -4,8 +4,8 @@ Real-world (live API) tests for the agentic expansion features of the workflow.
 Every test talks to live services using the credentials in the project's
 ``.env`` (loaded below; the file is git-ignored and values are never printed):
 
-* ``BLABLADOR_API_KEY`` (or another LLM backend) - classify / follow-up
-  suggestions and the review step
+* ``BLABLADOR_API_KEY`` (or another LLM backend) - follow-up suggestions and the
+  review step
 * ``UMLS_API_KEY`` - UMLS enrichment and relationships
 * ``BIOPORTAL_API_KEY`` - BioPortal cross-references
 * HGNC, OLS, HPO, MONDO, KEGG, STRING, Ensembl and Europe PMC need no key
@@ -37,7 +37,6 @@ from knowledge_lookup.agents.config import (  # noqa: E402
     load_llm_config,
 )
 from knowledge_lookup.agents.nodes import (  # noqa: E402
-    classify_node,
     detail_gather_node,
     evidence_node,
     followup_node,
@@ -108,29 +107,6 @@ async def _search(query: str, sources: list[KnowledgeSource], max_results: int =
     if not result.concepts:
         pytest.skip(f"{sources} returned nothing for {query!r} (upstream outage?)")
     return result
-
-
-# ---------------------------------------------------------------------------
-# classify
-# ---------------------------------------------------------------------------
-
-
-class TestClassifyLive:
-    @pytest.mark.asyncio
-    async def test_rules_need_no_network(self):
-        update = await classify_node(_state("TP53"))
-        assert update["inferred_concept_types"] == ["GENE"]
-
-    @pytest.mark.asyncio
-    async def test_llm_fallback_classifies_an_ambiguous_symbol(self):
-        """``EGFR`` has no digit, so no rule fires and the configured LLM decides."""
-        _need_llm()
-        update = await classify_node(_state("EGFR"))
-        types = update["inferred_concept_types"]
-        if not types:
-            pytest.skip("LLM gave no usable answer")
-        assert set(types) & {"GENE", "PROTEIN"}, types
-        assert "by LLM" in update["steps"][0]["detail"]
 
 
 # ---------------------------------------------------------------------------
@@ -443,10 +419,8 @@ class TestWholeWorkflowLive:
             print(f"  {step['agent']:18} {step['action']:14} {step['detail'][:110]}")
 
         assert result["status"] == "completed", result["errors"]
-        assert result["inferred_concept_types"] == ["GENE"]
         agents = [s["agent"] for s in result["steps"]]
         for expected in (
-            "ClassifyAgent",
             "ExpandAgent",
             "LookupAgent",
             "QualityGateAgent",
@@ -479,7 +453,6 @@ class TestWholeWorkflowLive:
         # the review saw them, and the export carries them
         assert result["llm_explanation"] or result["review_summary"]
         data = json.loads(Path(result["export_paths"][0]).read_text())
-        assert data["expansion"]["inferred_concept_types"] == ["GENE"]
         assert data["expansion"]["relationship_edges"] == edges
         assert data["concepts"], "export has no concepts"
 

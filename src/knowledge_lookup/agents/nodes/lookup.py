@@ -146,6 +146,9 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
         exec_time_total = 0.0
         sources_succeeded_union: set[str] = set()
         sources_failed_union: set[str] = set()
+        # what *this* pass saw, kept apart from what earlier passes left behind
+        pass_succeeded: set[str] = set()
+        pass_failed: set[str] = set()
         previous = dict_to_lookup_result(state.get("lookup_result")) if followup else None
         if previous is not None:
             all_concepts = list(previous.concepts or [])
@@ -178,8 +181,10 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
 
             for s in result.sources_succeeded or []:
                 sources_succeeded_union.add(str(s))
+                pass_succeeded.add(str(s))
             for s in result.sources_failed or []:
                 sources_failed_union.add(str(s))
+                pass_failed.add(str(s))
 
             term_errors = result.errors
             if isinstance(term_errors, dict):
@@ -197,6 +202,13 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
             term_report.append(f"{term_label}={n_new}/{n_total}")
 
         # Build merged result
+        if previous is not None:
+            # A source that failed earlier and answered in this pass is no longer
+            # failed (otherwise a successful retry would leave the gap in place);
+            # one that failed again, or was not retried, still is.
+            earlier_failed = {str(s) for s in previous.sources_failed or []}
+            sources_failed_union = (earlier_failed - pass_succeeded) | pass_failed
+
         query_sources = sources or list(lookup.adapters.keys())
         merged = LookupResult(query=query, sources_queried=query_sources)
         merged.concepts = all_concepts
@@ -254,6 +266,10 @@ async def lookup_node(state: LookupWorkflowState) -> dict:
             "lookup_result": result_dict,
             "status": "searching",  # Will be evaluated by quality_gate
             "iteration": iteration + 1,
+            # The result was rebuilt from scratch, so its concepts have not been
+            # cross-referenced yet, whatever detail_gather did to an earlier result
+            # (a refinement comes through here).
+            "xref_labels": [],
             "errors": new_errors,
             "steps": [make_step("LookupAgent", "search", step_detail)],
         }

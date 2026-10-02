@@ -2,7 +2,7 @@
 
 Flow::
 
-    START → preprocess → classify → expand → lookup → filter → quality_gate
+    START → preprocess → expand → lookup → filter → quality_gate
     → detail_gather → {followup → {lookup | enrichment} | enrichment}
     → relationships → evidence → aggregate → review
     → {approval | prune}
@@ -12,8 +12,6 @@ Flow::
 Key design:
 - **preprocess** generates expanded search terms (direct, umlaut-expanded,
   normalized, German compound splits) — searched in parallel
-- **classify** infers the concept type(s) the query is about (rules, then an
-  optional LLM) so later nodes pick sources that suit it
 - **expand** iteratively discovers synonym and abbreviation/long-form
   variants from real search results (not just string transforms) and adds
   them to the same search-term list; the full discovery trail is durably
@@ -43,7 +41,6 @@ from langgraph.graph import END, START, StateGraph
 from .nodes import (
     aggregate_node,
     approval_node,
-    classify_node,
     detail_gather_node,
     enrichment_node,
     evidence_node,
@@ -88,7 +85,6 @@ def build_workflow_graph(checkpointer: BaseCheckpointSaver | None = None) -> Any
 
     # Add nodes
     builder.add_node("preprocess", preprocess_node)
-    builder.add_node("classify", classify_node)
     builder.add_node("expand", expand_node)
     builder.add_node("lookup", lookup_node)
     builder.add_node("filter", filter_node)
@@ -105,10 +101,9 @@ def build_workflow_graph(checkpointer: BaseCheckpointSaver | None = None) -> Any
     builder.add_node("prune", prune_node)
     builder.add_node("export", export_node)
 
-    # Sequential: preprocess → classify → expand → lookup → filter → quality_gate
+    # Sequential: preprocess → expand → lookup → filter → quality_gate
     builder.add_edge(START, "preprocess")
-    builder.add_edge("preprocess", "classify")
-    builder.add_edge("classify", "expand")
+    builder.add_edge("preprocess", "expand")
     builder.add_edge("expand", "lookup")
     builder.add_edge("lookup", "filter")
     builder.add_edge("filter", "quality_gate")

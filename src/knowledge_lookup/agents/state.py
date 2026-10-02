@@ -52,7 +52,6 @@ class LookupWorkflowState(TypedDict):
     quality_details: dict | None  # Quality breakdown
 
     # ── Agentic expansion (autonomous gap-filling, relationships, evidence) ─
-    inferred_concept_types: list[str]  # ConceptType names the classify node inferred
     max_auto_rounds: int  # Autonomous follow-up rounds allowed (0 disables the loop)
     auto_round: int  # Follow-up rounds already run
     xref_labels: list[str]  # Lowercased labels detail_gather already cross-referenced

@@ -105,7 +105,7 @@ The models are defined once in a [LinkML](https://linkml.io/) schema (`linkml/bi
 ## Front-ends
 
 * **CLI** (`__main__.py`): Typer commands that create a `CentralKnowledgeLookup` per invocation. See [Command-line interface](../guides/cli.md).
-* **Agent workflow** (`agents/`): a LangGraph `StateGraph` (preprocess, classify, expand, lookup, filter, quality gate, type-aware detail gathering, autonomous follow-up, UMLS enrichment, relationships, evidence, aggregation, review, approval, refine, prune, export) with an in-memory checkpointer. See [Agent workflow](../guides/agent-workflow.md).
+* **Agent workflow** (`agents/`): a LangGraph `StateGraph` (preprocess, expand, lookup, filter, quality gate, type-aware detail gathering, autonomous follow-up, UMLS enrichment, relationships, evidence, aggregation, review, approval, refine, prune, export) with an in-memory checkpointer. See [Agent workflow](../guides/agent-workflow.md).
 * **MCP server** (`mcp_server/`): an `MCPServer` that initialises the lookup in a worker thread, routes identifiers to the adapter that owns them, runs blocking adapters on their own event-loop threads and caches search pages. See [MCP server](../guides/mcp-server.md).
 
 ## Adding a knowledge source

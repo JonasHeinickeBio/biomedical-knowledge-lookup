@@ -75,7 +75,6 @@ def _initial_state(
         "is_german": False,
         "quality_score": None,
         "quality_details": None,
-        "inferred_concept_types": [],
         "max_auto_rounds": max_auto_rounds,
         "auto_round": 0,
         "xref_labels": [],
@@ -126,7 +125,6 @@ async def _finish(
         "steps": result.get("steps", []),
         "iteration": result.get("iteration", 0),
         "auto_rounds": result.get("auto_round", 0),
-        "inferred_concept_types": result.get("inferred_concept_types", []),
         "relationship_edges": result.get("relationship_edges", []),
         "literature_evidence": result.get("literature_evidence", []),
     }

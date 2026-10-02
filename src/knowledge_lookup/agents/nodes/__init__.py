@@ -5,7 +5,6 @@ Re-exports all node functions for convenient imports.
 
 from .aggregate import aggregate_node
 from .approval import approval_node
-from .classify import classify_node
 from .detail_gather import detail_gather_node
 from .enrichment import enrichment_node
 from .evidence import evidence_node
@@ -24,7 +23,6 @@ from .review import review_node
 __all__ = [
     "aggregate_node",
     "approval_node",
-    "classify_node",
     "detail_gather_node",
     "enrichment_node",
     "evidence_node",

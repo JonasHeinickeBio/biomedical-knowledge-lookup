@@ -133,16 +133,27 @@ def _usable(term: str, tried: set[str]) -> bool:
 def _harvest_terms(
     state: LookupWorkflowState, result: LookupResult | None, tried: set[str]
 ) -> list[tuple[str, str]]:
-    """``(term, reason)`` candidates from the concepts and edges already in hand."""
+    """``(term, reason)`` candidates from the concepts and edges already in hand.
+
+    *tried* only de-duplicates. Relevance is judged against what the *user* asked
+    (the query and its refinement), never against ``expanded_search_terms``: those
+    include whatever ``expand`` discovered (for TP53, hepatocellular carcinoma), and
+    judging against them would make unrelated concepts look relevant.
+    """
     out: list[tuple[str, str]] = []
     seen = set(tried)
+    asked = {
+        t.strip().lower()
+        for t in (state.get("original_query"), state.get("query"))
+        if t and t.strip()
+    }
 
     def _offer(term: str, reason: str) -> None:
         if _usable(term, seen):
             seen.add(term.strip().lower())
             out.append((term.strip(), reason))
 
-    related = [c for c in (result.concepts if result else None) or [] if _is_relevant(c, tried)]
+    related = [c for c in (result.concepts if result else None) or [] if _is_relevant(c, asked)]
     leading = related[:LEADING_CONCEPTS]
     for concept in leading:
         for syn in (concept.synonyms or [])[:SYNONYMS_PER_CONCEPT]:
