@@ -14,6 +14,7 @@ from __future__ import annotations
 from langgraph.types import interrupt
 
 from ..state import LookupWorkflowState, dict_to_lookup_result, make_step
+from ._cui import preferred_umls_cui
 
 
 def approval_node(state: LookupWorkflowState) -> dict:
@@ -41,16 +42,7 @@ def approval_node(state: LookupWorkflowState) -> dict:
     concept_preview = []
     if result and result.concepts:
         for c in result.concepts[:15]:
-            umls_cui = None
-            for ident in c.identifiers or []:
-                src = (
-                    str(ident.source).upper()
-                    if hasattr(ident.source, "upper")
-                    else str(ident.source).upper()
-                )
-                if src == "UMLS":
-                    umls_cui = ident.identifier
-                    break
+            umls_cui = preferred_umls_cui(c.identifiers)
             concept_preview.append(
                 {
                     "label": c.primary_label,

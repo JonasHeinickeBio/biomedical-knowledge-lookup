@@ -60,7 +60,14 @@ async def refine_node(state: LookupWorkflowState) -> dict:
     notes = [n for n in (state.get("refinement_notes") or []) if n and n.strip()]
     refined_query = _refine_query(query, notes)
 
-    update: dict = {"query": refined_query, "status": "searching"}
+    # A refinement is a new search: the autonomous follow-up budget starts over.
+    update: dict = {
+        "query": refined_query,
+        "status": "searching",
+        "auto_round": 0,
+        "followup_pending": False,
+        "followup_probes": [],
+    }
     if refined_query != query.strip():
         search_terms = _search_terms_for(refined_query)
         update["expanded_search_terms"] = search_terms

@@ -207,6 +207,20 @@ class TestOpenAIBackend:
             assert result == "Myocardial Infarction"
 
     @pytest.mark.asyncio
+    async def test_null_content_raises_a_clear_error(self):
+        """A reasoning model that spends max_tokens thinking returns content=null."""
+        mock_data = {"choices": [{"finish_reason": "length", "message": {"content": None}}]}
+        mock_resp = AsyncMock()
+        mock_resp.__aenter__.return_value = mock_resp
+        mock_resp.json = AsyncMock(return_value=mock_data)
+        mock_resp.raise_for_status = MagicMock()
+
+        with patch("aiohttp.ClientSession.post", return_value=mock_resp):
+            backend = OpenAIBackend(api_key="test-key")
+            with pytest.raises(ValueError, match="no content.*length"):
+                await backend.complete("test prompt")
+
+    @pytest.mark.asyncio
     async def test_custom_base_url(self):
         backend = OpenAIBackend(api_key="test-key", base_url="https://custom.example.com/v1")
         assert "custom.example.com" in backend.base_url

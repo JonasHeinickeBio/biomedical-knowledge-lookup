@@ -2,13 +2,40 @@
 
 Routes determine which node executes next based on current state.
 
-Since lookup → filter → quality_gate is a simple linear flow with no
-strategy loop-back, only review, approval, and refine have conditional routes.
+lookup → filter → quality_gate → detail_gather is linear except for the autonomous
+follow-up loop (detail_gather → followup → lookup, bounded by ``max_auto_rounds``); review,
+approval and refine have the other conditional routes.
 """
 
 from __future__ import annotations
 
 from .state import LookupWorkflowState
+
+
+def route_after_detail_gather(state: LookupWorkflowState) -> str:
+    """Route after cross-referencing: plan an autonomous follow-up, or move on.
+
+    The decision comes after ``detail_gather`` so the planner sees the synonyms,
+    identifiers and hierarchy the cross-reference sources added, which the raw
+    search hits (especially for diseases) often lack.
+
+    Returns:
+        "followup"   -> the results have a gap and ``max_auto_rounds`` allows another round
+        "enrichment" -> carry on
+    """
+    from .nodes.followup import needs_followup
+
+    return "followup" if needs_followup(state) else "enrichment"
+
+
+def route_after_followup(state: LookupWorkflowState) -> str:
+    """Route after planning.
+
+    Returns:
+        "lookup"     -> run the planned probes (a focused pass)
+        "enrichment" -> nothing new to try, carry on
+    """
+    return "lookup" if state.get("followup_pending") else "enrichment"
 
 
 def route_after_review(state: LookupWorkflowState) -> str:

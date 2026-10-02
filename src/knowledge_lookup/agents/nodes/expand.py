@@ -42,6 +42,7 @@ from ...core.term_expansion import (
 from ...models import KnowledgeSource, LookupConfig
 from ..state import LookupWorkflowState, make_step
 from . import _limits
+from ._edges import merge_edges
 
 # Kept intentionally small: this is a bounded quality-improvement pass, not
 # the workflow's main search — lookup_node still searches every term found
@@ -123,7 +124,22 @@ async def expand_node(state: LookupWorkflowState) -> dict:
         shown = ", ".join(added[:8])
         detail += f": {shown}" + (" ..." if len(added) > 8 else "")
 
-    return {
+    update: dict = {
         "expanded_search_terms": merged_terms,
         "steps": [make_step("ExpandAgent", "expand", detail)],
     }
+    if trace.relationships:
+        # Keep the edges (not just the terms they produced) so later nodes can
+        # report the network and the follow-up planner can try edge targets the
+        # per-round term cap left unsearched.
+        update["relationship_edges"] = merge_edges(
+            state.get("relationship_edges") or [], trace.relationships
+        )
+        update["steps"] = [
+            make_step(
+                "ExpandAgent",
+                "expand",
+                detail + f"; {len(trace.relationships)} relationship edge(s)",
+            )
+        ]
+    return update

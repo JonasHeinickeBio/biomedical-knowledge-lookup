@@ -49,6 +49,7 @@ from .expansion_store import (
     STOP_MAX_ROUNDS,
     ExpansionStore,
 )
+from .source_routing import as_concept_type as _as_concept_type
 from .source_routing import options_for_concept_type, route_sources
 
 if TYPE_CHECKING:
@@ -56,22 +57,6 @@ if TYPE_CHECKING:
     from .central_lookup import CentralKnowledgeLookup
 
 logger = logging.getLogger(__name__)
-
-
-def _as_concept_type(value: object) -> ConceptType | None:
-    """Best-effort coerce a concept's ``concept_type`` (enum member or raw
-    string after model regen) to a :class:`ConceptType`, or ``None`` when it
-    is empty/unrecognised — routing then treats the term as unclassified."""
-    from ..models import ConceptType
-
-    if value is None or value == "":
-        return None
-    if isinstance(value, ConceptType):
-        return value
-    try:
-        return ConceptType(str(value).upper())
-    except ValueError:
-        return None
 
 
 class AbbreviationSource(Protocol):
@@ -378,8 +363,13 @@ class AdapterRelationshipSource:
         limit_per_concept: int = 10,
         relation_labels: set[str] | None = None,
         allowed_sources: set[Any] | None = None,
+        include_identifier_sources: bool = False,
     ) -> None:
         self._lookup = lookup
+        # When true, also query the adapters of sources that only appear on the
+        # concept's *identifiers* (a CUI added by UMLS enrichment, a gene symbol
+        # from a cross-reference), not just those that returned the concept.
+        self._include_identifier_sources = include_identifier_sources
         self._limit_per_concept = limit_per_concept
         # When set, keep only edges whose relation_label is in this set
         # (lower-cased). None keeps every edge.
@@ -405,6 +395,20 @@ class AdapterRelationshipSource:
                 targets.append(s if isinstance(s, KnowledgeSource) else KnowledgeSource(str(s)))
             except ValueError:
                 continue
+
+        if self._include_identifier_sources:
+            for ident in getattr(concept, "identifiers", None) or []:
+                ident_source = getattr(ident, "source", None)
+                try:
+                    candidate = (
+                        ident_source
+                        if isinstance(ident_source, KnowledgeSource)
+                        else KnowledgeSource(str(ident_source).upper())
+                    )
+                except ValueError:
+                    continue
+                if candidate not in targets:
+                    targets.append(candidate)
 
         results: list[RelatedTerm] = []
         for source in targets:

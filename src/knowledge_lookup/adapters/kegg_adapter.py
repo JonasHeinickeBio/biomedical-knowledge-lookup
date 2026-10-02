@@ -21,6 +21,16 @@ logger = logging.getLogger(__name__)
 # KEGG flat-text fields are padded to this width before their value.
 _FIELD_WIDTH = 12
 
+# The ``find`` endpoint answers 400 (404 for "/") to these characters, so a label
+# such as "TP53 protein, human" would silently find nothing in every database.
+_UNSUPPORTED_QUERY_CHARS = re.compile(r"[,/:&#%*=<@!|\\]")
+
+
+def sanitize_query(query: str) -> str:
+    """Replace characters the KEGG ``find`` endpoint rejects with spaces."""
+    return " ".join(_UNSUPPORTED_QUERY_CHARS.sub(" ", query).split())
+
+
 # Searchable ``find`` databases, mapped to how results should be interpreted.
 #   concept_type   -> ConceptType assigned to search hits
 #   strip_prefixes -> id prefixes to remove from ``find`` results (e.g. ``ds:``)
@@ -103,7 +113,10 @@ class KEGGAdapter(KnowledgeSourceAdapter):
         try:
             selected = list(databases) if databases else list(DEFAULT_SEARCH_DATABASES)
             concepts: list[UnifiedConcept] = []
-            encoded_query = quote(query)
+            cleaned = sanitize_query(query)
+            if not cleaned:
+                return []
+            encoded_query = quote(cleaned)
 
             for db in selected:
                 if len(concepts) >= limit:

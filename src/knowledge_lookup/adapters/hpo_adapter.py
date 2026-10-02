@@ -5,12 +5,31 @@ Integrates with HPO for phenotype and clinical finding lookup.
 """
 
 import logging
+import re
+import unicodedata
 from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
 logger = logging.getLogger(__name__)
+
+# The HPO search endpoint answers 400 Bad Request to anything but ASCII letters,
+# digits, spaces and ``, ' - :`` — parentheses, slashes, quotes, accented letters, ...
+# — so a label such as "Generalized seizure (without onset)" or "Fundación Síndrome
+# de Dravet" would silently find nothing.
+_UNSUPPORTED_QUERY_CHARS = re.compile(r"[^A-Za-z0-9\s,'\-:]")
+
+
+def sanitize_query(query: str) -> str:
+    """Make *query* acceptable to the HPO search endpoint.
+
+    Accents are stripped (``ó`` -> ``o``) and any other unsupported character is
+    replaced with a space.
+    """
+    decomposed = unicodedata.normalize("NFKD", query)
+    plain = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return " ".join(_UNSUPPORTED_QUERY_CHARS.sub(" ", plain).split())
 
 
 class HPOAdapter(KnowledgeSourceAdapter):
@@ -31,7 +50,10 @@ class HPOAdapter(KnowledgeSourceAdapter):
         """Search HPO for phenotypes."""
         try:
             url = f"{self.base_url}/search"
-            params = {"q": query, "limit": min(limit, 100)}
+            cleaned = sanitize_query(query)
+            if not cleaned:
+                return []
+            params = {"q": cleaned, "limit": min(limit, 100)}
 
             data = await self._make_request(url, params)
 

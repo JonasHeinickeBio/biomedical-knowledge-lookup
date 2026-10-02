@@ -65,6 +65,44 @@ class TestHPOAdapter:
             assert len(results) == 2
             assert results[0].primary_id == "HP:0000118"
 
+    @pytest.mark.parametrize(
+        ("raw", "cleaned"),
+        [
+            (
+                "Generalised tonic-clonic seizure (without onset)",
+                "Generalised tonic-clonic seizure without onset",
+            ),
+            ("a/b", "a b"),
+            ("  seizure,  focal ", "seizure, focal"),
+            ("Dravet's syndrome", "Dravet's syndrome"),
+            ("HP:0001250", "HP:0001250"),
+            ('"quoted" [x]', "quoted x"),
+            ("()", ""),
+            ("Fundación Síndrome de Dravet", "Fundacion Sindrome de Dravet"),
+            ("Müller", "Muller"),
+            ("p53遺伝子", "p53"),
+            ("遺伝子", ""),
+        ],
+    )
+    def test_sanitize_query(self, raw, cleaned):
+        from knowledge_lookup.adapters.hpo_adapter import sanitize_query
+
+        assert sanitize_query(raw) == cleaned
+
+    @pytest.mark.asyncio
+    async def test_search_sends_a_query_the_api_accepts(self, adapter):
+        """HPO answers 400 to parentheses and most other punctuation."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = {"terms": []}
+            await adapter.search_concepts("seizure (focal)")
+        assert mock_req.call_args.args[1]["q"] == "seizure focal"
+
+    @pytest.mark.asyncio
+    async def test_search_with_only_unsupported_characters_makes_no_request(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            assert await adapter.search_concepts("(/)") == []
+        mock_req.assert_not_called()
+
     @pytest.mark.asyncio
     async def test_search_concepts_term_conversion_returns_none(self, adapter):
         """Test search when _convert_hpo_result_to_concept returns None."""

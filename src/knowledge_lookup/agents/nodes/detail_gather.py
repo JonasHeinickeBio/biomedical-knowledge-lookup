@@ -1,8 +1,10 @@
 """Graph node: cross-source detail gathering for each concept.
 
 For each unique concept label found in the initial search, this node runs
-independent searches against ALL configured sources (OLS, UMLS, BioPortal,
-Wikidata, etc.) to collect:
+independent searches against the cross-reference sources that suit the
+concept's type (see :func:`knowledge_lookup.core.source_routing.cross_reference_sources`:
+generalists such as OLS/UMLS/Wikidata plus, e.g., HGNC/UniProt/Ensembl for a
+gene or ChEMBL/PubChem/DrugBank for a drug) to collect:
 
 - Cross-references / ontology IDs from multiple sources
 - Definitions and synonyms from each source
@@ -16,27 +18,43 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
+from collections.abc import Iterable
 from typing import Any
 
+from ...adapters import ADAPTER_CLASSES
+from ...adapters.umls_adapter import normalize_cui
 from ...core.central_lookup import CentralKnowledgeLookup
+from ...core.source_routing import LEGACY_XREF_SOURCES, as_concept_type, cross_reference_sources
 from ...models import ConceptIdentifier, KnowledgeSource, LookupConfig
 from ..state import LookupWorkflowState, dict_to_lookup_result, lookup_result_to_dict, make_step
 from . import _limits
+from ._cui import rank_umls_identifiers
 
 logger = logging.getLogger(__name__)
 
 _PER_LABEL_TIMEOUT = _limits.CALL_TIMEOUT
 
-# Sources to query per label for cross-referencing
-# Ordered by likely relevance for biomedical concept lookup
-_CROSS_SOURCES = [
-    KnowledgeSource.OLS,
-    KnowledgeSource.UMLS,
-    KnowledgeSource.BIOPORTAL,
-    KnowledgeSource.WIKIDATA,
-    KnowledgeSource.MONDO,
-    KnowledgeSource.HPO,
-]
+# Fallback cross-reference sources for concepts whose type is unknown (the
+# fixed set used before type-aware selection); see ``cross_reference_sources``.
+_CROSS_SOURCES = list(LEGACY_XREF_SOURCES)
+
+
+def best_label_hit(label: str, hits: list[Any]) -> Any | None:
+    """The hit that best answers a search for *label*: the first whose label equals
+    it (ignoring case and spacing), else the first hit (sources rank by relevance)."""
+    wanted = " ".join(str(label).lower().split())
+    usable = [h for h in hits if getattr(h, "primary_id", None)]
+    for hit in usable:
+        if " ".join(str(hit.primary_label or "").lower().split()) == wanted:
+            return hit
+    return usable[0] if usable else None
+
+
+def _label_sources(concept: Any, available: Iterable[KnowledgeSource]) -> list[KnowledgeSource]:
+    """Cross-reference sources for one concept, chosen by its type."""
+    return cross_reference_sources(
+        as_concept_type(getattr(concept, "concept_type", None)), available
+    )
 
 
 async def _search_label(
@@ -124,8 +142,8 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
     ALL configured sources independently.
 
     For each unique concept label found in the search results, this node
-    runs parallel searches against OLS, UMLS, BioPortal, Wikidata, and
-    other relevant sources. All discovered identifiers, definitions,
+    runs parallel searches against the cross-reference sources suited to the
+    concept's type. All discovered identifiers, definitions,
     synonyms, and types are merged back into the concept.
     """
     result = dict_to_lookup_result(state.get("lookup_result"))
@@ -135,19 +153,42 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
             "steps": [make_step("DetailGatherAgent", "skip", "No concepts to process")],
         }
 
+    # Labels cross-referenced on an earlier pass (the autonomous follow-up runs
+    # this node again over the merged result) are not searched a second time.
+    done = {str(label).strip().lower() for label in state.get("xref_labels") or []}
+    pending = [c for c in result.concepts if (c.primary_label or "").strip().lower() not in done]
+    if not pending:
+        return {
+            "steps": [
+                make_step(
+                    "DetailGatherAgent",
+                    "skip",
+                    f"All {len(done)} label(s) already cross-referenced",
+                )
+            ]
+        }
+
+    # Build adapters only for the sources these concepts' types call for.
+    wanted: list[KnowledgeSource] = []
+    for concept in pending:
+        for src in _label_sources(concept, ADAPTER_CLASSES.keys()):
+            if src not in wanted:
+                wanted.append(src)
+
     config = LookupConfig(
-        enabled_sources=list(_CROSS_SOURCES),
+        enabled_sources=wanted or list(_CROSS_SOURCES),
         max_results_per_source=5,
         parallel_queries=True,
         enable_deduplication=False,
         enable_source_health_tracking=False,
     )
 
-    # Only load the sources we actually need for cross-referencing
     lookup = CentralKnowledgeLookup(config=config, auto_initialize=True)
 
-    # Identify which cross-sources are actually available
-    available_cross_sources = [s for s in _CROSS_SOURCES if s in lookup.adapters]
+    # Cross-sources that actually initialised (an adapter can be unavailable,
+    # e.g. for a missing API key); per-label selection falls through to the
+    # next-best source when a preferred one is missing.
+    available_cross_sources = list(lookup.adapters)
 
     try:
         concepts = result.concepts
@@ -156,34 +197,41 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
         seen_labels: dict[str, int] = {}  # label_lower -> index in concepts
         for i, c in enumerate(concepts):
             label = (c.primary_label or "").strip().lower()
-            if label and label not in seen_labels:
+            if label and label not in seen_labels and label not in done:
                 seen_labels[label] = i
 
         unique_labels = [(concepts[idx].primary_label, idx) for label, idx in seen_labels.items()]
+        label_sources = {
+            idx: _label_sources(concepts[idx], available_cross_sources) for _, idx in unique_labels
+        }
 
         total_cross_refs = 0
         total_defs = 0
 
-        labels = [(text, idx) for text, idx in unique_labels if text and available_cross_sources]
+        labels = [(text, idx) for text, idx in unique_labels if text and label_sources.get(idx)]
 
-        async def _search_all_sources(label_text: str) -> list[list[Any]]:
-            # Independent searches for this label against all cross-sources
+        async def _search_all_sources(
+            label_text: str, sources: list[KnowledgeSource]
+        ) -> list[list[Any]]:
+            # Independent searches for this label against its cross-sources
             return list(
-                await asyncio.gather(
-                    *[_search_label(lookup, label_text, src) for src in available_cross_sources]
-                )
+                await asyncio.gather(*[_search_label(lookup, label_text, src) for src in sources])
             )
 
         # Labels are searched concurrently, within the node's time budget
         gathered, unfinished = await _limits.gather_bounded(
-            [functools.partial(_search_all_sources, text) for text, _ in labels],
+            [
+                functools.partial(_search_all_sources, text, label_sources[idx])
+                for text, idx in labels
+            ],
             timeout=_limits.DETAIL_GATHER_TIMEOUT,
         )
 
         # For each unique label, merge what the cross-sources returned
         for (label_text, concept_idx), per_source_results in zip(labels, gathered, strict=True):
             if not isinstance(per_source_results, list):
-                continue  # not finished within the budget, or failed
+                continue  # not finished within the budget, or failed: retried next pass
+            done.add(str(label_text).strip().lower())
 
             concept = concepts[concept_idx]
 
@@ -206,7 +254,12 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
             # 1. Collect all ontology IDs
             cross_ids = _collect_ontology_ids(all_found)
             for src_name, ids in cross_ids.items():
-                for cid in ids:
+                for cid in sorted(ids):  # sets iterate in a different order every run
+                    # UMLS identifiers must be bare CUIs: cross-reference sources
+                    # write them as "UMLS:C..." CURIEs, which the UMLS API rejects
+                    # (404) when relationships are later asked for.
+                    if src_name.upper() == "UMLS":
+                        cid = normalize_cui(cid)
                     # Add as identifier if not already present
                     exists = any(
                         str(getattr(i, "source", "")).upper() == src_name.upper()
@@ -224,10 +277,29 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
                             ConceptIdentifier(
                                 source=ks,
                                 identifier=cid,
-                                label=label_text,
+                                # a cross-referenced CUI is not known to name this concept;
+                                # labelling it with the concept's label would say it is
+                                label=None if ks == KnowledgeSource.UMLS else label_text,
                             )
                         )
                         total_cross_refs += 1
+
+            # 1b. Order the concept's UMLS CUIs: its own record, then the top UMLS
+            # hit for its label, then the rest — so "the" CUI is the same every run
+            umls_hits = next(
+                (
+                    found
+                    for src, found in zip(
+                        label_sources[concept_idx], per_source_results, strict=True
+                    )
+                    if src == KnowledgeSource.UMLS
+                ),
+                [],
+            )
+            hit = best_label_hit(label_text, umls_hits)
+            rank_umls_identifiers(
+                concept, hit.primary_id if hit else None, hit.primary_label if hit else None
+            )
 
             # 2. Merge definitions (from any source)
             new_defs = _collect_text_fields(all_found, "definitions")
@@ -293,6 +365,7 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
 
         return {
             "lookup_result": enriched_dict,
+            "xref_labels": sorted(done),
             "steps": [make_step("DetailGatherAgent", "cross_search", step_detail)],
         }
 

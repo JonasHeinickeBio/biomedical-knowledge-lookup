@@ -42,6 +42,8 @@ def _initial_state(
     max_iterations: int,
     auto_approve_threshold: float,
     include_relationships: bool = False,
+    include_evidence: bool = False,
+    max_auto_rounds: int = 1,
 ) -> LookupWorkflowState:
     return {
         "query": query,
@@ -73,6 +75,14 @@ def _initial_state(
         "is_german": False,
         "quality_score": None,
         "quality_details": None,
+        "max_auto_rounds": max_auto_rounds,
+        "auto_round": 0,
+        "xref_labels": [],
+        "followup_pending": False,
+        "followup_probes": [],
+        "relationship_edges": [],
+        "include_evidence": include_evidence,
+        "literature_evidence": [],
         "final_result": None,
         "export_paths": [],
         "steps": [],
@@ -114,6 +124,9 @@ async def _finish(
         "errors": result.get("errors", []),
         "steps": result.get("steps", []),
         "iteration": result.get("iteration", 0),
+        "auto_rounds": result.get("auto_round", 0),
+        "relationship_edges": result.get("relationship_edges", []),
+        "literature_evidence": result.get("literature_evidence", []),
     }
 
 
@@ -128,6 +141,8 @@ async def run_workflow(
     max_iterations: int = 3,
     auto_approve_threshold: float = 0.8,
     include_relationships: bool = False,
+    include_evidence: bool = False,
+    max_auto_rounds: int = 1,
     checkpointer: BaseCheckpointSaver | None = None,
 ) -> dict:
     """Run the full lookup-review-approval-export workflow.
@@ -142,7 +157,14 @@ async def run_workflow(
         max_iterations: Maximum lookup passes (initial search + refinements).
         auto_approve_threshold: Score above which auto-approval triggers.
         include_relationships: Enable relationship-edge expansion (interactions,
-            pathways, class members) during the search step.
+            pathways, class members) during the search step, and harvest the
+            relationship edges of the final concepts into ``relationship_edges``.
+        include_evidence: Attach top Europe PMC papers for the leading concepts
+            (``literature_evidence``).
+        max_auto_rounds: Autonomous follow-up rounds. When the first search
+            scores poorly the workflow plans extra terms/sources itself and
+            searches again, up to this many times, without using up
+            ``max_iterations``. ``0`` disables the loop.
         checkpointer: Checkpointer holding paused runs. Defaults to a
             process-wide in-memory saver; pass the same one to
             :func:`resume_workflow`.
@@ -168,6 +190,8 @@ async def run_workflow(
         max_iterations=max_iterations,
         auto_approve_threshold=auto_approve_threshold,
         include_relationships=include_relationships,
+        include_evidence=include_evidence,
+        max_auto_rounds=max_auto_rounds,
     )
 
     # Run the graph to completion (or interrupt)

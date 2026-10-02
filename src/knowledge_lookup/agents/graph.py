@@ -2,8 +2,9 @@
 
 Flow::
 
-    START → preprocess → expand → lookup → filter → quality_gate → detail_gather
-    → enrichment → aggregate → review
+    START → preprocess → expand → lookup → filter → quality_gate
+    → detail_gather → {followup → {lookup | enrichment} | enrichment}
+    → relationships → evidence → aggregate → review
     → {approval | prune}
     → {prune | refine | END}
     → {prune → export → END}
@@ -18,6 +19,14 @@ Key design:
 - **filter** removes non-clinical concepts (questionnaires, measurement
   scales, geographic locations) and boosts clinical types
 - **quality_gate** scores the filtered results
+- **detail_gather** cross-references each concept in the sources that suit its type
+  (labels already done are skipped when the follow-up loop comes back through it)
+- **followup** (after detail_gather, so it sees the synonyms and hierarchy the
+  cross-references added; autonomous, bounded by ``max_auto_rounds``) diagnoses gaps —
+  empty/thin results, failed sources — and plans a focused re-search from
+  synonyms, hierarchy labels, relationship targets and LLM suggestions, which
+  ``lookup`` runs without using up ``max_iterations``
+- **relationships** / **evidence** (opt-in) add relationship edges and Europe PMC papers
 - **review** (LLM-powered) provides the final quality judgment
 """
 
@@ -34,17 +43,26 @@ from .nodes import (
     approval_node,
     detail_gather_node,
     enrichment_node,
+    evidence_node,
     expand_node,
     export_node,
     filter_node,
+    followup_node,
     lookup_node,
     preprocess_node,
     prune_node,
     quality_gate_node,
     refine_node,
+    relationships_node,
     review_node,
 )
-from .routing import route_after_approval, route_after_refine, route_after_review
+from .routing import (
+    route_after_approval,
+    route_after_detail_gather,
+    route_after_followup,
+    route_after_refine,
+    route_after_review,
+)
 from .state import LookupWorkflowState
 
 
@@ -71,8 +89,11 @@ def build_workflow_graph(checkpointer: BaseCheckpointSaver | None = None) -> Any
     builder.add_node("lookup", lookup_node)
     builder.add_node("filter", filter_node)
     builder.add_node("quality_gate", quality_gate_node)
+    builder.add_node("followup", followup_node)
     builder.add_node("detail_gather", detail_gather_node)
     builder.add_node("enrichment", enrichment_node)
+    builder.add_node("relationships", relationships_node)
+    builder.add_node("evidence", evidence_node)
     builder.add_node("aggregate", aggregate_node)
     builder.add_node("review", review_node)
     builder.add_node("approval", approval_node)
@@ -80,17 +101,33 @@ def build_workflow_graph(checkpointer: BaseCheckpointSaver | None = None) -> Any
     builder.add_node("prune", prune_node)
     builder.add_node("export", export_node)
 
-    # Sequential: preprocess → expand → lookup → filter → quality_gate → detail_gather
+    # Sequential: preprocess → expand → lookup → filter → quality_gate
     builder.add_edge(START, "preprocess")
     builder.add_edge("preprocess", "expand")
     builder.add_edge("expand", "lookup")
     builder.add_edge("lookup", "filter")
     builder.add_edge("filter", "quality_gate")
+
     builder.add_edge("quality_gate", "detail_gather")
 
-    # Sequential: details → UMLS CUI enrichment → aggregate → review
-    builder.add_edge("detail_gather", "enrichment")
-    builder.add_edge("enrichment", "aggregate")
+    # Autonomous loop: a gap in the cross-referenced results → followup plans
+    # focused probes → lookup runs them → filter → quality_gate → detail_gather
+    # (new labels only) → the gap is re-checked (bounded by max_auto_rounds)
+    builder.add_conditional_edges(
+        "detail_gather",
+        route_after_detail_gather,
+        {"followup": "followup", "enrichment": "enrichment"},
+    )
+    builder.add_conditional_edges(
+        "followup",
+        route_after_followup,
+        {"lookup": "lookup", "enrichment": "enrichment"},
+    )
+
+    # Sequential: UMLS CUI enrichment → relationships → evidence → aggregate → review
+    builder.add_edge("enrichment", "relationships")
+    builder.add_edge("relationships", "evidence")
+    builder.add_edge("evidence", "aggregate")
     builder.add_edge("aggregate", "review")
 
     # Conditional: review → approval (human) or prune → export (auto)
