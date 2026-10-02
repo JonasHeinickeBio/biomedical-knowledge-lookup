@@ -35,7 +35,7 @@ import re
 from typing import Any
 
 from ...models import LookupResult
-from ..config import call_llm
+from ..config import SHORT_REPLY_MAX_TOKENS, call_llm
 from ..state import LookupWorkflowState, dict_to_lookup_result, make_step
 from ._limits import resolve_sources
 
@@ -81,6 +81,39 @@ def needs_followup(state: LookupWorkflowState) -> bool:
     return bool(diagnose(state))
 
 
+# Words too common in biomedical names to show that a concept matches the query.
+_GENERIC_WORDS = frozenset(
+    "a an and or of the in with without to for type syndrome disease disorder disorders "
+    "deficiency cancer tumor tumour gene protein".split()
+)
+
+
+def _tokens(text: str) -> set[str]:
+    return {t for t in re.findall(r"[a-z0-9]+", text.lower()) if t not in _GENERIC_WORDS}
+
+
+def _is_relevant(concept: Any, searched: set[str]) -> bool:
+    """Whether *concept* plausibly matches what was searched.
+
+    Synonyms and hierarchy are only harvested from concepts that share a
+    distinctive word with a searched term (through the label or a synonym, so an
+    abbreviation such as COPD still matches its long form). Otherwise one weakly
+    matched hit — "Barrett syndrome" for a "Dravet syndrome" query — would send
+    the follow-up off-topic. When the searched terms hold no distinctive word
+    (an identifier, or only generic words) nothing can be judged and the concept
+    is accepted.
+    """
+    wanted: set[str] = set()
+    for term in searched:
+        if ":" in term or re.search(r"\d{5,}", term):  # an identifier says nothing about names
+            continue
+        wanted |= _tokens(term)
+    if not wanted:
+        return True
+    names = [str(concept.primary_label or ""), *(str(s) for s in concept.synonyms or [])]
+    return any(_tokens(name) & wanted for name in names)
+
+
 def _usable(term: str, tried: set[str]) -> bool:
     cleaned = term.strip()
     if not cleaned or cleaned.startswith("http"):
@@ -102,7 +135,8 @@ def _harvest_terms(
             seen.add(term.strip().lower())
             out.append((term.strip(), reason))
 
-    leading = list((result.concepts if result else None) or [])[:LEADING_CONCEPTS]
+    related = [c for c in (result.concepts if result else None) or [] if _is_relevant(c, tried)]
+    leading = related[:LEADING_CONCEPTS]
     for concept in leading:
         for syn in (concept.synonyms or [])[:SYNONYMS_PER_CONCEPT]:
             _offer(str(syn), f"synonym of {concept.primary_label}")
@@ -140,7 +174,9 @@ async def _llm_terms(query: str, labels: list[str], gaps: list[str]) -> list[str
         "Suggest up to 5 alternative search terms (synonyms, spelled-out abbreviations, "
         "closely related clinical terms). Reply with only a JSON list of strings."
     )
-    return _parse_term_list(await call_llm(prompt, max_tokens=200, temperature=0.2))
+    return _parse_term_list(
+        await call_llm(prompt, max_tokens=SHORT_REPLY_MAX_TOKENS, temperature=0.2)
+    )
 
 
 async def plan_probes(state: LookupWorkflowState, gaps: list[str]) -> list[dict[str, Any]]:

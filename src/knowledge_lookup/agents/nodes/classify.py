@@ -19,7 +19,7 @@ import logging
 import re
 
 from ...models import ConceptType
-from ..config import call_llm
+from ..config import SHORT_REPLY_MAX_TOKENS, call_llm
 from ..state import LookupWorkflowState, make_step
 
 logger = logging.getLogger(__name__)
@@ -183,7 +183,9 @@ async def _classify_with_llm(query: str) -> list[ConceptType]:
         f"Allowed types: {_LLM_CANDIDATES}\n"
         'Reply with only a JSON list such as ["GENE", "PROTEIN"].'
     )
-    return _parse_llm_types(await call_llm(prompt, max_tokens=60, temperature=0.0))
+    return _parse_llm_types(
+        await call_llm(prompt, max_tokens=SHORT_REPLY_MAX_TOKENS, temperature=0.0)
+    )
 
 
 async def classify_node(state: LookupWorkflowState) -> dict:

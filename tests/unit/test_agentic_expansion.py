@@ -257,6 +257,20 @@ class TestClassify:
         assert update["inferred_concept_types"] == ["GENE", "PROTEIN"]
         assert "by LLM" in update["steps"][0]["detail"]
 
+    def test_llm_calls_leave_room_for_reasoning_models(self):
+        """A budget of tens of tokens makes reasoning models return no content at all."""
+        from knowledge_lookup.agents.config import SHORT_REPLY_MAX_TOKENS
+
+        llm = AsyncMock(return_value='["GENE"]')
+        with patch("knowledge_lookup.agents.nodes.classify.call_llm", llm):
+            asyncio.run(classify_node(_state(query="EGFR", original_query="EGFR")))
+        assert llm.await_args.kwargs["max_tokens"] == SHORT_REPLY_MAX_TOKENS >= 500
+
+        llm = AsyncMock(return_value='["fits"]')
+        with patch.object(followup_mod, "call_llm", llm):
+            asyncio.run(followup_mod.plan_probes(_state(lookup_result=_result([])), ["empty"]))
+        assert llm.await_args.kwargs["max_tokens"] == SHORT_REPLY_MAX_TOKENS
+
     def test_node_without_llm_or_rule_infers_nothing(self):
         update = asyncio.run(classify_node(_state(query="COPD", original_query="COPD")))
         assert update["inferred_concept_types"] == []
@@ -370,7 +384,10 @@ class TestFollowupNode:
 
     def test_never_repeats_a_tried_term_and_caps_the_round(self):
         concept = _concept("Seizure", synonyms=[f"syn {i}" for i in range(3)] + ["Already Tried"])
-        many = [_concept(f"c{i}", synonyms=[f"extra {i}a", f"extra {i}b"]) for i in range(4)]
+        many = [
+            _concept(f"seizure variant {i}", synonyms=[f"extra {i}a", f"extra {i}b"])
+            for i in range(4)
+        ]
         state = _state(
             lookup_result=_result([concept, *many]),
             expanded_search_terms=["seizure", "already tried"],
@@ -379,6 +396,51 @@ class TestFollowupNode:
         terms = [p["term"] for p in probes]
         assert "Already Tried" not in terms
         assert len(terms) == followup_mod.MAX_FOLLOWUP_TERMS
+
+    def test_does_not_harvest_from_concepts_unrelated_to_the_query(self):
+        state = _state(
+            query="Dravet syndrome",
+            original_query="Dravet syndrome",
+            expanded_search_terms=["Dravet syndrome"],
+            lookup_result=_result(
+                [
+                    _concept(
+                        "Barrett syndrome", synonyms=["Barrett oesophagus"]
+                    ),  # only 'syndrome'
+                    _concept(
+                        "Severe myoclonic epilepsy of infancy",
+                        synonyms=["Dravet's syndrome", "SMEI"],
+                    ),
+                ]
+            ),
+        )
+        probes = asyncio.run(followup_mod.plan_probes(state, ["thin"]))
+        terms = [p["term"] for p in probes]
+        assert "Barrett oesophagus" not in terms
+        assert "SMEI" in terms  # reached through the synonym that matches the query
+
+    def test_abbreviation_query_matches_its_long_form_through_a_synonym(self):
+        concept = _concept(
+            "Chronic obstructive pulmonary disease", synonyms=["COPD", "chronic bronchitis"]
+        )
+        state = _state(
+            query="COPD",
+            original_query="COPD",
+            expanded_search_terms=["COPD"],
+            lookup_result=_result([concept]),
+        )
+        terms = [p["term"] for p in asyncio.run(followup_mod.plan_probes(state, ["thin"]))]
+        assert terms == ["chronic bronchitis"]
+
+    def test_identifier_queries_are_not_filtered(self):
+        state = _state(
+            query="HP:0001250",
+            original_query="HP:0001250",
+            expanded_search_terms=["HP:0001250"],
+            lookup_result=_result([_concept("Seizure", synonyms=["Fit"])]),
+        )
+        terms = [p["term"] for p in asyncio.run(followup_mod.plan_probes(state, ["thin"]))]
+        assert terms == ["Fit"]
 
     def test_retries_failed_sources_within_the_callers_selection(self):
         concepts = [_concept(f"c{i}") for i in range(4)]

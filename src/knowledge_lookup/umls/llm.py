@@ -93,7 +93,15 @@ class OpenAIBackend(LLMBackend):
             async with session.post(url, json=payload, headers=headers) as resp:
                 resp.raise_for_status()
                 data = await resp.json()
-                return data["choices"][0]["message"]["content"].strip()
+                choice = data["choices"][0]
+                content = choice["message"].get("content")
+                if content is None:
+                    # e.g. a reasoning model that used up max_tokens before answering
+                    raise ValueError(
+                        f"model returned no content (finish_reason={choice.get('finish_reason')!r});"
+                        " raise max_tokens"
+                    )
+                return content.strip()
 
 
 class AnthropicBackend(LLMBackend):

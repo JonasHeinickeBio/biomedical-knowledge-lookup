@@ -5,12 +5,23 @@ Integrates with HPO for phenotype and clinical finding lookup.
 """
 
 import logging
+import re
 from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
 logger = logging.getLogger(__name__)
+
+# The HPO search endpoint answers 400 Bad Request to any other punctuation
+# (parentheses, slashes, quotes, ...), so a label such as
+# "Generalized seizure (without onset)" would silently find nothing.
+_UNSUPPORTED_QUERY_CHARS = re.compile(r"[^\w\s,'\-:]")
+
+
+def sanitize_query(query: str) -> str:
+    """Replace characters the HPO search endpoint rejects with spaces."""
+    return " ".join(_UNSUPPORTED_QUERY_CHARS.sub(" ", query).split())
 
 
 class HPOAdapter(KnowledgeSourceAdapter):
@@ -31,7 +42,10 @@ class HPOAdapter(KnowledgeSourceAdapter):
         """Search HPO for phenotypes."""
         try:
             url = f"{self.base_url}/search"
-            params = {"q": query, "limit": min(limit, 100)}
+            cleaned = sanitize_query(query)
+            if not cleaned:
+                return []
+            params = {"q": cleaned, "limit": min(limit, 100)}
 
             data = await self._make_request(url, params)
 
