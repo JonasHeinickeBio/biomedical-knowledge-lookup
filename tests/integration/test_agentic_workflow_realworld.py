@@ -333,6 +333,45 @@ class TestEvidenceLive:
 # ---------------------------------------------------------------------------
 
 
+class TestKEGGLive:
+    @pytest.mark.asyncio
+    async def test_query_with_a_comma_is_searched_not_rejected(self):
+        """KEGG's find endpoint answers 400 to commas; the adapter now cleans the query."""
+        lookup = create_knowledge_lookup()
+        try:
+            adapter = lookup.adapters.get(KnowledgeSource.KEGG)
+            if adapter is None:
+                pytest.skip("KEGG adapter not available")
+            plain = await adapter.search_concepts("TP53 protein", databases=["gene"], limit=5)
+            if not plain:
+                pytest.skip("KEGG returned nothing for the plain query (outage?)")
+            with_comma = await adapter.search_concepts(
+                "TP53, protein", databases=["gene"], limit=5
+            )
+        finally:
+            await lookup.close()
+        assert with_comma, "the comma made KEGG return nothing"
+        assert [c.primary_id for c in with_comma] == [c.primary_id for c in plain]
+        print(f"\n  KEGG 'TP53, protein' -> {[c.primary_label for c in with_comma[:3]]}")
+
+
+class TestRankingLive:
+    @pytest.mark.asyncio
+    async def test_the_exact_gene_ranks_first(self):
+        from knowledge_lookup.agents.nodes import filter_node
+
+        sources = ["HGNC", "OLS", "UNIPROT"]
+        state = _state("TP53", source_filter=sources, max_results=8)
+        state.update(await lookup_node(state))
+        before = [c.primary_label for c in dict_to_lookup_result(state["lookup_result"]).concepts]
+        if "TP53" not in before:
+            pytest.skip(f"no concept labelled TP53 in the live results: {before[:6]}")
+        state.update(await filter_node(state))
+        after = [c.primary_label for c in dict_to_lookup_result(state["lookup_result"]).concepts]
+        print(f"\n  before filter: {before[:5]}\n  after filter:  {after[:5]}")
+        assert after[0] == "TP53"
+
+
 class TestUMLSLive:
     @pytest.mark.asyncio
     async def test_curie_prefixed_cui_is_accepted(self):

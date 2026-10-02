@@ -314,6 +314,69 @@ class TestDetailGatherIsIncremental:
         assert update["xref_labels"] == []
 
 
+class TestExactMatchRanking:
+    @staticmethod
+    def _filtered(concepts, **state_overrides):
+        from knowledge_lookup.agents.nodes import filter_node
+
+        state = _state(lookup_result=_result(concepts), **state_overrides)
+        update = asyncio.run(filter_node(state))
+        return [c.primary_label for c in dict_to_lookup_result(update["lookup_result"]).concepts]
+
+    @staticmethod
+    def _scored(label, confidence, **kwargs):
+        concept = _concept(label, **kwargs)
+        concept.confidence_score = confidence
+        return concept
+
+    def test_exact_label_outranks_higher_confidence_neighbours(self):
+        concepts = [
+            self._scored("TP53TG5", 0.95),
+            self._scored("TP53BP1", 0.9),
+            self._scored("TP53", 0.6),
+        ]
+        assert self._filtered(concepts, query="TP53", original_query="TP53") == [
+            "TP53",
+            "TP53TG5",
+            "TP53BP1",
+        ]
+
+    def test_label_match_then_synonym_match_then_the_rest_by_confidence(self):
+        concepts = [
+            self._scored("Other", 0.99),
+            self._scored("Tumor protein p53", 0.5, synonyms=["TP53", "p53"]),
+            self._scored("TP53", 0.4),
+            self._scored("Another", 0.7),
+        ]
+        assert self._filtered(concepts, query="tp53", original_query="tp53") == [
+            "TP53",
+            "Tumor protein p53",
+            "Other",
+            "Another",
+        ]
+
+    def test_exact_match_survives_the_max_results_cut(self):
+        concepts = [self._scored(f"TP53-like {i}", 0.9) for i in range(6)]
+        concepts.append(self._scored("TP53", 0.1))
+        kept = self._filtered(concepts, query="TP53", original_query="TP53", max_results=3)
+        assert kept[0] == "TP53"
+        assert len(kept) == 3
+
+    def test_every_comma_separated_term_counts(self):
+        concepts = [
+            self._scored("noise", 0.99),
+            self._scored("BRCA2", 0.2),
+            self._scored("BRCA1", 0.1),
+        ]
+        kept = self._filtered(concepts, query="BRCA1, BRCA2", original_query="BRCA1, BRCA2")
+        assert set(kept[:2]) == {"BRCA1", "BRCA2"}
+        assert kept[2] == "noise"
+
+    def test_without_an_exact_match_the_order_is_by_confidence_as_before(self):
+        concepts = [self._scored("b", 0.3), self._scored("a", 0.8), self._scored("c", 0.5)]
+        assert self._filtered(concepts, query="zzz", original_query="zzz") == ["a", "c", "b"]
+
+
 # ---------------------------------------------------------------------------
 # classify
 # ---------------------------------------------------------------------------

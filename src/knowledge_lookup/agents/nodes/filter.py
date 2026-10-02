@@ -173,13 +173,34 @@ def _has_non_clinical_source_only(c: Any) -> bool:
     return False
 
 
-def _filter_and_rank_concepts(concepts: list[Any]) -> list[Any]:
+def _norm(text: Any) -> str:
+    return " ".join(str(text or "").lower().split())
+
+
+def _match_tier(c: Any, query_terms: set[str]) -> int:
+    """How directly *c* matches what was asked: 0 = its label is a query term,
+    1 = one of its synonyms is, 2 = neither. Lower sorts first."""
+    if not query_terms:
+        return 2
+    if _norm(c.primary_label) in query_terms:
+        return 0
+    if any(_norm(syn) in query_terms for syn in c.synonyms or []):
+        return 1
+    return 2
+
+
+def _filter_and_rank_concepts(
+    concepts: list[Any], query_terms: list[str] | None = None
+) -> list[Any]:
     """Filter and re-rank concepts for clinical relevance.
 
     1. Remove questionnaire/measurement items
     2. Remove blacklisted ontology concepts
     3. Boost confidence for clinical types
-    4. Sort by boosted confidence (descending)
+    4. Sort exact matches of *query_terms* first (label, then synonym), and by
+       boosted confidence (descending) within each tier — otherwise a gene's
+       neighbours (TP53TG5, TP53BP1) can outrank TP53 itself, and the
+       ``max_results`` cut-off may drop it
     """
     if not concepts:
         return []
@@ -228,8 +249,9 @@ def _filter_and_rank_concepts(concepts: list[Any]) -> list[Any]:
             removed_s,
         )
 
-    # Sort by confidence (descending)
-    filtered.sort(key=lambda x: x.confidence_score or 0.0, reverse=True)
+    # Exact matches first, then by confidence (descending)
+    terms = {_norm(t) for t in query_terms or [] if _norm(t)}
+    filtered.sort(key=lambda x: (_match_tier(x, terms), -(x.confidence_score or 0.0)))
 
     return filtered
 
@@ -247,7 +269,10 @@ async def filter_node(state: LookupWorkflowState) -> dict:
         }
 
     original_count = len(result.concepts)
-    ranked = _filter_and_rank_concepts(result.concepts)
+    query = state.get("original_query") or state["query"]
+    ranked = _filter_and_rank_concepts(
+        result.concepts, [t for t in query.split(",") if t.strip()] or [query]
+    )
     removed = original_count - len(ranked)
 
     # Keep the best max_results concepts: the lookup merges results for every

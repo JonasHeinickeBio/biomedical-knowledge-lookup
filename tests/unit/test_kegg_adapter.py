@@ -61,6 +61,37 @@ class TestKEGGAdapter:
             assert results[0].primary_id == "H00001"
             assert results[0].primary_label == "Diabetes mellitus"
 
+    @pytest.mark.parametrize(
+        ("raw", "cleaned"),
+        [
+            ("TP53 protein, human", "TP53 protein human"),
+            ("a/b", "a b"),
+            ("GO:0006915", "GO 0006915"),
+            ("p53 (human)", "p53 (human)"),  # parentheses are accepted
+            ("Dravet's", "Dravet's"),
+            ("  a ,, b  ", "a b"),
+            (",/:", ""),
+        ],
+    )
+    def test_sanitize_query(self, raw, cleaned):
+        from knowledge_lookup.adapters.kegg_adapter import sanitize_query
+
+        assert sanitize_query(raw) == cleaned
+
+    @pytest.mark.asyncio
+    async def test_search_sends_a_query_kegg_accepts(self, adapter):
+        """KEGG answers 400 to commas, colons and similar in the find path."""
+        with patch.object(adapter, "_make_request_text", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = ""
+            await adapter.search_concepts("TP53 protein, human", databases=["gene"])
+        assert mock_req.call_args.args[0].endswith("/find/hsa/TP53%20protein%20human")
+
+    @pytest.mark.asyncio
+    async def test_search_with_only_unsupported_characters_makes_no_request(self, adapter):
+        with patch.object(adapter, "_make_request_text", new_callable=AsyncMock) as mock_req:
+            assert await adapter.search_concepts(",/:") == []
+        mock_req.assert_not_called()
+
     @pytest.mark.asyncio
     async def test_search_concepts_drug_results(self, adapter):
         """Test search_concepts with drug results."""
