@@ -36,14 +36,19 @@ import aiohttp
 # -- Sample values -----------------------------------------------------------
 # INS on chr11 (GRCh38), a small protein-coding gene with well-known variants.
 SPECIES = "homo_sapiens"
-GENE = "ENSG00000133056"  # INS
+GENE = "ENSG00000254647"  # INS (11:2159779-2161209; ENSG00000133056 is PIK3C2B)
 BRCA2 = "ENSG00000139618"
 TAX_ID = 9606
 CHROM, START, END = "11", 2159779, 2161209
 REGION = f"{CHROM}:{START}-{END}"
-RS = "rs1801270"  # INS G60D
-HGVS = f"NC_000011.10:g.{START}A>G"
+SINGLE = f"{CHROM}:{START}-{START}"  # single-base region (VEP region / x-assembly map)
+REF, ALT = "G", "A"  # reference base at START is G on the forward strand
+RS = "rs1801270"  # CDKN1A S31R; has ClinVar + GWAS phenotypes
+PMID = "33230300"  # GWAS catalog study on rs1801270 (PMC7610439)
+PMCID = "PMC7610439"
+HGVS = f"NC_000011.10:g.{START}{REF}>{ALT}"
 GO_TERM = "GO:0006915"  # apoptotic process
+BINDING_MATRIX_ID = "ENSPFM0001"  # regulation binding-matrix stable ID
 
 USER_AGENT = "biomedical-knowledge-lookup-probe/1.0"
 MAX_SAVE_BYTES = 500_000
@@ -121,12 +126,49 @@ def summarize(data: object) -> tuple[str, object]:
 
 
 def items_of(data: object) -> list[dict]:
-    """Items from a GA4GH collection response ({items: [...]}) or bare list."""
-    if isinstance(data, dict) and isinstance(data.get("items"), list):
-        return [i for i in data["items"] if isinstance(i, dict)]
+    """Items from a GA4GH collection response or bare list.
+
+    GA4GH search responses wrap the payload under a resource-specific key
+    (``{"nextPageToken": ..., "datasets": [...]}``), not always ``items`` — so
+    fall back to the first list-of-dicts value in the mapping.
+    """
+    if isinstance(data, dict):
+        if isinstance(data.get("items"), list):
+            return [i for i in data["items"] if isinstance(i, dict)]
+        for value in data.values():
+            if isinstance(value, list) and value and isinstance(value[0], dict):
+                return [i for i in value if isinstance(i, dict)]
+        return []
     if isinstance(data, list):
         return [i for i in data if isinstance(i, dict)]
     return []
+
+
+def first_field(data: object, key: str) -> object:
+    """First truthy value of ``key`` across response items (list or {items: [...]})."""
+    for item in items_of(data):
+        if item.get(key):
+            return item[key]
+    return None
+
+
+def capture_callset_id(ctx: dict, data: object) -> None:
+    """Harvest a callset id from a GA4GH variant's embedded ``calls``.
+
+    15.12 has no ``POST /ga4gh/callsets/search``, so the only way to reach
+    ``GET /ga4gh/callsets/:id`` is via the calls arrays inside variant
+    responses.
+    """
+    for item in items_of(data):
+        calls = item.get("calls") or item.get("call") or []
+        if isinstance(calls, dict):
+            calls = [calls]
+        for call in calls:
+            if isinstance(call, dict):
+                cs_id = call.get("callSetId") or call.get("callsetId") or call.get("id")
+                if cs_id:
+                    ctx["ga4gh_cs"] = cs_id
+                    return
 
 
 # -- Probe table -------------------------------------------------------------
@@ -139,70 +181,69 @@ def _need(ctx: dict, key: str) -> bool:
     return ctx.get(key) not in (None, "")
 
 
+def _harvest_lookup(ctx: dict, data: object) -> None:
+    # expand=1 puts children under a capitalised "Transcript" key. Prefer a
+    # transcript that actually has a translation (the first child of a gene is
+    # often a non-coding isoform).
+    children = (data or {}).get("Transcript") or (data or {}).get("transcripts") or []
+    if not children:
+        return
+    chosen = next(
+        (tx for tx in children if (tx.get("translation") or {}).get("id")),
+        children[0],
+    )
+    ctx.update(
+        transcript=chosen["id"],
+        translation=(chosen.get("translation") or {}).get("id"),
+    )
+
+
+def _harvest_phen_acc(ctx: dict, data: object) -> None:
+    for item in items_of(data):
+        accessions = item.get("ontology_accessions") or []
+        if accessions:
+            # Last = most specific term (e.g. Orphanet:...); a broad root like
+            # EFO:0000326 makes /phenotype/accession take >120 s.
+            ctx["phen_acc"] = accessions[-1]
+            return
+
+
 PROBES: list[dict] = [
-    # -- Resolution probes (run first; fill ctx) ------------------------------
+    # -- Resolution probes (marked "core"; always run, even with --only) --------
     {
         "name": "info_ping",
+        "core": True,
         "build": lambda ctx: ("GET", "/info/ping", qparams(), None),
     },
     {
-        "name": "lookup_ids",
-        "build": lambda ctx: ("POST", "/lookup/id", qparams(expand=1), [GENE]),
-        "on_response": lambda ctx, data: (
-            data
-            and data.get("transcripts")
-            and ctx.update(transcript=data["transcripts"][0]["id"])
-            or None
-        ),
+        "name": "lookup_id",
+        "core": True,
+        "build": lambda ctx: ("GET", f"/lookup/id/{GENE}", qparams(expand=1), None),
+        "on_response": _harvest_lookup,
     },
     {
-        "name": "map_ids_cdna",
+        # Body must be {"ids": [...]}; a bare JSON array 500s server-side.
+        "name": "lookup_ids_post",
+        "core": True,
+        "build": lambda ctx: ("POST", "/lookup/id", qparams(expand=1), {"ids": [GENE]}),
+    },
+    {
+        "name": "phenotype_gene",
+        "core": True,
         "build": lambda ctx: (
-            "POST",
-            f"/map/{SPECIES}",
-            qparams(),
-            {"id": [GENE], "target": "cdna"},
+            "GET",
+            f"/phenotype/gene/{SPECIES}/BRCA2",
+            qparams(limit=3),
+            None,
         ),
-        "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(cdna=items_of(data)[0]["id"])
-        ),
-    },
-    {
-        "name": "map_ids_cds",
-        "build": lambda ctx: (
-            "POST",
-            f"/map/{SPECIES}",
-            qparams(),
-            {"id": [GENE], "target": "cds"},
-        ),
-        "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(cds=items_of(data)[0]["id"])
-        ),
-    },
-    {
-        "name": "map_ids_protein",
-        "build": lambda ctx: (
-            "POST",
-            f"/map/{SPECIES}",
-            qparams(),
-            {"id": [GENE], "target": "protein"},
-        ),
-        "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(translation=items_of(data)[0]["id"])
-        ),
-    },
-    {
-        "name": "phenotypes",
-        "build": lambda ctx: ("GET", "/phenotype", qparams(gene=BRCA2, limit=3), None),
-        "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(phen_acc=items_of(data)[0]["accession"])
-        ),
+        "on_response": _harvest_phen_acc,
     },
     {
         "name": "ga4gh_datasets",
-        "build": lambda ctx: ("GET", "/ga4gh/datasets", qparams(limit=1), None),
+        "core": True,
+        "build": lambda ctx: ("POST", "/ga4gh/datasets/search", qparams(), {"pageSize": 1}),
         "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(ga4gh_ds=items_of(data)[0]["id"])
+            first_field(data, "id") and ctx.update(ga4gh_ds=first_field(data, "id"))
         ),
     },
     # -- Information -----------------------------------------------------------
@@ -229,12 +270,7 @@ PROBES: list[dict] = [
     },
     {
         "name": "info_assembly",
-        "build": lambda ctx: (
-            "GET",
-            "/info/assembly",
-            qparams(species=SPECIES, format="list"),
-            None,
-        ),
+        "build": lambda ctx: ("GET", f"/info/assembly/{SPECIES}", qparams(bands=0), None),
     },
     {
         "name": "info_divisions",
@@ -242,37 +278,62 @@ PROBES: list[dict] = [
     },
     {
         "name": "info_biotypes",
-        "build": lambda ctx: (
-            "GET",
-            "/info/biotypes",
-            qparams(type="gene", species=SPECIES),
-            None,
-        ),
+        "build": lambda ctx: ("GET", f"/info/biotypes/{SPECIES}", qparams(type="gene"), None),
     },
     {
         "name": "info_genomes",
-        "build": lambda ctx: ("GET", "/info/genomes", qparams(tax_id=TAX_ID, format="list"), None),
+        "build": lambda ctx: ("GET", f"/info/genomes/{SPECIES}", qparams(), None),
     },
     {
+        # Populations moved under /info/variation/populations; LD-capable ones
+        # feed the /ld probe via ctx["ld_pop"].
         "name": "info_populations",
         "build": lambda ctx: (
             "GET",
-            "/info/populations",
-            qparams(tax_id=TAX_ID, format="list"),
+            f"/info/variation/populations/{SPECIES}",
+            qparams(filter="LD"),
             None,
+        ),
+        "on_response": lambda ctx, data: (
+            first_field(data, "name") and ctx.update(ld_pop=first_field(data, "name"))
         ),
     },
     {
-        "name": "info_compara",
-        "build": lambda ctx: ("GET", "/info/compara", qparams(), None),
+        "name": "info_compara_methods",
+        "build": lambda ctx: ("GET", "/info/compara/methods", qparams(), None),
+        "on_response": lambda ctx, data: (
+            first_field(data, "name") and ctx.update(compara_method=first_field(data, "name"))
+        ),
+    },
+    {
+        "name": "info_compara_species_sets",
+        "build": lambda ctx: (
+            ("GET", f"/info/compara/species_sets/{ctx['compara_method']}", qparams(), None)
+            if _need(ctx, "compara_method")
+            else None
+        ),
+        "skip_reason": "no compara method resolved",
     },
     {
         "name": "info_analysis",
-        "build": lambda ctx: ("GET", "/info/analysis", qparams(species=SPECIES), None),
+        "build": lambda ctx: ("GET", f"/info/analysis/{SPECIES}", qparams(last=1), None),
     },
     {
+        # No filter: 'clinical' is not a valid variation source for human (400 in 15.12).
         "name": "info_variation",
-        "build": lambda ctx: ("GET", "/info/variation", qparams(), None),
+        "build": lambda ctx: ("GET", f"/info/variation/{SPECIES}", qparams(), None),
+    },
+    {
+        "name": "info_eg_version",
+        "build": lambda ctx: ("GET", "/info/eg_version", qparams(), None),
+    },
+    {
+        "name": "info_external_dbs",
+        "build": lambda ctx: ("GET", f"/info/external_dbs/{SPECIES}", qparams(), None),
+    },
+    {
+        "name": "info_consequence_types",
+        "build": lambda ctx: ("GET", "/info/variation/consequence_types", qparams(), None),
     },
     {
         "name": "archive",
@@ -286,27 +347,38 @@ PROBES: list[dict] = [
     # -- Comparative genomics ----------------------------------------------------
     {
         "name": "cafes",
-        "build": lambda ctx: ("GET", f"/cafe/genetree/{SPECIES}", qparams(limit=5), None),
+        "build": lambda ctx: (
+            "GET",
+            f"/cafe/genetree/member/id/{SPECIES}/{GENE}",
+            qparams(),
+            None,
+        ),
     },
     {
         "name": "genetree",
-        "build": lambda ctx: ("GET", f"/genetree/{TAX_ID}", qparams(), None),
+        "build": lambda ctx: (
+            "GET",
+            f"/genetree/member/id/{SPECIES}/{GENE}",
+            qparams(),
+            None,
+        ),
     },
     {
         "name": "alignment",
         "build": lambda ctx: (
             "GET",
-            f"/alignment/region/{SPECIES}/{CHROM}/{START}/{END}/1000/1000",
-            qparams(),
+            f"/alignment/region/{SPECIES}/{REGION}",
+            qparams(species_set_group="mammals"),
             None,
         ),
+        "timeout": 120,
     },
     {
         "name": "homology_symbol",
         "build": lambda ctx: (
             "GET",
             f"/homology/symbol/{SPECIES}/INS",
-            qparams(type="one2one", target_species="pan_troglodytes"),
+            qparams(type="orthologues", target_species="pan_troglodytes"),
             None,
         ),
     },
@@ -321,7 +393,12 @@ PROBES: list[dict] = [
     },
     {
         "name": "xrefs_name",
-        "build": lambda ctx: ("GET", f"/xrefs/name/{SPECIES}/BRCA2/uniprot", qparams(), None),
+        "build": lambda ctx: (
+            "GET",
+            f"/xrefs/name/{SPECIES}/BRCA2",
+            qparams(dbname="uniprot"),
+            None,
+        ),
     },
     {
         "name": "xrefs_id",
@@ -329,62 +406,116 @@ PROBES: list[dict] = [
     },
     # -- LD / lookup / map ---------------------------------------------------------
     {
-        "name": "ld",
+        "name": "ld_region",
         "build": lambda ctx: (
-            "GET",
-            f"/ld/{SPECIES}/{REGION}",
-            qparams(window=2000, ld="r", limit=5, offset=1),
-            None,
+            (
+                "GET",
+                f"/ld/{SPECIES}/region/{CHROM}:{START}..{END}/{quote(ctx['ld_pop'], safe='')}",
+                qparams(r2=0.7),
+                None,
+            )
+            if _need(ctx, "ld_pop")
+            else None
         ),
+        "skip_reason": "no LD population resolved",
+        "timeout": 120,
+    },
+    {
+        "name": "ld_id",
+        "build": lambda ctx: (
+            (
+                "GET",
+                f"/ld/{SPECIES}/{RS}/{quote(ctx['ld_pop'], safe='')}",
+                qparams(window_size=500, r2=0.9),
+                None,
+            )
+            if _need(ctx, "ld_pop")
+            else None
+        ),
+        "skip_reason": "no LD population resolved",
+        "timeout": 120,
+    },
+    {
+        "name": "ld_pairwise",
+        "build": lambda ctx: (
+            (
+                "GET",
+                f"/ld/{SPECIES}/pairwise/{RS}/rs1059234",
+                qparams(population_name=ctx["ld_pop"]),
+                None,
+            )
+            if _need(ctx, "ld_pop")
+            else None
+        ),
+        "skip_reason": "no LD population resolved",
+        "timeout": 120,
     },
     {
         "name": "lookup_symbols",
-        "build": lambda ctx: ("POST", "/lookup/symbol", qparams(species=SPECIES), ["INS", "TP53"]),
+        "build": lambda ctx: (
+            "POST",
+            f"/lookup/symbol/{SPECIES}",
+            qparams(),
+            {"symbols": ["INS", "TP53"]},
+        ),
     },
     {
         "name": "map_cdna",
         "build": lambda ctx: (
-            ("GET", f"/map/cdna/{ctx['cdna']}", qparams(type="exon,transcript"), None)
-            if _need(ctx, "cdna")
+            ("GET", f"/map/cdna/{ctx['transcript']}/100..200", qparams(), None)
+            if _need(ctx, "transcript")
             else None
         ),
-        "skip_reason": "no cDNA resolved for GENE",
+        "skip_reason": "no transcript resolved for GENE",
     },
     {
         "name": "map_cds",
         "build": lambda ctx: (
-            ("GET", f"/map/cds/{ctx['cds']}", qparams(type="exon"), None)
-            if _need(ctx, "cds")
+            ("GET", f"/map/cds/{ctx['transcript']}/90..150", qparams(), None)
+            if _need(ctx, "transcript")
             else None
         ),
-        "skip_reason": "no CDS resolved for GENE",
+        "skip_reason": "no transcript resolved for GENE",
     },
     {
         "name": "map_translation",
         "build": lambda ctx: (
-            ("GET", f"/map/translation/{ctx['translation']}", qparams(type="exon,cds"), None)
+            ("GET", f"/map/translation/{ctx['translation']}/5..100", qparams(), None)
             if _need(ctx, "translation")
             else None
         ),
         "skip_reason": "no translation resolved for GENE",
     },
     {
-        "name": "map_ids_genomic",
+        "name": "map_assemblies",
         "build": lambda ctx: (
-            "POST",
-            f"/map/{SPECIES}",
+            "GET",
+            f"/map/{SPECIES}/GRCh38/{SINGLE}/GRCh37",
             qparams(),
-            {"id": [GENE], "target": "genomic"},
+            None,
         ),
     },
     # -- Ontology / taxonomy --------------------------------------------------------
     {
-        "name": "ontology_go",
-        "build": lambda ctx: ("GET", "/ontology/go", qparams(term="apoptosis"), None),
+        "name": "ontology_name",
+        "build": lambda ctx: ("GET", "/ontology/name/apoptosis", qparams(), None),
     },
     {
-        "name": "ontology_parents",
-        "build": lambda ctx: ("GET", f"/ontology/parents/{GO_TERM}", qparams(), None),
+        "name": "ontology_ancestors",
+        "build": lambda ctx: ("GET", f"/ontology/ancestors/{GO_TERM}", qparams(), None),
+    },
+    {
+        "name": "ontology_descendants",
+        "build": lambda ctx: ("GET", f"/ontology/descendants/{GO_TERM}", qparams(), None),
+    },
+    {
+        "name": "ontology_chart",
+        "build": lambda ctx: (
+            "GET",
+            f"/ontology/ancestors/chart/{GO_TERM}",
+            qparams(),
+            None,
+        ),
     },
     {
         "name": "ontology_id",
@@ -399,31 +530,32 @@ PROBES: list[dict] = [
         "build": lambda ctx: ("GET", f"/taxonomy/name/{SPECIES}", qparams(), None),
     },
     {
-        "name": "taxonomy_common",
-        "build": lambda ctx: ("GET", "/taxonomy/common/Human", qparams(), None),
-    },
-    {
-        "name": "taxonomy_root",
-        "build": lambda ctx: ("GET", "/taxonomy/root", qparams(), None),
+        "name": "taxonomy_classification",
+        "build": lambda ctx: ("GET", f"/taxonomy/classification/{TAX_ID}", qparams(), None),
     },
     # -- Overlap ----------------------------------------------------------------------
     {
-        "name": "overlap_ids",
-        "build": lambda ctx: ("POST", "/overlap/id", qparams(), [GENE]),
+        "name": "overlap_id",
+        "build": lambda ctx: (
+            "GET",
+            f"/overlap/id/{GENE}",
+            qparams(feature="variation", limit=5),
+            None,
+        ),
     },
     {
         "name": "overlap_region",
         "build": lambda ctx: (
             "GET",
-            f"/overlap/region/{SPECIES}/{CHROM}/{START}/{END}",
-            qparams(up=0, down=0, limit=5),
+            f"/overlap/region/{SPECIES}/{REGION}",
+            qparams(feature="gene", limit=5),
             None,
         ),
     },
     {
-        "name": "overlap_translations",
+        "name": "overlap_translation",
         "build": lambda ctx: (
-            ("POST", "/overlap/translation", qparams(), [ctx["translation"]])
+            ("GET", f"/overlap/translation/{ctx['translation']}", qparams(), None)
             if _need(ctx, "translation")
             else None
         ),
@@ -431,18 +563,14 @@ PROBES: list[dict] = [
     },
     # -- Phenotype ----------------------------------------------------------------------
     {
-        "name": "phenotype",
+        "name": "phenotype_accession",
         "build": lambda ctx: (
-            ("GET", f"/phenotype/{quote(ctx['phen_acc'], safe='')}", qparams(), None)
-            if _need(ctx, "phen_acc")
-            else None
-        ),
-        "skip_reason": "no phenotype accession resolved for BRCA2",
-    },
-    {
-        "name": "phenotype_by_accession",
-        "build": lambda ctx: (
-            ("GET", f"/phenotype/accession/{quote(ctx['phen_acc'], safe='')}", qparams(), None)
+            (
+                "GET",
+                f"/phenotype/accession/{SPECIES}/{quote(ctx['phen_acc'], safe='')}",
+                qparams(limit=5),
+                None,
+            )
             if _need(ctx, "phen_acc")
             else None
         ),
@@ -452,29 +580,37 @@ PROBES: list[dict] = [
         "name": "phenotypes_by_region",
         "build": lambda ctx: (
             "GET",
-            f"/phenotype/region/{SPECIES}/{CHROM}/{START}/{END}",
-            qparams(),
+            f"/phenotype/region/{SPECIES}/{REGION}",
+            qparams(limit=5),
             None,
         ),
     },
     {
         "name": "phenotypes_by_term",
-        "build": lambda ctx: ("GET", "/phenotype/term/breast%20cancer", qparams(), None),
+        "build": lambda ctx: (
+            "GET",
+            f"/phenotype/term/{SPECIES}/breast%20cancer",
+            qparams(limit=5),
+            None,
+        ),
+        # Heavy full-text term query: observed >120 s on the live server.
+        "timeout": 240,
     },
     # -- Regulation / sequence -----------------------------------------------------------
     {
+        # Stable ID guessed from regulation build; verify on re-run.
         "name": "binding_matrix",
         "build": lambda ctx: (
             "GET",
-            f"/species/{SPECIES}/binding_matrix",
-            qparams(feature="protein_coding", type="all", limit=3, offset=1),
+            f"/species/{SPECIES}/binding_matrix/{BINDING_MATRIX_ID}",
+            qparams(),
             None,
         ),
     },
     {
         "name": "sequences_cdna",
         "build": lambda ctx: (
-            ("POST", "/sequence/id", qparams(type="cdna"), [ctx["transcript"]])
+            ("POST", "/sequence/id", qparams(type="cdna"), {"ids": [ctx["transcript"]]})
             if _need(ctx, "transcript")
             else None
         ),
@@ -484,7 +620,7 @@ PROBES: list[dict] = [
         "name": "sequence_region",
         "build": lambda ctx: (
             "GET",
-            f"/sequence/region/{SPECIES}/{CHROM}/{START}/{END}",
+            f"/sequence/region/{SPECIES}/{REGION}",
             qparams(type="dna"),
             None,
         ),
@@ -492,7 +628,7 @@ PROBES: list[dict] = [
     {
         "name": "transcript_haplotypes",
         "build": lambda ctx: (
-            ("GET", f"/transcript/{ctx['transcript']}/haplotypes", qparams(), None)
+            ("GET", f"/transcript_haplotypes/{SPECIES}/{ctx['transcript']}", qparams(), None)
             if _need(ctx, "transcript")
             else None
         ),
@@ -500,141 +636,334 @@ PROBES: list[dict] = [
     },
     # -- VEP -------------------------------------------------------------------------------
     {
-        "name": "vep_ids",
-        "build": lambda ctx: ("POST", f"/vep/{SPECIES}/id", qparams(), [RS]),
+        "name": "vep_id",
+        "build": lambda ctx: ("GET", f"/vep/{SPECIES}/id/{RS}", qparams(), None),
         "timeout": 120,
     },
     {
         "name": "vep_hgvs",
-        "build": lambda ctx: ("POST", f"/vep/{SPECIES}/hgvs", qparams(), [HGVS]),
+        "build": lambda ctx: (
+            "GET",
+            f"/vep/{SPECIES}/hgvs/{quote(HGVS, safe='')}",
+            qparams(),
+            None,
+        ),
         "timeout": 120,
     },
     {
-        "name": "vep_regions",
-        "build": lambda ctx: ("POST", f"/vep/{SPECIES}/region", qparams(), [REGION]),
+        "name": "vep_region",
+        "build": lambda ctx: (
+            "GET",
+            f"/vep/{SPECIES}/region/{SINGLE}/{ALT}",
+            qparams(),
+            None,
+        ),
+        "timeout": 120,
+    },
+    {
+        "name": "vep_hgvs_post",
+        "build": lambda ctx: (
+            "POST",
+            f"/vep/{SPECIES}/hgvs",
+            qparams(),
+            {"hgvs_notations": [HGVS]},
+        ),
+        "timeout": 120,
+    },
+    {
+        "name": "vep_id_post",
+        "build": lambda ctx: ("POST", f"/vep/{SPECIES}/id", qparams(), {"ids": [RS]}),
+        "timeout": 120,
+    },
+    {
+        "name": "vep_region_post",
+        "build": lambda ctx: (
+            "POST",
+            f"/vep/{SPECIES}/region",
+            qparams(),
+            {"variants": [f"{CHROM} {START} {START} {REF}/{ALT} 1"]},
+        ),
         "timeout": 120,
     },
     # -- Variation ----------------------------------------------------------------------------
+    # Bare GET /variation was removed in 15.12; ids resolve via /variation/:species/:id.
     {
-        "name": "variations",
-        "build": lambda ctx: ("GET", "/variation", qparams(spid=SPECIES, limit=3, offset=0), None),
+        "name": "variation_id",
+        "build": lambda ctx: (
+            "GET",
+            f"/variation/{SPECIES}/{RS}",
+            qparams(pops=1),
+            None,
+        ),
     },
     {
         "name": "variations_pmcid",
         "build": lambda ctx: (
             "GET",
-            "/variation/pmcid/PMC1234567",
+            f"/variation/{SPECIES}/pmcid/{PMCID}",
             qparams(limit=3, offset=1),
             None,
         ),
+        "timeout": 240,
     },
     {
         "name": "variations_pmid",
-        "build": lambda ctx: ("GET", "/variation/pmid/1234567", qparams(limit=3, offset=1), None),
+        "build": lambda ctx: (
+            "GET",
+            f"/variation/{SPECIES}/pmid/{PMID}",
+            qparams(limit=3, offset=1),
+            None,
+        ),
+        "timeout": 240,
     },
     {
         "name": "variant_recoder",
         "build": lambda ctx: (
             "GET",
-            "/variant_recoder",
-            qparams(spid=SPECIES, limit=3, offset=0),
+            f"/variant_recoder/{SPECIES}/{RS}",
+            qparams(),
             None,
         ),
     },
-    # -- GA4GH (dependent probes resolve IDs from the collection list probes) ----------
     {
-        "name": "ga4gh_referencesets",
-        "build": lambda ctx: ("GET", "/ga4gh/referencesets", qparams(limit=1), None),
-        "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(ga4gh_refset=items_of(data)[0]["id"])
+        # 15.12 batch forms: POST with {"ids": [...]} against the species path.
+        "name": "variations_batch_post",
+        "build": lambda ctx: (
+            "POST",
+            f"/variation/{SPECIES}",
+            qparams(),
+            {"ids": [RS]},
         ),
     },
+    {
+        "name": "variant_recoder_batch_post",
+        "build": lambda ctx: (
+            "POST",
+            f"/variant_recoder/{SPECIES}",
+            qparams(),
+            {"ids": [RS]},
+        ),
+    },
+    # -- GA4GH ---------------------------------------------------------------------
+    # Since 15.12 collections are reached via POST /ga4gh/<resource>/search with the
+    # parent id in the JSON body; single resources answer to GET /ga4gh/<resource>/:id.
+    # Callsets are the exception: there is NO callsets/search, their ids come from the
+    # "calls" arrays embedded in variant responses (see capture_callset_id). Searches
+    # need their parent/region keys: references -> referenceSetId, variants ->
+    # variantSetId + referenceName/start/end, features -> featureSetId + region,
+    # variantannotations -> variantAnnotationSetId + region.
     {
         "name": "ga4gh_references",
-        "build": lambda ctx: ("GET", "/ga4gh/references", qparams(limit=1), None),
+        "build": lambda ctx: (
+            "POST",
+            "/ga4gh/references/search",
+            qparams(),
+            {"referenceSetId": "GRCh38", "pageSize": 1},
+        ),
+        "timeout": 120,
         "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(ga4gh_ref=items_of(data)[0]["id"])
+            first_field(data, "id") and ctx.update(ga4gh_ref=first_field(data, "id"))
         ),
     },
     {
-        "name": "ga4gh_variantsets",
+        "name": "ga4gh_get_reference",
         "build": lambda ctx: (
-            ("GET", "/ga4gh/variantsets", qparams(dataset=ctx["ga4gh_ds"], limit=1), None)
+            ("GET", f"/ga4gh/references/{ctx['ga4gh_ref']}", qparams(), None)
+            if _need(ctx, "ga4gh_ref")
+            else None
+        ),
+        "skip_reason": "no GA4GH reference available",
+    },
+    {
+        "name": "ga4gh_get_dataset",
+        "build": lambda ctx: (
+            ("GET", f"/ga4gh/datasets/{ctx['ga4gh_ds']}", qparams(), None)
             if _need(ctx, "ga4gh_ds")
             else None
         ),
         "skip_reason": "no GA4GH dataset available",
+    },
+    {
+        "name": "ga4gh_variantsets",
+        "build": lambda ctx: (
+            (
+                "POST",
+                "/ga4gh/variantsets/search",
+                qparams(),
+                {"datasetId": ctx["ga4gh_ds"], "pageSize": 1},
+            )
+            if _need(ctx, "ga4gh_ds")
+            else None
+        ),
+        "skip_reason": "no GA4GH dataset available",
+        "timeout": 120,
         "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(ga4gh_vs=items_of(data)[0]["id"])
+            first_field(data, "id") and ctx.update(ga4gh_vs=first_field(data, "id"))
         ),
     },
     {
         "name": "ga4gh_variants",
         "build": lambda ctx: (
-            ("GET", "/ga4gh/variants", qparams(variantset=ctx["ga4gh_vs"], limit=1), None)
+            (
+                "POST",
+                "/ga4gh/variants/search",
+                qparams(),
+                {
+                    "variantSetId": ctx["ga4gh_vs"],
+                    "referenceName": CHROM,
+                    "start": START,
+                    "end": END,
+                    "pageSize": 1,
+                },
+            )
             if _need(ctx, "ga4gh_vs")
             else None
         ),
         "skip_reason": "no GA4GH variantset available",
+        "timeout": 120,
         "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(ga4gh_v=items_of(data)[0]["id"])
+            first_field(data, "id") and ctx.update(ga4gh_v=first_field(data, "id")),
+            capture_callset_id(ctx, data),
         ),
     },
     {
+        # Featuresets live under the literal dataset id "Ensembl" (not the 1000
+        # Genomes id datasets/search returns, which gives a 400).
         "name": "ga4gh_featuresets",
         "build": lambda ctx: (
-            ("GET", "/ga4gh/featuresets", qparams(dataset=ctx["ga4gh_ds"], limit=1), None)
-            if _need(ctx, "ga4gh_ds")
-            else None
+            "POST",
+            "/ga4gh/featuresets/search",
+            qparams(),
+            {"datasetId": "Ensembl", "pageSize": 1},
         ),
-        "skip_reason": "no GA4GH dataset available",
+        "timeout": 120,
         "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(ga4gh_fs=items_of(data)[0]["id"])
+            first_field(data, "id") and ctx.update(ga4gh_fs=first_field(data, "id"))
         ),
     },
     {
-        "name": "ga4gh_callsets",
-        "build": lambda ctx: (
-            ("GET", "/ga4gh/callsets", qparams(dataset=ctx["ga4gh_ds"], limit=1), None)
-            if _need(ctx, "ga4gh_ds")
-            else None
-        ),
-        "skip_reason": "no GA4GH dataset available",
-        "on_response": lambda ctx, data: (
-            items_of(data) and ctx.update(ga4gh_cs=items_of(data)[0]["id"])
-        ),
-    },
-    {
-        "name": "ga4gh_searches",
-        "build": lambda ctx: (
-            ("GET", "/ga4gh/searches", qparams(dataset=ctx["ga4gh_ds"], limit=1), None)
-            if _need(ctx, "ga4gh_ds")
-            else None
-        ),
-        "skip_reason": "no GA4GH dataset available",
-    },
-    {
-        "name": "ga4gh_beacon",
-        "build": lambda ctx: (
-            (
-                "GET",
-                "/ga4gh/beacon",
-                qparams(dataset=ctx["ga4gh_ds"], variant=ctx["ga4gh_v"]),
-                None,
-            )
-            if _need(ctx, "ga4gh_ds") and _need(ctx, "ga4gh_v")
-            else None
-        ),
-        "skip_reason": "no GA4GH dataset/variant available",
-    },
-    {
+        # Slow (~50 s for a 1.4 kb window); needs the singular featureSetId.
         "name": "ga4gh_features",
         "build": lambda ctx: (
-            ("GET", "/ga4gh/features", qparams(featureset=ctx["ga4gh_fs"], limit=1), None)
+            (
+                "POST",
+                "/ga4gh/features/search",
+                qparams(),
+                {
+                    "featureSetId": ctx["ga4gh_fs"],
+                    "referenceName": CHROM,
+                    "start": START,
+                    "end": END,
+                    "pageSize": 1,
+                },
+            )
             if _need(ctx, "ga4gh_fs")
             else None
         ),
         "skip_reason": "no GA4GH featureset available",
+        "timeout": 180,
+        "on_response": lambda ctx, data: (
+            first_field(data, "id") and ctx.update(ga4gh_f=first_field(data, "id"))
+        ),
+    },
+    {
+        "name": "ga4gh_get_variantset",
+        "build": lambda ctx: (
+            ("GET", f"/ga4gh/variantsets/{ctx['ga4gh_vs']}", qparams(), None)
+            if _need(ctx, "ga4gh_vs")
+            else None
+        ),
+        "skip_reason": "no GA4GH variantset available",
+    },
+    {
+        "name": "ga4gh_get_variant",
+        "build": lambda ctx: (
+            ("GET", f"/ga4gh/variants/{ctx['ga4gh_v']}", qparams(), None)
+            if _need(ctx, "ga4gh_v")
+            else None
+        ),
+        "skip_reason": "no GA4GH variant available",
+    },
+    {
+        "name": "ga4gh_get_featureset",
+        "build": lambda ctx: (
+            ("GET", f"/ga4gh/featuresets/{ctx['ga4gh_fs']}", qparams(), None)
+            if _need(ctx, "ga4gh_fs")
+            else None
+        ),
+        "skip_reason": "no GA4GH featureset available",
+    },
+    {
+        "name": "ga4gh_get_feature",
+        "build": lambda ctx: (
+            ("GET", f"/ga4gh/features/{ctx['ga4gh_f']}", qparams(), None)
+            if _need(ctx, "ga4gh_f")
+            else None
+        ),
+        "skip_reason": "no GA4GH feature available",
+    },
+    {
+        "name": "ga4gh_get_callset",
+        "build": lambda ctx: (
+            ("GET", f"/ga4gh/callsets/{ctx['ga4gh_cs']}", qparams(), None)
+            if _need(ctx, "ga4gh_cs")
+            else None
+        ),
+        "skip_reason": "no callset id harvested from the variant response",
+    },
+    {
+        "name": "ga4gh_variantannotations",
+        "build": lambda ctx: (
+            "POST",
+            "/ga4gh/variantannotations/search",
+            qparams(),
+            {
+                "variantAnnotationSetId": "Ensembl",
+                "referenceName": CHROM,
+                "start": START,
+                "end": END,
+                "pageSize": 1,
+            },
+        ),
+        "timeout": 120,
+    },
+    {
+        "name": "ga4gh_beacon",
+        "build": lambda ctx: ("GET", "/ga4gh/beacon", qparams(), None),
+    },
+    {
+        # Beacon v2. Omit datasetIds: the server rejects every id it advertises
+        # ("Invalid datasetId"), and a JSON list is stringified to ARRAY(0x...).
+        "name": "ga4gh_beacon_query",
+        "build": lambda ctx: (
+            "POST",
+            "/ga4gh/beacon/query",
+            qparams(),
+            {
+                "referenceName": CHROM,
+                "start": START - 1,
+                "referenceBases": REF,
+                "alternateBases": ALT,
+                "assemblyId": "GRCh38",
+            },
+        ),
+        "timeout": 120,
+    },
+    {
+        "name": "ga4gh_beacon_query_get",
+        "build": lambda ctx: (
+            "GET",
+            "/ga4gh/beacon/query",
+            qparams(
+                referenceName=CHROM,
+                start=START - 1,
+                referenceBases=REF,
+                alternateBases=ALT,
+                assemblyId="GRCh38",
+            ),
+            None,
+        ),
+        "timeout": 120,
     },
 ]
 
@@ -773,7 +1102,7 @@ async def main(args: argparse.Namespace) -> int:
                     Result(name=probe["name"], method="-", path="-", skipped="--no-ga4gh")
                 )
                 continue
-            if args.only and not re.search(args.only, probe["name"]):
+            if args.only and not probe.get("core") and not re.search(args.only, probe["name"]):
                 continue
             res = await run_probe(session, probe, ctx, args, out_dir)
             results.append(res)

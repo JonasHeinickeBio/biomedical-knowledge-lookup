@@ -20,30 +20,37 @@ machinery in :mod:`knowledge_lookup.base` handles transient failures:
 
 - Archive: ``archive/id``
 - Comparative genomics: ``cafe/genetree``, ``genetree``, ``alignment/region``,
-  ``homology/symbol``
+  ``homology/id``, ``homology/symbol``
 - Cross references: ``xrefs/name``
-- Information: ``info/*`` (analysis, assembly, biotypes, compara, data,
-  divisions, genomes, populations, ping, rest, software, species, variation)
-- Linkage disequilibrium: ``ld/:species/:region``
+- Information: ``info/*`` (analysis, assembly, biotypes, compara, consequence
+  types, data, divisions, eg_version, external_dbs, genomes, populations,
+  ping, rest, software, species, variation)
+- Linkage disequilibrium: ``ld/:species/:id/:population``,
+  ``ld/:species/pairwise/:id1/:id2``, ``ld/:species/region/:region/:population``
 - Lookup (batch): ``lookup/id``, ``lookup/symbol``
-- Mapping: ``map/cdna``, ``map/cds``, ``map/:species``, ``map/translation``
-- Ontologies: ``ontology`` hierarchy / parents / id
-- Taxonomy: ``taxonomy`` id / name / common / root
+- Mapping: ``map/cdna``, ``map/cds``, ``map/translation``
+- Ontologies: ``ontology`` ancestors / ancestors/chart / descendants / id /
+  name
+- Taxonomy: ``taxonomy`` id / name / classification
 - Overlap: ``overlap/id``, ``overlap/region``, ``overlap/translation``
 - Phenotype: ``phenotype`` accession / gene / region / term
-- Regulation: ``species/:species/binding_matrix``
+- Regulation: ``species/:species/binding_matrix/:stable_id``
 - Sequence: ``sequence/id``, ``sequence/region``
-- Transcript haplotypes: ``transcript/:id/haplotypes``
-- VEP: ``vep/:species`` hgvs / id / region
-- Variation: ``variation``, ``variation/pmcid``, ``variation/pmid``,
-  ``variant_recoder``
-- GA4GH: ``ga4gh`` beacon / callsets / datasets / features / featuresets /
-  references / referencesets / searches / variants / variantsets
+- Transcript haplotypes: ``transcript_haplotypes/:species/:id``
+- VEP: ``vep/:species`` hgvs / id / region (single GET and batch POST)
+- Variation: ``variation/:species/:id`` (GET and batch POST),
+  ``variation/:species/pmcid``, ``variation/:species/pmid``,
+  ``variant_recoder/:species/:id`` (GET and batch POST)
+- GA4GH: ``ga4gh`` beacon / beacon/query / callsets / datasets / features /
+  featuresets / references / variants / variantsets — single-item GETs plus
+  the POST ``<resource>/search`` endpoints (15.12 has no list GETs,
+  referencesets or searches)
 """
 
 import asyncio
 import logging
 from typing import Any
+from urllib.parse import quote
 
 import aiohttp
 
@@ -288,63 +295,70 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
 
     # -- Comparative genomics ----------------------------------------------
 
-    async def get_cafes(
-        self,
-        species: str,
-        limit: int = 50,
-        offset: int = 0,
-        cafe_type: str | None = None,
-        tax_id: int | None = None,
-        min_count: int | None = None,
-        max_count: int | None = None,
-    ) -> Any:
-        """Copy-number changes (CAFE) on a species' gene tree:
-        ``GET /cafe/genetree/:species``.
-
-        ``cafe_type``: expansion | contraction.
-        """
+    async def get_cafe_genetree(self, gene_id: str) -> Any:
+        """Copy-number events (CAFE) on the gene tree of a gene:
+        ``GET /cafe/genetree/id/:id``."""
         return await self._make_request(
-            f"{self.base_url}/cafe/genetree/{species}",
-            params=self._params(
-                limit=limit,
-                offset=offset,
-                type=cafe_type,
-                tax_id=tax_id,
-                min=min_count,
-                max=max_count,
-            ),
+            f"{self.base_url}/cafe/genetree/id/{gene_id}", params=self._params()
         )
 
-    async def get_genetree(self, tax_id: int) -> Any:
-        """Species tree rooted at a taxon: ``GET /genetree/:taxid``."""
+    async def get_cafe_genetree_by_symbol(self, species: str, symbol: str) -> Any:
+        """CAFE gene tree via a gene symbol:
+        ``GET /cafe/genetree/member/symbol/:species/:symbol``."""
         return await self._make_request(
-            f"{self.base_url}/genetree/{tax_id}", params=self._params()
+            f"{self.base_url}/cafe/genetree/member/symbol/{species}/{symbol}",
+            params=self._params(),
+        )
+
+    async def get_genetree(self, gene_id: str) -> Any:
+        """Gene tree containing a gene: ``GET /genetree/id/:id``."""
+        return await self._make_request(
+            f"{self.base_url}/genetree/id/{gene_id}", params=self._params()
+        )
+
+    async def get_genetree_by_symbol(self, species: str, symbol: str) -> Any:
+        """Gene tree via a gene symbol:
+        ``GET /genetree/member/symbol/:species/:symbol``."""
+        return await self._make_request(
+            f"{self.base_url}/genetree/member/symbol/{species}/{symbol}",
+            params=self._params(),
         )
 
     async def get_alignment(
         self,
         species: str,
-        seq_region: str,
-        start: int,
-        end: int,
-        upstream: int,
-        downstream: int,
-        alignment: str | None = None,
+        region: str,
         method: str | None = None,
+        alignment: str | None = None,
         data: str | None = None,
         type_: str | None = None,
     ) -> Any:
         """Conserved alignment over a region:
-        ``GET /alignment/region/:species/:seqregion/:start/:end/:upstream/:downstream``.
+        ``GET /alignment/region/:species/:region``.
 
+        ``region`` is a coordinate string such as ``"11:2159779-2159779:1"``;
         ``type_``: dna | pep.
         """
-        url = (
-            f"{self.base_url}/alignment/region/{species}/{seq_region}/{start}/{end}"
-            f"/{upstream}/{downstream}"
-        )
         return await self._make_request(
-            url, params=self._params(alignment=alignment, method=method, data=data, type=type_)
+            f"{self.base_url}/alignment/region/{species}/{region}",
+            params=self._params(alignment=alignment, method=method, data=data, type=type_),
+        )
+
+    async def get_homology_by_id(
+        self,
+        species: str,
+        gene_id: str,
+        homology_type: str | None = None,
+        target_species: str | None = None,
+    ) -> Any:
+        """Homologies for an Ensembl gene ID: ``GET /homology/id/:species/:id``.
+
+        ``homology_type``: all | orthologues | paralogues | reciprocal |
+        nonreciprocal | one2one | one2many | many2one | many2many.
+        """
+        return await self._make_request(
+            f"{self.base_url}/homology/id/{species}/{gene_id}",
+            params=self._params(type=homology_type, target_species=target_species),
         )
 
     async def get_homology_by_symbol(
@@ -366,10 +380,13 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
 
     # -- Cross references ----------------------------------------------------
 
-    async def get_xrefs_by_name(self, species: str, name: str, dbname: str) -> Any:
-        """Cross-references for a name: ``GET /xrefs/name/:species/:name/:dbname``."""
+    async def get_xrefs_by_name(self, species: str, name: str, dbname: str | None = None) -> Any:
+        """Cross-references for a name: ``GET /xrefs/name/:species/:name``.
+
+        ``dbname`` is now an optional query filter rather than a path segment.
+        """
         return await self._make_request(
-            f"{self.base_url}/xrefs/name/{species}/{name}/{dbname}", params=self._params()
+            f"{self.base_url}/xrefs/name/{species}/{name}", params=self._params(dbname=dbname)
         )
 
     # -- Information ------------------------------------------------------------
@@ -406,103 +423,179 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
             params=self._params(species=species, tax_id=tax_id, format=format_),
         )
 
-    async def get_info_variation(self) -> Any:
-        """Variation database info: ``GET /info/variation``."""
-        return await self._make_request(f"{self.base_url}/info/variation", params=self._params())
-
-    async def get_info_assembly(
-        self,
-        species: str | None = None,
-        tax_id: str | None = None,
-        format_: str | None = None,
-    ) -> Any:
-        """Available assemblies: ``GET /info/assembly``.
-
-        ``format_``: list | hash.
-        """
+    async def get_info_variation(self, species: str) -> Any:
+        """Variation databases for a species: ``GET /info/variation/:species``."""
         return await self._make_request(
-            f"{self.base_url}/info/assembly",
-            params=self._params(species=species, tax_id=tax_id, format=format_),
+            f"{self.base_url}/info/variation/{species}", params=self._params()
         )
+
+    async def get_info_consequence_types(self) -> Any:
+        """All known consequence types: ``GET /info/variation/consequence_types``."""
+        return await self._make_request(
+            f"{self.base_url}/info/variation/consequence_types", params=self._params()
+        )
+
+    async def get_info_assembly(self, species: str, region_name: str | None = None) -> Any:
+        """Assembly for a species, optionally one region:
+        ``GET /info/assembly/:species`` or ``GET /info/assembly/:species/:region_name``."""
+        path = f"/info/assembly/{species}"
+        if region_name is not None:
+            path += f"/{region_name}"
+        return await self._make_request(f"{self.base_url}{path}", params=self._params())
 
     async def get_info_divisions(self) -> Any:
         """Available divisions: ``GET /info/divisions``."""
         return await self._make_request(f"{self.base_url}/info/divisions", params=self._params())
 
-    async def get_info_biotypes(
-        self,
-        type_: str | None = None,
-        species: str | None = None,
-        tax_id: str | None = None,
-    ) -> Any:
-        """Available biotypes: ``GET /info/biotypes``.
+    async def get_info_biotypes(self, species: str, type_: str | None = None) -> Any:
+        """Biotypes for a species: ``GET /info/biotypes/:species``.
 
         ``type_``: e.g. gene | regulatory.
         """
         return await self._make_request(
-            f"{self.base_url}/info/biotypes",
-            params=self._params(type=type_, species=species, tax_id=tax_id),
+            f"{self.base_url}/info/biotypes/{species}", params=self._params(type=type_)
         )
 
-    async def get_info_genomes(self, tax_id: int | None = None, format_: str | None = None) -> Any:
-        """Available genome assemblies: ``GET /info/genomes``.
-
-        ``format_``: list | hash.
-        """
+    async def get_info_biotypes_by_name(self, name: str, object_type: str) -> Any:
+        """Biotype by name: ``GET /info/biotypes/name/:name/:object_type``."""
         return await self._make_request(
-            f"{self.base_url}/info/genomes", params=self._params(tax_id=tax_id, format=format_)
+            f"{self.base_url}/info/biotypes/name/{name}/{object_type}", params=self._params()
         )
 
-    async def get_info_populations(
-        self, tax_id: int | None = None, format_: str | None = None
-    ) -> Any:
-        """Available populations: ``GET /info/populations``.
-
-        ``format_``: list | hash.
-        """
+    async def get_info_biotypes_by_group(self, group: str, object_type: str) -> Any:
+        """Biotypes by group: ``GET /info/biotypes/groups/:group/:object_type``."""
         return await self._make_request(
-            f"{self.base_url}/info/populations", params=self._params(tax_id=tax_id, format=format_)
+            f"{self.base_url}/info/biotypes/groups/{group}/{object_type}", params=self._params()
         )
 
-    async def get_info_compara(self) -> Any:
-        """Compara database info: ``GET /info/compara``."""
-        return await self._make_request(f"{self.base_url}/info/compara", params=self._params())
-
-    async def get_info_analysis(self, species: str | None = None) -> Any:
-        """Genome analyses: ``GET /info/analysis``."""
+    async def get_info_external_dbs(self, species: str) -> Any:
+        """External databases used by a species: ``GET /info/external_dbs/:species``."""
         return await self._make_request(
-            f"{self.base_url}/info/analysis", params=self._params(species=species)
+            f"{self.base_url}/info/external_dbs/{species}", params=self._params()
+        )
+
+    async def get_info_eg_version(self) -> Any:
+        """Ensembl Genomes release: ``GET /info/eg_version``."""
+        return await self._make_request(f"{self.base_url}/info/eg_version", params=self._params())
+
+    async def get_info_genome(self, genome_name: str) -> Any:
+        """Genome by name: ``GET /info/genomes/:genome_name``."""
+        return await self._make_request(
+            f"{self.base_url}/info/genomes/{genome_name}", params=self._params()
+        )
+
+    async def get_info_genomes_by_accession(self, accession: str) -> Any:
+        """Genomes by assembly accession: ``GET /info/genomes/accession/:accession``."""
+        return await self._make_request(
+            f"{self.base_url}/info/genomes/accession/{accession}", params=self._params()
+        )
+
+    async def get_info_genomes_by_assembly(self, assembly_id: str) -> Any:
+        """Genomes by assembly ID: ``GET /info/genomes/assembly/:assembly_id``."""
+        return await self._make_request(
+            f"{self.base_url}/info/genomes/assembly/{assembly_id}", params=self._params()
+        )
+
+    async def get_info_genomes_by_division(self, division_name: str) -> Any:
+        """Genomes by division: ``GET /info/genomes/division/:division_name``."""
+        return await self._make_request(
+            f"{self.base_url}/info/genomes/division/{division_name}", params=self._params()
+        )
+
+    async def get_info_genomes_by_taxonomy(self, taxon_name: str) -> Any:
+        """Genomes by taxon name: ``GET /info/genomes/taxonomy/:taxon_name``."""
+        return await self._make_request(
+            f"{self.base_url}/info/genomes/taxonomy/{taxon_name}", params=self._params()
+        )
+
+    async def get_info_populations(self, species: str, population_name: str | None = None) -> Any:
+        """Populations for a species: ``GET /info/variation/populations/:species``
+        (optionally ``/:population_name``)."""
+        path = f"/info/variation/populations/{species}"
+        if population_name is not None:
+            path += f"/{population_name}"
+        return await self._make_request(f"{self.base_url}{path}", params=self._params())
+
+    async def get_info_comparas(self) -> Any:
+        """Compara database releases: ``GET /info/comparas``."""
+        return await self._make_request(f"{self.base_url}/info/comparas", params=self._params())
+
+    async def get_info_compara_methods(self) -> Any:
+        """Compara analysis methods: ``GET /info/compara/methods``."""
+        return await self._make_request(
+            f"{self.base_url}/info/compara/methods", params=self._params()
+        )
+
+    async def get_info_compara_species_sets(self, method: str) -> Any:
+        """Species sets for a Compara method:
+        ``GET /info/compara/species_sets/:method``."""
+        return await self._make_request(
+            f"{self.base_url}/info/compara/species_sets/{method}", params=self._params()
+        )
+
+    async def get_info_analysis(self, species: str) -> Any:
+        """Analyses for a species: ``GET /info/analysis/:species``."""
+        return await self._make_request(
+            f"{self.base_url}/info/analysis/{species}", params=self._params()
         )
 
     # -- Linkage disequilibrium --------------------------------------------------
 
-    async def get_ld(
+    async def get_ld_by_id(
         self,
         species: str,
-        seq_region: str | None = None,
-        seq_id: str | None = None,
-        window: int = 2000,
-        ld_measure: str = "r",
-        limit: int = 2000,
-        offset: int = 1,
+        id_: str,
+        population_name: str,
+        window_size: int | None = None,
+        d_prime: float | None = None,
+        r2: float | None = None,
     ) -> Any:
-        """Linkage disequilibrium: ``GET /ld/:species/:seqregion``.
-
-        ``seq_id`` is an alternative to ``seq_region``; ``ld_measure``:
-        r | dprime.
-        """
-        region = seq_region or seq_id
-        if not region:
-            raise ValueError("get_ld requires either seq_region or seq_id")
+        """LD around a variant: ``GET /ld/:species/:id/:population_name``."""
         return await self._make_request(
-            f"{self.base_url}/ld/{species}/{region}",
-            params=self._params(window=window, ld=ld_measure, limit=limit, offset=offset),
+            f"{self.base_url}/ld/{species}/{id_}/{population_name}",
+            params=self._params(window_size=window_size, d_prime=d_prime, r2=r2),
+        )
+
+    async def get_ld_pairwise(
+        self,
+        species: str,
+        id1: str,
+        id2: str,
+        population_name: str | None = None,
+        d_prime: float | None = None,
+        r2: float | None = None,
+    ) -> Any:
+        """LD between two variants: ``GET /ld/:species/pairwise/:id1/:id2``.
+
+        Without ``population_name`` the server returns one record per
+        population; with it, only that population's record.
+        """
+        return await self._make_request(
+            f"{self.base_url}/ld/{species}/pairwise/{id1}/{id2}",
+            params=self._params(population_name=population_name, d_prime=d_prime, r2=r2),
+        )
+
+    async def get_ld_region(
+        self,
+        species: str,
+        region: str,
+        population_name: str,
+        window_size: int | None = None,
+        d_prime: float | None = None,
+        r2: float | None = None,
+    ) -> Any:
+        """LD in a region: ``GET /ld/:species/region/:region/:population_name``."""
+        return await self._make_request(
+            f"{self.base_url}/ld/{species}/region/{region}/{population_name}",
+            params=self._params(window_size=window_size, d_prime=d_prime, r2=r2),
         )
 
     # -- Lookup (batch) -----------------------------------------------------------
 
     async def lookup_ids(self, ids: list[str], expand: int = 0, all_: int = 0) -> Any:
-        """Batch object lookup: ``POST /lookup/id`` with a JSON array of IDs.
+        """Batch object lookup: ``POST /lookup/id`` with body ``{"ids": [...]}``.
+
+        (A bare JSON array is rejected by the server with a 500.)
 
         ``all_``: 1 to include objects from all databases, not just the
         matching species.
@@ -510,7 +603,7 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
         return await self._make_request(
             f"{self.base_url}/lookup/id",
             params=self._params(expand=expand, all=all_),
-            json_data=list(ids),
+            json_data={"ids": list(ids)},
         )
 
     async def lookup_symbols(
@@ -520,96 +613,61 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
         expand: int = 0,
         all_: int = 0,
     ) -> Any:
-        """Batch symbol lookup: ``POST /lookup/symbol`` with a JSON array of
-        symbols (``species`` is a query param on this endpoint)."""
+        """Batch symbol lookup: ``POST /lookup/symbol/:species`` with body
+        ``{"symbols": [...]}``."""
         return await self._make_request(
-            f"{self.base_url}/lookup/symbol",
-            params=self._params(species=species, expand=expand, all=all_),
-            json_data=list(symbols),
+            f"{self.base_url}/lookup/symbol/{species}",
+            params=self._params(expand=expand, all=all_),
+            json_data={"symbols": list(symbols)},
         )
 
     # -- Mapping ----------------------------------------------------------------------
 
-    async def map_cdna(
-        self,
-        cdna_id: str,
-        types: list[str] | None = None,
-        type_: str | None = None,
-    ) -> Any:
-        """Map a cDNA to features: ``GET/POST /map/cdna/:cdna_id``.
-
-        Pass ``types`` for a POST with a JSON array of feature types (e.g.
-        ``["exon", "transcript"]``) or ``type_`` for a GET with a single
-        comma-separated ``type`` param.
-        """
-        url = f"{self.base_url}/map/cdna/{cdna_id}"
-        if types:
-            return await self._make_request(url, params=self._params(), json_data=list(types))
-        return await self._make_request(url, params=self._params(type=type_))
-
-    async def map_cds(
-        self,
-        cds_id: str,
-        types: list[str] | None = None,
-        type_: str | None = None,
-    ) -> Any:
-        """Map a CDS to features: ``GET/POST /map/cds/:cds_id`` (see
-        :meth:`map_cdna` for the ``types``/``type_`` contract)."""
-        url = f"{self.base_url}/map/cds/{cds_id}"
-        if types:
-            return await self._make_request(url, params=self._params(), json_data=list(types))
-        return await self._make_request(url, params=self._params(type=type_))
-
-    async def map_translation(
-        self,
-        translation_id: str,
-        types: list[str] | None = None,
-        type_: str | None = None,
-    ) -> Any:
-        """Map a translation to features: ``GET/POST /map/translation/:id`` (see
-        :meth:`map_cdna` for the ``types``/``type_`` contract)."""
-        url = f"{self.base_url}/map/translation/{translation_id}"
-        if types:
-            return await self._make_request(url, params=self._params(), json_data=list(types))
-        return await self._make_request(url, params=self._params(type=type_))
-
-    async def map_ids(self, species: str, ids: list[str], target: str) -> Any:
-        """Map a batch of IDs between feature types: ``POST /map/:species``.
-
-        Body: ``{"id": [...], "target": ...}`` with ``target`` one of
-        cdna | cds | exon | genomic | protein (all ``id`` entries must be
-        the same type).
-        """
+    async def map_cdna(self, cdna_id: str, region: str) -> Any:
+        """Map a cDNA coordinate range to genomic features:
+        ``GET /map/cdna/:id/:region`` (``region`` like ``100..200``)."""
         return await self._make_request(
-            f"{self.base_url}/map/{species}",
-            params=self._params(),
-            json_data={"id": list(ids), "target": target},
+            f"{self.base_url}/map/cdna/{cdna_id}/{region}", params=self._params()
+        )
+
+    async def map_cds(self, cds_id: str, region: str) -> Any:
+        """Map a CDS coordinate range to genomic features:
+        ``GET /map/cds/:id/:region``."""
+        return await self._make_request(
+            f"{self.base_url}/map/cds/{cds_id}/{region}", params=self._params()
+        )
+
+    async def map_translation(self, translation_id: str, region: str) -> Any:
+        """Map translation (protein) coordinates onto genomic features:
+        ``GET /map/translation/:id/:region``."""
+        return await self._make_request(
+            f"{self.base_url}/map/translation/{translation_id}/{region}", params=self._params()
         )
 
     # -- Ontologies -----------------------------------------------------------------------
 
-    async def get_ontology(
-        self,
-        ontology_type: str,
-        term: str | None = None,
-        type_: str | None = None,
-        id_: str | None = None,
-    ) -> Any:
-        """Search an ontology: ``GET /ontology/:ontology_type`` (e.g. ``go``).
-
-        ``type_``: e.g. molecular_function | biological_process |
-        cellular_component (ontology-dependent); ``id_`` filters to a single
-        term ID.
-        """
+    async def get_ontology_by_name(self, name: str) -> Any:
+        """Terms for an ontology by name: ``GET /ontology/name/:name``."""
         return await self._make_request(
-            f"{self.base_url}/ontology/{ontology_type}",
-            params=self._params(term=term, type=type_, id=id_),
+            f"{self.base_url}/ontology/name/{name}", params=self._params()
         )
 
-    async def get_ontology_parents(self, term_id: str) -> Any:
-        """Parent terms: ``GET /ontology/parents/:id``."""
+    async def get_ontology_ancestors(self, term_id: str) -> Any:
+        """Ancestor terms: ``GET /ontology/ancestors/:id``."""
         return await self._make_request(
-            f"{self.base_url}/ontology/parents/{term_id}", params=self._params()
+            f"{self.base_url}/ontology/ancestors/{term_id}", params=self._params()
+        )
+
+    async def get_ontology_ancestors_chart(self, term_id: str) -> Any:
+        """Ancestor chart: ``GET /ontology/ancestors/chart/:id``."""
+        return await self._make_request(
+            f"{self.base_url}/ontology/ancestors/chart/{term_id}", params=self._params()
+        )
+
+    async def get_ontology_descendants(self, term_id: str) -> Any:
+        """Descendant terms: ``GET /ontology/descendants/:id``."""
+        return await self._make_request(
+            f"{self.base_url}/ontology/descendants/{term_id}", params=self._params()
         )
 
     async def get_ontology_id(self, term_id: str) -> Any:
@@ -632,133 +690,101 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
             f"{self.base_url}/taxonomy/name/{name}", params=self._params()
         )
 
-    async def get_taxonomy_common(self, common_name: str) -> Any:
-        """Species by common name: ``GET /taxonomy/common/:common_name``."""
+    async def get_taxonomy_classification(self, tax_id: str) -> Any:
+        """Full lineage of a taxon: ``GET /taxonomy/classification/:id``."""
         return await self._make_request(
-            f"{self.base_url}/taxonomy/common/{common_name}", params=self._params()
+            f"{self.base_url}/taxonomy/classification/{tax_id}", params=self._params()
         )
-
-    async def get_taxonomy_root(self) -> Any:
-        """Root of the taxonomy: ``GET /taxonomy/root``."""
-        return await self._make_request(f"{self.base_url}/taxonomy/root", params=self._params())
 
     # -- Overlap ------------------------------------------------------------------------------
 
-    async def overlap_ids(
+    async def get_overlap_id(
         self,
-        ids: list[str],
-        feature: str | None = None,
-        all_: int | None = None,
-    ) -> Any:
-        """Objects overlapping Ensembl IDs: ``POST /overlap/id`` with a JSON
-        array of IDs."""
-        return await self._make_request(
-            f"{self.base_url}/overlap/id",
-            params=self._params(feature=feature, all=all_),
-            json_data=list(ids),
-        )
-
-    async def get_overlap_region(
-        self,
-        species: str,
-        seq_region: str,
-        start: int,
-        end: int,
-        up: int = 0,
-        down: int = 0,
+        id_: str,
         feature: str | None = None,
         all_: int | None = None,
         limit: int | None = None,
         offset: int | None = None,
     ) -> Any:
-        """Objects overlapping a region:
-        ``GET /overlap/region/:species/:seq_region/:start/:end``.
+        """Objects overlapping an Ensembl ID: ``GET /overlap/id/:id``.
 
-        ``feature``: e.g. gene | transcript | regulatory; ``all_``: 1 to
-        include all overlapping objects.
+        ``feature``: e.g. gene | transcript | variation.
         """
         return await self._make_request(
-            f"{self.base_url}/overlap/region/{species}/{seq_region}/{start}/{end}",
-            params=self._params(
-                up=up, down=down, feature=feature, all=all_, limit=limit, offset=offset
-            ),
+            f"{self.base_url}/overlap/id/{id_}",
+            params=self._params(feature=feature, all=all_, limit=limit, offset=offset),
         )
 
-    async def overlap_translations(
+    async def get_overlap_region(
         self,
-        translation_ids: list[str],
+        species: str,
+        region: str,
+        feature: str | None = None,
+        all_: int | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> Any:
+        """Objects overlapping a region: ``GET /overlap/region/:species/:region``.
+
+        ``region`` is a coordinate string like ``X:1000000..1001000``;
+        ``feature``: e.g. gene | transcript | regulatory.
+        """
+        return await self._make_request(
+            f"{self.base_url}/overlap/region/{species}/{region}",
+            params=self._params(feature=feature, all=all_, limit=limit, offset=offset),
+        )
+
+    async def get_overlap_translation(
+        self,
+        translation_id: str,
         feature: str | None = None,
         all_: int | None = None,
     ) -> Any:
-        """Objects overlapping protein translations: ``POST /overlap/translation``
-        with a JSON array of IDs."""
+        """Domain features overlapping a translation:
+        ``GET /overlap/translation/:id``."""
         return await self._make_request(
-            f"{self.base_url}/overlap/translation",
+            f"{self.base_url}/overlap/translation/{translation_id}",
             params=self._params(feature=feature, all=all_),
-            json_data=list(translation_ids),
         )
 
     # -- Phenotype --------------------------------------------------------------------------------
 
-    async def get_phenotypes(
-        self,
-        species: str | None = None,
-        term: str | None = None,
-        accession: str | None = None,
-        gene: str | None = None,
-        region: str | None = None,
-        limit: int = 100,
-        offset: int = 1,
+    async def get_phenotypes_by_gene(
+        self, species: str, id_: str, limit: int = 100, offset: int = 1
     ) -> Any:
-        """Search phenotypes: ``GET /phenotype``.
-
-        ``region``: ``species:seq_region:start-end``.
-        """
+        """Phenotypes annotated to a gene: ``GET /phenotype/gene/:species/:id``."""
         return await self._make_request(
-            f"{self.base_url}/phenotype",
-            params=self._params(
-                species=species,
-                term=term,
-                accession=accession,
-                gene=gene,
-                region=region,
-                limit=limit,
-                offset=offset,
-            ),
+            f"{self.base_url}/phenotype/gene/{species}/{id_}",
+            params=self._params(limit=limit, offset=offset),
         )
 
-    async def get_phenotype(self, accession: str) -> Any:
-        """A single phenotype: ``GET /phenotype/:accession``."""
+    async def get_phenotype_by_accession(
+        self, species: str, accession: str, limit: int = 100, offset: int = 1
+    ) -> Any:
+        """Phenotypes by accession:
+        ``GET /phenotype/accession/:species/:accession``."""
         return await self._make_request(
-            f"{self.base_url}/phenotype/{accession}", params=self._params()
-        )
-
-    async def get_phenotype_by_accession(self, accession: str) -> Any:
-        """Phenotypes by accession: ``GET /phenotype/accession/:accession``."""
-        return await self._make_request(
-            f"{self.base_url}/phenotype/accession/{accession}", params=self._params()
-        )
-
-    async def get_phenotypes_by_gene(self, gene: str, species: str | None = None) -> Any:
-        """Phenotypes for a gene: ``GET /phenotype/gene/:gene``."""
-        return await self._make_request(
-            f"{self.base_url}/phenotype/gene/{gene}", params=self._params(species=species)
+            f"{self.base_url}/phenotype/accession/{species}/{accession}",
+            params=self._params(limit=limit, offset=offset),
         )
 
     async def get_phenotypes_by_region(
-        self, species: str, seq_region: str, start: int, end: int
+        self, species: str, region: str, limit: int = 100, offset: int = 1
     ) -> Any:
-        """Phenotypes in a region:
-        ``GET /phenotype/region/:species/:seq_region/:start/:end``."""
+        """Phenotypes in a region: ``GET /phenotype/region/:species/:region``."""
         return await self._make_request(
-            f"{self.base_url}/phenotype/region/{species}/{seq_region}/{start}/{end}",
-            params=self._params(),
+            f"{self.base_url}/phenotype/region/{species}/{region}",
+            params=self._params(limit=limit, offset=offset),
         )
 
-    async def get_phenotypes_by_term(self, term: str) -> Any:
-        """Phenotypes for a term: ``GET /phenotype/term/:term``."""
+    async def get_phenotypes_by_term(
+        self, species: str, term: str, limit: int = 100, offset: int = 1
+    ) -> Any:
+        """Phenotypes matching a description:
+        ``GET /phenotype/term/:species/:term``."""
         return await self._make_request(
-            f"{self.base_url}/phenotype/term/{term}", params=self._params()
+            f"{self.base_url}/phenotype/term/{species}/{term}",
+            params=self._params(limit=limit, offset=offset),
         )
 
     # -- Regulation -----------------------------------------------------------------------------------
@@ -766,6 +792,7 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
     async def get_binding_matrix(
         self,
         species: str,
+        stable_id: str,
         feature: str = "protein_coding",
         matrix_type: str = "all",
         limit: int = 100,
@@ -773,13 +800,14 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
         min_: int | None = None,
         max_: int | None = None,
     ) -> Any:
-        """Regulatory binding sites: ``GET /species/:species/binding_matrix``.
+        """Regulatory binding sites for a PFM:
+        ``GET /species/:species/binding_matrix/:stable_id``.
 
-        ``matrix_type``: all | motif | domain; ``min_``/``max_``:
-        matrix-score bounds.
+        ``stable_id``: e.g. ``ENSPFM0001``; ``matrix_type``: all | motif |
+        domain; ``min_``/``max_``: matrix-score bounds.
         """
         return await self._make_request(
-            f"{self.base_url}/species/{species}/binding_matrix",
+            f"{self.base_url}/species/{species}/binding_matrix/{stable_id}",
             params=self._params(
                 feature=feature,
                 type=matrix_type,
@@ -798,7 +826,8 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
         type_: str = "dna",
         class_: str | None = None,
     ) -> Any:
-        """Sequences by Ensembl ID: ``POST /sequence/id`` with a JSON array.
+        """Sequences by Ensembl ID: ``POST /sequence/id`` with body
+        ``{"ids": [...]}``.
 
         ``type_``: dna | cdna | pep.
         """
@@ -808,35 +837,48 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
         return await self._make_request(
             f"{self.base_url}/sequence/id",
             params=params,
-            json_data=list(ids),
+            json_data={"ids": list(ids)},
         )
 
-    async def get_sequence(
+    async def get_sequence_by_id(
         self,
-        species: str,
-        seq_region: str,
-        start: int,
-        end: int,
+        id_: str,
         type_: str = "dna",
         class_: str | None = None,
     ) -> Any:
-        """Sequence of a region:
-        ``GET /sequence/region/:species/:seq_region/:start/:end``.
+        """Sequence of one object: ``GET /sequence/id/:id``.
 
         ``type_``: dna | cdna | pep.
         """
         params = self._params(type=type_)
         if class_ is not None:
             params["class"] = class_
+        return await self._make_request(f"{self.base_url}/sequence/id/{id_}", params=params)
+
+    async def get_sequence(
+        self,
+        species: str,
+        region: str,
+        type_: str = "dna",
+        class_: str | None = None,
+    ) -> Any:
+        """Sequence of a region: ``GET /sequence/region/:species/:region``.
+
+        ``region`` is a coordinate string like ``11:2159990-2160000``;
+        ``type_``: dna | cdna | pep.
+        """
+        params = self._params(type=type_)
+        if class_ is not None:
+            params["class"] = class_
         return await self._make_request(
-            f"{self.base_url}/sequence/region/{species}/{seq_region}/{start}/{end}",
-            params=params,
+            f"{self.base_url}/sequence/region/{species}/{region}", params=params
         )
 
     # -- Transcript haplotypes ------------------------------------------------------------------------------
 
     async def get_transcript_haplotypes(
         self,
+        species: str,
         transcript_id: str,
         assembly: str | None = None,
         population: str | None = None,
@@ -844,12 +886,13 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
         min_: float | None = None,
         max_: float | None = None,
     ) -> Any:
-        """Haplotype coverage of a transcript: ``GET /transcript/:id/haplotypes``.
+        """Haplotype coverage of a transcript:
+        ``GET /transcript_haplotypes/:species/:id``.
 
         ``type_``: ref | alt; ``min_``/``max_``: frequency bounds.
         """
         return await self._make_request(
-            f"{self.base_url}/transcript/{transcript_id}/haplotypes",
+            f"{self.base_url}/transcript_haplotypes/{species}/{transcript_id}",
             params=self._params(
                 assembly=assembly, population=population, type=type_, min=min_, max=max_
             ),
@@ -857,9 +900,36 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
 
     # -- VEP -----------------------------------------------------------------------------------------------------
 
+    async def get_vep_id(self, species: str, id_: str, **params: Any) -> Any:
+        """VEP consequences for one variant id: ``GET /vep/:species/id/:id``.
+
+        Extra VEP options (``canonical``, ``hgvs``, ``numbers``, ``domains``,
+        ``updown``, ``distance``, ...) pass through as query params, same as
+        the batch POST wrappers below.
+        """
+        return await self._make_request(
+            f"{self.base_url}/vep/{species}/id/{id_}", params=self._params(**params)
+        )
+
+    async def get_vep_hgvs(self, species: str, hgvs_notation: str, **params: Any) -> Any:
+        """VEP consequences for one HGVS string:
+        ``GET /vep/:species/hgvs/:hgvs_notation``."""
+        return await self._make_request(
+            f"{self.base_url}/vep/{species}/hgvs/{quote(hgvs_notation, safe='')}",
+            params=self._params(**params),
+        )
+
+    async def get_vep_region(self, species: str, region: str, allele: str, **params: Any) -> Any:
+        """VEP consequences for one region/allele pair:
+        ``GET /vep/:species/region/:region/:allele``."""
+        return await self._make_request(
+            f"{self.base_url}/vep/{species}/region/{region}/{allele}",
+            params=self._params(**params),
+        )
+
     async def vep_hgvs(self, species: str, hgvs: list[str], **params: Any) -> Any:
-        """VEP over HGVS variant strings: ``POST /vep/:species/hgvs`` with a JSON
-        array.
+        """VEP over HGVS variant strings: ``POST /vep/:species/hgvs`` with body
+        ``{"hgvs_notations": [...]}``.
 
         Extra VEP options (``cache``, ``dir``, ``canonical``, ``extra``,
         ``population``, ``hgvs``, ``limit``, ``offset``) pass through as
@@ -868,141 +938,238 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
         return await self._make_request(
             f"{self.base_url}/vep/{species}/hgvs",
             params=self._params(**params),
-            json_data=list(hgvs),
+            json_data={"hgvs_notations": list(hgvs)},
         )
 
     async def vep_ids(self, species: str, ids: list[str], **params: Any) -> Any:
-        """VEP over Ensembl variation IDs: ``POST /vep/:species/id`` with a JSON
-        array (extra VEP options as in :meth:`vep_hgvs`)."""
+        """VEP over Ensembl variation IDs: ``POST /vep/:species/id`` with body
+        ``{"ids": [...]}`` (extra VEP options as in :meth:`vep_hgvs`)."""
         return await self._make_request(
             f"{self.base_url}/vep/{species}/id",
             params=self._params(**params),
-            json_data=list(ids),
+            json_data={"ids": list(ids)},
         )
 
     async def vep_regions(
         self,
         species: str,
-        regions: list[str | dict[str, Any]],
+        regions: list[str],
         **params: Any,
     ) -> Any:
-        """VEP over genomic regions: ``POST /vep/:species/region`` with a JSON
-        array of region strings or dicts (extra VEP options as in
-        :meth:`vep_hgvs`)."""
+        """VEP over genomic variants: ``POST /vep/:species/region`` with body
+        ``{"variants": [...]}``.
+
+        Each entry is a VEP default-format line, e.g. ``"11 2159779 2159779
+        G/A 1"`` (chrom, start, end, ref/alt, strand). Extra VEP options as in
+        :meth:`vep_hgvs`."""
         return await self._make_request(
             f"{self.base_url}/vep/{species}/region",
             params=self._params(**params),
-            json_data=list(regions),
+            json_data={"variants": list(regions)},
         )
 
     # -- Variation ---------------------------------------------------------------------------------------------
 
-    async def get_variations(
-        self,
-        spid: str,
-        type_: str | None = None,
-        feature_type: str | None = None,
-        limit: int = 50,
-        offset: int = 0,
-    ) -> Any:
-        """Variations for species: ``GET /variation``.
+    async def get_variation(self, species: str, id_: str, **params: Any) -> Any:
+        """A single variation: ``GET /variation/:species/:id``.
 
-        ``spid``: one or more ``|``-separated species; ``type_``: snp | mnv |
-        ins | del | ...
+        ``params``: ``pops`` | ``population_genotypes`` | ``genotypes``.
         """
         return await self._make_request(
-            f"{self.base_url}/variation",
-            params=self._params(
-                spid=spid, type=type_, feature_type=feature_type, limit=limit, offset=offset
-            ),
+            f"{self.base_url}/variation/{species}/{id_}",
+            params=self._params(**params),
         )
 
-    async def get_variations_by_pmcid(self, pmcid: str, limit: int = 10, offset: int = 1) -> Any:
-        """Variations in a PMC article: ``GET /variation/pmcid/:pmcid``."""
+    async def get_variations_by_ids(self, species: str, ids: list[str], **params: Any) -> Any:
+        """Batch variations: ``POST /variation/:species`` with ``{"ids": [...]}``."""
         return await self._make_request(
-            f"{self.base_url}/variation/pmcid/{pmcid}",
-            params=self._params(limit=limit, offset=offset),
+            f"{self.base_url}/variation/{species}",
+            params=self._params(**params),
+            json_data={"ids": list(ids)},
         )
 
-    async def get_variations_by_pmid(self, pmid: str, limit: int = 10, offset: int = 1) -> Any:
-        """Variations in a PubMed article: ``GET /variation/pmid/:pmid``."""
-        return await self._make_request(
-            f"{self.base_url}/variation/pmid/{pmid}",
-            params=self._params(limit=limit, offset=offset),
-        )
-
-    async def variant_recoder(
-        self,
-        spid: str,
-        type_: str | None = None,
-        feature_type: str | None = None,
-        limit: int = 50,
-        offset: int = 0,
+    async def get_variations_by_pmcid(
+        self, species: str, pmcid: str, limit: int = 10, offset: int = 1
     ) -> Any:
-        """Variant recoding between reference genomes: ``GET /variant_recoder``."""
+        """Variations in a PMC article: ``GET /variation/:species/pmcid/:pmcid``."""
         return await self._make_request(
-            f"{self.base_url}/variant_recoder",
-            params=self._params(
-                spid=spid, type=type_, feature_type=feature_type, limit=limit, offset=offset
-            ),
+            f"{self.base_url}/variation/{species}/pmcid/{pmcid}",
+            params=self._params(limit=limit, offset=offset),
+        )
+
+    async def get_variations_by_pmid(
+        self, species: str, pmid: str, limit: int = 10, offset: int = 1
+    ) -> Any:
+        """Variations in a PubMed article: ``GET /variation/:species/pmid/:pmid``."""
+        return await self._make_request(
+            f"{self.base_url}/variation/{species}/pmid/{pmid}",
+            params=self._params(limit=limit, offset=offset),
+        )
+
+    async def get_variant_recoder(self, species: str, id_: str, **params: Any) -> Any:
+        """Recodes for one variant: ``GET /variant_recoder/:species/:id``."""
+        return await self._make_request(
+            f"{self.base_url}/variant_recoder/{species}/{id_}",
+            params=self._params(**params),
+        )
+
+    async def variant_recoder(self, species: str, ids: list[str], **params: Any) -> Any:
+        """Batch recoding: ``POST /variant_recoder/:species`` with ``{"ids": [...]}``."""
+        return await self._make_request(
+            f"{self.base_url}/variant_recoder/{species}",
+            params=self._params(**params),
+            json_data={"ids": list(ids)},
         )
 
     # -- GA4GH --------------------------------------------------------------------------------------------------------
 
-    async def _ga4gh(self, resource: str, resource_id: str | None = None, **params: Any) -> Any:
-        """Shared helper for the GA4GH v0.7 endpoints under ``/ga4gh``.
+    async def _ga4gh(self, resource: str, resource_id: str, **params: Any) -> Any:
+        """``GET /ga4gh/<resource>/:id`` — in 15.12 single GA4GH resources are
+        only addressable by id; collection listing happens through the POST
+        ``<resource>/search`` helpers below (there are no list GETs, no
+        referencesets and no searches resource anymore)."""
+        return await self._make_request(
+            f"{self.base_url}/ga4gh/{resource}/{resource_id}",
+            params=self._params(**params),
+        )
 
-        Each resource has a list form (``/ga4gh/<resource>``) and, where the
-        API supports it, a single-item form (``/ga4gh/<resource>/:id``).
+    async def _ga4gh_search(self, resource: str, body: dict[str, Any]) -> Any:
+        """``POST /ga4gh/<resource>/search`` with a GA4GH SearchRequest body.
+
+        An empty body is normalised to ``{"pageSize": 1}`` — every search
+        needs a page size in practice, and the base client only issues a POST
+        for a truthy JSON body.
         """
-        path = f"/ga4gh/{resource}"
-        if resource_id is not None:
-            path += f"/{resource_id}"
-        return await self._make_request(f"{self.base_url}{path}", params=self._params(**params))
+        return await self._make_request(
+            f"{self.base_url}/ga4gh/{resource}/search",
+            params=self._params(),
+            json_data=body or {"pageSize": 1},
+        )
 
     async def ga4gh_beacon(self, **params: Any) -> Any:
-        """Beacon search: ``GET /ga4gh/beacon`` (``study``, ``dataset``,
-        ``variant``)."""
-        return await self._ga4gh("beacon", **params)
+        """Beacon service info: ``GET /ga4gh/beacon``."""
+        return await self._make_request(
+            f"{self.base_url}/ga4gh/beacon", params=self._params(**params)
+        )
 
-    async def ga4gh_callsets(self, callset_id: str | None = None, **params: Any) -> Any:
-        """Callsets: ``GET /ga4gh/callsets`` or ``GET /ga4gh/callsets/:id``."""
+    async def ga4gh_beacon_query(
+        self,
+        reference_name: str,
+        start: int,
+        reference_bases: str,
+        alternate_bases: str,
+        assembly_id: str = "GRCh38",
+        **params: Any,
+    ) -> Any:
+        """Beacon v2 query (GET form): ``GET /ga4gh/beacon/query``.
+
+        ``start`` is 0-based. Do not pass ``datasetIds``: the server rejects
+        every dataset id it advertises ("Invalid datasetId"), while omitting
+        it queries the default dataset. The legacy ``chrom`` / ``allele`` /
+        ``assembly`` params are not understood: the server answers HTTP 200
+        with an embedded ``error`` object instead of failing.
+        """
+        return await self._make_request(
+            f"{self.base_url}/ga4gh/beacon/query",
+            params=self._params(
+                referenceName=reference_name,
+                start=start,
+                referenceBases=reference_bases,
+                alternateBases=alternate_bases,
+                assemblyId=assembly_id,
+                **params,
+            ),
+        )
+
+    async def ga4gh_beacon_query_post(self, request: dict[str, Any]) -> Any:
+        """Beacon query (GA4GH body): ``POST /ga4gh/beacon/query``.
+
+        ``request`` keys (Beacon v2, as in :meth:`ga4gh_beacon_query`):
+        ``referenceName`` | ``start`` | ``referenceBases`` | ``alternateBases`` |
+        ``assemblyId``. Omit ``datasetIds`` (a list is stringified
+        server-side to ``ARRAY(0x...)`` and rejected).
+        """
+        return await self._make_request(
+            f"{self.base_url}/ga4gh/beacon/query",
+            params=self._params(),
+            json_data=request,
+        )
+
+    async def ga4gh_callsets(self, callset_id: str, **params: Any) -> Any:
+        """A single callset: ``GET /ga4gh/callsets/:id``.
+
+        15.12 has no callset search endpoint — ids come from the ``calls``
+        arrays embedded in variant responses.
+        """
         return await self._ga4gh("callsets", callset_id, **params)
 
-    async def ga4gh_datasets(self, dataset_id: str | None = None, **params: Any) -> Any:
-        """Datasets: ``GET /ga4gh/datasets`` or ``GET /ga4gh/datasets/:id``."""
+    async def ga4gh_get_dataset(self, dataset_id: str, **params: Any) -> Any:
+        """A single dataset: ``GET /ga4gh/datasets/:id``."""
         return await self._ga4gh("datasets", dataset_id, **params)
 
-    async def ga4gh_features(self, featureset: str | None = None, **params: Any) -> Any:
-        """Features: ``GET /ga4gh/features`` (``featureset`` query param)."""
-        if featureset is not None:
-            params["featureset"] = featureset
-        return await self._ga4gh("features", **params)
+    async def ga4gh_search_datasets(self, **body: Any) -> Any:
+        """``POST /ga4gh/datasets/search`` (body keys: ``pageSize``)."""
+        return await self._ga4gh_search("datasets", dict(body))
 
-    async def ga4gh_featuresets(self, featureset_id: str | None = None, **params: Any) -> Any:
-        """Feature sets: ``GET /ga4gh/featuresets`` or ``GET /ga4gh/featuresets/:id``."""
+    async def ga4gh_get_feature(self, feature_id: str, **params: Any) -> Any:
+        """A single feature: ``GET /ga4gh/features/:id``."""
+        return await self._ga4gh("features", feature_id, **params)
+
+    async def ga4gh_search_features(self, **body: Any) -> Any:
+        """``POST /ga4gh/features/search``.
+
+        Body needs ``featureSetId`` (singular, e.g. ``"Ensembl.116.GRCh38"``)
+        plus ``referenceName`` / ``start`` / ``end``. Slow: ~50 s for a 1.4 kb
+        window."""
+        return await self._ga4gh_search("features", dict(body))
+
+    async def ga4gh_get_featureset(self, featureset_id: str, **params: Any) -> Any:
+        """A single feature set: ``GET /ga4gh/featuresets/:id``."""
         return await self._ga4gh("featuresets", featureset_id, **params)
 
-    async def ga4gh_references(self, reference_id: str | None = None, **params: Any) -> Any:
-        """References: ``GET /ga4gh/references`` or ``GET /ga4gh/references/:id``."""
+    async def ga4gh_search_featuresets(self, **body: Any) -> Any:
+        """``POST /ga4gh/featuresets/search``.
+
+        ``datasetId`` must be the literal ``"Ensembl"``; the 1000 Genomes id
+        returned by :meth:`ga4gh_search_datasets` gives a 400."""
+        return await self._ga4gh_search("featuresets", dict(body))
+
+    async def ga4gh_get_reference(self, reference_id: str, **params: Any) -> Any:
+        """A single reference: ``GET /ga4gh/references/:id``."""
         return await self._ga4gh("references", reference_id, **params)
 
-    async def ga4gh_referencesets(self, referenceset_id: str | None = None, **params: Any) -> Any:
-        """Reference sets: ``GET /ga4gh/referencesets`` or
-        ``GET /ga4gh/referencesets/:id``."""
-        return await self._ga4gh("referencesets", referenceset_id, **params)
+    async def ga4gh_search_references(self, **body: Any) -> Any:
+        """``POST /ga4gh/references/search`` (body needs ``referenceSetId``,
+        e.g. ``"GRCh38"``)."""
+        return await self._ga4gh_search("references", dict(body))
 
-    async def ga4gh_searches(self, search_id: str | None = None, **params: Any) -> Any:
-        """Searches: ``GET /ga4gh/searches`` or ``GET /ga4gh/searches/:id``."""
-        return await self._ga4gh("searches", search_id, **params)
+    async def ga4gh_search_variant_annotations(self, **body: Any) -> Any:
+        """``POST /ga4gh/variantannotations/search``.
 
-    async def ga4gh_variants(self, variant_id: str | None = None, **params: Any) -> Any:
-        """Variants: ``GET /ga4gh/variants`` or ``GET /ga4gh/variants/:id``."""
+        Body needs ``variantAnnotationSetId`` (e.g. ``"Ensembl"``) plus
+        ``referenceName`` / ``start`` / ``end``. Unlike the other collections
+        this one has no single-item GET.
+        """
+        return await self._ga4gh_search("variantannotations", dict(body))
+
+    async def ga4gh_get_variant(self, variant_id: str, **params: Any) -> Any:
+        """A single variant: ``GET /ga4gh/variants/:id``."""
         return await self._ga4gh("variants", variant_id, **params)
 
-    async def ga4gh_variantsets(self, variantset_id: str | None = None, **params: Any) -> Any:
-        """Variant sets: ``GET /ga4gh/variantsets`` or ``GET /ga4gh/variantsets/:id``."""
+    async def ga4gh_search_variants(self, **body: Any) -> Any:
+        """``POST /ga4gh/variants/search``.
+
+        Body needs ``variantSetId`` plus ``referenceName`` / ``start`` /
+        ``end``."""
+        return await self._ga4gh_search("variants", dict(body))
+
+    async def ga4gh_get_variantset(self, variantset_id: str, **params: Any) -> Any:
+        """A single variant set: ``GET /ga4gh/variantsets/:id``."""
         return await self._ga4gh("variantsets", variantset_id, **params)
+
+    async def ga4gh_search_variantsets(self, **body: Any) -> Any:
+        """``POST /ga4gh/variantsets/search`` (body needs ``datasetId``)."""
+        return await self._ga4gh_search("variantsets", dict(body))
 
     def _convert_ensembl_result_to_concept(self, result: dict[str, Any]) -> UnifiedConcept | None:
         """Convert Ensembl API result to unified concept."""
