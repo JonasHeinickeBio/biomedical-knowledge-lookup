@@ -7,6 +7,7 @@ Integrates with the ``umls-python-client`` library to provide unified concept lo
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -14,6 +15,19 @@ from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
 logger = logging.getLogger(__name__)
+
+
+_CUI_PREFIX = re.compile(r"^umls:", re.IGNORECASE)
+
+
+def normalize_cui(concept_id: str) -> str:
+    """Return the bare CUI for *concept_id* (``UMLS:C0079419`` -> ``C0079419``).
+
+    Cross-reference sources (OLS xrefs, Wikidata, ...) write UMLS identifiers as
+    CURIEs, but the UMLS API only knows the bare CUI and answers ``UMLS:C...``
+    with 404.
+    """
+    return _CUI_PREFIX.sub("", concept_id.strip())
 
 
 class UMLSAdapter(KnowledgeSourceAdapter):
@@ -352,6 +366,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         ``synonyms``, ``semantic_types``, ``parents``, ``children``,
         ``related``, and ``categories`` fields.
         """
+        concept_id = normalize_cui(concept_id)
         if not self.client:
             return None
 
@@ -401,6 +416,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         -------
         ``[{source, source_id, source_name, term_type, language, cui}, ...]``
         """
+        concept_id = normalize_cui(concept_id)
         if not self.client:
             logger.warning("UMLS client not available")
             return []
@@ -472,6 +488,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
         -------
         ``[{relation_label, related_id, related_name, source}, ...]``
         """
+        concept_id = normalize_cui(concept_id)
         if not self.client:
             logger.warning("UMLS client not available")
             return []
@@ -511,6 +528,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
 
         Yields ``{value, root_source, source_originated}`` dicts.
         """
+        concept_id = normalize_cui(concept_id)
         if not self.client:
             return
 
@@ -537,6 +555,7 @@ class UMLSAdapter(KnowledgeSourceAdapter):
 
         Yields ``{relation_label, related_id, related_name, source}`` dicts.
         """
+        concept_id = normalize_cui(concept_id)
         if not self.client:
             return
 

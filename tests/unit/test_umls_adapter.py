@@ -560,6 +560,71 @@ class TestUMLSAdapter:
         rels = await adapter.get_relationships("C001")
         assert rels == []
 
+    # ── CURIE-prefixed ids ──────────────────────────────────────────
+    # Cross-reference sources write UMLS ids as "UMLS:C0079419"; the UMLS API only
+    # knows the bare CUI and answers the CURIE with 404.
+
+    @pytest.mark.parametrize(
+        ("raw", "bare"),
+        [
+            ("UMLS:C0079419", "C0079419"),
+            ("umls:C0079419", "C0079419"),
+            ("  UMLS:C0079419 ", "C0079419"),
+            ("C0079419", "C0079419"),
+            ("", ""),
+        ],
+    )
+    def test_normalize_cui(self, raw, bare):
+        from knowledge_lookup.adapters.umls_adapter import normalize_cui
+
+        assert normalize_cui(raw) == bare
+
+    @pytest.mark.asyncio
+    async def test_get_relationships_strips_the_curie_prefix(self, adapter, mock_client):
+        mock_client.cui_api.get_relations = AsyncMock(
+            return_value=make_mock_response([make_relation("C002", "PAR")])
+        )
+        adapter.client = mock_client
+
+        rels = await adapter.get_relationships("UMLS:C001", limit=10)
+
+        assert len(rels) == 1
+        mock_client.cui_api.get_relations.assert_awaited_once_with(
+            "C001", include_relation_labels=None, page_size=10
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_mappings_strips_the_curie_prefix(self, adapter, mock_client):
+        mock_client.cui_api.get_atoms = AsyncMock(
+            return_value=make_mock_response([make_atom("Diabetes", "SNOMEDCT", "A001", code="1")])
+        )
+        adapter.client = mock_client
+
+        mappings = await adapter.get_mappings("UMLS:C001", limit=10)
+
+        assert mappings[0]["cui"] == "C001"
+        mock_client.cui_api.get_atoms.assert_awaited_once_with("C001", sabs=None, page_size=10)
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_strips_the_curie_prefix(self, adapter, mock_client):
+        mock_client.cui_api.get_cui_info = AsyncMock(side_effect=Exception("stop here"))
+        adapter.client = mock_client
+
+        assert await adapter.get_concept_details("UMLS:C001") is None
+        mock_client.cui_api.get_cui_info.assert_awaited_once_with("C001")
+
+    @pytest.mark.asyncio
+    async def test_iterators_strip_the_curie_prefix(self, adapter, mock_client):
+        mock_client.cui_api.iter_definitions.return_value = AsyncIter([])
+        mock_client.cui_api.iter_relations.return_value = AsyncIter([])
+        adapter.client = mock_client
+
+        _ = [d async for d in adapter.iter_definitions("UMLS:C001", page_size=10)]
+        _ = [r async for r in adapter.iter_relations("UMLS:C001", page_size=10)]
+
+        assert mock_client.cui_api.iter_definitions.call_args.args[0] == "C001"
+        assert mock_client.cui_api.iter_relations.call_args.args[0] == "C001"
+
     # ── 6. Streaming iterators ──────────────────────────────────────
 
     @pytest.mark.asyncio

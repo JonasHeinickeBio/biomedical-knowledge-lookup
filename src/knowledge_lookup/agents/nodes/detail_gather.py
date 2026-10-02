@@ -22,6 +22,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from ...adapters import ADAPTER_CLASSES
+from ...adapters.umls_adapter import normalize_cui
 from ...core.central_lookup import CentralKnowledgeLookup
 from ...core.source_routing import LEGACY_XREF_SOURCES, as_concept_type, cross_reference_sources
 from ...models import ConceptIdentifier, KnowledgeSource, LookupConfig
@@ -242,6 +243,11 @@ async def detail_gather_node(state: LookupWorkflowState) -> dict:
             cross_ids = _collect_ontology_ids(all_found)
             for src_name, ids in cross_ids.items():
                 for cid in ids:
+                    # UMLS identifiers must be bare CUIs: cross-reference sources
+                    # write them as "UMLS:C..." CURIEs, which the UMLS API rejects
+                    # (404) when relationships are later asked for.
+                    if src_name.upper() == "UMLS":
+                        cid = normalize_cui(cid)
                     # Add as identifier if not already present
                     exists = any(
                         str(getattr(i, "source", "")).upper() == src_name.upper()

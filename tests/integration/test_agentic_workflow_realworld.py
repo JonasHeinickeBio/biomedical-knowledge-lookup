@@ -333,11 +333,32 @@ class TestEvidenceLive:
 # ---------------------------------------------------------------------------
 
 
+class TestUMLSLive:
+    @pytest.mark.asyncio
+    async def test_curie_prefixed_cui_is_accepted(self):
+        """Cross-reference sources write "UMLS:C..."; the API itself only knows the bare CUI."""
+        _need_env("UMLS_API_KEY")
+        lookup = create_knowledge_lookup()
+        try:
+            adapter = lookup.adapters.get(KnowledgeSource.UMLS)
+            if adapter is None:
+                pytest.skip("UMLS adapter not available")
+            bare = await adapter.get_relationships("C0079419", limit=3)
+            if not bare:
+                pytest.skip("UMLS returned no relations for C0079419 (outage?)")
+            for form in ("UMLS:C0079419", "umls:C0079419"):
+                prefixed = await adapter.get_relationships(form, limit=3)
+                assert [r["related_id"] for r in prefixed] == [r["related_id"] for r in bare], form
+        finally:
+            await lookup.close()
+
+
 class TestWholeWorkflowLive:
     @pytest.mark.asyncio
-    async def test_gene_query_exercises_every_stage(self, tmp_path: Path):
+    async def test_gene_query_exercises_every_stage(self, tmp_path: Path, caplog):
         _need_llm()
         _need_env("UMLS_API_KEY")
+        caplog.set_level("ERROR")
         result = await run_workflow(
             "TP53",
             sources=["HGNC", "OLS", "UMLS"],
@@ -368,6 +389,16 @@ class TestWholeWorkflowLive:
         ):
             assert expected in agents, f"{expected} did not run: {agents}"
         assert result["result"] is not None and result["result"].concepts
+
+        # no UMLS relationship lookup used a "UMLS:C..." id or got a 404 for one
+        # (a 5xx is an upstream outage, not this bug)
+        bad = [
+            r.getMessage()[:120]
+            for r in caplog.records
+            if "get_relationships failed" in r.getMessage()
+            and ("'UMLS:" in r.getMessage() or "status 404" in r.getMessage())
+        ]
+        assert not bad, bad
 
         # relationships: real edges from real adapters
         edges = result["relationship_edges"]

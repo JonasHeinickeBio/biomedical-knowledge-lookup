@@ -234,6 +234,44 @@ class TestDetailGatherIsIncremental:
         assert searched == {"Seizure", "Fit"}
         assert update["xref_labels"] == ["fit", "seizure"]
 
+    def test_umls_identifiers_from_cross_references_are_stored_as_bare_cuis(self):
+        """OLS-style xrefs say "UMLS:C..."; the UMLS API answers that with 404."""
+        from knowledge_lookup.agents.nodes.detail_gather import detail_gather_node
+
+        found = _concept("Seizure", cid="HP:0001250", sources=[KnowledgeSource.HPO])
+        found.identifiers = [
+            ConceptIdentifier(source=KnowledgeSource.UMLS, identifier="UMLS:C0036572", label="x")
+        ]
+
+        async def search(query, sources, **kwargs):
+            if sources[0] != KnowledgeSource.OLS:
+                return LookupResult(query=query)
+            return LookupResult(query=query, concepts=[found])
+
+        instance = MagicMock()
+        instance.search_concepts = search
+        instance.close = AsyncMock()
+
+        def factory(config, auto_initialize):
+            instance.adapters = dict.fromkeys(config.enabled_sources or [], object())
+            return instance
+
+        state = _state(lookup_result=_result([_concept("Seizure")]))
+        with patch(
+            "knowledge_lookup.agents.nodes.detail_gather.CentralKnowledgeLookup",
+            MagicMock(side_effect=factory),
+        ):
+            update = asyncio.run(detail_gather_node(state))
+
+        enriched = dict_to_lookup_result(update["lookup_result"])
+        umls_ids = [
+            i.identifier
+            for c in enriched.concepts
+            for i in c.identifiers or []
+            if i.source == KnowledgeSource.UMLS
+        ]
+        assert umls_ids == ["C0036572"]
+
     def test_second_pass_only_searches_new_labels(self):
         state = _state(
             lookup_result=_result([_concept("Seizure"), _concept("Convulsion")]),
