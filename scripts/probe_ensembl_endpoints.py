@@ -188,14 +188,13 @@ def _harvest_lookup(ctx: dict, data: object) -> None:
     children = (data or {}).get("Transcript") or (data or {}).get("transcripts") or []
     if not children:
         return
-    chosen = next(
-        (tx for tx in children if (tx.get("translation") or {}).get("id")),
-        children[0],
-    )
-    ctx.update(
-        transcript=chosen["id"],
-        translation=(chosen.get("translation") or {}).get("id"),
-    )
+
+    def translation_of(tx: dict) -> str | None:
+        # Capitalised "Translation" in lookup responses.
+        return (tx.get("Translation") or tx.get("translation") or {}).get("id")
+
+    chosen = next((tx for tx in children if translation_of(tx)), children[0])
+    ctx.update(transcript=chosen["id"], translation=translation_of(chosen))
 
 
 def _harvest_phen_acc(ctx: dict, data: object) -> None:
@@ -206,6 +205,13 @@ def _harvest_phen_acc(ctx: dict, data: object) -> None:
             # EFO:0000326 makes /phenotype/accession take >120 s.
             ctx["phen_acc"] = accessions[-1]
             return
+
+
+def _harvest_compara_method(ctx: dict, data: object) -> None:
+    # {"GenomicAlignTree.ancestral_alignment": ["EPO"], ...}: class -> method names.
+    names = [n for v in (data or {}).values() if isinstance(v, list) for n in v]
+    if names:
+        ctx["compara_method"] = "EPO" if "EPO" in names else names[0]
 
 
 PROBES: list[dict] = [
@@ -301,9 +307,7 @@ PROBES: list[dict] = [
     {
         "name": "info_compara_methods",
         "build": lambda ctx: ("GET", "/info/compara/methods", qparams(), None),
-        "on_response": lambda ctx, data: (
-            first_field(data, "name") and ctx.update(compara_method=first_field(data, "name"))
-        ),
+        "on_response": _harvest_compara_method,
     },
     {
         "name": "info_compara_species_sets",
@@ -589,16 +593,16 @@ PROBES: list[dict] = [
         "name": "phenotypes_by_term",
         "build": lambda ctx: (
             "GET",
-            f"/phenotype/term/{SPECIES}/breast%20cancer",
+            f"/phenotype/term/{SPECIES}/Glioma",
             qparams(limit=5),
             None,
         ),
-        # Heavy full-text term query: observed >120 s on the live server.
+        # Heavy full-text term query (~30 s for "Glioma"; "breast cancer" never
+        # finished). The server ignores limit here.
         "timeout": 240,
     },
     # -- Regulation / sequence -----------------------------------------------------------
     {
-        # Stable ID guessed from regulation build; verify on re-run.
         "name": "binding_matrix",
         "build": lambda ctx: (
             "GET",
@@ -1053,7 +1057,9 @@ async def run_probe(
     return res
 
 
-def write_manifest(out_dir: Path, base_url: str, results: list[Result]) -> None:
+def write_manifest(
+    out_dir: Path, base_url: str, results: list[Result], merge: bool = False
+) -> None:
     entries = []
     for res in results:
         entry: dict[str, object] = {
@@ -1074,6 +1080,11 @@ def write_manifest(out_dir: Path, base_url: str, results: list[Result]) -> None:
             "file": res.file or None,
         }
         entries.append(entry)
+    if merge and (out_dir / "manifest.json").exists():
+        # --only run: replace just the re-probed entries, keep the rest in order.
+        old = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))["results"]
+        fresh = {e["name"]: e for e in entries}
+        entries = [fresh.pop(e["name"], e) for e in old] + list(fresh.values())
     manifest = {
         "generated": datetime.now(UTC).isoformat(timespec="seconds"),
         "base_url": base_url,
@@ -1112,7 +1123,7 @@ async def main(args: argparse.Namespace) -> int:
             )
             await asyncio.sleep(args.sleep)
 
-    write_manifest(out_dir, args.base_url, results)
+    write_manifest(out_dir, args.base_url, results, merge=bool(args.only))
     n_ok = sum(1 for r in results if r.ok)
     n_skip = sum(1 for r in results if r.skipped)
     n_fail = sum(1 for r in results if not r.ok and not r.skipped and r.name != "INFO")

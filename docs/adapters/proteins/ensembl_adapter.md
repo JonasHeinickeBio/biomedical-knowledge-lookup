@@ -277,11 +277,13 @@ poetry run python scripts/probe_ensembl_endpoints.py
 # --only <regex> to subset, --base-url to override, --no-ga4gh to skip GA4GH
 ```
 
-> **Status: pending.** The Ensembl platform (all REST hosts, mirrors, and the
-> status page) was down when this catalog was written, so the captured
-> responses and per-endpoint notes are still to be filled in once the API
-> recovers. The probe script is ready and was sanity-checked offline
-> (all 67 probes build with the expected skip/active behavior).
+> **Status (2026-10-02, release 15.12):** 82 of 83 probes
+> returned 2xx. 1 was skipped by design (`archive` needs an archive header that no
+> earlier response carried). Slow endpoints: `phenotype/term` (~30 s),
+> `phenotype/accession`, `info/biotypes` (~50 s), `ga4gh/features/search`
+> (~50 s) and `variation/.../pmid` can take tens of seconds, so the adapter
+> floors its per-request timeout at 60 s. Responses larger than 500 kB are
+> truncated in the saved files (flagged in `manifest.json`).
 
 ## Rate limits and errors
 

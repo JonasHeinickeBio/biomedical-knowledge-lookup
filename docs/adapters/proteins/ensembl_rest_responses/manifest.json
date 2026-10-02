@@ -1,0 +1,3098 @@
+{
+  "generated": "2026-10-02T21:59:31+00:00",
+  "base_url": "https://rest.ensembl.org",
+  "results": [
+    {
+      "name": "INFO",
+      "method": "-",
+      "path": "-",
+      "query": null,
+      "body": null,
+      "status": 0,
+      "ok": false,
+      "bytes": 0,
+      "elapsed_ms": 0,
+      "shape": null,
+      "sample": null,
+      "error": null,
+      "skipped": "probe https://rest.ensembl.org; gene ENSG00000254647; region 11:2159779-2161209",
+      "truncated": false,
+      "file": null
+    },
+    {
+      "name": "info_ping",
+      "method": "GET",
+      "path": "/info/ping",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 10,
+      "elapsed_ms": 135,
+      "shape": "dict{ping}",
+      "sample": {
+        "ping": 1
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_ping.json"
+    },
+    {
+      "name": "lookup_id",
+      "method": "GET",
+      "path": "/lookup/id/ENSG00000254647",
+      "query": {
+        "content-type": "application/json",
+        "expand": "1"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 6909,
+      "elapsed_ms": 228,
+      "shape": "dict{source,start,species,description,id,strand,assembly_name,display_name,version,end,logic_name,seq_region_name}",
+      "sample": "{\"source\": \"ensembl_havana\", \"start\": 2159779, \"species\": \"homo_sapiens\", \"description\": \"insulin [Source:HGNC Symbol;Acc:HGNC:6081]\", \"id\": \"ENSG00000254647\", \"strand\": -1, \"assembly_name\": \"GRCh38\", \"display_name\": \"INS\", \"version\": 8, \"end\": 2161221, \"logic_name\": \"ensembl_havana_gene_homo_sapiens\", \"seq_region_name\": \"11\", \"db_type\": \"core\", \"canonical_transcript\": \"ENST00000381330.5\", \"object_type\": \"Gene\", \"Transcript\": [{\"strand\": -1, \"assembly_name\": \"GRCh38\", \"length\": 639, \"gencode_primary\": 0, \"id\": \"ENST00000397262\", \"Parent\": \"ENSG00000254647\", \"species\": \"homo_sapiens\", \"source\": \"ensembl_havana\", \"start\": 2159779, \"object_type\": \"Transcript\", \"is_canonical\": 0, \"biotype\": \"protein_coding\", \"Exon\": [{\"start\": 2160785, \"version\": 1, \"end\": 2161204, \"species\": \"homo_sapiens\", \"seq_region_name\": \"11\", \"db_type\": \"core\", \"id\": \"ENSE00001527959\", \"strand\": -1, \"object_type\": \"Exon\", \"assembly_name\": \"GRCh38\"}, {\"species\": \"homo_sapiens\", \"end\": 2159997, \"seq_region_name\": \"11\", \"start\": 2159779, \"version\": 1, \"strand\": -1, \"object_type\": \"Exon\", \"assembly_name\": \"GRCh38\", \"db_type\": \"core\", \"id\": \"ENSE00003901829\"}], \"db_type\": \"core\", \"logic_name\": \"ensembl_havana_transcript_homo_sapiens\", \"end\": 2161204, \"seq_region_name\": \"11\", \"display_name\": \"INS-203\", \"Translation\": {\"version\": 1, \"start\": 2159852, \"species\": \"homo_sapiens\", \"end\": 2160971, \"Parent\": \"ENST00000397262\", \"id\": \"ENSP00000380432\", \"length\": 110, \"db_type\": \"core\", \"object_type\": \"Translation\"}, ...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "lookup_id.json"
+    },
+    {
+      "name": "lookup_ids_post",
+      "method": "POST",
+      "path": "/lookup/id",
+      "query": {
+        "content-type": "application/json",
+        "expand": "1"
+      },
+      "body": {
+        "ids": [
+          "ENSG00000254647"
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 6929,
+      "elapsed_ms": 1762,
+      "shape": "dict{ENSG00000254647}",
+      "sample": "{\"ENSG00000254647\": {\"species\": \"homo_sapiens\", \"display_name\": \"INS\", \"logic_name\": \"ensembl_havana_gene_homo_sapiens\", \"strand\": -1, \"assembly_name\": \"GRCh38\", \"biotype\": \"protein_coding\", \"end\": 2161221, \"start\": 2159779, \"Transcript\": [{\"start\": 2159779, \"end\": 2161204, \"logic_name\": \"ensembl_havana_transcript_homo_sapiens\", \"species\": \"homo_sapiens\", \"display_name\": \"INS-203\", \"Translation\": {\"object_type\": \"Translation\", \"length\": 110, \"version\": 1, \"end\": 2160971, \"start\": 2159852, \"Parent\": \"ENST00000397262\", \"id\": \"ENSP00000380432\", \"species\": \"homo_sapiens\", \"db_type\": \"core\"}, \"biotype\": \"protein_coding\", \"ens_canon_extended\": 0, \"is_canonical\": 0, \"assembly_name\": \"GRCh38\", \"strand\": -1, \"Exon\": [{\"object_type\": \"Exon\", \"version\": 1, \"start\": 2160785, \"end\": 2161204, \"assembly_name\": \"GRCh38\", \"seq_region_name\": \"11\", \"strand\": -1, \"species\": \"homo_sapiens\", \"id\": \"ENSE00001527959\", \"db_type\": \"core\"}, {\"assembly_name\": \"GRCh38\", \"strand\": -1, \"seq_region_name\": \"11\", \"species\": \"homo_sapiens\", \"id\": \"ENSE00003901829\", \"db_type\": \"core\", \"object_type\": \"Exon\", \"version\": 1, \"start\": 2159779, \"end\": 2159997}], \"version\": 5, \"length\": 639, \"gencode_primary\": 0, \"object_type\": \"Transcript\", \"db_type\": \"core\", \"id\": \"ENST00000397262\", \"Parent\": \"ENSG00000254647\", \"source\": \"ensembl_havana\", \"seq_region_name\": \"11\"}, {\"start\": 2159779, \"end\": 2161209, \"display_name\": \"INS-206\", \"species\": \"homo_sapiens\", \"logic_name\": \"havana_homo_sapiens\", \"assembly_name\": \"GRCh38\"...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "lookup_ids_post.json"
+    },
+    {
+      "name": "phenotype_gene",
+      "method": "GET",
+      "path": "/phenotype/gene/homo_sapiens/BRCA2",
+      "query": {
+        "content-type": "application/json",
+        "limit": "3"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 46102,
+      "elapsed_ms": 5489,
+      "shape": "list[192]",
+      "sample": {
+        "source": "Cancer Gene Census",
+        "Gene": "ENSG00000139618",
+        "description": "Chronic myelomonocytic leukemia",
+        "ontology_accessions": [
+          "EFO:1000309",
+          "EFO:1001779",
+          "HP:0012325",
+          "Orphanet:98823"
+        ],
+        "location": "13:32315086-32400268"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "phenotype_gene.json"
+    },
+    {
+      "name": "ga4gh_datasets",
+      "method": "POST",
+      "path": "/ga4gh/datasets/search",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "pageSize": 1
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 157,
+      "elapsed_ms": 147,
+      "shape": "dict{nextPageToken,datasets}",
+      "sample": {
+        "nextPageToken": "Ensembl",
+        "datasets": [
+          {
+            "description": "1000 Genomes phase3 genotypes",
+            "id": "6e340c4d1e333c7a676b1710d2e3953c",
+            "name": "1000 Genomes phase3"
+          }
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_datasets.json"
+    },
+    {
+      "name": "info_rest",
+      "method": "GET",
+      "path": "/info/rest",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 19,
+      "elapsed_ms": 74,
+      "shape": "dict{release}",
+      "sample": {
+        "release": "15.12"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_rest.json"
+    },
+    {
+      "name": "info_software",
+      "method": "GET",
+      "path": "/info/software",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 15,
+      "elapsed_ms": 3788,
+      "shape": "dict{release}",
+      "sample": {
+        "release": 116
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_software.json"
+    },
+    {
+      "name": "info_data",
+      "method": "GET",
+      "path": "/info/data",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 18,
+      "elapsed_ms": 1417,
+      "shape": "dict{releases}",
+      "sample": {
+        "releases": [
+          116
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_data.json"
+    },
+    {
+      "name": "info_species",
+      "method": "GET",
+      "path": "/info/species",
+      "query": {
+        "content-type": "application/json",
+        "species": "homo_sapiens",
+        "format": "list"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 116351,
+      "elapsed_ms": 1375,
+      "shape": "dict{species}",
+      "sample": "{\"species\": [{\"assembly\": \"ASM311381v1\", \"accession\": \"GCA_003113815.1\", \"release\": 116, \"display_name\": \"Tuatara\", \"strain_collection\": null, \"division\": \"EnsemblVertebrates\", \"groups\": [\"otherfeatures\", \"core\", \"rnaseq\"], \"aliases\": [], \"name\": \"sphenodon_punctatus\", \"common_name\": \"tuatara\", \"strain\": null, \"taxon_id\": \"8508\"}, {\"release\": 116, \"accession\": \"GCA_921998355.2\", \"display_name\": \"Mouse A/J\", \"assembly\": \"A_J_v3\", \"division\": \"EnsemblVertebrates\", \"strain_collection\": null, \"aliases\": [], \"groups\": [\"rnaseq\", \"core\"], \"name\": \"mus_musculus_aj\", \"common_name\": \"house mouse\", \"taxon_id\": \"10090\", \"strain\": \"A/J\"}, {\"aliases\": [], \"groups\": [\"rnaseq\", \"core\"], \"name\": \"salmo_salar_gca021399835v1\", \"accession\": \"GCA_021399835.1\", \"release\": 116, \"display_name\": \"Atlantic salmon - North American Atlantic Salmon\", \"assembly\": \"USDA_NASsal_1.1\", \"strain_collection\": null, \"division\": \"EnsemblVertebrates\", \"common_name\": \"Atlantic salmon\", \"taxon_id\": \"8030\", \"strain\": \"north_american_atlantic_salmon\"}, {\"assembly\": \"ASM869450v1\", \"display_name\": \"Rufous-capped babbler\", \"accession\": \"GCA_008694505.1\", \"release\": 116, \"strain_collection\": null, \"division\": \"EnsemblVertebrates\", \"groups\": [\"core\", \"rnaseq\"], \"aliases\": [], \"name\": \"stachyris_ruficeps\", \"common_name\": \"rufous-capped babbler\", \"strain\": null, \"taxon_id\": \"181631\"}, {\"groups\": [\"rnaseq\", \"core\"], \"aliases\": [], \"name\": \"mus_musculus_c3hhej\", \"assembly\": \"C3H_HeJ_v3\", \"accession\": \"GCA_921997125.2\", \"dis...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_species.json"
+    },
+    {
+      "name": "info_assembly",
+      "method": "GET",
+      "path": "/info/assembly/homo_sapiens",
+      "query": {
+        "content-type": "application/json",
+        "bands": "0"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 12640,
+      "elapsed_ms": 9707,
+      "shape": "dict{assembly_date,genebuild_method,genebuild_start_date,golden_path,genebuild_initial_release_date,assembly_accession,karyotype,default_coord_system_version,coord_system_versions,top_level_region,genebuild_last_geneset_update,assembly_name}",
+      "sample": "{\"assembly_date\": \"2013-12\", \"genebuild_method\": \"full_genebuild\", \"genebuild_start_date\": \"2014-01-Ensembl\", \"golden_path\": 3099750718, \"genebuild_initial_release_date\": \"2014-07\", \"assembly_accession\": \"GCA_000001405.29\", \"karyotype\": [\"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\", \"8\", \"9\", \"10\", \"11\", \"12\", \"13\", \"14\", \"15\", \"16\", \"17\", \"18\", \"19\", \"20\", \"21\", \"22\", \"X\", \"Y\", \"MT\"], \"default_coord_system_version\": \"GRCh38\", \"coord_system_versions\": [\"GRCh38\", \"GRCh37\", \"NCBI36\", \"NCBI35\", \"NCBI34\"], \"top_level_region\": [{\"length\": 71251, \"name\": \"KI270757.1\", \"coord_system\": \"scaffold\"}, {\"length\": 157432, \"name\": \"KI270741.1\", \"coord_system\": \"scaffold\"}, {\"coord_system\": \"scaffold\", \"name\": \"KI270756.1\", \"length\": 79590}, {\"length\": 112551, \"name\": \"KI270730.1\", \"coord_system\": \"scaffold\"}, {\"length\": 73985, \"name\": \"KI270739.1\", \"coord_system\": \"scaffold\"}, {\"name\": \"KI270738.1\", \"length\": 99375, \"coord_system\": \"scaffold\"}, {\"coord_system\": \"scaffold\", \"name\": \"KI270737.1\", \"length\": 103838}, {\"coord_system\": \"scaffold\", \"name\": \"KI270312.1\", \"length\": 998}, {\"name\": \"KI270591.1\", \"length\": 5796, \"coord_system\": \"scaffold\"}, {\"length\": 2805, \"name\": \"KI270371.1\", \"coord_system\": \"scaffold\"}, {\"coord_system\": \"scaffold\", \"length\": 990, \"name\": \"KI270385.1\"}, {\"length\": 1930, \"name\": \"KI270381.1\", \"coord_system\": \"scaffold\"}, {\"name\": \"KI270517.1\", \"length\": 3253, \"coord_system\": \"scaffold\"}, {\"coord_system\": \"scaffold\", \"name\": \"KI270508.1\", \"length\": 1951}, {\"coord_system\": \"s...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_assembly.json"
+    },
+    {
+      "name": "info_divisions",
+      "method": "GET",
+      "path": "/info/divisions",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 106,
+      "elapsed_ms": 2944,
+      "shape": "list[6]",
+      "sample": "EnsemblVertebrates",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_divisions.json"
+    },
+    {
+      "name": "info_biotypes",
+      "method": "GET",
+      "path": "/info/biotypes/homo_sapiens",
+      "query": {
+        "content-type": "application/json",
+        "type": "gene"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 4937,
+      "elapsed_ms": 51374,
+      "shape": "list[60]",
+      "sample": {
+        "biotype": "IG_J_pseudogene",
+        "objects": [
+          "gene",
+          "transcript"
+        ],
+        "groups": [
+          "core"
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_biotypes.json"
+    },
+    {
+      "name": "info_genomes",
+      "method": "GET",
+      "path": "/info/genomes/homo_sapiens",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 655,
+      "elapsed_ms": 15409,
+      "shape": "dict{species_taxonomy_id,assembly_id,has_variations,assembly_level,has_other_alignments,serotype,name,scientific_name,assembly_default,has_synteny,data_release_id,has_microarray}",
+      "sample": {
+        "species_taxonomy_id": 9606,
+        "assembly_id": 71511,
+        "has_variations": 1,
+        "assembly_level": "chromosome",
+        "has_other_alignments": 1,
+        "serotype": null,
+        "name": "homo_sapiens",
+        "scientific_name": "Homo sapiens",
+        "assembly_default": "GRCh38",
+        "has_synteny": 1,
+        "data_release_id": 80,
+        "has_microarray": 1,
+        "division": "EnsemblVertebrates",
+        "has_genome_alignments": 1,
+        "display_name": "Human",
+        "organism_id": 170,
+        "has_peptide_compara": 1,
+        "assembly_name": "GRCh38.p14",
+        "website_packed": 0,
+        "assembly_ucsc": "hg38",
+        "taxonomy_id": 9606,
+        "base_count": 3398673745,
+        "assembly_accession": "GCA_000001405.29",
+        "strain": null,
+        "url_name": "Homo_sapiens",
+        "has_pan_compara": 1,
+        "reference": null,
+        "genebuild": "GENCODE50"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_genomes.json"
+    },
+    {
+      "name": "info_populations",
+      "method": "GET",
+      "path": "/info/variation/populations/homo_sapiens",
+      "query": {
+        "content-type": "application/json",
+        "filter": "LD"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 2955,
+      "elapsed_ms": 71,
+      "shape": "list[30]",
+      "sample": {
+        "size": 96,
+        "description": "African Caribbean in Barbados",
+        "name": "1000GENOMES:phase_3:ACB"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_populations.json"
+    },
+    {
+      "name": "info_compara_methods",
+      "method": "GET",
+      "path": "/info/compara/methods",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 650,
+      "elapsed_ms": 661,
+      "shape": "dict{GenomicAlignBlock.pairwise_alignment,SyntenyRegion.synteny,Homology.homology,ConstrainedElement.constrained_element,GenomicAlignTree.tree_alignment,ProteinTree.protein_tree_node,ConservationScore.conservation_score,GenomicAlignTree.ancestral_alignment,NCTree.nc_tree_node,SpeciesTree.species_tree_root,GenomicAlignBlock.multiple_alignment}",
+      "sample": {
+        "GenomicAlignBlock.pairwise_alignment": [
+          "LASTZ_PATCH",
+          "CACTUS_HAL_PW",
+          "LASTZ_NET"
+        ],
+        "SyntenyRegion.synteny": [
+          "SYNTENY"
+        ],
+        "Homology.homology": [
+          "ENSEMBL_PROJECTIONS",
+          "ENSEMBL_PARALOGUES",
+          "ENSEMBL_ORTHOLOGUES"
+        ],
+        "ConstrainedElement.constrained_element": [
+          "GERP_CONSTRAINED_ELEMENT"
+        ],
+        "GenomicAlignTree.tree_alignment": [
+          "EPO_EXTENDED"
+        ],
+        "ProteinTree.protein_tree_node": [
+          "PROTEIN_TREES"
+        ],
+        "ConservationScore.conservation_score": [
+          "GERP_CONSERVATION_SCORE"
+        ],
+        "GenomicAlignTree.ancestral_alignment": [
+          "EPO"
+        ],
+        "NCTree.nc_tree_node": [
+          "NC_TREES"
+        ],
+        "SpeciesTree.species_tree_root": [
+          "SPECIES_TREE"
+        ],
+        "GenomicAlignBlock.multiple_alignment": [
+          "CACTUS_HAL",
+          "PECAN",
+          "CACTUS_DB"
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_compara_methods.json"
+    },
+    {
+      "name": "info_compara_species_sets",
+      "method": "GET",
+      "path": "/info/compara/species_sets/EPO",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 3004,
+      "elapsed_ms": 44,
+      "shape": "list[5]",
+      "sample": {
+        "method": "EPO",
+        "name": "10 primates EPO",
+        "species_set_group": "primates",
+        "species_set": [
+          "homo_sapiens",
+          "chlorocebus_sabaeus",
+          "nomascus_leucogenys",
+          "microcebus_murinus",
+          "gorilla_gorilla",
+          "pan_paniscus",
+          "pan_troglodytes",
+          "macaca_mulatta",
+          "macaca_fascicularis",
+          "pongo_abelii"
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_compara_species_sets.json"
+    },
+    {
+      "name": "info_analysis",
+      "method": "GET",
+      "path": "/info/analysis/homo_sapiens",
+      "query": {
+        "content-type": "application/json",
+        "last": "1"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 7831,
+      "elapsed_ms": 1120,
+      "shape": "dict{human_ovary_daf,human_ovary_rnaseq,mobidblite,human_merged_rnaseq,phobius,signalp,pfscan,signalp_gram_positive,SWEmbl_default_Hudsonalpha_Control,ensembl_havana_tagene_gene_homo_sapiens,probe2transcript,human_lung_rnaseq}",
+      "sample": "{\"human_ovary_daf\": [\"rnaseq\"], \"human_ovary_rnaseq\": [\"rnaseq\"], \"mobidblite\": [\"core\"], \"human_merged_rnaseq\": [\"rnaseq\"], \"phobius\": [\"core\"], \"signalp\": [\"core\"], \"pfscan\": [\"core\"], \"signalp_gram_positive\": [\"core\"], \"SWEmbl_default_Hudsonalpha_Control\": [\"funcgen\"], \"ensembl_havana_tagene_gene_homo_sapiens\": [\"core\"], \"probe2transcript\": [\"funcgen\"], \"human_lung_rnaseq\": [\"rnaseq\"], \"human_testes_rnaseq_introns\": [\"rnaseq\"], \"percentgc\": [\"core\"], \"VISTA\": [\"funcgen\"], \"SWEmbl_R015\": [\"funcgen\"], \"human_cdna\": [\"core\"], \"refseq_human_havana\": [\"core\"], \"human_pooled_rnaseq_introns\": [\"rnaseq\"], \"havana_homo_sapiens\": [\"core\"], \"lrg_import\": [\"core\"], \"human_testes_rnaseq\": [\"rnaseq\"], \"human_adrenal_rnaseq\": [\"rnaseq\"], \"dust\": [\"core\"], \"ATAC-Seq\": [\"funcgen\"], \"bwa_sampe\": [\"funcgen\"], \"rfamblast\": [\"core\"], \"cls_all_unanchored\": [\"otherfeatures\"], \"signalp_gram_negative\": [\"core\"], \"human_adipose_rnaseq_introns\": [\"rnaseq\"], \"Manual_Antibody-Gene_Annotation\": [\"funcgen\"], \"ensembl_homo_sapiens\": [\"core\"], \"Crispr\": [\"funcgen\"], \"human_liver_rnaseq_introns\": [\"rnaseq\"], \"cls_hela_unanchored\": [\"otherfeatures\"], \"uniprot_mammal\": [\"core\"], \"sfld\": [\"core\"], \"human_ccds_import\": [\"otherfeatures\"], \"longnoncodingdensity\": [\"core\"], \"human_heart_daf\": [\"rnaseq\"], \"sifts_import\": [\"core\"], \"human_bwa_lung\": [\"rnaseq\"], \"human_prostate_rnaseq\": [\"rnaseq\"], \"proj_ensembl_homo_sapiens\": [\"core\"], \"ProbeAlign_transcript\": [\"funcgen\"], \"human_thyroid_rnaseq_introns\": [\"rnase...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_analysis.json"
+    },
+    {
+      "name": "info_variation",
+      "method": "GET",
+      "path": "/info/variation/homo_sapiens",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 8922,
+      "elapsed_ms": 76,
+      "shape": "list[38]",
+      "sample": {
+        "somatic_status": "mixed",
+        "version": "156",
+        "description": "Variants (including SNPs and indels) imported from dbSNP",
+        "url": "http://www.ncbi.nlm.nih.gov/projects/SNP/",
+        "data_types": [
+          "variation"
+        ],
+        "name": "dbSNP"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_variation.json"
+    },
+    {
+      "name": "info_eg_version",
+      "method": "GET",
+      "path": "/info/eg_version",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 14,
+      "elapsed_ms": 250,
+      "shape": "dict{version}",
+      "sample": {
+        "version": 63
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_eg_version.json"
+    },
+    {
+      "name": "info_external_dbs",
+      "method": "GET",
+      "path": "/info/external_dbs/homo_sapiens",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 64500,
+      "elapsed_ms": 117,
+      "shape": "list[501]",
+      "sample": {
+        "release": "1",
+        "description": null,
+        "display_name": "BRC4 Community Symbol",
+        "name": "BRC4_Community_Symbol"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_external_dbs.json"
+    },
+    {
+      "name": "info_consequence_types",
+      "method": "GET",
+      "path": "/info/variation/consequence_types",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 8061,
+      "elapsed_ms": 46,
+      "shape": "list[41]",
+      "sample": {
+        "label": "stop retained variant",
+        "SO_term": "stop_retained_variant",
+        "SO_accession": "SO:0001567",
+        "description": "A sequence variant where at least one base in the terminator codon is changed, but the terminator remains"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "info_consequence_types.json"
+    },
+    {
+      "name": "archive",
+      "method": "-",
+      "path": "-",
+      "query": null,
+      "body": null,
+      "status": 0,
+      "ok": false,
+      "bytes": 0,
+      "elapsed_ms": 0,
+      "shape": null,
+      "sample": null,
+      "error": null,
+      "skipped": "no archive header seen in earlier responses",
+      "truncated": false,
+      "file": null
+    },
+    {
+      "name": "cafes",
+      "method": "GET",
+      "path": "/cafe/genetree/member/id/homo_sapiens/ENSG00000254647",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 92625,
+      "elapsed_ms": 2406,
+      "shape": "dict{pvalue_avg,type,rooted,tree}",
+      "sample": "{\"pvalue_avg\": 0, \"type\": \"cafe tree\", \"rooted\": 1, \"tree\": {\"id\": 4018200342, \"p_value_lim\": 0.01, \"children\": [{\"lambda\": 5.08187e-08, \"n_members\": 0, \"name\": \"Bilateria\", \"tax\": {\"id\": 33213, \"common_name\": \"Bilateral animals\", \"timetree_mya\": \"708\", \"scientific_name\": \"Bilateria\"}, \"id\": 4018200344, \"p_value_lim\": 0.01, \"children\": [{\"n_members\": 0, \"name\": \"Bilateria\", \"tax\": {\"scientific_name\": \"Bilateria\", \"common_name\": \"Bilateral animals\", \"timetree_mya\": \"708\", \"id\": 33213}, \"lambda\": 5.08187e-08, \"children\": [{\"children\": [{\"id\": 4018200347, \"p_value_lim\": 0.01, \"children\": [{\"children\": [{\"lambda\": 5.08187e-08, \"n_members\": 0, \"name\": \"Euteleostomi\", \"tax\": {\"scientific_name\": \"Euteleostomi\", \"id\": 117571, \"common_name\": \"Bony vertebrates\", \"timetree_mya\": \"429\"}, \"id\": 4018200349, \"p_value_lim\": 0.01, \"children\": [{\"lambda\": 5.08187e-08, \"n_members\": 0, \"name\": \"Sarcopterygii\", \"tax\": {\"scientific_name\": \"Sarcopterygii\", \"common_name\": \"Lobe-finned fish\", \"id\": 8287, \"timetree_mya\": \"415\"}, \"id\": 4018200479, \"p_value_lim\": 0.01, \"children\": [{\"children\": [{\"p_value_lim\": 0.01, \"id\": 4018200485, \"children\": [{\"lambda\": 5.08187e-08, \"name\": \"Sauria\", \"n_members\": 0, \"tax\": {\"id\": 32561, \"common_name\": \"Reptiles and birds\", \"timetree_mya\": \"280\", \"scientific_name\": \"Sauria\"}, \"id\": 4018200679, \"p_value_lim\": 0.01, \"children\": [{\"p_value_lim\": 0.01, \"id\": 4018200680, \"children\": [{\"children\": [{\"lambda\": 5.08187e-08, \"tax\": {\"timetree_mya\": \"108\", \"common_name\": \"...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "cafes.json"
+    },
+    {
+      "name": "genetree",
+      "method": "GET",
+      "path": "/genetree/member/id/homo_sapiens/ENSG00000254647",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 56836,
+      "elapsed_ms": 5509,
+      "shape": "dict{tree,rooted,id,type}",
+      "sample": "{\"tree\": {\"branch_length\": 0, \"taxonomy\": {\"common_name\": \"Placentals\", \"id\": 9347, \"scientific_name\": \"Eutheria\", \"timetree_mya\": 99}, \"events\": {\"type\": \"dubious\"}, \"confidence\": {}, \"children\": [{\"branch_length\": 0.239827, \"taxonomy\": {\"common_name\": \"Placentals\", \"timetree_mya\": 99, \"scientific_name\": \"Eutheria\", \"id\": 9347}, \"confidence\": {\"bootstrap\": 7}, \"events\": {\"type\": \"speciation\"}, \"children\": [{\"children\": [{\"events\": {\"type\": \"speciation\"}, \"confidence\": {}, \"children\": [{\"confidence\": {\"bootstrap\": 3}, \"events\": {\"type\": \"speciation\"}, \"children\": [{\"events\": {\"type\": \"speciation\"}, \"confidence\": {\"bootstrap\": 5}, \"children\": [{\"taxonomy\": {\"common_name\": \"Cetaceans and Even-toed ungulates\", \"timetree_mya\": 62, \"scientific_name\": \"Artiodactyla\", \"id\": 91561}, \"branch_length\": 0.011476, \"children\": [{\"confidence\": {\"bootstrap\": 11}, \"events\": {\"type\": \"speciation\"}, \"children\": [{\"confidence\": {\"bootstrap\": 62}, \"events\": {\"type\": \"speciation\"}, \"children\": [{\"events\": {\"type\": \"speciation\"}, \"confidence\": {\"bootstrap\": 37}, \"children\": [{\"taxonomy\": {\"id\": 9722, \"scientific_name\": \"Odontoceti\", \"timetree_mya\": 13.1, \"common_name\": \"Tooth whales\"}, \"branch_length\": 0.004908, \"children\": [{\"branch_length\": 0.015288, \"taxonomy\": {\"id\": 9722, \"scientific_name\": \"Odontoceti\", \"timetree_mya\": 13.1, \"common_name\": \"Tooth whales\"}, \"events\": {\"type\": \"speciation\"}, \"confidence\": {\"bootstrap\": 98}, \"children\": [{\"children\": [{\"confidence\": {}, \"id\": {\"accession\": \"E...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "genetree.json"
+    },
+    {
+      "name": "alignment",
+      "method": "GET",
+      "path": "/alignment/region/homo_sapiens/11:2159779-2161209",
+      "query": {
+        "content-type": "application/json",
+        "species_set_group": "mammals"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 14683,
+      "elapsed_ms": 9368,
+      "shape": "list[1]",
+      "sample": "{\"alignments\": [{\"end\": 2161209, \"seq_region\": \"11\", \"seq\": \"GCTGGTTCAAGGGCTTTATTCCATCTCTCTCGGTGCAGGAGGCGGCGGGTGTGGGGCTGCCTGCGGGCTGCGTCTAGTTGCAGTAGTTCTCCAGCTGGTAGAGGGAGCAGATGCTGGTACAGCATTGTTCCACAATGCCACGCTTCTGCAGGGACCCCTCCAGGGCCAAGGGCTGCAGGCTGCCTGCACCAGGGCCCCCGCCCAGCTCCACCTGCCCCACTGCCAGGACGTGCCGCGCAGAGCAGGTTCCGGAACAGCGGCGAGGCAGAGGGACACAGGAGGACACAGTCAGGGAGACACAGTGCCCGCCTGCCCGCCAGCCCTAGGTCGCACTCCCACCCATCTCCAGCCGGGCTGGACCCAGGTTAGAGGGAGGGTCACCCACACTGGGTGTGGACCTACAGGCCCCAACGCCCACATGTCCCACCTCCTTCCCCCGCCCCGGGGCAGCGTCACAGTGGGAGCCTGAACAGGTGATCCCAGTACTTCTCCCCAGGGCCTGTCCCCAGCATCTTCCCCATCTCCTGACTATGGAGCTGCCGTGAGGCCTGGCGACAGGGGTCTGGCCCACTCAGGCAGGCAGCCACGCCCTCCTCCGGGCGTGATGGGGTGTTCGCCCAGAGGCAGGCAGCGTGGGGCACCCTGTGACCCCAGGTCACCCAGGACTTTACTTAACAA-----------AACACTTGAATCTGCGGTCATCAAATGAGGGTGGAGAAATGGGCTGCGGGGCATTTGTTTGAGGGGCGAGTGGAGGGAGGAGCGTGCCCACCCTCTGATGTATCTCGGGGCTGCCGAAGCCAACACCGTCCTCAGGCTGAGATTCTGACTGGGCCACAGGGAGCTGGTCACTTTTAGGACGTGACCAAGAGAACTT----------CTTTTTAAAAAAGTGCACCTGACCCCCTGCTGGGTGGCAGCCTCCTGCCCCCTTCTGCCCATGCTGGGTGGGAGCGCCAGGAGCAGGGGGTGGCTGGGGGCGGCCAGGGGCAGCAATGGGCAGTTGGCTCACCCTGCAGGTCCTCTGCCTCCCGGCGGGTCTTGGGTGTGTAGAAGAAGCCTCGTTCCCCGCACACTAGGTAGAGAGCTTCCACCAGGTGTGAGCCGCACAGGTGTTGGTTCACAAAGGCTGCGGCTGGGTCAGGTCCCCAGAGGGCCAGCAGCGCCAGCAGGGGCAGGAGGCGCATCCACAGGGCCATGGCAGAAGGACAGTGATCTGGGAGACAGGCAGGGCTGAGGCAGGCTGAAGGCCAGGTGCCCTGCCTTGGGGCCCCTGGGCTCACCCCCACATGCTTCACGAGCCCAGCCACGTCCTCCCTGCTGCAGAGCTGGGGCCTGGGGTCCAGCCACCCTGGAAT----------------CCTGAGCCCACCTGACGCAAAGGCCCTTGGAACAGACCTGCTTGATG...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "alignment.json"
+    },
+    {
+      "name": "homology_symbol",
+      "method": "GET",
+      "path": "/homology/symbol/homo_sapiens/INS",
+      "query": {
+        "content-type": "application/json",
+        "type": "orthologues",
+        "target_species": "pan_troglodytes"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 937,
+      "elapsed_ms": 7522,
+      "shape": "dict{data}",
+      "sample": {
+        "data": [
+          {
+            "id": "ENSG00000254647",
+            "homologies": [
+              {
+                "dn_ds": null,
+                "source": {
+                  "perc_id": 59.0909,
+                  "taxon_id": 9606,
+                  "id": "ENSG00000254647",
+                  "protein_id": "ENSP00000370731",
+                  "species": "homo_sapiens",
+                  "perc_pos": 62.7273,
+                  "align_seq": "MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLAL--EGSLQKRGIVEQCCTSICSLYQLENY------------------------------------------------------------------------------CN-----------",
+                  "cigar_line": "82M2D26M78D2M11D"
+                },
+                "target": {
+                  "species": "pan_troglodytes",
+                  "protein_id": "ENSPTRP00000077843",
+                  "align_seq": "MALWMRLLPLLVLLALWGPDPASAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQASALSLSSS-TSTWPEGLDATARAPPALVVTANIGQAGGSSSRQFRQRALGTSDSPVLFIHCPGAAGTAQGLEYRGRRVTTELVWEEVDSSPQPQGSESLPAQPPAQPAPQPEPQQAREPSPEVSCCGLWPRRPQRSQN",
+                  "cigar_line": "71MD129M",
+                  "perc_pos": 34.5,
+                  "perc_id": 32.5,
+                  "id": "ENSPTRG00000003172",
+                  "taxon_id": 9598
+                },
+                "taxonomy_level": "Eutheria",
+                "type": "ortholog_one2one",
+                "method_link_type": "ENSEMBL_ORTHOLOGUES"
+              }
+            ]
+          }
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "homology_symbol.json"
+    },
+    {
+      "name": "homology_id",
+      "method": "GET",
+      "path": "/homology/id/homo_sapiens/ENSG00000254647",
+      "query": {
+        "content-type": "application/json",
+        "type": "orthologues",
+        "limit": "10"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 189211,
+      "elapsed_ms": 7297,
+      "shape": "dict{data}",
+      "sample": "{\"data\": [{\"homologies\": [{\"taxonomy_level\": \"Eutheria\", \"type\": \"ortholog_one2one\", \"method_link_type\": \"ENSEMBL_ORTHOLOGUES\", \"source\": {\"protein_id\": \"ENSP00000370731\", \"perc_id\": 60, \"taxon_id\": 9606, \"id\": \"ENSG00000254647\", \"cigar_line\": \"82M2D26M78D2M11D\", \"species\": \"homo_sapiens\", \"perc_pos\": 63.6364, \"align_seq\": \"MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLAL--EGSLQKRGIVEQCCTSICSLYQLENY------------------------------------------------------------------------------CN-----------\"}, \"dn_ds\": null, \"target\": {\"perc_id\": 33, \"protein_id\": \"ENSPPAP00000036449\", \"taxon_id\": 9597, \"id\": \"ENSPPAG00000040990\", \"cigar_line\": \"71MD129M\", \"species\": \"pan_paniscus\", \"perc_pos\": 35, \"align_seq\": \"MALWMRLLPLLALLALWGPDPASAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQASALSLSSS-TSTWPEGLDATARAPPALVVTANIGQAGGSSSRQFRQRALGTSDSPVLFIHCPGAAGTAQGLEYRGRRVTTELVWEEVDSSPQPQGSESLPAQPPAQPAPQPEPQQAREPSPEVSCCGLWPRRPQRSQN\"}}, {\"taxonomy_level\": \"Hominidae\", \"type\": \"ortholog_one2one\", \"method_link_type\": \"ENSEMBL_ORTHOLOGUES\", \"source\": {\"id\": \"ENSG00000254647\", \"cigar_line\": \"110M\", \"perc_id\": 99.0909, \"protein_id\": \"ENSP00000370731\", \"taxon_id\": 9606, \"perc_pos\": 99.0909, \"align_seq\": \"MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCN\", \"species\": \"homo_sapiens\"}, \"dn_ds\": null, \"target\": {\"align_seq\": \"MALWMRLLPLLALLALWGPDPA-AFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLE...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "homology_id.json"
+    },
+    {
+      "name": "xrefs_name",
+      "method": "GET",
+      "path": "/xrefs/name/homo_sapiens/BRCA2",
+      "query": {
+        "content-type": "application/json",
+        "dbname": "uniprot"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 4237,
+      "elapsed_ms": 7141,
+      "shape": "list[19]",
+      "sample": {
+        "info_text": "",
+        "display_id": "BRCA2",
+        "synonyms": [],
+        "primary_id": "675",
+        "version": "0",
+        "info_type": "DEPENDENT",
+        "description": "BRCA2 DNA repair associated",
+        "dbname": "EntrezGene",
+        "db_display_name": "NCBI gene (formerly Entrezgene)"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "xrefs_name.json"
+    },
+    {
+      "name": "xrefs_id",
+      "method": "GET",
+      "path": "/xrefs/id/ENSG00000254647",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 12160,
+      "elapsed_ms": 10762,
+      "shape": "list[50]",
+      "sample": {
+        "info_type": "DIRECT",
+        "display_id": "ENSG00000254647",
+        "primary_id": "ENSG00000254647",
+        "description": null,
+        "info_text": "",
+        "db_display_name": "Expression Atlas",
+        "dbname": "ArrayExpress",
+        "version": "0",
+        "synonyms": []
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "xrefs_id.json"
+    },
+    {
+      "name": "ld_region",
+      "method": "GET",
+      "path": "/ld/homo_sapiens/region/11:2159779..2161209/1000GENOMES%3Aphase_3%3AACB",
+      "query": {
+        "content-type": "application/json",
+        "r2": "0.7"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 392,
+      "elapsed_ms": 595,
+      "shape": "list[3]",
+      "sample": {
+        "population_name": "1000GENOMES:phase_3:ACB",
+        "r2": "0.727923",
+        "d_prime": "0.999997",
+        "variation1": "rs3842753",
+        "variation2": "rs3842748"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ld_region.json"
+    },
+    {
+      "name": "ld_id",
+      "method": "GET",
+      "path": "/ld/homo_sapiens/rs1801270/1000GENOMES%3Aphase_3%3AACB",
+      "query": {
+        "content-type": "application/json",
+        "window_size": "500",
+        "r2": "0.9"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 2,
+      "elapsed_ms": 926,
+      "shape": "list[0]",
+      "sample": null,
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ld_id.json"
+    },
+    {
+      "name": "ld_pairwise",
+      "method": "GET",
+      "path": "/ld/homo_sapiens/pairwise/rs1801270/rs1059234",
+      "query": {
+        "content-type": "application/json",
+        "population_name": "1000GENOMES:phase_3:ACB"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 134,
+      "elapsed_ms": 328,
+      "shape": "list[1]",
+      "sample": {
+        "d_prime": "0.966157",
+        "r2": "0.762769",
+        "variation1": "rs1801270",
+        "variation2": "rs1059234",
+        "population_name": "1000GENOMES:phase_3:ACB"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ld_pairwise.json"
+    },
+    {
+      "name": "lookup_symbols",
+      "method": "POST",
+      "path": "/lookup/symbol/homo_sapiens",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "symbols": [
+          "INS",
+          "TP53"
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 855,
+      "elapsed_ms": 11667,
+      "shape": "dict{INS,TP53}",
+      "sample": {
+        "INS": {
+          "assembly_name": "GRCh38",
+          "biotype": "protein_coding",
+          "strand": -1,
+          "db_type": "core",
+          "start": 2159779,
+          "species": "homo_sapiens",
+          "object_type": "Gene",
+          "version": 8,
+          "display_name": "INS",
+          "logic_name": "ensembl_havana_gene_homo_sapiens",
+          "canonical_transcript": "ENST00000381330.5",
+          "description": "insulin [Source:HGNC Symbol;Acc:HGNC:6081]",
+          "id": "ENSG00000254647",
+          "seq_region_name": "11",
+          "end": 2161221,
+          "source": "ensembl_havana"
+        },
+        "TP53": {
+          "biotype": "protein_coding",
+          "assembly_name": "GRCh38",
+          "strand": -1,
+          "start": 7661779,
+          "db_type": "core",
+          "species": "homo_sapiens",
+          "object_type": "Gene",
+          "version": 21,
+          "display_name": "TP53",
+          "logic_name": "ensembl_havana_gene_homo_sapiens",
+          "canonical_transcript": "ENST00000269305.9",
+          "description": "tumor protein p53 [Source:HGNC Symbol;Acc:HGNC:11998]",
+          "id": "ENSG00000141510",
+          "seq_region_name": "17",
+          "end": 7687546,
+          "source": "ensembl_havana"
+        }
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "lookup_symbols.json"
+    },
+    {
+      "name": "map_cdna",
+      "method": "GET",
+      "path": "/map/cdna/ENST00000397262/100..200",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 151,
+      "elapsed_ms": 6637,
+      "shape": "dict{mappings}",
+      "sample": {
+        "mappings": [
+          {
+            "strand": -1,
+            "coord_system": "chromosome",
+            "assembly_name": "GRCh38",
+            "start": 2161005,
+            "end": 2161105,
+            "gap": 0,
+            "seq_region_name": "11",
+            "rank": 0
+          }
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "map_cdna.json"
+    },
+    {
+      "name": "map_cds",
+      "method": "GET",
+      "path": "/map/cds/ENST00000397262/90..150",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 151,
+      "elapsed_ms": 118,
+      "shape": "dict{mappings}",
+      "sample": {
+        "mappings": [
+          {
+            "gap": 0,
+            "coord_system": "chromosome",
+            "rank": 0,
+            "start": 2160822,
+            "end": 2160882,
+            "seq_region_name": "11",
+            "assembly_name": "GRCh38",
+            "strand": -1
+          }
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "map_cds.json"
+    },
+    {
+      "name": "map_translation",
+      "method": "GET",
+      "path": "/map/translation/ENSP00000380432/5..100",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 288,
+      "elapsed_ms": 60,
+      "shape": "dict{mappings}",
+      "sample": {
+        "mappings": [
+          {
+            "assembly_name": "GRCh38",
+            "end": 2160959,
+            "coord_system": "chromosome",
+            "start": 2160785,
+            "seq_region_name": "11",
+            "rank": 0,
+            "strand": -1,
+            "gap": 0
+          },
+          {
+            "gap": 0,
+            "rank": 0,
+            "strand": -1,
+            "start": 2159885,
+            "seq_region_name": "11",
+            "coord_system": "chromosome",
+            "end": 2159997,
+            "assembly_name": "GRCh38"
+          }
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "map_translation.json"
+    },
+    {
+      "name": "map_assemblies",
+      "method": "GET",
+      "path": "/map/homo_sapiens/GRCh38/11:2159779-2159779/GRCh37",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 264,
+      "elapsed_ms": 46,
+      "shape": "dict{mappings}",
+      "sample": {
+        "mappings": [
+          {
+            "original": {
+              "seq_region_name": "11",
+              "assembly": "GRCh38",
+              "coord_system": "chromosome",
+              "start": 2159779,
+              "strand": 1,
+              "end": 2159779
+            },
+            "mapped": {
+              "seq_region_name": "11",
+              "assembly": "GRCh37",
+              "coord_system": "chromosome",
+              "start": 2181009,
+              "strand": 1,
+              "end": 2181009
+            }
+          }
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "map_assemblies.json"
+    },
+    {
+      "name": "ontology_name",
+      "method": "GET",
+      "path": "/ontology/name/apoptosis",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 11677,
+      "elapsed_ms": 25195,
+      "shape": "list[2]",
+      "sample": "{\"definition\": \"A programmed cell death process which begins when a cell receives an internal (e.g. DNA damage) or external signal (e.g. an extracellular death ligand), and proceeds through a series of biochemical events (signaling pathway phase) which trigger an execution phase. The execution phase is the last step of an apoptotic process, and is typically characterized by rounding-up of the cell, retraction of pseudopodes, reduction of cellular volume (pyknosis), chromatin condensation, nuclear fragmentation (karyorrhexis), plasma membrane blebbing and fragmentation of the cell into apoptotic bodies. When the execution phase is completed, the cell has died.\", \"name\": \"apoptotic process\", \"ontology\": \"GO\", \"accession\": \"GO:0006915\", \"subsets\": [], \"children\": [{\"name\": \"apoptotic process involved in development\", \"definition\": \"Any apoptotic process that is involved in anatomical structure development.\", \"ontology\": \"GO\", \"subsets\": [], \"accession\": \"GO:1902742\", \"synonyms\": [\"apoptotic cell death involved in anatomical structure development\", \"apoptotic cell death involved in development of an anatomical structure\", \"apoptotic process involved in development of an anatomical structure\", \"apoptotic programmed cell death involved in anatomical structure development\", \"apoptotic programmed cell death involved in development of an anatomical structure\", \"programmed cell death by apoptosis involved in anatomical structure development\", \"programmed cell death by apoptosis invo...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ontology_name.json"
+    },
+    {
+      "name": "ontology_ancestors",
+      "method": "GET",
+      "path": "/ontology/ancestors/GO:0006915",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 30063,
+      "elapsed_ms": 5738,
+      "shape": "list[65]",
+      "sample": {
+        "synonyms": [
+          "apoptosis of inflammatory cells",
+          "inflammatory cell programmed cell death by apoptosis",
+          "killing of inflammatory cells",
+          "programmed cell death of inflammatory cells by apoptosis",
+          "programmed cell death, inflammatory cells",
+          "inflammatory cell apoptosis"
+        ],
+        "namespace": "biological_process",
+        "definition": "Any apoptotic process in an inflammatory cell, any cell participating in the inflammatory response to a foreign substance e.g. neutrophil, macrophage.",
+        "accession": "GO:0006925",
+        "subsets": [],
+        "ontology": "GO",
+        "name": "inflammatory cell apoptotic process"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ontology_ancestors.json"
+    },
+    {
+      "name": "ontology_descendants",
+      "method": "GET",
+      "path": "/ontology/descendants/GO:0006915",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 512,
+      "elapsed_ms": 402,
+      "shape": "list[1]",
+      "sample": {
+        "ontology": "GO",
+        "name": "programmed cell death",
+        "namespace": "biological_process",
+        "definition": "A process which begins when a cell receives an internal or external signal and activates a series of biochemical events (signaling pathway). The process ends with the death of the cell.",
+        "subsets": [
+          "goslim_agr",
+          "goslim_chembl",
+          "goslim_drosophila",
+          "goslim_euk_cellular_processes_ribbon",
+          "goslim_generic",
+          "goslim_mouse",
+          "goslim_plant",
+          "goslim_plant_ribbon",
+          "goslim_prokaryote"
+        ],
+        "accession": "GO:0012501",
+        "synonyms": []
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ontology_descendants.json"
+    },
+    {
+      "name": "ontology_chart",
+      "method": "GET",
+      "path": "/ontology/ancestors/chart/GO:0006915",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 2308,
+      "elapsed_ms": 11308,
+      "shape": "dict{GO:0006915,GO:0012501}",
+      "sample": "{\"GO:0006915\": {\"term\": {\"synonyms\": [\"apoptotic cell death\", \"apoptotic program\", \"cell suicide\", \"cellular suicide\", \"apoptotic programmed cell death\", \"programmed cell death by apoptosis\", \"activation of apoptosis\", \"apoptosis\", \"apoptosis signaling\", \"type I programmed cell death\", \"apoptosis activator activity\", \"caspase-dependent programmed cell death\", \"commitment to apoptosis\", \"induction of apoptosis\", \"induction of apoptosis by p53\", \"signaling (initiator) caspase activity\"], \"definition\": \"A programmed cell death process which begins when a cell receives an internal (e.g. DNA damage) or external signal (e.g. an extracellular death ligand), and proceeds through a series of biochemical events (signaling pathway phase) which trigger an execution phase. The execution phase is the last step of an apoptotic process, and is typically characterized by rounding-up of the cell, retraction of pseudopodes, reduction of cellular volume (pyknosis), chromatin condensation, nuclear fragmentation (karyorrhexis), plasma membrane blebbing and fragmentation of the cell into apoptotic bodies. When the execution phase is completed, the cell has died.\", \"subsets\": [], \"namespace\": \"biological_process\", \"name\": \"apoptotic process\", \"accession\": \"GO:0006915\", \"ontology\": \"GO\"}, \"is_a\": [{\"name\": \"programmed cell death\", \"definition\": \"A process which begins when a cell receives an internal or external signal and activates a series of biochemical events (signaling pathway). The process e...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ontology_chart.json"
+    },
+    {
+      "name": "ontology_id",
+      "method": "GET",
+      "path": "/ontology/id/GO:0006915",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 10421,
+      "elapsed_ms": 312,
+      "shape": "dict{name,ontology,parents,children,synonyms,namespace,accession,subsets,definition}",
+      "sample": "{\"name\": \"apoptotic process\", \"ontology\": \"GO\", \"parents\": [{\"name\": \"programmed cell death\", \"namespace\": \"biological_process\", \"accession\": \"GO:0012501\", \"ontology\": \"GO\", \"subsets\": [\"goslim_agr\", \"goslim_chembl\", \"goslim_drosophila\", \"goslim_euk_cellular_processes_ribbon\", \"goslim_generic\", \"goslim_mouse\", \"goslim_plant\", \"goslim_plant_ribbon\", \"goslim_prokaryote\"], \"definition\": \"A process which begins when a cell receives an internal or external signal and activates a series of biochemical events (signaling pathway). The process ends with the death of the cell.\", \"synonyms\": []}], \"children\": [{\"namespace\": \"biological_process\", \"name\": \"apoptotic process involved in development\", \"accession\": \"GO:1902742\", \"ontology\": \"GO\", \"subsets\": [], \"synonyms\": [\"apoptotic cell death involved in anatomical structure development\", \"apoptotic cell death involved in development of an anatomical structure\", \"apoptotic process involved in development of an anatomical structure\", \"apoptotic programmed cell death involved in anatomical structure development\", \"apoptotic programmed cell death involved in development of an anatomical structure\", \"programmed cell death by apoptosis involved in anatomical structure development\", \"programmed cell death by apoptosis involved in development of an anatomical structure\", \"apoptosis activator activity involved in anatomical structure development\", \"apoptosis activator activity involved in development of an anatomical structure\", \"commitment to...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ontology_id.json"
+    },
+    {
+      "name": "taxonomy_id",
+      "method": "GET",
+      "path": "/taxonomy/id/9606",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 1289,
+      "elapsed_ms": 207,
+      "shape": "dict{scientific_name,leaf,children,tags,parent,id,name}",
+      "sample": {
+        "scientific_name": "Homo sapiens",
+        "leaf": 0,
+        "children": [
+          {
+            "scientific_name": "Homo sapiens subsp. 'Denisova'",
+            "leaf": 1,
+            "id": "741158",
+            "name": "Homo sapiens subsp. 'Denisova'",
+            "tags": {
+              "scientific_name": [
+                "Homo sapiens subsp. 'Denisova'"
+              ],
+              "equivalent_name": [
+                "Homo sapiens ssp. 'Denisova'",
+                "Homo sapiens ssp. Denisova"
+              ],
+              "synonym": [
+                "Homo sp. Altai"
+              ],
+              "common_name": [
+                "Denisovan",
+                "Denisovans"
+              ],
+              "genbank_common_name": [
+                "Denisova hominin"
+              ],
+              "name": [
+                "Homo sapiens subsp. 'Denisova'"
+              ]
+            }
+          },
+          {
+            "tags": {
+              "authority": [
+                "Homo sapiens neanderthalensis King, 1864"
+              ],
+              "name": [
+                "Homo sapiens neanderthalensis"
+              ],
+              "genbank_common_name": [
+                "Neandertal"
+              ],
+              "type_material": [
+                "Feldhofer 1",
+                "Neanderthal 1"
+              ],
+              "scientific_name": [
+                "Homo sapiens neanderthalensis"
+              ],
+              "common_name": [
+                "Neandertal man",
+                "Neanderthal",
+                "Neanderthal man"
+              ],
+              "synonym": [
+                "Homo neanderthalensis"
+              ]
+            },
+            "name": "Homo sapiens neanderthalensis",
+            "id": "63221",
+            "scientific_name": "Homo sapiens neanderthalensis",
+            "leaf": 1
+          }
+        ],
+        "tags": {
+          "genbank_common_name": [
+            "human"
+          ],
+          "name": [
+            "Homo sapiens"
+          ],
+          "authority": [
+            "Homo sapiens Linnaeus, 1758"
+          ],
+          "scientific_name": [
+            "Homo sapiens"
+          ]
+        },
+        "parent": {
+          "leaf": 0,
+          "scientific_name": "Homo",
+          "id": "9605",
+          "name": "Homo",
+          "tags": {
+            "name": [
+              "Homo"
+            ],
+            "authority": [
+              "Homo Linnaeus, 1758"
+            ],
+            "common_name": [
+              "humans"
+            ],
+            "scientific_name": [
+              "Homo"
+            ]
+          }
+        },
+        "id": "9606",
+        "name": "Homo sapiens"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "taxonomy_id.json"
+    },
+    {
+      "name": "taxonomy_name",
+      "method": "GET",
+      "path": "/taxonomy/name/homo_sapiens",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 1291,
+      "elapsed_ms": 3315,
+      "shape": "list[1]",
+      "sample": {
+        "children": [
+          {
+            "scientific_name": "Homo sapiens neanderthalensis",
+            "name": "Homo sapiens neanderthalensis",
+            "tags": {
+              "genbank_common_name": [
+                "Neandertal"
+              ],
+              "type_material": [
+                "Feldhofer 1",
+                "Neanderthal 1"
+              ],
+              "authority": [
+                "Homo sapiens neanderthalensis King, 1864"
+              ],
+              "common_name": [
+                "Neandertal man",
+                "Neanderthal",
+                "Neanderthal man"
+              ],
+              "scientific_name": [
+                "Homo sapiens neanderthalensis"
+              ],
+              "name": [
+                "Homo sapiens neanderthalensis"
+              ],
+              "synonym": [
+                "Homo neanderthalensis"
+              ]
+            },
+            "id": "63221",
+            "leaf": 1
+          },
+          {
+            "name": "Homo sapiens subsp. 'Denisova'",
+            "scientific_name": "Homo sapiens subsp. 'Denisova'",
+            "leaf": 1,
+            "tags": {
+              "synonym": [
+                "Homo sp. Altai"
+              ],
+              "common_name": [
+                "Denisovan",
+                "Denisovans"
+              ],
+              "name": [
+                "Homo sapiens subsp. 'Denisova'"
+              ],
+              "scientific_name": [
+                "Homo sapiens subsp. 'Denisova'"
+              ],
+              "equivalent_name": [
+                "Homo sapiens ssp. 'Denisova'",
+                "Homo sapiens ssp. Denisova"
+              ],
+              "genbank_common_name": [
+                "Denisova hominin"
+              ]
+            },
+            "id": "741158"
+          }
+        ],
+        "parent": {
+          "leaf": 0,
+          "id": "9605",
+          "tags": {
+            "name": [
+              "Homo"
+            ],
+            "scientific_name": [
+              "Homo"
+            ],
+            "common_name": [
+              "humans"
+            ],
+            "authority": [
+              "Homo Linnaeus, 1758"
+            ]
+          },
+          "scientific_name": "Homo",
+          "name": "Homo"
+        },
+        "scientific_name": "Homo sapiens",
+        "name": "Homo sapiens",
+        "leaf": 0,
+        "tags": {
+          "authority": [
+            "Homo sapiens Linnaeus, 1758"
+          ],
+          "name": [
+            "Homo sapiens"
+          ],
+          "scientific_name": [
+            "Homo sapiens"
+          ],
+          "genbank_common_name": [
+            "human"
+          ]
+        },
+        "id": "9606"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "taxonomy_name.json"
+    },
+    {
+      "name": "taxonomy_classification",
+      "method": "GET",
+      "path": "/taxonomy/classification/9606",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 9995,
+      "elapsed_ms": 551,
+      "shape": "list[14]",
+      "sample": {
+        "scientific_name": "Homo",
+        "children": [
+          {
+            "name": "Homo sapiens",
+            "scientific_name": "Homo sapiens",
+            "tags": {
+              "scientific_name": [
+                "Homo sapiens"
+              ],
+              "genbank_common_name": [
+                "human"
+              ],
+              "authority": [
+                "Homo sapiens Linnaeus, 1758"
+              ],
+              "name": [
+                "Homo sapiens"
+              ]
+            },
+            "leaf": 0,
+            "id": "9606"
+          }
+        ],
+        "id": "9605",
+        "parent": {
+          "scientific_name": "Homininae",
+          "leaf": 0,
+          "id": "207598",
+          "tags": {
+            "scientific_name": [
+              "Homininae"
+            ],
+            "synonym": [
+              "Homo/Pan/Gorilla group"
+            ],
+            "ensembl_alias_name": [
+              "Hominines"
+            ],
+            "name": [
+              "Homininae"
+            ],
+            "ensembl_timetree_mya": [
+              "8.6"
+            ]
+          },
+          "name": "Homininae"
+        },
+        "leaf": 0,
+        "tags": {
+          "name": [
+            "Homo"
+          ],
+          "authority": [
+            "Homo Linnaeus, 1758"
+          ],
+          "common_name": [
+            "humans"
+          ],
+          "scientific_name": [
+            "Homo"
+          ]
+        },
+        "name": "Homo"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "taxonomy_classification.json"
+    },
+    {
+      "name": "overlap_id",
+      "method": "GET",
+      "path": "/overlap/id/ENSG00000254647",
+      "query": {
+        "content-type": "application/json",
+        "feature": "variation",
+        "limit": "5"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 178714,
+      "elapsed_ms": 172,
+      "shape": "list[722]",
+      "sample": {
+        "alleles": [
+          "T",
+          "C"
+        ],
+        "start": 2159781,
+        "assembly_name": "GRCh38",
+        "seq_region_name": "11",
+        "id": "rs769707738",
+        "consequence_type": "3_prime_UTR_variant",
+        "feature_type": "variation",
+        "source": "dbSNP",
+        "strand": 1,
+        "end": 2159781,
+        "clinical_significance": []
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "overlap_id.json"
+    },
+    {
+      "name": "overlap_region",
+      "method": "GET",
+      "path": "/overlap/region/homo_sapiens/11:2159779-2161209",
+      "query": {
+        "content-type": "application/json",
+        "feature": "gene",
+        "limit": "5"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 1188,
+      "elapsed_ms": 200,
+      "shape": "list[3]",
+      "sample": {
+        "biotype": "protein_coding",
+        "start": 2132538,
+        "end": 2161209,
+        "gene_id": "ENSG00000129965",
+        "logic_name": "ensembl_havana_gene_homo_sapiens",
+        "version": 15,
+        "external_name": "INS-IGF2",
+        "assembly_name": "GRCh38",
+        "strand": -1,
+        "id": "ENSG00000129965",
+        "feature_type": "gene",
+        "description": "INS-IGF2 readthrough [Source:HGNC Symbol;Acc:HGNC:33527]",
+        "source": "ensembl_havana",
+        "seq_region_name": "11",
+        "canonical_transcript": "ENST00000397270.1"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "overlap_region.json"
+    },
+    {
+      "name": "overlap_translation",
+      "method": "GET",
+      "path": "/overlap/translation/ENSP00000380432",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 683518,
+      "elapsed_ms": 1219,
+      "shape": "list[1772]",
+      "sample": {
+        "cigar_string": "",
+        "interpro": "",
+        "end": 24,
+        "id": "seg",
+        "Parent": "ENST00000397262",
+        "seq_region_name": "ENSP00000380432",
+        "hit_start": 0,
+        "type": "Seg",
+        "align_type": null,
+        "hseqname": "seg",
+        "hit_end": 0,
+        "start": 2,
+        "feature_type": "protein_feature",
+        "description": "",
+        "translation_id": 1111512
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": true,
+      "file": "overlap_translation.json"
+    },
+    {
+      "name": "phenotype_accession",
+      "method": "GET",
+      "path": "/phenotype/accession/homo_sapiens/MONDO%3A0002038",
+      "query": {
+        "content-type": "application/json",
+        "limit": "5"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 136821,
+      "elapsed_ms": 8558,
+      "shape": "list[903]",
+      "sample": {
+        "source": "Cancer Gene Census",
+        "mapped_to_accession": "MONDO:0002038",
+        "Gene": "ENSG00000135446",
+        "location": "12:57746043-57756013",
+        "description": "ND"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "phenotype_accession.json"
+    },
+    {
+      "name": "phenotypes_by_region",
+      "method": "GET",
+      "path": "/phenotype/region/homo_sapiens/11:2159779-2161209",
+      "query": {
+        "content-type": "application/json",
+        "limit": "5"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 172828,
+      "elapsed_ms": 6576,
+      "shape": "list[393]",
+      "sample": {
+        "phenotype_associations": [
+          {
+            "location": "11:2160835-2160835",
+            "description": "Annotated by HGMD",
+            "source": "HGMD-PUBLIC",
+            "attributes": {
+              "associated_gene": "INS"
+            }
+          }
+        ],
+        "id": "CM082896"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "phenotypes_by_region.json"
+    },
+    {
+      "name": "phenotypes_by_term",
+      "method": "GET",
+      "path": "/phenotype/term/homo_sapiens/Glioma",
+      "query": {
+        "content-type": "application/json",
+        "limit": "5"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 561787,
+      "elapsed_ms": 29469,
+      "shape": "list[2923]",
+      "sample": {
+        "description": "Glioma",
+        "Gene": "ENSG00000082805",
+        "mapped_to_accession": "HP:0009733",
+        "source": "Cancer Gene Census",
+        "location": "12:989998-1495933"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": true,
+      "file": "phenotypes_by_term.json"
+    },
+    {
+      "name": "binding_matrix",
+      "method": "GET",
+      "path": "/species/homo_sapiens/binding_matrix/ENSPFM0001",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 1179,
+      "elapsed_ms": 1141,
+      "shape": "dict{source,elements,threshold,name,length,stable_id,max_position_sum,associated_transcription_factor_complexes,unit,elements_string}",
+      "sample": {
+        "source": "SELEX",
+        "elements": {
+          "4": {
+            "T": 112,
+            "G": 91,
+            "C": 124,
+            "A": 45331
+          },
+          "10": {
+            "A": 45331,
+            "C": 46,
+            "T": 5,
+            "G": 7
+          },
+          "1": {
+            "A": 10448,
+            "T": 13901,
+            "C": 18876,
+            "G": 2105
+          },
+          "14": {
+            "A": 1377,
+            "T": 27742,
+            "C": 17589,
+            "G": 253
+          },
+          "7": {
+            "A": 187,
+            "C": 45331,
+            "T": 497,
+            "G": 593
+          },
+          "9": {
+            "A": 57,
+            "T": 3,
+            "C": 6,
+            "G": 45331
+          },
+          "11": {
+            "A": 45331,
+            "G": 23,
+            "T": 1002,
+            "C": 11
+          },
+          "5": {
+            "A": 45331,
+            "G": 25,
+            "T": 444,
+            "C": 8
+          },
+          "6": {
+            "A": 45331,
+            "G": 4,
+            "T": 8,
+            "C": 6
+          },
+          "3": {
+            "A": 350,
+            "T": 31,
+            "C": 66,
+            "G": 45331
+          },
+          "8": {
+            "A": 27,
+            "T": 3801,
+            "G": 4,
+            "C": 45331
+          },
+          "2": {
+            "T": 5937,
+            "C": 45331,
+            "G": 87,
+            "A": 364
+          },
+          "15": {
+            "G": 5644,
+            "T": 9846,
+            "C": 4640,
+            "A": 25202
+          },
+          "12": {
+            "A": 45331,
+            "T": 13,
+            "G": 4,
+            "C": 15
+          },
+          "13": {
+            "T": 80,
+            "C": 45331,
+            "G": 4251,
+            "A": 829
+          }
+        },
+        "threshold": 4.4,
+        "name": "IRF4_AD_TCAAGG20NCG_NCGAAACCGAAACYN_m1_c3_Cell2013",
+        "length": 15,
+        "stable_id": "ENSPFM0001",
+        "max_position_sum": 51719,
+        "associated_transcription_factor_complexes": [
+          "IRF5",
+          "IRF4"
+        ],
+        "unit": "Frequencies",
+        "elements_string": "10448\t364\t350\t45331\t45331\t45331\t187\t27\t57\t45331\t45331\t45331\t829\t1377\t25202\t\n18876\t45331\t66\t124\t8\t6\t45331\t45331\t6\t46\t11\t15\t45331\t17589\t4640\t\n2105\t87\t45331\t91\t25\t4\t593\t4\t45331\t7\t23\t4\t4251\t253\t5644\t\n13901\t5937\t31\t112\t444\t8\t497\t3801\t3\t5\t1002\t13\t80\t27742\t9846\t\n"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "binding_matrix.json"
+    },
+    {
+      "name": "sequences_cdna",
+      "method": "POST",
+      "path": "/sequence/id",
+      "query": {
+        "content-type": "application/json",
+        "type": "cdna"
+      },
+      "body": {
+        "ids": [
+          "ENST00000397262"
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 741,
+      "elapsed_ms": 4805,
+      "shape": "list[1]",
+      "sample": {
+        "molecule": "dna",
+        "id": "ENST00000397262",
+        "version": 5,
+        "seq": "TCCAGGACAGGCTGCATCAGAAGAGGCCATCAAGCAGGTCTGTTCCAAGGGCCTTTGCGTCAGGTGGGCTCAGGATTCCAGGGTGGCTGGACCCCAGGCCCCAGCTCTGCAGCAGGGAGGACGTGGCTGGGCTCGTGAAGCATGTGGGGGTGAGCCCAGGGGCCCCAAGGCAGGGCACCTGGCCTTCAGCCTGCCTCAGCCCTGCCTGTCTCCCAGATCACTGTCCTTCTGCCATGGCCCTGTGGATGCGCCTCCTGCCCCTGCTGGCGCTGCTGGCCCTCTGGGGACCTGACCCAGCCGCAGCCTTTGTGAACCAACACCTGTGCGGCTCACACCTGGTGGAAGCTCTCTACCTAGTGTGCGGGGAACGAGGCTTCTTCTACACACCCAAGACCCGCCGGGAGGCAGAGGACCTGCAGGTGGGGCAGGTGGAGCTGGGCGGGGGCCCTGGTGCAGGCAGCCTGCAGCCCTTGGCCCTGGAGGGGTCCCTGCAGAAGCGTGGCATTGTGGAACAATGCTGTACCAGCATCTGCTCCCTCTACCAGCTGGAGAACTACTGCAACTAGACGCAGCCCGCAGGCAGCCCCACACCCGCCGCCTCCTGCACCGAGAGAGATGGAATAAAGCCCTTGAACCAGC",
+        "desc": null,
+        "query": "ENST00000397262"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "sequences_cdna.json"
+    },
+    {
+      "name": "sequence_region",
+      "method": "GET",
+      "path": "/sequence/region/homo_sapiens/11:2159779-2161209",
+      "query": {
+        "content-type": "application/json",
+        "type": "dna"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 1533,
+      "elapsed_ms": 1721,
+      "shape": "dict{seq,id,query,molecule}",
+      "sample": "{\"seq\": \"GCTGGTTCAAGGGCTTTATTCCATCTCTCTCGGTGCAGGAGGCGGCGGGTGTGGGGCTGCCTGCGGGCTGCGTCTAGTTGCAGTAGTTCTCCAGCTGGTAGAGGGAGCAGATGCTGGTACAGCATTGTTCCACAATGCCACGCTTCTGCAGGGACCCCTCCAGGGCCAAGGGCTGCAGGCTGCCTGCACCAGGGCCCCCGCCCAGCTCCACCTGCCCCACTGCCAGGACGTGCCGCGCAGAGCAGGTTCCGGAACAGCGGCGAGGCAGAGGGACACAGGAGGACACAGTCAGGGAGACACAGTGCCCGCCTGCCCGCCAGCCCTAGGTCGCACTCCCACCCATCTCCAGCCGGGCTGGACCCAGGTTAGAGGGAGGGTCACCCACACTGGGTGTGGACCTACAGGCCCCAACGCCCACATGTCCCACCTCCTTCCCCCGCCCCGGGGCAGCGTCACAGTGGGAGCCTGAACAGGTGATCCCAGTACTTCTCCCCAGGGCCTGTCCCCAGCATCTTCCCCATCTCCTGACTATGGAGCTGCCGTGAGGCCTGGCGACAGGGGTCTGGCCCACTCAGGCAGGCAGCCACGCCCTCCTCCGGGCGTGATGGGGTGTTCGCCCAGAGGCAGGCAGCGTGGGGCACCCTGTGACCCCAGGTCACCCAGGACTTTACTTAACAAAACACTTGAATCTGCGGTCATCAAATGAGGGTGGAGAAATGGGCTGCGGGGCATTTGTTTGAGGGGCGAGTGGAGGGAGGAGCGTGCCCACCCTCTGATGTATCTCGGGGCTGCCGAAGCCAACACCGTCCTCAGGCTGAGATTCTGACTGGGCCACAGGGAGCTGGTCACTTTTAGGACGTGACCAAGAGAACTTCTTTTTAAAAAAGTGCACCTGACCCCCTGCTGGGTGGCAGCCTCCTGCCCCCTTCTGCCCATGCTGGGTGGGAGCGCCAGGAGCAGGGGGTGGCTGGGGGCGGCCAGGGGCAGCAATGGGCAGTTGGCTCACCCTGCAGGTCCTCTGCCTCCCGGCGGGTCTTGGGTGTGTAGAAGAAGCCTCGTTCCCCGCACACTAGGTAGAGAGCTTCCACCAGGTGTGAGCCGCACAGGTGTTGGTTCACAAAGGCTGCGGCTGGGTCAGGTCCCCAGAGGGCCAGCAGCGCCAGCAGGGGCAGGAGGCGCATCCACAGGGCCATGGCAGAAGGACAGTGATCTGGGAGACAGGCAGGGCTGAGGCAGGCTGAAGGCCAGGTGCCCTGCCTTGGGGCCCCTGGGCTCACCCCCACATGCTTCACGAGCCCAGCCACGTCCTCCCTGCTGCAGAGCTGGGGCCTGGGGTCCAGCCACCCTGGAATCCTGAGCCCACCTGACGCAAAGGCCCTTGGAACAGACCTGCTTGATGGCCTCTTCTGATGCAGCCTGTCCTGGAGGGCT\", \"id\": \"chromosome:GRCh38:11:2159779:2161209:1\", \"query...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "sequence_region.json"
+    },
+    {
+      "name": "transcript_haplotypes",
+      "method": "GET",
+      "path": "/transcript_haplotypes/homo_sapiens/ENST00000397262",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 19947,
+      "elapsed_ms": 5474,
+      "shape": "dict{protein_haplotypes,total_population_counts,cds_haplotypes,transcript_id,total_haplotype_count}",
+      "sample": "{\"protein_haplotypes\": [{\"name\": \"ENSP00000380432:REF\", \"type\": \"protein\", \"other_hexes\": {\"37c094c51775f8bff91bbc33ee2a7c82\": 1, \"04e867b3978a39f6dd2e4bebf890dc6c\": 1, \"15d741896787e75c5f10e161930de59a\": 1, \"0ff2a904ccbb2cd39843cfbccf50da62\": 1, \"ff8501aba46f6f136259ec810363daff\": 1}, \"contributing_variants\": [], \"population_counts\": {\"1000GENOMES:phase_3:CHS\": 210, \"1000GENOMES:phase_3:CDX\": 186, \"1000GENOMES:phase_3:ESN\": 198, \"1000GENOMES:phase_3:PEL\": 170, \"GGVP:ALL\": 1009, \"1000GENOMES:phase_3:MXL\": 128, \"1000GENOMES:phase_3:ASW\": 121, \"1000GENOMES:phase_3:FIN\": 198, \"1000GENOMES:phase_3:PJL\": 192, \"1000GENOMES:phase_3:CEU\": 198, \"1000GENOMES:phase_3:MSL\": 167, \"_all\": 6000, \"1000GENOMES:phase_3:SAS\": 978, \"1000GENOMES:phase_3:EAS\": 999, \"1000GENOMES:phase_3:KHV\": 198, \"1000GENOMES:phase_3:CHB\": 205, \"GGVP:GWD\": 433, \"1000GENOMES:phase_3:IBS\": 214, \"1000GENOMES:phase_3:AFR\": 1316, \"1000GENOMES:phase_3:GBR\": 182, \"1000GENOMES:phase_3:ACB\": 191, \"1000GENOMES:phase_3:TSI\": 214, \"GGVP:GWW\": 196, \"GGVP:GWJ\": 196, \"1000GENOMES:phase_3:GIH\": 206, \"1000GENOMES:phase_3:CLM\": 188, \"1000GENOMES:phase_3:GWD\": 225, \"1000GENOMES:phase_3:AMR\": 692, \"1000GENOMES:phase_3:EUR\": 1006, \"1000GENOMES:phase_3:YRI\": 216, \"1000GENOMES:phase_3:JPT\": 200, \"1000GENOMES:phase_3:BEB\": 172, \"1000GENOMES:phase_3:ITU\": 204, \"1000GENOMES:phase_3:PUR\": 206, \"1000GENOMES:phase_3:LWK\": 198, \"GGVP:GWF\": 184, \"1000GENOMES:phase_3:STU\": 204, \"1000GENOMES:phase_3:ALL\": 4991}, \"population_frequencies\": {\"100...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "transcript_haplotypes.json"
+    },
+    {
+      "name": "vep_id",
+      "method": "GET",
+      "path": "/vep/homo_sapiens/id/rs1801270",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 37979,
+      "elapsed_ms": 11223,
+      "shape": "list[1]",
+      "sample": "{\"allele_string\": \"C/A/T\", \"input\": \"rs1801270\", \"colocated_variants\": [{\"strand\": 1, \"end\": 36684194, \"id\": \"CM940226\", \"phenotype_or_disease\": 1, \"allele_string\": \"HGMD_MUTATION\", \"start\": 36684194, \"seq_region_name\": \"6\"}, {\"id\": \"COSV55187247\", \"end\": 36684194, \"strand\": 1, \"phenotype_or_disease\": 1, \"allele_string\": \"COSMIC_MUTATION\", \"start\": 36684194, \"somatic\": 1, \"seq_region_name\": \"6\", \"var_synonyms\": {\"COSMIC\": [\"COSM3762017\"]}}, {\"frequencies\": {\"A\": {\"gnomadg_mid\": 0.09864, \"af\": 0.2562, \"gnomade_remaining\": 0.1123, \"gnomadg\": 0.1492, \"gnomade_asj\": 0.09044, \"gnomadg_amr\": 0.2247, \"amr\": 0.2493, \"gnomade_nfe\": 0.06526, \"gnomade_eas\": 0.4805, \"gnomade_amr\": 0.3323, \"eur\": 0.0666, \"gnomadg_afr\": 0.2488, \"gnomadg_fin\": 0.0601, \"sas\": 0.1452, \"eas\": 0.4881, \"afr\": 0.3094, \"gnomade_mid\": 0.126, \"gnomadg_remaining\": 0.141, \"gnomadg_sas\": 0.1216, \"gnomade_sas\": 0.1036, \"gnomadg_eas\": 0.4864, \"gnomade\": 0.09367, \"gnomadg_ami\": 0.1363, \"gnomadg_nfe\": 0.06574, \"gnomade_fin\": 0.05574, \"gnomade_afr\": 0.256, \"gnomadg_asj\": 0.08415}, \"T\": {\"gnomadg_asj\": 0, \"gnomade_fin\": 0, \"gnomade_afr\": 2.987e-05, \"gnomadg_nfe\": 2.94e-05, \"gnomadg_ami\": 0, \"gnomade\": 6.646e-05, \"gnomadg_eas\": 0, \"gnomade_sas\": 0, \"gnomadg_sas\": 0, \"gnomadg_remaining\": 0, \"gnomade_mid\": 0.0008669, \"gnomadg_fin\": 0, \"gnomadg_afr\": 0, \"gnomade_amr\": 0, \"gnomade_eas\": 0, \"gnomade_nfe\": 7.914e-05, \"gnomadg_amr\": 0, \"gnomade_asj\": 0, \"gnomade_remaining\": 4.968e-05, \"gnomadg\": 1.314e-05, \"gnomadg_mid\": 0}}, \"id...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "vep_id.json"
+    },
+    {
+      "name": "vep_hgvs",
+      "method": "GET",
+      "path": "/vep/homo_sapiens/hgvs/NC_000011.10%3Ag.2159779G%3EA",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 15623,
+      "elapsed_ms": 4488,
+      "shape": "list[1]",
+      "sample": "{\"end\": 2159779, \"transcript_consequences\": [{\"gene_symbol\": \"INS\", \"impact\": \"MODIFIER\", \"transcript_id\": \"ENST00000250971\", \"cdna_start\": 503, \"cdna_end\": 503, \"gene_id\": \"ENSG00000254647\", \"gene_symbol_source\": \"HGNC\", \"consequence_terms\": [\"3_prime_UTR_variant\"], \"hgnc_id\": \"HGNC:6081\", \"strand\": -1, \"variant_allele\": \"A\", \"biotype\": \"protein_coding\"}, {\"transcript_id\": \"ENST00000333684\", \"impact\": \"MODIFIER\", \"distance\": 4150, \"gene_symbol\": \"TH\", \"strand\": -1, \"consequence_terms\": [\"downstream_gene_variant\"], \"hgnc_id\": \"HGNC:11782\", \"gene_symbol_source\": \"HGNC\", \"gene_id\": \"ENSG00000180176\", \"variant_allele\": \"A\", \"biotype\": \"protein_coding\"}, {\"variant_allele\": \"A\", \"biotype\": \"protein_coding\", \"strand\": -1, \"gene_id\": \"ENSG00000180176\", \"consequence_terms\": [\"downstream_gene_variant\"], \"hgnc_id\": \"HGNC:11782\", \"gene_symbol_source\": \"HGNC\", \"transcript_id\": \"ENST00000352909\", \"impact\": \"MODIFIER\", \"distance\": 4150, \"gene_symbol\": \"TH\"}, {\"biotype\": \"protein_coding\", \"variant_allele\": \"A\", \"strand\": -1, \"gene_id\": \"ENSG00000180176\", \"consequence_terms\": [\"downstream_gene_variant\"], \"gene_symbol_source\": \"HGNC\", \"hgnc_id\": \"HGNC:11782\", \"distance\": 4150, \"transcript_id\": \"ENST00000381175\", \"impact\": \"MODIFIER\", \"gene_symbol\": \"TH\"}, {\"transcript_id\": \"ENST00000381178\", \"distance\": 4150, \"impact\": \"MODIFIER\", \"gene_symbol\": \"TH\", \"variant_allele\": \"A\", \"biotype\": \"protein_coding\", \"strand\": -1, \"hgnc_id\": \"HGNC:11782\", \"consequence_terms\": [\"downstream_gene_variant\"],...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "vep_hgvs.json"
+    },
+    {
+      "name": "vep_region",
+      "method": "GET",
+      "path": "/vep/homo_sapiens/region/11:2159779-2159779/A",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 15611,
+      "elapsed_ms": 3544,
+      "shape": "list[1]",
+      "sample": "{\"assembly_name\": \"GRCh38\", \"strand\": 1, \"start\": 2159779, \"input\": \"11 2159779 2159779 G/A 1\", \"allele_string\": \"G/A\", \"seq_region_name\": \"11\", \"id\": \"11_2159779_G/A\", \"most_severe_consequence\": \"incomplete_terminal_codon_variant\", \"transcript_consequences\": [{\"biotype\": \"protein_coding\", \"variant_allele\": \"A\", \"consequence_terms\": [\"3_prime_UTR_variant\"], \"gene_symbol_source\": \"HGNC\", \"gene_id\": \"ENSG00000254647\", \"hgnc_id\": \"HGNC:6081\", \"strand\": -1, \"cdna_end\": 503, \"cdna_start\": 503, \"gene_symbol\": \"INS\", \"impact\": \"MODIFIER\", \"transcript_id\": \"ENST00000250971\"}, {\"gene_symbol\": \"TH\", \"transcript_id\": \"ENST00000333684\", \"distance\": 4150, \"impact\": \"MODIFIER\", \"variant_allele\": \"A\", \"biotype\": \"protein_coding\", \"gene_symbol_source\": \"HGNC\", \"gene_id\": \"ENSG00000180176\", \"consequence_terms\": [\"downstream_gene_variant\"], \"hgnc_id\": \"HGNC:11782\", \"strand\": -1}, {\"gene_symbol\": \"TH\", \"impact\": \"MODIFIER\", \"transcript_id\": \"ENST00000352909\", \"distance\": 4150, \"biotype\": \"protein_coding\", \"variant_allele\": \"A\", \"gene_id\": \"ENSG00000180176\", \"consequence_terms\": [\"downstream_gene_variant\"], \"gene_symbol_source\": \"HGNC\", \"hgnc_id\": \"HGNC:11782\", \"strand\": -1}, {\"gene_symbol\": \"TH\", \"transcript_id\": \"ENST00000381175\", \"distance\": 4150, \"impact\": \"MODIFIER\", \"variant_allele\": \"A\", \"biotype\": \"protein_coding\", \"gene_symbol_source\": \"HGNC\", \"hgnc_id\": \"HGNC:11782\", \"consequence_terms\": [\"downstream_gene_variant\"], \"gene_id\": \"ENSG00000180176\", \"strand\": -1}, {\"gene_symbol\": \"TH\", ...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "vep_region.json"
+    },
+    {
+      "name": "vep_hgvs_post",
+      "method": "POST",
+      "path": "/vep/homo_sapiens/hgvs",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "hgvs_notations": [
+          "NC_000011.10:g.2159779G>A"
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 15623,
+      "elapsed_ms": 2019,
+      "shape": "list[1]",
+      "sample": "{\"transcript_consequences\": [{\"biotype\": \"protein_coding\", \"consequence_terms\": [\"3_prime_UTR_variant\"], \"transcript_id\": \"ENST00000250971\", \"hgnc_id\": \"HGNC:6081\", \"variant_allele\": \"A\", \"impact\": \"MODIFIER\", \"gene_symbol\": \"INS\", \"gene_id\": \"ENSG00000254647\", \"cdna_start\": 503, \"strand\": -1, \"gene_symbol_source\": \"HGNC\", \"cdna_end\": 503}, {\"hgnc_id\": \"HGNC:11782\", \"transcript_id\": \"ENST00000333684\", \"consequence_terms\": [\"downstream_gene_variant\"], \"biotype\": \"protein_coding\", \"gene_symbol_source\": \"HGNC\", \"distance\": 4150, \"strand\": -1, \"gene_symbol\": \"TH\", \"gene_id\": \"ENSG00000180176\", \"variant_allele\": \"A\", \"impact\": \"MODIFIER\"}, {\"biotype\": \"protein_coding\", \"transcript_id\": \"ENST00000352909\", \"consequence_terms\": [\"downstream_gene_variant\"], \"hgnc_id\": \"HGNC:11782\", \"gene_symbol\": \"TH\", \"gene_id\": \"ENSG00000180176\", \"variant_allele\": \"A\", \"impact\": \"MODIFIER\", \"distance\": 4150, \"strand\": -1, \"gene_symbol_source\": \"HGNC\"}, {\"hgnc_id\": \"HGNC:11782\", \"consequence_terms\": [\"downstream_gene_variant\"], \"transcript_id\": \"ENST00000381175\", \"biotype\": \"protein_coding\", \"gene_symbol_source\": \"HGNC\", \"strand\": -1, \"distance\": 4150, \"variant_allele\": \"A\", \"impact\": \"MODIFIER\", \"gene_id\": \"ENSG00000180176\", \"gene_symbol\": \"TH\"}, {\"variant_allele\": \"A\", \"impact\": \"MODIFIER\", \"gene_id\": \"ENSG00000180176\", \"gene_symbol\": \"TH\", \"strand\": -1, \"distance\": 4150, \"gene_symbol_source\": \"HGNC\", \"biotype\": \"protein_coding\", \"consequence_terms\": [\"downstream_gene_variant\"], \"transcript_id\":...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "vep_hgvs_post.json"
+    },
+    {
+      "name": "vep_id_post",
+      "method": "POST",
+      "path": "/vep/homo_sapiens/id",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "ids": [
+          "rs1801270"
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 37979,
+      "elapsed_ms": 4206,
+      "shape": "list[1]",
+      "sample": "{\"id\": \"rs1801270\", \"most_severe_consequence\": \"missense_variant\", \"strand\": 1, \"allele_string\": \"C/A/T\", \"assembly_name\": \"GRCh38\", \"transcript_consequences\": [{\"cdna_start\": 183, \"consequence_terms\": [\"missense_variant\"], \"cdna_end\": 183, \"impact\": \"MODERATE\", \"cds_start\": 93, \"protein_end\": 31, \"biotype\": \"protein_coding\", \"polyphen_prediction\": \"benign\", \"variant_allele\": \"A\", \"gene_symbol_source\": \"HGNC\", \"amino_acids\": \"S/R\", \"protein_start\": 31, \"codons\": \"agC/agA\", \"cds_end\": 93, \"sift_prediction\": \"tolerated\", \"sift_score\": 1, \"gene_id\": \"ENSG00000124762\", \"polyphen_score\": 0, \"strand\": 1, \"transcript_id\": \"ENST00000244741\", \"hgnc_id\": \"HGNC:1784\", \"gene_symbol\": \"CDKN1A\"}, {\"strand\": 1, \"transcript_id\": \"ENST00000244741\", \"hgnc_id\": \"HGNC:1784\", \"gene_symbol\": \"CDKN1A\", \"codons\": \"agC/agT\", \"cds_end\": 93, \"gene_id\": \"ENSG00000124762\", \"protein_start\": 31, \"amino_acids\": \"S\", \"gene_symbol_source\": \"HGNC\", \"variant_allele\": \"T\", \"cds_start\": 93, \"protein_end\": 31, \"biotype\": \"protein_coding\", \"cdna_start\": 183, \"impact\": \"LOW\", \"consequence_terms\": [\"synonymous_variant\"], \"cdna_end\": 183}, {\"gene_symbol_source\": \"HGNC\", \"protein_start\": 31, \"amino_acids\": \"S/R\", \"codons\": \"agC/agA\", \"cds_end\": 93, \"sift_prediction\": \"tolerated\", \"sift_score\": 1, \"gene_id\": \"ENSG00000124762\", \"polyphen_score\": 0, \"transcript_id\": \"ENST00000373711\", \"strand\": 1, \"hgnc_id\": \"HGNC:1784\", \"gene_symbol\": \"CDKN1A\", \"cdna_start\": 308, \"consequence_terms\": [\"missense_variant\"], \"cdna_end\": ...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "vep_id_post.json"
+    },
+    {
+      "name": "vep_region_post",
+      "method": "POST",
+      "path": "/vep/homo_sapiens/region",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "variants": [
+          "11 2159779 2159779 G/A 1"
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 15611,
+      "elapsed_ms": 9222,
+      "shape": "list[1]",
+      "sample": "{\"seq_region_name\": \"11\", \"input\": \"11 2159779 2159779 G/A 1\", \"strand\": 1, \"end\": 2159779, \"allele_string\": \"G/A\", \"assembly_name\": \"GRCh38\", \"id\": \"11_2159779_G/A\", \"transcript_consequences\": [{\"cdna_start\": 503, \"hgnc_id\": \"HGNC:6081\", \"variant_allele\": \"A\", \"gene_symbol\": \"INS\", \"strand\": -1, \"gene_symbol_source\": \"HGNC\", \"gene_id\": \"ENSG00000254647\", \"cdna_end\": 503, \"biotype\": \"protein_coding\", \"transcript_id\": \"ENST00000250971\", \"consequence_terms\": [\"3_prime_UTR_variant\"], \"impact\": \"MODIFIER\"}, {\"gene_symbol\": \"TH\", \"strand\": -1, \"hgnc_id\": \"HGNC:11782\", \"variant_allele\": \"A\", \"gene_id\": \"ENSG00000180176\", \"gene_symbol_source\": \"HGNC\", \"biotype\": \"protein_coding\", \"distance\": 4150, \"transcript_id\": \"ENST00000333684\", \"consequence_terms\": [\"downstream_gene_variant\"], \"impact\": \"MODIFIER\"}, {\"distance\": 4150, \"biotype\": \"protein_coding\", \"impact\": \"MODIFIER\", \"consequence_terms\": [\"downstream_gene_variant\"], \"transcript_id\": \"ENST00000352909\", \"gene_id\": \"ENSG00000180176\", \"gene_symbol_source\": \"HGNC\", \"gene_symbol\": \"TH\", \"strand\": -1, \"variant_allele\": \"A\", \"hgnc_id\": \"HGNC:11782\"}, {\"gene_id\": \"ENSG00000180176\", \"gene_symbol_source\": \"HGNC\", \"gene_symbol\": \"TH\", \"strand\": -1, \"hgnc_id\": \"HGNC:11782\", \"variant_allele\": \"A\", \"distance\": 4150, \"biotype\": \"protein_coding\", \"impact\": \"MODIFIER\", \"consequence_terms\": [\"downstream_gene_variant\"], \"transcript_id\": \"ENST00000381175\"}, {\"impact\": \"MODIFIER\", \"consequence_terms\": [\"downstream_gene_variant\"], \"transcript_id\"...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "vep_region_post.json"
+    },
+    {
+      "name": "variation_id",
+      "method": "GET",
+      "path": "/variation/homo_sapiens/rs1801270",
+      "query": {
+        "content-type": "application/json",
+        "pops": "1"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 13854,
+      "elapsed_ms": 1354,
+      "shape": "dict{source,MAF,synonyms,clinical_significance,ambiguity,var_class,mappings,name,evidence,minor_allele,populations,most_severe_consequence}",
+      "sample": "{\"source\": \"Variants (including SNPs and indels) imported from dbSNP\", \"MAF\": null, \"synonyms\": [\"rs17851079\", \"rs17849556\", \"rs3176351\", \"RCV003428841\", \"VCV000017565\", \"RCV000019125\", \"VCV002656516\", \"VAR_011870\", \"116899.0001\"], \"clinical_significance\": [\"benign\", \"likely benign\"], \"ambiguity\": \"H\", \"var_class\": \"SNP\", \"mappings\": [{\"end\": 36684194, \"start\": 36684194, \"allele_string\": \"C/A/T\", \"coord_system\": \"chromosome\", \"strand\": 1, \"ancestral_allele\": \"C\", \"assembly_name\": \"GRCh38\", \"seq_region_name\": \"6\", \"location\": \"6:36684194-36684194\"}], \"name\": \"rs1801270\", \"evidence\": [\"Frequency\", \"1000Genomes\", \"Cited\", \"ESP\", \"Phenotype_or_Disease\", \"ExAC\", \"TOPMed\", \"gnomAD\"], \"minor_allele\": null, \"populations\": [{\"allele\": \"T\", \"frequency\": 4.968e-05, \"allele_count\": 3, \"population\": \"gnomADe:remaining\"}, {\"population\": \"gnomADe:remaining\", \"allele\": \"C\", \"frequency\": 0.8876, \"allele_count\": 53598}, {\"allele\": \"A\", \"frequency\": 0.1123, \"allele_count\": 6781, \"population\": \"gnomADe:remaining\"}, {\"population\": \"gnomADe:nfe\", \"allele_count\": 88, \"frequency\": 7.914e-05, \"allele\": \"T\"}, {\"population\": \"gnomADe:nfe\", \"allele\": \"A\", \"allele_count\": 72560, \"frequency\": 0.06526}, {\"frequency\": 0.9347, \"allele_count\": 1039294, \"allele\": \"C\", \"population\": \"gnomADe:nfe\"}, {\"allele\": \"T\", \"frequency\": 6.646e-05, \"allele_count\": 97, \"population\": \"gnomADe:ALL\"}, {\"population\": \"gnomADe:ALL\", \"allele\": \"A\", \"allele_count\": 136706, \"frequency\": 0.09367}, {\"population\": \"gnomADe:ALL\", \"...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "variation_id.json"
+    },
+    {
+      "name": "variations_pmcid",
+      "method": "GET",
+      "path": "/variation/homo_sapiens/pmcid/PMC7610439",
+      "query": {
+        "content-type": "application/json",
+        "limit": "3",
+        "offset": "1"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 325102,
+      "elapsed_ms": 178522,
+      "shape": "list[550]",
+      "sample": {
+        "name": "rs699",
+        "clinical_significance": [
+          "benign"
+        ],
+        "minor_allele": null,
+        "evidence": [
+          "Frequency",
+          "1000Genomes",
+          "Cited",
+          "ESP",
+          "Phenotype_or_Disease",
+          "ExAC",
+          "TOPMed",
+          "gnomAD"
+        ],
+        "var_class": "SNP",
+        "synonyms": [
+          "NP_001369746.2:p.Met259Thr",
+          "NM_001384479.1:c.776T>C",
+          "NM_000029.3:c.803T>C",
+          "NM_000029.4:c.803T>C",
+          "NM_001382817.3:c.776T>C",
+          "NM_001382817.2:c.776T>C",
+          "NM_001382817.1:c.803T>C",
+          "NP_001371408.1:p.Met259Thr",
+          "VAR_007096",
+          "rs17856353",
+          "rs386606420",
+          "rs61617185",
+          "rs3182295",
+          "rs4714",
+          "RCV000019691",
+          "RCV000405686",
+          "RCV002259306",
+          "RCV000835695",
+          "RCV000019692",
+          "RCV000242838",
+          "VCV000018068",
+          "RCV000019693",
+          "PA166153539",
+          "106150.0001"
+        ],
+        "ambiguity": "R",
+        "mappings": [
+          {
+            "seq_region_name": "1",
+            "strand": 1,
+            "location": "1:230710048-230710048",
+            "end": 230710048,
+            "assembly_name": "GRCh38",
+            "start": 230710048,
+            "allele_string": "A/G",
+            "ancestral_allele": "G",
+            "coord_system": "chromosome"
+          }
+        ],
+        "MAF": null,
+        "most_severe_consequence": "missense_variant",
+        "source": "Variants (including SNPs and indels) imported from dbSNP"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "variations_pmcid.json"
+    },
+    {
+      "name": "variations_pmid",
+      "method": "GET",
+      "path": "/variation/homo_sapiens/pmid/33230300",
+      "query": {
+        "content-type": "application/json",
+        "limit": "3",
+        "offset": "1"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 325102,
+      "elapsed_ms": 96303,
+      "shape": "list[550]",
+      "sample": {
+        "most_severe_consequence": "missense_variant",
+        "source": "Variants (including SNPs and indels) imported from dbSNP",
+        "ambiguity": "R",
+        "MAF": null,
+        "synonyms": [
+          "106150.0001",
+          "PA166153539",
+          "NM_001382817.2:c.776T>C",
+          "NM_000029.4:c.803T>C",
+          "NM_001382817.3:c.776T>C",
+          "NM_001382817.1:c.803T>C",
+          "NP_001369746.2:p.Met259Thr",
+          "NM_000029.3:c.803T>C",
+          "NP_001371408.1:p.Met259Thr",
+          "NM_001384479.1:c.776T>C",
+          "RCV000242838",
+          "RCV000405686",
+          "VCV000018068",
+          "RCV000019692",
+          "RCV000019691",
+          "RCV000835695",
+          "RCV002259306",
+          "RCV000019693",
+          "rs4714",
+          "rs386606420",
+          "rs3182295",
+          "rs17856353",
+          "rs61617185",
+          "VAR_007096"
+        ],
+        "name": "rs699",
+        "evidence": [
+          "Frequency",
+          "1000Genomes",
+          "Cited",
+          "ESP",
+          "Phenotype_or_Disease",
+          "ExAC",
+          "TOPMed",
+          "gnomAD"
+        ],
+        "minor_allele": null,
+        "clinical_significance": [
+          "benign"
+        ],
+        "var_class": "SNP",
+        "mappings": [
+          {
+            "ancestral_allele": "G",
+            "seq_region_name": "1",
+            "end": 230710048,
+            "location": "1:230710048-230710048",
+            "allele_string": "A/G",
+            "coord_system": "chromosome",
+            "start": 230710048,
+            "strand": 1,
+            "assembly_name": "GRCh38"
+          }
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "variations_pmid.json"
+    },
+    {
+      "name": "variant_recoder",
+      "method": "GET",
+      "path": "/variant_recoder/homo_sapiens/rs1801270",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 5885,
+      "elapsed_ms": 27498,
+      "shape": "list[1]",
+      "sample": "{\"A\": {\"hgvsc\": [\"ENST00000244741.10:c.93C>A\", \"ENST00000373711.5:c.93C>A\", \"ENST00000405375.6:c.93C>A\", \"ENST00000448526.7:c.93C>A\", \"ENST00000459970.1:n.287C>A\", \"ENST00000478800.1:n.312C>A\", \"ENST00000615513.5:c.93C>A\", \"ENST00000864199.2:c.93C>A\", \"ENST00000864200.2:c.93C>A\", \"ENST00000864201.2:c.93C>A\", \"ENST00000864202.2:c.93C>A\", \"ENST00000864203.2:c.93C>A\", \"ENST00000864204.2:c.93C>A\", \"ENST00000864205.2:c.93C>A\", \"ENST00000864206.2:c.93C>A\", \"ENST00000864207.2:c.93C>A\", \"ENST00000911804.2:c.93C>A\", \"ENST00000911805.2:c.93C>A\", \"ENST00000911806.2:c.93C>A\", \"ENST00000911807.2:c.93C>A\", \"ENST00000911808.2:c.93C>A\", \"ENST00000911809.2:c.93C>A\", \"ENST00000911810.2:c.93C>A\", \"ENST00000911811.2:c.93C>A\", \"ENST00000911812.2:c.93C>A\", \"ENST00000943104.2:c.93C>A\", \"ENST00000943105.2:c.93C>A\", \"ENST00000943106.2:c.93C>A\", \"ENST00000943107.2:c.93C>A\", \"ENST00000943108.2:c.93C>A\", \"ENST00000943109.2:c.93C>A\", \"ENST00000943110.2:c.93C>A\", \"ENST00000943111.2:c.93C>A\", \"ENST00000943112.2:c.93C>A\", \"ENST00000943113.2:c.93C>A\", \"ENST00000943114.2:c.93C>A\", \"ENST00000943115.2:c.93C>A\", \"ENST00000943116.2:c.93C>A\", \"ENST00001118838.1:c.93C>A\", \"ENST00001133644.1:c.93C>A\", \"NM_000389.5:c.93C>A\", \"NM_001220777.2:c.93C>A\", \"NM_001220778.2:c.93C>A\", \"NM_001291549.3:c.195C>A\", \"NM_001374509.1:c.195C>A\", \"NM_001374510.1:c.132C>A\", \"NM_001374511.1:c.93C>A\", \"NM_001374512.1:c.93C>A\", \"NM_001374513.1:c.93C>A\", \"NM_078467.3:c.93C>A\"], \"spdi\": [\"NC_000006.12:36684193:C:A\"], \"id\": [\"rs1801270\", ...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "variant_recoder.json"
+    },
+    {
+      "name": "variations_batch_post",
+      "method": "POST",
+      "path": "/variation/homo_sapiens",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "ids": [
+          "rs1801270"
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 715,
+      "elapsed_ms": 20631,
+      "shape": "dict{rs1801270}",
+      "sample": {
+        "rs1801270": {
+          "minor_allele": null,
+          "clinical_significance": [
+            "benign",
+            "likely benign"
+          ],
+          "ambiguity": "H",
+          "synonyms": [
+            "VCV000017565",
+            "VCV002656516",
+            "RCV003428841",
+            "RCV000019125",
+            "VAR_011870",
+            "116899.0001",
+            "rs3176351",
+            "rs17849556",
+            "rs17851079"
+          ],
+          "name": "rs1801270",
+          "mappings": [
+            {
+              "strand": 1,
+              "allele_string": "C/A/T",
+              "ancestral_allele": "C",
+              "assembly_name": "GRCh38",
+              "start": 36684194,
+              "end": 36684194,
+              "coord_system": "chromosome",
+              "location": "6:36684194-36684194",
+              "seq_region_name": "6"
+            }
+          ],
+          "most_severe_consequence": "missense_variant",
+          "evidence": [
+            "Frequency",
+            "1000Genomes",
+            "Cited",
+            "ESP",
+            "Phenotype_or_Disease",
+            "ExAC",
+            "TOPMed",
+            "gnomAD"
+          ],
+          "var_class": "SNP",
+          "MAF": null,
+          "source": "Variants (including SNPs and indels) imported from dbSNP"
+        }
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "variations_batch_post.json"
+    },
+    {
+      "name": "variant_recoder_batch_post",
+      "method": "POST",
+      "path": "/variant_recoder/homo_sapiens",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "ids": [
+          "rs1801270"
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 5885,
+      "elapsed_ms": 21696,
+      "shape": "list[1]",
+      "sample": "{\"T\": {\"id\": [\"rs1801270\", \"COSV55187247\", \"CM940226\"], \"hgvsp\": [\"ENSP00000244741.6:p.Ser31=\", \"ENSP00000362815.1:p.Ser31=\", \"ENSP00000384849.1:p.Ser31=\", \"ENSP00000409259.3:p.Ser31=\", \"ENSP00000482768.1:p.Ser31=\", \"ENSP00000534258.1:p.Ser31=\", \"ENSP00000534259.1:p.Ser31=\", \"ENSP00000534260.1:p.Ser31=\", \"ENSP00000534261.1:p.Ser31=\", \"ENSP00000534262.1:p.Ser31=\", \"ENSP00000534263.1:p.Ser31=\", \"ENSP00000534264.1:p.Ser31=\", \"ENSP00000534265.1:p.Ser31=\", \"ENSP00000534266.1:p.Ser31=\", \"ENSP00000581863.1:p.Ser31=\", \"ENSP00000581864.1:p.Ser31=\", \"ENSP00000581865.1:p.Ser31=\", \"ENSP00000581866.1:p.Ser31=\", \"ENSP00000581867.1:p.Ser31=\", \"ENSP00000581868.1:p.Ser31=\", \"ENSP00000581869.1:p.Ser31=\", \"ENSP00000581870.1:p.Ser31=\", \"ENSP00000581871.1:p.Ser31=\", \"ENSP00000613163.1:p.Ser31=\", \"ENSP00000613164.1:p.Ser31=\", \"ENSP00000613165.1:p.Ser31=\", \"ENSP00000613166.1:p.Ser31=\", \"ENSP00000613167.1:p.Ser31=\", \"ENSP00000613168.1:p.Ser31=\", \"ENSP00000613169.1:p.Ser31=\", \"ENSP00000613170.1:p.Ser31=\", \"ENSP00000613171.1:p.Ser31=\", \"ENSP00000613172.1:p.Ser31=\", \"ENSP00000613173.1:p.Ser31=\", \"ENSP00000613174.1:p.Ser31=\", \"ENSP00000613175.1:p.Ser31=\", \"ENSP00000788643.1:p.Ser31=\", \"ENSP00000802355.1:p.Ser31=\", \"NP_000380.1:p.Ser31=\", \"NP_001207706.1:p.Ser31=\", \"NP_001207707.1:p.Ser31=\", \"NP_001278478.1:p.Ser65=\", \"NP_001361438.1:p.Ser65=\", \"NP_001361439.1:p.Ser44=\", \"NP_001361440.1:p.Ser31=\", \"NP_001361441.1:p.Ser31=\", \"NP_001361442.1:p.Ser31=\", \"NP_510867.1:p.Ser31=\"], \"hgvsg\": [\"NC_000006.12:g....",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "variant_recoder_batch_post.json"
+    },
+    {
+      "name": "ga4gh_references",
+      "method": "POST",
+      "path": "/ga4gh/references/search",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "referenceSetId": "GRCh38",
+        "pageSize": 1
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 392,
+      "elapsed_ms": 318,
+      "shape": "dict{nextPageToken,references}",
+      "sample": {
+        "nextPageToken": 1,
+        "references": [
+          {
+            "isDerived": "true",
+            "name": "1",
+            "ncbiTaxonId": 9606,
+            "sourceAccessions": [
+              "NC_000001.11"
+            ],
+            "sourceDivergence": null,
+            "md5checksum": "5b116cf6db50b1b659481505c70acf51",
+            "length": 248956422,
+            "id": "5b116cf6db50b1b659481505c70acf51",
+            "sourceURI": "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.1.fa.gz",
+            "isPrimary": "true"
+          }
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_references.json"
+    },
+    {
+      "name": "ga4gh_get_reference",
+      "method": "GET",
+      "path": "/ga4gh/references/5b116cf6db50b1b659481505c70acf51",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 357,
+      "elapsed_ms": 50,
+      "shape": "dict{sourceDivergence,isDerived,isPrimary,length,name,id,md5checksum,ncbiTaxonId,sourceAccessions,sourceURI}",
+      "sample": {
+        "sourceDivergence": null,
+        "isDerived": "true",
+        "isPrimary": "true",
+        "length": 248956422,
+        "name": "1",
+        "id": "5b116cf6db50b1b659481505c70acf51",
+        "md5checksum": "5b116cf6db50b1b659481505c70acf51",
+        "ncbiTaxonId": 9606,
+        "sourceAccessions": [
+          "NC_000001.11"
+        ],
+        "sourceURI": "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.1.fa.gz"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_get_reference.json"
+    },
+    {
+      "name": "ga4gh_get_dataset",
+      "method": "GET",
+      "path": "/ga4gh/datasets/6e340c4d1e333c7a676b1710d2e3953c",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 116,
+      "elapsed_ms": 249,
+      "shape": "dict{id,name,description}",
+      "sample": {
+        "id": "6e340c4d1e333c7a676b1710d2e3953c",
+        "name": "1000 Genomes phase3",
+        "description": "1000 Genomes phase3 genotypes"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_get_dataset.json"
+    },
+    {
+      "name": "ga4gh_variantsets",
+      "method": "POST",
+      "path": "/ga4gh/variantsets/search",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "datasetId": "6e340c4d1e333c7a676b1710d2e3953c",
+        "pageSize": 1
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 5477,
+      "elapsed_ms": 133,
+      "shape": "dict{nextPageToken,variantSets}",
+      "sample": "{\"nextPageToken\": null, \"variantSets\": [{\"datasetId\": \"6e340c4d1e333c7a676b1710d2e3953c\", \"referenceSetId\": \"GRCh38\", \"metadata\": [{\"key\": \"INFO\", \"number\": \"2\", \"description\": \"Confidence interval around END for imprecise variants\", \"type\": \"Integer\", \"info\": {}, \"id\": \"CIEND\"}, {\"key\": \"INFO\", \"number\": \"2\", \"type\": \"Integer\", \"description\": \"Confidence interval around POS for imprecise variants\", \"info\": {}, \"id\": \"CIPOS\"}, {\"number\": \"1\", \"key\": \"INFO\", \"type\": \"String\", \"description\": \"Source call set.\", \"id\": \"CS\", \"info\": {}}, {\"info\": {}, \"id\": \"END\", \"key\": \"INFO\", \"number\": \"1\", \"type\": \"Integer\", \"description\": \"End coordinate of this variant\"}, {\"description\": \"Imprecise structural variation\", \"type\": \"Flag\", \"number\": \"0\", \"key\": \"INFO\", \"id\": \"IMPRECISE\", \"info\": {}}, {\"id\": \"MC\", \"info\": {}, \"number\": \".\", \"key\": \"INFO\", \"type\": \"String\", \"description\": \"Merged calls.\"}, {\"key\": \"INFO\", \"number\": \"4\", \"type\": \"String\", \"description\": \"Mobile element info of the form NAME,START,ENDPOLARITY; If there is only 5' OR 3' support for this call, will be NULL NULL for START and END\", \"info\": {}, \"id\": \"MEINFO\"}, {\"id\": \"MEND\", \"info\": {}, \"type\": \"Integer\", \"description\": \"Mitochondrial end coordinate of inserted sequence\", \"number\": \"1\", \"key\": \"INFO\"}, {\"number\": \"1\", \"key\": \"INFO\", \"type\": \"Integer\", \"description\": \"Estimated length of mitochondrial insert\", \"id\": \"MLEN\", \"info\": {}}, {\"type\": \"Integer\", \"description\": \"Mitochondrial start coordinate of inserted s...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_variantsets.json"
+    },
+    {
+      "name": "ga4gh_variants",
+      "method": "POST",
+      "path": "/ga4gh/variants/search",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "variantSetId": "1",
+        "referenceName": "11",
+        "start": 2159779,
+        "end": 2161209,
+        "pageSize": 1
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 288459,
+      "elapsed_ms": 3684,
+      "shape": "dict{variants,nextPageToken}",
+      "sample": "{\"variants\": [{\"names\": [\"rs192030414\"], \"id\": \"1:rs192030414\", \"referenceName\": \"11\", \"calls\": [{\"phaseset\": \"\", \"callSetId\": \"1:HG02887\", \"info\": {}, \"callSetName\": \"HG02887\", \"genotypeLikelihood\": [], \"genotype\": [0, 0]}, {\"callSetId\": \"1:HG02401\", \"phaseset\": \"\", \"genotype\": [0, 0], \"genotypeLikelihood\": [], \"info\": {}, \"callSetName\": \"HG02401\"}, {\"callSetId\": \"1:HG03607\", \"phaseset\": \"\", \"info\": {}, \"callSetName\": \"HG03607\", \"genotype\": [0, 0], \"genotypeLikelihood\": []}, {\"genotypeLikelihood\": [], \"genotype\": [0, 0], \"info\": {}, \"callSetName\": \"HG01686\", \"phaseset\": \"\", \"callSetId\": \"1:HG01686\"}, {\"callSetId\": \"1:HG03871\", \"phaseset\": \"\", \"genotypeLikelihood\": [], \"genotype\": [0, 0], \"info\": {}, \"callSetName\": \"HG03871\"}, {\"genotype\": [0, 0], \"genotypeLikelihood\": [], \"info\": {}, \"callSetName\": \"NA20890\", \"phaseset\": \"\", \"callSetId\": \"1:NA20890\"}, {\"genotype\": [0, 0], \"genotypeLikelihood\": [], \"info\": {}, \"callSetName\": \"NA18871\", \"callSetId\": \"1:NA18871\", \"phaseset\": \"\"}, {\"phaseset\": \"\", \"callSetId\": \"1:NA19700\", \"genotypeLikelihood\": [], \"genotype\": [0, 0], \"callSetName\": \"NA19700\", \"info\": {}}, {\"genotype\": [0, 0], \"genotypeLikelihood\": [], \"info\": {}, \"callSetName\": \"HG03689\", \"callSetId\": \"1:HG03689\", \"phaseset\": \"\"}, {\"genotypeLikelihood\": [], \"genotype\": [0, 0], \"info\": {}, \"callSetName\": \"HG01055\", \"phaseset\": \"\", \"callSetId\": \"1:HG01055\"}, {\"callSetId\": \"1:NA20334\", \"phaseset\": \"\", \"info\": {}, \"callSetName\": \"NA20334\", \"genotypeLikelihood\": [], \"genotype\": [...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_variants.json"
+    },
+    {
+      "name": "ga4gh_featuresets",
+      "method": "POST",
+      "path": "/ga4gh/featuresets/search",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "datasetId": "Ensembl",
+        "pageSize": 1
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 440,
+      "elapsed_ms": 1044,
+      "shape": "dict{featureSets,nextPageToken}",
+      "sample": {
+        "featureSets": [
+          {
+            "sourceURI": "",
+            "name": "Ensembl_genebuild_39",
+            "datasetId": "Ensembl",
+            "info": {
+              "assembly.name": [
+                "GRCh38.p14"
+              ],
+              "genebuild.havana_datafreeze_date": [
+                "05-08-2025"
+              ],
+              "assembly.long_name": [
+                "Genome Reference Consortium Human Build 38"
+              ],
+              "genebuild.last_geneset_update": [
+                "2025-11"
+              ],
+              "assembly.accession": [
+                "GCA_000001405.29"
+              ],
+              "gencode.version": [
+                "GENCODE 50"
+              ]
+            },
+            "id": "Ensembl.116.GRCh38",
+            "referenceSetId": "GRCh38.p14"
+          }
+        ],
+        "nextPageToken": null
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_featuresets.json"
+    },
+    {
+      "name": "ga4gh_features",
+      "method": "POST",
+      "path": "/ga4gh/features/search",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "featureSetId": "Ensembl.116.GRCh38",
+        "referenceName": "11",
+        "start": 2159779,
+        "end": 2161209,
+        "pageSize": 1
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 820,
+      "elapsed_ms": 322468,
+      "shape": "dict{nextPageToken,features}",
+      "sample": {
+        "nextPageToken": 2132537,
+        "features": [
+          {
+            "parentId": "ENSG00000129965.15",
+            "start": 2132537,
+            "featureSetId": "Ensembl.116.GRCh38",
+            "id": "ENST00000356578.8",
+            "attributes": {
+              "vals": {
+                "xref id": [
+                  "OTTHUMT00000026061"
+                ],
+                "biotype": [
+                  "nonsense_mediated_decay"
+                ],
+                "transcript support level": [
+                  "tsl5"
+                ],
+                "created": [
+                  1209464261
+                ],
+                "source": [
+                  "havana"
+                ],
+                "updated": [
+                  1433181425
+                ],
+                "name": [
+                  "RP11-889I17.1-002"
+                ],
+                "external_name": [
+                  "INS-IGF2-201"
+                ],
+                "version": [
+                  "8"
+                ],
+                "readthrough transcript": [
+                  "readthrough"
+                ],
+                "synonym": [
+                  "RP11-889I17.1-002"
+                ]
+              }
+            },
+            "referenceName": "11",
+            "featureType": {
+              "sourceName": "SO",
+              "sourceVersion": null,
+              "id": "SO:0000673",
+              "term": "transcript"
+            },
+            "childIds": [
+              "ENSE00003252621.1",
+              "ENSE00003641001.1",
+              "ENSE00003535487.1",
+              "ENSE00003549445.1",
+              "ENSE00003537983.1",
+              "ENSE00003600433.1",
+              "ENSE00001488480.2",
+              "ENSP00000348986.4"
+            ],
+            "strand": "NEG_STRAND",
+            "end": 2161209
+          }
+        ]
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_features.json"
+    },
+    {
+      "name": "ga4gh_get_variantset",
+      "method": "GET",
+      "path": "/ga4gh/variantsets/1",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 5438,
+      "elapsed_ms": 188,
+      "shape": "dict{datasetId,id,referenceSetId,name,metadata}",
+      "sample": "{\"datasetId\": \"6e340c4d1e333c7a676b1710d2e3953c\", \"id\": \"1\", \"referenceSetId\": \"GRCh38\", \"name\": \"1000 Genomes phase3:GRCh38\", \"metadata\": [{\"description\": \"Confidence interval around END for imprecise variants\", \"info\": {}, \"number\": \"2\", \"id\": \"CIEND\", \"type\": \"Integer\", \"key\": \"INFO\"}, {\"description\": \"Confidence interval around POS for imprecise variants\", \"info\": {}, \"number\": \"2\", \"id\": \"CIPOS\", \"type\": \"Integer\", \"key\": \"INFO\"}, {\"info\": {}, \"description\": \"Source call set.\", \"number\": \"1\", \"type\": \"String\", \"id\": \"CS\", \"key\": \"INFO\"}, {\"info\": {}, \"description\": \"End coordinate of this variant\", \"number\": \"1\", \"id\": \"END\", \"type\": \"Integer\", \"key\": \"INFO\"}, {\"id\": \"IMPRECISE\", \"type\": \"Flag\", \"key\": \"INFO\", \"description\": \"Imprecise structural variation\", \"info\": {}, \"number\": \"0\"}, {\"info\": {}, \"description\": \"Merged calls.\", \"number\": \".\", \"id\": \"MC\", \"type\": \"String\", \"key\": \"INFO\"}, {\"number\": \"4\", \"description\": \"Mobile element info of the form NAME,START,ENDPOLARITY; If there is only 5' OR 3' support for this call, will be NULL NULL for START and END\", \"info\": {}, \"key\": \"INFO\", \"id\": \"MEINFO\", \"type\": \"String\"}, {\"id\": \"MEND\", \"type\": \"Integer\", \"key\": \"INFO\", \"info\": {}, \"description\": \"Mitochondrial end coordinate of inserted sequence\", \"number\": \"1\"}, {\"id\": \"MLEN\", \"type\": \"Integer\", \"key\": \"INFO\", \"info\": {}, \"description\": \"Estimated length of mitochondrial insert\", \"number\": \"1\"}, {\"number\": \"1\", \"info\": {}, \"description\": \"Mitochondrial start coordin...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_get_variantset.json"
+    },
+    {
+      "name": "ga4gh_get_variant",
+      "method": "GET",
+      "path": "/ga4gh/variants/1:rs192030414",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 288420,
+      "elapsed_ms": 361,
+      "shape": "dict{variantSetId,updated,info,referenceName,calls,referenceBases,start,alternateBases,created,names,id,end}",
+      "sample": "{\"variantSetId\": \"1\", \"updated\": 1432745640000, \"info\": {\"ASP\": [null], \"AN\": [\"5008\"], \"MATCHED_FWD\": [null], \"ssID\": [\"ss1339834722\"], \"EUR_AF\": [\"0.0000\"], \"AMR_AF\": [\"0.0014\"], \"DP\": [\"14532\"], \"AFR_AF\": [\"0.0000\"], \"AC\": [\"1\"], \"SAS_AF\": [\"0.0000\"], \"AF\": [\"0.000199681\"], \"NS\": [\"2504\"], \"EAS_AF\": [\"0.0000\"]}, \"referenceName\": \"11\", \"calls\": [{\"genotypeLikelihood\": [], \"callSetId\": \"1:HG01392\", \"info\": {}, \"genotype\": [0, 0], \"phaseset\": \"\", \"callSetName\": \"HG01392\"}, {\"genotypeLikelihood\": [], \"callSetId\": \"1:HG02545\", \"genotype\": [0, 0], \"info\": {}, \"callSetName\": \"HG02545\", \"phaseset\": \"\"}, {\"callSetId\": \"1:HG01190\", \"genotypeLikelihood\": [], \"callSetName\": \"HG01190\", \"phaseset\": \"\", \"info\": {}, \"genotype\": [0, 0]}, {\"genotype\": [0, 0], \"info\": {}, \"phaseset\": \"\", \"callSetName\": \"HG01632\", \"genotypeLikelihood\": [], \"callSetId\": \"1:HG01632\"}, {\"callSetId\": \"1:HG03485\", \"genotypeLikelihood\": [], \"phaseset\": \"\", \"callSetName\": \"HG03485\", \"genotype\": [0, 0], \"info\": {}}, {\"callSetId\": \"1:NA18990\", \"genotypeLikelihood\": [], \"callSetName\": \"NA18990\", \"phaseset\": \"\", \"genotype\": [0, 0], \"info\": {}}, {\"callSetId\": \"1:NA19334\", \"genotypeLikelihood\": [], \"callSetName\": \"NA19334\", \"phaseset\": \"\", \"genotype\": [0, 0], \"info\": {}}, {\"callSetName\": \"HG03103\", \"phaseset\": \"\", \"info\": {}, \"genotype\": [0, 0], \"callSetId\": \"1:HG03103\", \"genotypeLikelihood\": []}, {\"genotype\": [0, 0], \"info\": {}, \"phaseset\": \"\", \"callSetName\": \"NA19437\", \"genotypeLikelihood\": [], \"callSetId\": \"1:NA1943...",
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_get_variant.json"
+    },
+    {
+      "name": "ga4gh_get_featureset",
+      "method": "GET",
+      "path": "/ga4gh/featuresets/Ensembl.116.GRCh38",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 401,
+      "elapsed_ms": 85,
+      "shape": "dict{sourceURI,datasetId,name,info,id,referenceSetId}",
+      "sample": {
+        "sourceURI": "",
+        "datasetId": "Ensembl",
+        "name": "Ensembl_genebuild_39",
+        "info": {
+          "assembly.name": [
+            "GRCh38.p14"
+          ],
+          "genebuild.havana_datafreeze_date": [
+            "05-08-2025"
+          ],
+          "genebuild.last_geneset_update": [
+            "2025-11"
+          ],
+          "assembly.long_name": [
+            "Genome Reference Consortium Human Build 38"
+          ],
+          "assembly.accession": [
+            "GCA_000001405.29"
+          ],
+          "gencode.version": [
+            "GENCODE 50"
+          ]
+        },
+        "id": "Ensembl.116.GRCh38",
+        "referenceSetId": "GRCh38.p14"
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_get_featureset.json"
+    },
+    {
+      "name": "ga4gh_get_feature",
+      "method": "GET",
+      "path": "/ga4gh/features/ENST00000356578.8",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 781,
+      "elapsed_ms": 33404,
+      "shape": "dict{featureType,start,id,strand,end,parentId,featureSetId,childIds,referenceName,attributes}",
+      "sample": {
+        "featureType": {
+          "sourceVersion": null,
+          "sourceName": "SO",
+          "term": "transcript",
+          "id": "SO:0000673"
+        },
+        "start": 2132537,
+        "id": "ENST00000356578.8",
+        "strand": "NEG_STRAND",
+        "end": 2161209,
+        "parentId": "ENSG00000129965.15",
+        "featureSetId": "Ensembl.116.GRCh38",
+        "childIds": [
+          "ENSE00003252621.1",
+          "ENSE00003641001.1",
+          "ENSE00003535487.1",
+          "ENSE00003549445.1",
+          "ENSE00003537983.1",
+          "ENSE00003600433.1",
+          "ENSE00001488480.2",
+          "ENSP00000348986.4"
+        ],
+        "referenceName": "11",
+        "attributes": {
+          "vals": {
+            "version": [
+              "8"
+            ],
+            "name": [
+              "RP11-889I17.1-002"
+            ],
+            "source": [
+              "havana"
+            ],
+            "updated": [
+              1433181425
+            ],
+            "transcript support level": [
+              "tsl5"
+            ],
+            "biotype": [
+              "nonsense_mediated_decay"
+            ],
+            "created": [
+              1209464261
+            ],
+            "external_name": [
+              "INS-IGF2-201"
+            ],
+            "xref id": [
+              "OTTHUMT00000026061"
+            ],
+            "synonym": [
+              "RP11-889I17.1-002"
+            ],
+            "readthrough transcript": [
+              "readthrough"
+            ]
+          }
+        }
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_get_feature.json"
+    },
+    {
+      "name": "ga4gh_get_callset",
+      "method": "GET",
+      "path": "/ga4gh/callsets/1:HG02887",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 206,
+      "elapsed_ms": 405,
+      "shape": "dict{updated,sampleId,id,info,name,variantSetIds,created}",
+      "sample": {
+        "updated": 1432745640000,
+        "sampleId": "HG02887",
+        "id": "1:HG02887",
+        "info": {
+          "assembly_version": [
+            "GRCh38"
+          ],
+          "variantSetName": [
+            "1000 Genomes phase3"
+          ]
+        },
+        "name": "HG02887",
+        "variantSetIds": [
+          "1"
+        ],
+        "created": 1432745640000
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_get_callset.json"
+    },
+    {
+      "name": "ga4gh_variantannotations",
+      "method": "POST",
+      "path": "/ga4gh/variantannotations/search",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "variantAnnotationSetId": "Ensembl",
+        "referenceName": "11",
+        "start": 2159779,
+        "end": 2161209,
+        "pageSize": 1
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 1280,
+      "elapsed_ms": 1193,
+      "shape": "dict{variantAnnotations,nextPageToken}",
+      "sample": {
+        "variantAnnotations": [
+          {
+            "createDateTime": null,
+            "variantAnnotationSetId": "Ensembl.116.GRCh38",
+            "info": {},
+            "variantId": "116:rs769707738",
+            "transcriptEffects": [
+              {
+                "featureId": "ENST00000381330.5",
+                "id": "598732344",
+                "alternateBase": "C",
+                "hgvsAnnotation": {
+                  "protein": null,
+                  "transcript": "ENST00000381330.5:c.*71A>G",
+                  "genomic": "NC_000011.10:g.2159781T>C"
+                },
+                "effects": [
+                  {
+                    "sourceVersion": null,
+                    "term": "3_prime_UTR_variant",
+                    "sourceName": "Sequence Ontology",
+                    "id": "SO:0001624"
+                  }
+                ],
+                "cDNALocation": {
+                  "start": 462,
+                  "alternateSequence": "C",
+                  "end": 463,
+                  "referenceSequence": null
+                }
+              },
+              {
+                "effects": [
+                  {
+                    "sourceName": "Sequence Ontology",
+                    "sourceVersion": null,
+                    "term": "intron_variant",
+                    "id": "SO:0001627"
+                  }
+                ],
+                "hgvsAnnotation": {
+                  "protein": null,
+                  "genomic": "NC_000011.10:g.2159781T>C",
+                  "transcript": "ENST00000397270.1:c.187+1004A>G"
+                },
+                "alternateBase": "C",
+                "id": "414100328",
+                "featureId": "ENST00000397270.1"
+              },
+              {
+                "effects": [
+                  {
+                    "id": "SO:0001619",
+                    "sourceName": "Sequence Ontology",
+                    "sourceVersion": null,
+                    "term": "non_coding_transcript_variant"
+                  },
+                  {
+                    "sourceName": "Sequence Ontology",
+                    "sourceVersion": null,
+                    "term": "intron_variant",
+                    "id": "SO:0001627"
+                  }
+                ],
+                "hgvsAnnotation": {
+                  "genomic": "NC_000011.10:g.2159781T>C",
+                  "transcript": "ENST00000729705.1:n.174+867T>C",
+                  "protein": null
+                },
+                "alternateBase": "C",
+                "id": "551061134",
+                "featureId": "ENST00000729705.1"
+              }
+            ]
+          }
+        ],
+        "nextPageToken": 2159782
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_variantannotations.json"
+    },
+    {
+      "name": "ga4gh_beacon",
+      "method": "GET",
+      "path": "/ga4gh/beacon",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 1012,
+      "elapsed_ms": 1570,
+      "shape": "dict{response,meta}",
+      "sample": {
+        "response": {
+          "welcomeUrl": "https://rest.ensembl.org",
+          "name": "EBI - Ensembl GRCh38",
+          "apiVersion": "v2.0.0",
+          "id": "org.ensembl.rest",
+          "organization": {
+            "logoUrl": null,
+            "name": "EMBL European Bioinformatics Institute",
+            "address": "EMBL-EBI, Wellcome Genome Campus, Hinxton, Cambridgeshire, CB10 1SD, UK",
+            "id": "ebi",
+            "contactUrl": "https://www.ebi.ac.uk/support/",
+            "welcomeUrl": "https://www.ebi.ac.uk/",
+            "info": null,
+            "description": "The European Bioinformatics Institute (EMBL-EBI) is part of EMBL, an international, innovative and interdisciplinary research organisation funded by 26 member states and two associate member states to provide the infrastructure needed to share data openly in the life sciences."
+          },
+          "environment": "prod"
+        },
+        "meta": {
+          "beaconId": "org.ensembl.rest",
+          "alternativeUrl": "https://www.ensembl.org",
+          "testMode": false,
+          "returnedSchemas": [
+            {
+              "entityType": "info",
+              "schema": ""
+            }
+          ],
+          "createDateTime": null,
+          "updateDateTime": null,
+          "description": "Human variant data from the Ensembl database",
+          "version": "116",
+          "apiVersion": "v2.0.0"
+        }
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_beacon.json"
+    },
+    {
+      "name": "ga4gh_beacon_query",
+      "method": "POST",
+      "path": "/ga4gh/beacon/query",
+      "query": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "referenceName": "11",
+        "start": 2159778,
+        "referenceBases": "G",
+        "alternateBases": "A",
+        "assemblyId": "GRCh38"
+      },
+      "status": 200,
+      "ok": true,
+      "bytes": 519,
+      "elapsed_ms": 633,
+      "shape": "dict{meta,response,responseSummary}",
+      "sample": {
+        "meta": {
+          "receivedRequestSummary": {
+            "apiVersion": "v2.0.0",
+            "requestedGranularity": "record",
+            "includeResultsetResponses": "HIT",
+            "pagination": {
+              "limit": 0,
+              "skip": 0
+            },
+            "requestedSchemas": [
+              {
+                "schema": "",
+                "entityType": "genomicVariant"
+              }
+            ]
+          },
+          "returnedSchemas": [
+            {
+              "schema": "",
+              "entityType": "genomicVariant"
+            }
+          ],
+          "apiVersion": "v2.0.0",
+          "beaconId": "org.ensembl.rest",
+          "createDateTime": null,
+          "testMode": false,
+          "updateDateTime": null,
+          "includeResultsetResponses": "HIT"
+        },
+        "response": {
+          "resultSets": []
+        },
+        "responseSummary": {
+          "exists": false,
+          "numTotalResults": 0
+        }
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_beacon_query.json"
+    },
+    {
+      "name": "ga4gh_beacon_query_get",
+      "method": "GET",
+      "path": "/ga4gh/beacon/query",
+      "query": {
+        "content-type": "application/json",
+        "referenceName": "11",
+        "start": "2159778",
+        "referenceBases": "G",
+        "alternateBases": "A",
+        "assemblyId": "GRCh38"
+      },
+      "body": null,
+      "status": 200,
+      "ok": true,
+      "bytes": 519,
+      "elapsed_ms": 662,
+      "shape": "dict{responseSummary,meta,response}",
+      "sample": {
+        "responseSummary": {
+          "numTotalResults": 0,
+          "exists": false
+        },
+        "meta": {
+          "beaconId": "org.ensembl.rest",
+          "apiVersion": "v2.0.0",
+          "returnedSchemas": [
+            {
+              "entityType": "genomicVariant",
+              "schema": ""
+            }
+          ],
+          "createDateTime": null,
+          "updateDateTime": null,
+          "receivedRequestSummary": {
+            "pagination": {
+              "limit": 0,
+              "skip": 0
+            },
+            "apiVersion": "v2.0.0",
+            "requestedGranularity": "record",
+            "requestedSchemas": [
+              {
+                "entityType": "genomicVariant",
+                "schema": ""
+              }
+            ],
+            "includeResultsetResponses": "HIT"
+          },
+          "includeResultsetResponses": "HIT",
+          "testMode": false
+        },
+        "response": {
+          "resultSets": []
+        }
+      },
+      "error": null,
+      "skipped": null,
+      "truncated": false,
+      "file": "ga4gh_beacon_query_get.json"
+    }
+  ]
+}
