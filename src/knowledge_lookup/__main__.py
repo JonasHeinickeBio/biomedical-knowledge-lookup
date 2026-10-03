@@ -577,6 +577,14 @@ _CHECK_QUERIES: dict[KnowledgeSource, str] = {
 }
 
 
+# Sources whose adapter only exists once credentials are configured. ``check``
+# reports these as skipped (naming the variable) instead of failed.
+_CHECK_CREDENTIALS: dict[KnowledgeSource, str] = {
+    KnowledgeSource.OMIM: "OMIM_API_KEY",
+    KnowledgeSource.COSMIC: "COSMIC_API_KEY",
+}
+
+
 async def _check_source(
     lkp: CentralKnowledgeLookup,
     source: KnowledgeSource,
@@ -596,6 +604,9 @@ async def _check_source(
 
     adapter = lkp._get_adapter(source)
     if adapter is None:
+        env_var = _CHECK_CREDENTIALS.get(source)
+        if env_var:
+            result["skipped"] = f"set {env_var} to enable"
         result["steps"].append(("available", False, "no adapter configured/available", 0.0))
         return result
     result["available"] = True
@@ -637,6 +648,11 @@ async def _check_source(
     return result
 
 
+def _check_skipped(r: dict[str, Any]) -> bool:
+    """True when a source was not tested because its credentials are not configured."""
+    return bool(r.get("skipped"))
+
+
 def _check_passed(r: dict[str, Any]) -> bool:
     return r["available"] and all(ok for _, ok, _, _ in r["steps"])
 
@@ -645,6 +661,9 @@ def _print_check_detail(r: dict[str, Any], relationships: bool) -> None:
     """Verbose, step-by-step report for a single source (the non-'all' path)."""
     source = r["source"].value
 
+    if _check_skipped(r):
+        console.print(f"[yellow]- {source} skipped: {r['skipped']}[/yellow]")
+        return
     if not r["available"]:
         console.print(f"[red]✗ {source} has no adapter available in this environment.[/red]")
         return
@@ -713,6 +732,11 @@ def _print_check_table(results: list[dict[str, Any]]) -> None:
     table.add_column("Notes", max_width=40)
 
     for r in results:
+        if _check_skipped(r):
+            table.add_row(
+                r["source"].value, "[yellow]skipped[/yellow]", "-", "-", "-", "-", r["skipped"]
+            )
+            continue
         if not r["available"]:
             table.add_row(r["source"].value, "[red]no[/red]", "-", "-", "-", "-", "")
             continue
@@ -735,8 +759,13 @@ def _print_check_table(results: list[dict[str, Any]]) -> None:
         table.add_row(*row)
 
     console.print(table)
+    skipped = sum(1 for r in results if _check_skipped(r))
+    tested = len(results) - skipped
     passed = sum(1 for r in results if _check_passed(r))
-    console.print(f"\n[bold]{passed}/{len(results)} sources passed[/bold]")
+    summary = f"{passed}/{tested} sources passed"
+    if skipped:
+        summary += f" ({skipped} skipped: credentials not configured)"
+    console.print(f"\n[bold]{summary}[/bold]")
 
 
 @app.command()
@@ -821,7 +850,7 @@ def check(
     else:
         _print_check_table(results)
 
-    if not all(_check_passed(r) for r in results):
+    if not all(_check_passed(r) or _check_skipped(r) for r in results):
         raise typer.Exit(1)
 
 
