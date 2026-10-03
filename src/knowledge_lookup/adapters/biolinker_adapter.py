@@ -23,6 +23,9 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         super().__init__(config)
         self.base_url = "https://labs.tib.eu/biolinkerai"
         self.process_endpoint = f"{self.base_url}/process-text"
+        # Concepts returned by search, keyed by primary ID. The service has no
+        # lookup-by-ID endpoint, so this is the only way to resolve an ID.
+        self._seen_concepts: dict[str, UnifiedConcept] = {}
 
     def get_source(self) -> KnowledgeSource:
         return KnowledgeSource.BIOLINKER
@@ -289,8 +292,9 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         """
         Get detailed information about a specific concept.
 
-        Note: BioLinker AI doesn't provide direct concept lookup by ID,
-        so this implementation is limited.
+        BioLinker AI has no lookup-by-ID endpoint, so only concepts that this
+        adapter instance already returned from :meth:`search_concepts` can be
+        resolved; any other ID yields ``None``.
 
         Args:
             concept_id: Identifier of the concept
@@ -298,10 +302,12 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
         Returns:
             Unified concept with details or None if not found
         """
-        # BioLinker AI doesn't have a direct concept lookup endpoint
-        # We could potentially search for the concept ID in text, but this would be limited
-        logger.warning(f"BioLinker AI doesn't support direct concept lookup for ID: {concept_id}")
-        return None
+        concept = self._seen_concepts.get(concept_id)
+        if concept is None:
+            logger.warning(
+                f"BioLinker AI cannot look up '{concept_id}': not returned by an earlier search"
+            )
+        return concept
 
     def _process_biolinker_response(
         self, response_data: dict[str, Any], limit: int
@@ -328,6 +334,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
                 concept = self._convert_biolinker_result_to_concept(result)
                 if concept:
                     concepts.append(concept)
+                    self._seen_concepts[concept.primary_id] = concept
 
                 if len(concepts) >= limit:
                     break

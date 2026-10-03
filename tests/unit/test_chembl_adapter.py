@@ -1106,6 +1106,16 @@ class TestChEMBLAdapter:
         assert mock_query.await_args_list[1].kwargs["limit"] == 9
 
     @pytest.mark.asyncio
+    async def test_search_concepts_drug_endpoint_uses_synonym_filter(self, adapter):
+        """Regression: drug.json answers a 500 for pref_name filters on the live API."""
+        with patch.object(adapter, "query_async", new_callable=AsyncMock, return_value=[]) as m:
+            await adapter.search_concepts("aspirin", limit=10)
+        filters = {c.args[0]: c.kwargs["filters"] for c in m.await_args_list}
+        assert filters["drug"] == {"molecule_synonyms__molecule_synonym__icontains": "aspirin"}
+        assert filters["molecule"] == {"pref_name__icontains": "aspirin"}
+        assert filters["target"] == {"pref_name__icontains": "aspirin"}
+
+    @pytest.mark.asyncio
     async def test_search_concepts_stops_at_limit(self, adapter):
         """Test search_concepts stops when limit reached."""
         mol_results = [

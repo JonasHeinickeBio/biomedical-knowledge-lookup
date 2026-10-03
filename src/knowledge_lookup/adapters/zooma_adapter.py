@@ -12,6 +12,8 @@ from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
 logger = logging.getLogger(__name__)
 
+OLS_API = "https://www.ebi.ac.uk/ols4/api"
+
 
 class ZoomaAdapter(KnowledgeSourceAdapter):
     """Adapter for EBI ZOOMA."""
@@ -49,8 +51,38 @@ class ZoomaAdapter(KnowledgeSourceAdapter):
             return []
 
     async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
-        """ZOOMA is primarily for mapping, use OLS for details."""
-        return None
+        """Resolve a ZOOMA semantic-tag IRI to its ontology term via OLS.
+
+        ZOOMA only maps text to term IRIs; label and definition come from the
+        OLS ``terms`` endpoint.
+        """
+        if not concept_id.startswith("http"):
+            return None
+        try:
+            data = await self._make_request(f"{OLS_API}/terms", {"iri": concept_id})
+            terms = ((data or {}).get("_embedded") or {}).get("terms") or []
+            if not terms:
+                return None
+            term = terms[0]
+            label = term.get("label") or ""
+            concept = UnifiedConcept(
+                primary_id=concept_id, primary_label=label, concept_type=ConceptType.UNKNOWN
+            )
+            concept.add_identifier(KnowledgeSource.ZOOMA, concept_id, label, concept_id)
+            description = term.get("description") or []
+            if isinstance(description, str):
+                description = [description]
+            if description and concept.definitions is not None:
+                concept.definitions.append(description[0])
+            if term.get("ontology_name") and concept.categories is not None:
+                concept.categories.append(f"Ontology: {term['ontology_name']}")
+            concept.confidence_score = 0.8
+            if isinstance(concept.source_data, dict):
+                concept.source_data[KnowledgeSource.ZOOMA] = term
+            return concept
+        except Exception as e:
+            logger.error(f"ZOOMA details lookup failed for '{concept_id}': {e}")
+            return None
 
     def _convert_zooma_result_to_concept(self, result: dict[str, Any]) -> UnifiedConcept | None:
         """Convert ZOOMA result to unified concept."""

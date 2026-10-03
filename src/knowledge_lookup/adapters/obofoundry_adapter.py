@@ -51,8 +51,22 @@ class OBOFoundryAdapter(KnowledgeSourceAdapter):
             return []
 
     async def get_concept_details(self, concept_id: str) -> UnifiedConcept | None:
-        """Get detailed information for OBO concepts."""
-        return None
+        """Get an OBO term via the OLS ``terms`` endpoint.
+
+        ``concept_id`` is a term IRI or the ``short_form`` returned by
+        :meth:`search_concepts` (``HP_0005978``; ``HP:0005978`` is accepted too).
+        """
+        try:
+            if concept_id.startswith("http"):
+                params = {"iri": concept_id}
+            else:
+                params = {"short_form": concept_id.replace(":", "_")}
+            data = await self._make_request(f"{self.base_url}/terms", params)
+            terms = ((data or {}).get("_embedded") or {}).get("terms") or []
+            return self._convert_obo_result_to_concept(terms[0]) if terms else None
+        except Exception as e:
+            logger.error(f"OBO details lookup failed for '{concept_id}': {e}")
+            return None
 
     def _convert_obo_result_to_concept(self, result: dict[str, Any]) -> UnifiedConcept | None:
         """Convert OBO result to unified concept."""

@@ -906,7 +906,13 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
                 ("target", self._parse_target_results),
             ]
             for endpoint, parser in endpoints:
-                filters = {"pref_name__icontains": query}
+                # ChEMBL's drug.json list endpoint answers a 500 ("'MoleculeDictionary'
+                # object has no attribute 'all'") for pref_name filters; the
+                # synonym filter is the one it supports.
+                if endpoint == "drug":
+                    filters = {"molecule_synonyms__molecule_synonym__icontains": query}
+                else:
+                    filters = {"pref_name__icontains": query}
                 try:
                     # Runs the blocking client in a worker thread (retry + circuit breaker)
                     raw_results = await self.query_async(

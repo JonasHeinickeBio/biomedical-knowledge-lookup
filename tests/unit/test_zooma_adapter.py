@@ -67,10 +67,44 @@ class TestZoomaAdapter:
             pass
 
     @pytest.mark.asyncio
-    async def test_get_concept_details(self, adapter):
-        """Test get_concept_details returns None."""
-        result = await adapter.get_concept_details("test:001")
-        assert result is None
+    async def test_get_concept_details_non_iri_is_none(self, adapter):
+        """Only the semantic-tag IRIs ZOOMA returns can be resolved."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as mock_req:
+            assert await adapter.get_concept_details("test:001") is None
+        mock_req.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_resolves_iri_via_ols(self, adapter):
+        iri = "http://purl.obolibrary.org/obo/MONDO_0005015"
+        term = {
+            "label": "diabetes mellitus",
+            "description": ["A metabolic disease"],
+            "ontology_name": "mondo",
+        }
+        with patch.object(
+            adapter,
+            "_make_request",
+            new_callable=AsyncMock,
+            return_value={"_embedded": {"terms": [term]}},
+        ) as mock_req:
+            concept = await adapter.get_concept_details(iri)
+        assert mock_req.await_args.args[0].endswith("/ols4/api/terms")
+        assert mock_req.await_args.args[1] == {"iri": iri}
+        assert concept is not None
+        assert concept.primary_id == iri
+        assert concept.primary_label == "diabetes mellitus"
+        assert concept.definitions == ["A metabolic disease"]
+        assert "Ontology: mondo" in (concept.categories or [])
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_not_found_or_error(self, adapter):
+        iri = "http://purl.obolibrary.org/obo/NOPE_1"
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock, return_value={}):
+            assert await adapter.get_concept_details(iri) is None
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, side_effect=Exception("boom")
+        ):
+            assert await adapter.get_concept_details(iri) is None
 
 
 class TestZoomaSearchConcepts:
