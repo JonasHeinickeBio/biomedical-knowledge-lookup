@@ -67,10 +67,45 @@ class TestOBOFoundryAdapter:
             pass
 
     @pytest.mark.asyncio
-    async def test_get_concept_details(self, adapter):
-        """Test get_concept_details returns None."""
-        result = await adapter.get_concept_details("test:001")
-        assert result is None
+    async def test_get_concept_details_by_short_form(self, adapter):
+        """short_form (and CURIE) IDs resolve through the OLS terms endpoint."""
+        term = {
+            "short_form": "HP_0005978",
+            "label": "Type II diabetes mellitus",
+            "iri": "http://purl.obolibrary.org/obo/HP_0005978",
+            "ontology_name": "hp",
+        }
+        response = {"_embedded": {"terms": [term]}}
+        for concept_id in ("HP_0005978", "HP:0005978"):
+            with patch.object(
+                adapter, "_make_request", new_callable=AsyncMock, return_value=response
+            ) as mock_req:
+                concept = await adapter.get_concept_details(concept_id)
+            assert mock_req.await_args.args[0].endswith("/terms")
+            assert mock_req.await_args.args[1] == {"short_form": "HP_0005978"}
+            assert concept is not None
+            assert concept.primary_id == "HP_0005978"
+            assert concept.primary_label == "Type II diabetes mellitus"
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_by_iri(self, adapter):
+        iri = "http://purl.obolibrary.org/obo/HP_0005978"
+        response = {"_embedded": {"terms": [{"short_form": "HP_0005978", "label": "T2D"}]}}
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value=response
+        ) as mock_req:
+            concept = await adapter.get_concept_details(iri)
+        assert mock_req.await_args.args[1] == {"iri": iri}
+        assert concept is not None
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_not_found_or_error(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock, return_value={}):
+            assert await adapter.get_concept_details("HP_0000000") is None
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, side_effect=Exception("boom")
+        ):
+            assert await adapter.get_concept_details("HP_0000000") is None
 
 
 class TestOBOFoundrySearchConcepts:

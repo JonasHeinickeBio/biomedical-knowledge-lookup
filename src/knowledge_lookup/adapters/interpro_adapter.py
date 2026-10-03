@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 class InterProAdapter(KnowledgeSourceAdapter):
     """Adapter for InterPro protein families and domains database."""
 
+    # The InterPro API's free-text ``search`` takes 10-30 s per request.
+    min_request_timeout = 60.0
+
     def __init__(self, config):
         super().__init__(config)
         self.base_url = "https://www.ebi.ac.uk/interpro/api"

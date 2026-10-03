@@ -297,10 +297,31 @@ class TestBioLinkerAdapter:
         assert relations == []
 
     @pytest.mark.asyncio
-    async def test_get_concept_details_returns_none(self, adapter):
-        """Test get_concept_details returns None."""
+    async def test_get_concept_details_unknown_id_returns_none(self, adapter):
+        """The service has no ID lookup, so IDs never seen in a search are unknown."""
         result = await adapter.get_concept_details("C0001")
         assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_concept_details_resolves_searched_concepts(self, adapter):
+        """Concepts returned by a search can be fetched again by ID."""
+        response_data = {
+            "results": [
+                {
+                    "best_candidate": {
+                        "id": "C0376571",
+                        "label": "BRCA1",
+                        "type": ["gene"],
+                    },
+                    "surface_form": "BRCA1",
+                    "start": 0,
+                    "end": 5,
+                    "confidence": 0.9,
+                }
+            ]
+        }
+        (found,) = adapter._process_biolinker_response(response_data, 10)
+        assert await adapter.get_concept_details(found.primary_id) is found
 
     def test_process_biolinker_response_no_results_key(self, adapter):
         """Test _process_biolinker_response with no results key."""

@@ -52,8 +52,6 @@ import logging
 from typing import Any
 from urllib.parse import quote
 
-import aiohttp
-
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 
@@ -70,6 +68,8 @@ _MIN_TIMEOUT_SECONDS = 60.0
 class EnsemblAdapter(KnowledgeSourceAdapter):
     """Adapter for Ensembl."""
 
+    min_request_timeout = _MIN_TIMEOUT_SECONDS
+
     def __init__(self, config: LookupConfig):
         super().__init__(config)
         self.base_url = "https://rest.ensembl.org"
@@ -79,15 +79,6 @@ class EnsemblAdapter(KnowledgeSourceAdapter):
 
     def is_available(self) -> bool:
         return True
-
-    async def _get_session(self) -> aiohttp.ClientSession:
-        """Like the base implementation, but with a longer floor on the
-        per-request timeout (see ``_MIN_TIMEOUT_SECONDS``)."""
-        if self.session is None or self.session.closed:
-            configured = self.config.timeout_per_source or 0.0
-            timeout = aiohttp.ClientTimeout(total=max(configured, _MIN_TIMEOUT_SECONDS))
-            self.session = aiohttp.ClientSession(timeout=timeout)
-        return self.session
 
     async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
         """Search Ensembl for genes.

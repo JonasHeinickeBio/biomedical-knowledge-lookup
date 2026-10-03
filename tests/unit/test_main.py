@@ -19,6 +19,29 @@ class TestCLI:
     def runner(self):
         return CliRunner()
 
+    @pytest.mark.parametrize(
+        ("args", "expected_query"),
+        [
+            (["check", "UNICHEM"], "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"),
+            (["check", "DRUGBANK"], "aspirin"),
+            (["check", "HPO"], "seizure"),
+            (["check", "ENSEMBL"], "BRCA1"),
+            (["check", "HPO", "--query", "ataxia"], "ataxia"),
+        ],
+    )
+    def test_check_uses_source_appropriate_default_query(self, runner, args, expected_query):
+        ok = {"source": None, "available": True, "steps": [("search_concepts", True, "1", 0.1)]}
+        with (
+            patch("knowledge_lookup.__main__.CentralKnowledgeLookup") as mock_lookup_class,
+            patch("knowledge_lookup.__main__._check_source", new_callable=AsyncMock) as mock_check,
+            patch("knowledge_lookup.__main__._print_check_detail"),
+        ):
+            mock_lookup_class.return_value = AsyncMock()
+            mock_check.return_value = ok
+            result = runner.invoke(main.app, args)
+        assert result.exit_code == 0
+        assert mock_check.await_args.args[2] == expected_query
+
     def test_search_command_basic(self, runner):
         from knowledge_lookup.models import LookupResult
 

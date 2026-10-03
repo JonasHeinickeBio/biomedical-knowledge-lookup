@@ -559,6 +559,24 @@ async def _time_call(coro: Any) -> tuple[bool, Any, float, str | None]:
         return False, None, time.perf_counter() - start, str(e)
 
 
+# Smoke-test query used when ``check --query`` is not given. Most sources answer
+# "BRCA1", but some only index chemistry, phenotypes, diseases or exact ontology
+# labels, and UniChem searches by identifier (here aspirin's InChIKey).
+_CHECK_DEFAULT_QUERY = "BRCA1"
+_CHECK_QUERIES: dict[KnowledgeSource, str] = {
+    KnowledgeSource.DRUGBANK: "aspirin",
+    KnowledgeSource.PUBCHEM: "aspirin",
+    KnowledgeSource.UNICHEM: "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+    KnowledgeSource.HPO: "seizure",
+    KnowledgeSource.KEGG: "diabetes",
+    KnowledgeSource.TYTO: "gene",
+    KnowledgeSource.INTERPRO: "kinase",
+    KnowledgeSource.PFAM: "kinase",
+    KnowledgeSource.ZOOMA: "diabetes",
+    KnowledgeSource.OBOFOUNDRY: "diabetes",
+}
+
+
 async def _check_source(
     lkp: CentralKnowledgeLookup,
     source: KnowledgeSource,
@@ -728,8 +746,12 @@ def check(
         help="Knowledge source to test (e.g. WIKIPATHWAYS, STRING), or 'all' to smoke-test "
         "every source with an adapter",
     ),
-    query: str = typer.Option(
-        "BRCA1", "--query", "-q", help="Search term used to drive the smoke test"
+    query: str | None = typer.Option(
+        None,
+        "--query",
+        "-q",
+        help="Search term used to drive the smoke test (default: BRCA1, or a term that "
+        "suits the source, e.g. 'aspirin' for chemistry sources)",
     ),
     concept_id: str | None = typer.Option(
         None,
@@ -743,7 +765,7 @@ def check(
         help="Also exercise get_relationships on the resolved concept",
     ),
     timeout: float = typer.Option(
-        20.0, "--timeout", help="Per-call timeout in seconds (applies to each step)"
+        60.0, "--timeout", help="Per-call timeout in seconds (applies to each step)"
     ),
 ):
     """
@@ -779,7 +801,14 @@ def check(
                 if len(targets) > 1:
                     console.print(f"[dim]Checking {src.value}...[/dim]")
                 results.append(
-                    await _check_source(lookup, src, query, concept_id, relationships, timeout)
+                    await _check_source(
+                        lookup,
+                        src,
+                        query or _CHECK_QUERIES.get(src, _CHECK_DEFAULT_QUERY),
+                        concept_id,
+                        relationships,
+                        timeout,
+                    )
                 )
             return results
         finally:

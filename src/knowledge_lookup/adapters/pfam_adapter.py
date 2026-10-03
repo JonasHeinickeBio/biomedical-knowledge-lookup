@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 class PfamAdapter(KnowledgeSourceAdapter):
     """Adapter for Pfam protein families database (served via InterPro API)."""
 
+    # The InterPro API's free-text ``search`` takes 10-30 s per request.
+    min_request_timeout = 60.0
+
     def __init__(self, config):
         super().__init__(config)
         # Pfam data is now served via the InterPro API using member_db=pfam

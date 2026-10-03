@@ -71,7 +71,15 @@ class KnowledgeSourceAdapter(ABC):
     UMLS) do **not** go through that path — they rely on the library's
     own retry and should call :meth:`_notify_circuit_breaker` on failure if
     breaker visibility matters for that source.
+
+    Slow upstreams: set :attr:`min_request_timeout` on the subclass to give an
+    HTTP adapter a longer per-request budget than
+    ``LookupConfig.timeout_per_source``. Without it, a slow-but-succeeding
+    response is cut off by aiohttp and then retried, compounding the delay.
     """
+
+    #: Floor (seconds) for the per-request HTTP timeout; 0 means "use config".
+    min_request_timeout: float = 0.0
 
     def __init__(self, config: LookupConfig):
         self.config = config
@@ -267,7 +275,8 @@ class KnowledgeSourceAdapter(ABC):
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
         if self.session is None or self.session.closed:
-            timeout = aiohttp.ClientTimeout(total=self.config.timeout_per_source)
+            configured = self.config.timeout_per_source or 0.0
+            timeout = aiohttp.ClientTimeout(total=max(configured, self.min_request_timeout))
             self.session = aiohttp.ClientSession(timeout=timeout)
         return self.session
 

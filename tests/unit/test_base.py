@@ -35,6 +35,30 @@ class TestKnowledgeSourceAdapter:
 
         return TestAdapter(config)
 
+    @pytest.mark.asyncio
+    async def test_session_timeout_uses_config_by_default(self, adapter):
+        adapter.config.timeout_per_source = 30.0
+        try:
+            session = await adapter._get_session()
+            assert session.timeout.total == 30.0
+        finally:
+            await adapter.close()
+
+    @pytest.mark.asyncio
+    async def test_session_timeout_floor_for_slow_sources(self, adapter):
+        """min_request_timeout raises the budget, but never lowers a longer config."""
+        adapter.min_request_timeout = 60.0
+        adapter.config.timeout_per_source = 30.0
+        try:
+            assert (await adapter._get_session()).timeout.total == 60.0
+        finally:
+            await adapter.close()
+        adapter.config.timeout_per_source = 90.0
+        try:
+            assert (await adapter._get_session()).timeout.total == 90.0
+        finally:
+            await adapter.close()
+
     def test_adapter_initialization(self, config):
         """Test adapter initialization."""
 
