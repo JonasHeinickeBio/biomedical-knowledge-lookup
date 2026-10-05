@@ -10,9 +10,10 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
-import aiohttp
+if TYPE_CHECKING:
+    import aiohttp
 
 from .cache import get_cache
 from .models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
@@ -275,6 +276,8 @@ class KnowledgeSourceAdapter(ABC):
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
         if self.session is None or self.session.closed:
+            import aiohttp  # deferred: a sizeable import that only HTTP adapters need
+
             configured = self.config.timeout_per_source or 0.0
             timeout = aiohttp.ClientTimeout(total=max(configured, self.min_request_timeout))
             self.session = aiohttp.ClientSession(timeout=timeout)

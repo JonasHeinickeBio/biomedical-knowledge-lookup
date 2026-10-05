@@ -58,30 +58,7 @@ _CURIE_PREFIX_TO_SOURCE: dict[str, KnowledgeSource] = {
     "WP": KnowledgeSource.WIKIPATHWAYS,
 }
 
-# Optional imports for formatting
-try:
-    import pandas as pd
-
-    HAS_PANDAS = True
-except ImportError:
-    HAS_PANDAS = False
-    pd = None
-
-# RDF support
-try:
-    from rdflib import Graph
-
-    HAS_RDFLIB = True
-except ImportError:
-    HAS_RDFLIB = False
-
-    # Placeholder for Graph class when rdflib is not available
-    # This is intentionally used for optional dependency support
-    class Graph:  # type: ignore[no-redef]
-        """Dummy Graph class when rdflib is not installed."""
-
-        pass
-
+# pandas is optional and heavy: the export methods below import it when called.
 
 UnifiedConcept = UC
 
@@ -209,10 +186,13 @@ class CentralKnowledgeLookup:
 
     def _initialize_adapters(self):
         """Initialize available knowledge source adapters and wire circuit breakers."""
-        typed_adapters = cast(dict[KnowledgeSource, type[KnowledgeSourceAdapter]], ADAPTER_CLASSES)
-        for source, adapter_class in typed_adapters.items():
+        # Iterate the keys and fetch each class inside the guard: the registry imports an
+        # adapter module on first access, so disabled sources are never imported and a
+        # source whose module cannot be imported is skipped like any other failure.
+        for source in list(ADAPTER_CLASSES):
             if self.config.is_source_enabled(source):
                 try:
+                    adapter_class = ADAPTER_CLASSES[source]
                     adapter = adapter_class(self.config)
                     if adapter.is_available():
                         self.health_tracker.wire_adapter(source, adapter)
@@ -232,14 +212,13 @@ class CentralKnowledgeLookup:
         """
         Add a specific knowledge source to the lookup system.
         """
-        typed_adapters = cast(dict[KnowledgeSource, type[KnowledgeSourceAdapter]], ADAPTER_CLASSES)
-        if source not in typed_adapters:
+        if source not in ADAPTER_CLASSES:
             raise ValueError(f"Unsupported knowledge source: {source.value}")
         if source in self.adapters:
             logger.info(f"{source.value} adapter already exists")
             return
         try:
-            adapter_class = typed_adapters[source]
+            adapter_class = ADAPTER_CLASSES[source]
             adapter = adapter_class(self.config)
             if adapter.is_available():
                 self.health_tracker.wire_adapter(source, adapter)
@@ -1585,8 +1564,12 @@ class CentralKnowledgeLookup:
         Returns:
             RDF Graph containing the search results
         """
-        if not HAS_RDFLIB:
-            raise ImportError("RDF conversion requires rdflib. Install with: pip install rdflib")
+        try:
+            import rdflib  # noqa: F401 - rdflib is optional; imported only for RDF export
+        except ImportError:
+            raise ImportError(
+                "RDF conversion requires rdflib. Install with: pip install rdflib"
+            ) from None
 
         # Import here to avoid circular imports
         from ..services.rdf_converter import UnifiedRDFConverter

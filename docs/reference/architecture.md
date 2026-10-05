@@ -29,7 +29,7 @@ Biomedical Knowledge Lookup is a layered library: front-ends call an orchestrato
 | `__init__.py` | Public exports |
 | `__main__.py` | Typer CLI (`knowledge-lookup`) |
 | `base.py` | `KnowledgeSourceAdapter` base class: HTTP session, retry, circuit breaker, cache helpers |
-| `adapters/` | One module per source, plus the `ADAPTER_CLASSES` registry in `adapters/__init__.py` |
+| `adapters/` | One module per source, plus the lazy `ADAPTER_CLASSES` registry in `adapters/__init__.py` |
 | `core/central_lookup.py` | `CentralKnowledgeLookup` and `SourceHealthTracker` |
 | `core/multi_source_annotator.py` | `MultiSourceAnnotator` and its result dataclasses |
 | `core/term_expansion.py`, `core/expansion_store.py` | Iterative synonym/abbreviation expansion and its SQLite store |
@@ -51,11 +51,15 @@ Biomedical Knowledge Lookup is a layered library: front-ends call an orchestrato
 When `CentralKnowledgeLookup(config)` is created it:
 
 1. creates the global cache with `init_cache()` defaults, unless one was configured beforehand,
-2. for every entry in `ADAPTER_CLASSES` whose source is enabled, instantiates the adapter with the config and keeps it only if `is_available()` returns `True` (API key present, client library importable). Adapters that raise during construction are logged and skipped,
+2. for every entry in `ADAPTER_CLASSES` whose source is enabled, imports the adapter's module, instantiates the adapter with the config and keeps it only if `is_available()` returns `True` (API key present, client library importable). Adapters whose module cannot be imported, or that raise during construction, are logged and skipped. Disabled sources are never imported,
 3. attaches a circuit breaker to each adapter when `enable_source_health_tracking` is on,
 4. computes a source-to-CURIE-prefix map with Bioregistry (empty without the `curie` extra).
 
-ChEMBL and UMLS are added to `ADAPTER_CLASSES` only when their client libraries import successfully.
+ChEMBL is listed in `ADAPTER_CLASSES` only when `chembl_webresource_client` is installed (checked without importing it); `ChEMBLAdapter` is `None` otherwise.
+
+### Lazy imports
+
+Nothing is imported until it is used. `import knowledge_lookup` loads only the version metadata (about 0.1 s); public names such as `CentralKnowledgeLookup` and `OLSAdapter` resolve on first access (PEP 562 `__getattr__` in `knowledge_lookup` and `knowledge_lookup.adapters`). `ADAPTER_CLASSES` is an `AdapterRegistry` (a `MutableMapping`): `in`, `len` and iteration use a static table, and `registry[source]` imports that adapter's module on first access. Heavy and optional libraries (pandas, rdflib, curies, tyto, bioservices, aiohttp) are imported inside the code that needs them. The ChEMBL client downloads the whole API schema when imported, so it is loaded on first use, in a worker thread; an unreachable ChEMBL service therefore only affects ChEMBL calls, never `import knowledge_lookup`.
 
 ## A search, step by step
 
@@ -112,7 +116,7 @@ The models are defined once in a [LinkML](https://linkml.io/) schema (`linkml/bi
 
 1. Create `src/knowledge_lookup/adapters/<name>_adapter.py` with a `KnowledgeSourceAdapter` subclass. Implement `get_source()`, `search_concepts()` and `get_concept_details()`, and override `is_available()` if the source needs a key or an optional client.
 2. Add the source to the `KnowledgeSource` enum in `linkml/biomedical_knowledge_schema.yaml` and regenerate the models (see `linkml/Makefile`).
-3. Register the class in `ADAPTER_CLASSES` in `adapters/__init__.py`.
+3. Add an entry (`KnowledgeSource.X: ("<name>_adapter", "XAdapter")`) to `_ADAPTER_SPECS` in `adapters/__init__.py`. That registers the class in `ADAPTER_CLASSES`, the lazy package attributes and `__all__`; add it to the `TYPE_CHECKING` import block and `_ADAPTER_EXPORTS` in `knowledge_lookup/__init__.py` if it should be importable from the top-level package. Import third-party client libraries inside the adapter (or its methods), not at the top of a module that other code imports.
 4. Add the source to `SOURCE_CATALOG` and `SourceName` in `mcp_server/sources.py`; the MCP tests check that both cover every adapter.
 5. Add unit tests with mocked responses and a documentation page under `docs/adapters/<category>/`.
 

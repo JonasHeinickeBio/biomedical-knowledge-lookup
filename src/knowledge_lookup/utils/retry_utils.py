@@ -23,7 +23,6 @@ from collections.abc import Callable
 from enum import Enum
 from typing import Any
 
-import aiohttp
 import backoff
 
 logger = logging.getLogger(__name__)
@@ -71,6 +70,8 @@ def classify_error(exc: Exception) -> ErrorCategory:
     Checks the exception type, string representation, and (where available)
     HTTP status codes for common error patterns.
     """
+    import aiohttp  # deferred: keeps `import knowledge_lookup` free of the HTTP stack
+
     msg = str(exc).lower()
     # --- Rate limiting ---
     if any(

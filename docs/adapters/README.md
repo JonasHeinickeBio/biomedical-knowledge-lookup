@@ -80,7 +80,7 @@ Import the class from `knowledge_lookup.adapters` and use it as an async context
 
 ### Through `CentralKnowledgeLookup`
 
-`CentralKnowledgeLookup(config)` creates every adapter in `ADAPTER_CLASSES` that is enabled in `LookupConfig.enabled_sources` (all of them when the list is unset or empty) and whose `is_available()` returns `True`. Unavailable adapters are skipped with a log warning. Set `enabled_sources` explicitly: creating all 36 adapters also initialises the ChEMBL, UniChem and UMLS clients.
+`CentralKnowledgeLookup(config)` creates every adapter in `ADAPTER_CLASSES` that is enabled in `LookupConfig.enabled_sources` (all of them when the list is unset or empty) and whose `is_available()` returns `True`. Unavailable adapters are skipped with a log warning. Set `enabled_sources` explicitly: creating all 36 adapters also imports every adapter module and initialises the ChEMBL, UniChem and UMLS clients. Disabled sources are never imported.
 
 - `search_concepts(query, concept_types=None, sources=None, max_results=50, parallel=True)` asks each source for `max(1, max_results // len(sources))` results. In parallel mode every source must finish within `timeout_per_source` (default 30 s). Results are merged when `enable_deduplication` is on (the default), filtered by `concept_types` (concepts typed `UNKNOWN` are kept), sorted by `confidence_score` and returned as a `LookupResult` with `concepts`, `errors` (per source), `sources_succeeded`, `sources_failed` and `execution_time`. Because most adapters catch their own errors and return `[]`, `errors` mainly shows timeouts and the few adapters that raise.
 - `get_concept_details(concept_id, source=None, timeout=None)` queries one adapter when `source` is given.
@@ -232,7 +232,7 @@ Pages are grouped by category.
 1. Add a member to `KnowledgeSource` in `knowledge_lookup.models`.
 2. Create `src/knowledge_lookup/adapters/<name>_adapter.py` with a subclass of `KnowledgeSourceAdapter`. Implement `get_source`, `search_concepts` and `get_concept_details`, and override `is_available` if the source needs a key or library.
 3. Send HTTP requests through `_make_request` / `_make_request_text`, or wrap synchronous libraries with `_thread_with_retry`, so the retries and circuit breaker apply. `_create_concept(concept_id, label, concept_type)` creates a concept with the identifier and `sources` already set.
-4. Register the class in `adapters/__init__.py` (`ADAPTER_CLASSES` and `__all__`), and add the source to `SOURCE_CATALOG` and `SourceName` in `knowledge_lookup/mcp_server/sources.py`.
+4. Register the class by adding `KnowledgeSource.X: ("<name>_adapter", "XAdapter")` to `_ADAPTER_SPECS` in `adapters/__init__.py` (this feeds `ADAPTER_CLASSES`, the lazy package attributes and `__all__`), and add the source to `SOURCE_CATALOG` and `SourceName` in `knowledge_lookup/mcp_server/sources.py`.
 5. Add unit tests and a page in the matching `docs/adapters/<category>/` folder, following the structure of the existing pages.
 
 ## See also
