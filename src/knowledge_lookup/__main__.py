@@ -8,7 +8,7 @@ A unified tool for biological concept lookup across multiple biomedical knowledg
 import asyncio
 import json
 import time
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import typer
 from rich.console import Console
@@ -25,10 +25,8 @@ from knowledge_lookup import (
 from knowledge_lookup.cache import init_cache
 from knowledge_lookup.mcp_server.sources import SOURCE_CATALOG, normalize_source_name
 
-try:
+if TYPE_CHECKING:
     from knowledge_lookup.adapters.umls_adapter import UMLSAdapter
-except ImportError:
-    UMLSAdapter = None  # type: ignore[assignment,misc]
 
 app = typer.Typer(
     name="biomedical-knowledge-lookup",

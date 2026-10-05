@@ -823,7 +823,8 @@ class TestCentralKnowledgeLookup:
             mock_adapter_class = MagicMock(side_effect=Exception("init fail"))
 
             mock_dict = {KnowledgeSource.BIOPORTAL: mock_adapter_class}
-            mock_classes.items.return_value = mock_dict.items()
+            mock_classes.__iter__.side_effect = lambda: iter(mock_dict)
+            mock_classes.__getitem__.side_effect = mock_dict.__getitem__
 
             lookup = CentralKnowledgeLookup(config=config, auto_initialize=True)
             assert KnowledgeSource.BIOPORTAL not in lookup.adapters
@@ -838,7 +839,8 @@ class TestCentralKnowledgeLookup:
             mock_adapter_class.return_value = mock_instance
 
             mock_dict = {KnowledgeSource.BIOPORTAL: mock_adapter_class}
-            mock_classes.items.return_value = mock_dict.items()
+            mock_classes.__iter__.side_effect = lambda: iter(mock_dict)
+            mock_classes.__getitem__.side_effect = mock_dict.__getitem__
 
             lookup = CentralKnowledgeLookup(config=config, auto_initialize=True)
             assert KnowledgeSource.BIOPORTAL not in lookup.adapters

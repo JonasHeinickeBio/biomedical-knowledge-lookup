@@ -2,6 +2,8 @@
 Unit tests for adapter imports and mappings.
 """
 
+from collections.abc import Mapping
+
 import pytest
 
 pytestmark = pytest.mark.unit
@@ -17,7 +19,7 @@ class TestAdapters:
         from knowledge_lookup import adapters
 
         assert hasattr(adapters, "ADAPTER_CLASSES")
-        assert isinstance(adapters.ADAPTER_CLASSES, dict)
+        assert isinstance(adapters.ADAPTER_CLASSES, Mapping)
 
     def test_adapter_classes_mapping(self):
         """Test that ADAPTER_CLASSES contains expected mappings."""

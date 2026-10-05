@@ -260,7 +260,7 @@ Protected helpers for implementers: `_make_request(url, params=None, headers=Non
 
 ### `ADAPTER_CLASSES`
 
-`dict[KnowledgeSource, type[KnowledgeSourceAdapter]]` in `knowledge_lookup.adapters`: the registry used by `CentralKnowledgeLookup`. ChEMBL and UMLS are present only when their extras are installed.
+`AdapterRegistry` (a `MutableMapping[KnowledgeSource, type[KnowledgeSourceAdapter]]`) in `knowledge_lookup.adapters`: the registry used by `CentralKnowledgeLookup`. Classes are imported lazily: `in`, `len()` and iteration import nothing, while `ADAPTER_CLASSES[source]`, `.get()`, `.values()` and `.items()` import the adapter modules they touch (and raise `ImportError` if one cannot be imported). ChEMBL is present only when `chembl_webresource_client` is installed. You can register your own adapter with `ADAPTER_CLASSES[source] = MyAdapter`.
 
 ## Errors
 

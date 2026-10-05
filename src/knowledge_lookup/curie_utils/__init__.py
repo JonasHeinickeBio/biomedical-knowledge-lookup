@@ -40,9 +40,15 @@ __all__ = [
     "get_source_prefix_mapping",
 ]
 
-try:
-    from curies import Converter  # noqa: F401 - re-exported below
 
-    __all__.append("Converter")
-except ImportError:
-    pass
+def __getattr__(name: str):
+    """``curies.Converter`` is re-exported lazily: ``curies`` is a sizeable import
+    and optional, so it is only loaded if someone actually asks for ``Converter``."""
+    if name == "Converter":
+        try:
+            from curies import Converter
+        except ImportError:
+            raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+        globals()["Converter"] = Converter
+        return Converter
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

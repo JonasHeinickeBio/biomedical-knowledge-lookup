@@ -13,9 +13,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # ---------------------------------------------------------------------------
 # Mock heavy external dependencies BEFORE any knowledge_lookup import.
-# knowledge_lookup/__init__.py loads ALL adapter modules eagerly, so these
-# mocks must be in sys.modules before the first `from knowledge_lookup ...`
-# statement to prevent actual network connections during unit tests.
+# Adapter modules are imported lazily, but several unit tests load them all (e.g.
+# via ADAPTER_CLASSES.items()), and the ChEMBL client downloads its API schema when
+# imported. These mocks must be in sys.modules before the first
+# `from knowledge_lookup ...` statement to prevent actual network connections during
+# unit tests.
 # ---------------------------------------------------------------------------
 mock_chembl = MagicMock()
 sys.modules["chembl_webresource_client"] = mock_chembl
