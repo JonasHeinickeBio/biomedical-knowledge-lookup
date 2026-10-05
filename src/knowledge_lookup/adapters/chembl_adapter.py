@@ -3,15 +3,25 @@ Adapter for ChEMBL drug/compound database using chembl_webresource_client.
 """
 
 import asyncio
+import importlib.util
 import logging
+import sys
 from concurrent.futures import Future, ThreadPoolExecutor, wait
 from typing import Any
-
-from chembl_webresource_client.new_client import new_client
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptIdentifier, ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
 from ..utils.retry_utils import create_chembl_retry_decorator
+
+# ``chembl_webresource_client.new_client`` downloads the whole ChEMBL API schema
+# over the network *when it is imported*, so importing it here would make
+# ``import knowledge_lookup`` crash whenever ChEMBL is down. It is imported on
+# first use instead (see ``ChEMBLAdapter.chembl_client``). Whether the optional
+# dependency is installed is still decided at import time, without importing it,
+# so ``adapters/__init__`` can skip the adapter in a core install.
+_CLIENT_MODULE = "chembl_webresource_client"
+if _CLIENT_MODULE not in sys.modules and importlib.util.find_spec(_CLIENT_MODULE) is None:
+    raise ImportError(f"{_CLIENT_MODULE} is not installed (extra: chembl)")
 
 # Endpoints check_api_status() probes, each with a one-record request.
 _STATUS_PROBE_ENDPOINTS = ("status", "molecule", "activity")
@@ -37,9 +47,9 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             config (LookupConfig): Configuration for lookup and adapter setup.
         """
         self.logger = logging.getLogger(__name__)
+        self._chembl_client: Any = None
         try:
             super().__init__(config)
-            self.chembl_client = new_client
             # Initialize ontology adapters for mapping
             from .bioontology_adapter import BioOntologyAdapter
             from .ols_adapter import OLSAdapter
@@ -53,6 +63,30 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             self._category_ontology_cache: dict[str, str] = {}
         except Exception as e:
             self.logger.error(f"Error initializing ChEMBLAdapter: {e}")
+
+    @property
+    def chembl_client(self) -> Any:
+        """The ChEMBL ``new_client``, imported on first access.
+
+        The import downloads the API schema, so it can raise (or hang) while
+        ChEMBL is down; nothing is cached on failure, so the next access
+        retries. From async code call :meth:`_load_client` first so the import
+        runs in a worker thread rather than on the event loop.
+        """
+        if self._chembl_client is None:
+            from chembl_webresource_client.new_client import new_client
+
+            self._chembl_client = new_client
+        return self._chembl_client
+
+    @chembl_client.setter
+    def chembl_client(self, client: Any) -> None:
+        self._chembl_client = client
+
+    async def _load_client(self) -> None:
+        """Import the ChEMBL client in a worker thread if that has not happened yet."""
+        if self._chembl_client is None:
+            await asyncio.to_thread(lambda: self.chembl_client)
 
     def get_source(self) -> KnowledgeSource:
         """
@@ -109,6 +143,12 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             "endpoints_tested": [],
             "available_endpoints": [],
         }
+
+        try:
+            self.chembl_client  # noqa: B018 - first access imports the client
+        except Exception as e:
+            status["error"] = f"ChEMBL client could not be loaded: {str(e)[:100]}"
+            return status
 
         # Known ChEMBL endpoints (based on ChEMBL Web Resource Client)
         known_endpoints = [
@@ -290,6 +330,7 @@ class ChEMBLAdapter(KnowledgeSourceAdapter):
             ValueError: unknown endpoint.
             Exception: the last API error once retries are exhausted.
         """
+        await self._load_client()
         if getattr(self.chembl_client, endpoint, None) is None:
             raise ValueError(f"Endpoint '{endpoint}' not found in ChEMBL client.")
         return await self._thread_with_retry(
