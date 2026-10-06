@@ -291,6 +291,94 @@ class KnowledgeSource(str, Enum):
     """
     WikiPathways
     """
+    MONARCH = "MONARCH"
+    """
+    Monarch Initiative
+    """
+    HPOA = "HPOA"
+    """
+    HPO annotations (phenotype.hpoa)
+    """
+    NODENORM = "NODENORM"
+    """
+    NCATS Node Normalizer and Name Resolver
+    """
+    MESH = "MESH"
+    """
+    MeSH
+    """
+    RXCLASS = "RXCLASS"
+    """
+    RxClass (ATC)
+    """
+    SNOMEDCT = "SNOMEDCT"
+    """
+    SNOMED CT (Snowstorm)
+    """
+    ICD11 = "ICD11"
+    """
+    WHO ICD-11
+    """
+    ICD10GM = "ICD10GM"
+    """
+    ICD-10-GM (BfArM)
+    """
+    LOINC = "LOINC"
+    """
+    LOINC
+    """
+    GWASCATALOG = "GWASCATALOG"
+    """
+    GWAS Catalog
+    """
+    CTD = "CTD"
+    """
+    CTD
+    """
+    DGIDB = "DGIDB"
+    """
+    DGIdb
+    """
+    INTACT = "INTACT"
+    """
+    IntAct
+    """
+    PUBTATOR = "PUBTATOR"
+    """
+    PubTator 3
+    """
+    CLINICALTRIALS = "CLINICALTRIALS"
+    """
+    ClinicalTrials.gov
+    """
+    SEMMEDDB = "SEMMEDDB"
+    """
+    SemMedDB
+    """
+    SIDER = "SIDER"
+    """
+    SIDER
+    """
+    OFFSIDES = "OFFSIDES"
+    """
+    OFFSIDES
+    """
+    HUMANPROTEINATLAS = "HUMANPROTEINATLAS"
+    """
+    Human Protein Atlas
+    """
+    CELLONTOLOGY = "CELLONTOLOGY"
+    """
+    Cell Ontology
+    """
+    CELLMARKER = "CELLMARKER"
+    """
+    CellMarker 2.0
+    """
+    CHEBI = "CHEBI"
+    """
+    ChEBI
+    """
 
 
 class ConceptType(str, Enum):

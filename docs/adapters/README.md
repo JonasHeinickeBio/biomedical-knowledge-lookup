@@ -218,6 +218,29 @@ Pages are grouped by category.
 | [OxO](other/oxo_adapter.md) | ontology cross-reference mappings | `MONDO:0005148` | none |
 | [Tyto](other/tyto_adapter.md) | ontology term labels via `tyto` | `http://identifiers.org/SBO:0000241` | `[tyto]` extra |
 | [Wikidata](other/wikidata_adapter.md) | Wikidata items via SPARQL | `Q18216` | none |
+| [Monarch Initiative](phenotypes/monarch_adapter.md) | Monarch Initiative gene-disease-phenotype associations (HPO, MONDO, OMIM, Orphanet) | `MONDO:0005148` | none |
+| [HPO annotations (phenotype.hpoa)](phenotypes/hpoa_adapter.md) | HPO disease-to-phenotype annotations with frequency (phenotype.hpoa download) | `OMIM:104300` | none |
+| [NCATS Node Normalizer and Name Resolver](ontologies/nodenorm_adapter.md) | NCATS Translator Node Normalizer / Name Resolver: equivalent identifiers across MONDO, HP, UMLS, MeSH, NCBIGene | `MONDO:0005148` | none |
+| [MeSH](ontologies/mesh_adapter.md) | NLM Medical Subject Headings descriptors and tree hierarchy, e.g. D003920 | `D003920` | none |
+| [RxClass (ATC)](chemicals/rxclass_adapter.md) | ATC and other drug classes via NLM RxNav RxClass | `N02BA01` | none |
+| [SNOMED CT (Snowstorm)](ontologies/snomedct_adapter.md) | SNOMED CT concepts and hierarchy via a Snowstorm server (SNOMED licence applies) | `52448006` | none |
+| [WHO ICD-11](ontologies/icd11_adapter.md) | WHO ICD-11 entities and codes | `8E49` | the ICD11_CLIENT_ID and ICD11_CLIENT_SECRET environment variables |
+| [ICD-10-GM (BfArM)](ontologies/icd10gm_adapter.md) | German ICD-10-GM classification (BfArM), e.g. G93.3 | `G93.3` | the BfArM ICD-10-GM ClaML file (ICD10GM_CLAML_PATH or an automatic download) |
+| [LOINC](ontologies/loinc_adapter.md) | LOINC laboratory and clinical observation codes | `2093-3` | the LOINC_USERNAME and LOINC_PASSWORD environment variables |
+| [GWAS Catalog](phenotypes/gwascatalog_adapter.md) | NHGRI-EBI GWAS Catalog traits, studies and variant-trait associations | `EFO_0004540` | none |
+| [CTD](chemicals/ctd_adapter.md) | Comparative Toxicogenomics Database chemical-gene-disease links (non-commercial use) | `MESH:D001241` | none |
+| [DGIdb](chemicals/dgidb_adapter.md) | DGIdb aggregated drug-gene interactions | `BRCA1` | none |
+| [IntAct](proteins/intact_adapter.md) | IntAct curated experimental molecular interactions | `P38398` | none |
+| [PubTator 3](literature/pubtator_adapter.md) | PubTator 3 literature entities and relations for PubMed/PMC | `@GENE_BRCA1` | none |
+| [ClinicalTrials.gov](literature/clinicaltrials_adapter.md) | ClinicalTrials.gov registered studies, conditions and interventions | `NCT04280705` | none |
+| [SemMedDB](literature/semmeddb_adapter.md) | SemMedDB subject-predicate-object relations from PubMed (local export; UMLS licence) | `C0015674` | a local SemMedDB export (SEMMEDDB_PATH) |
+| [SIDER](chemicals/sider_adapter.md) | SIDER drug side effects (dataset download; outdated, 2016) | `CID100002244` | none |
+| [OFFSIDES](chemicals/offsides_adapter.md) | OFFSIDES off-label drug side effects from adverse event reports (dataset download) | `RxNorm:1191` | none |
+| [Human Protein Atlas](proteins/hpa_adapter.md) | Human Protein Atlas tissue and blood protein expression (CC BY-SA) | `ENSG00000012048` | none |
+| [Cell Ontology](ontologies/cellontology_adapter.md) | Cell Ontology cell types, e.g. CL:0000084 | `CL:0000084` | none |
+| [CellMarker 2.0](ontologies/cellmarker_adapter.md) | CellMarker 2.0 cell-type marker genes (dataset download) | `CD4` | none |
+| [ChEBI](chemicals/chebi_adapter.md) | ChEBI chemical entities and ontology, e.g. CHEBI:15365 | `CHEBI:15365` | none |
+| [MyGene.info](proteins/mygeneinfo_adapter.md) | MyGene.info gene annotation and identifier cross-references | `1017` | none |
 
 {% hint style="warning" %}
 **Known issues (tested September 2026).** Details are on each page.

@@ -572,6 +572,23 @@ _CHECK_QUERIES: dict[KnowledgeSource, str] = {
     KnowledgeSource.PFAM: "kinase",
     KnowledgeSource.ZOOMA: "diabetes",
     KnowledgeSource.OBOFOUNDRY: "diabetes",
+    KnowledgeSource.HPOA: "chronic fatigue",
+    KnowledgeSource.NODENORM: "diabetes mellitus",
+    KnowledgeSource.MESH: "chronic fatigue syndrome",
+    KnowledgeSource.RXCLASS: "aspirin",
+    KnowledgeSource.SNOMEDCT: "fatigue",
+    KnowledgeSource.ICD11: "fatigue",
+    KnowledgeSource.ICD10GM: "fatigue",
+    KnowledgeSource.LOINC: "hemoglobin",
+    KnowledgeSource.GWASCATALOG: "chronic fatigue syndrome",
+    KnowledgeSource.CTD: "aspirin",
+    KnowledgeSource.CLINICALTRIALS: "long covid",
+    KnowledgeSource.SEMMEDDB: "fatigue",
+    KnowledgeSource.SIDER: "aspirin",
+    KnowledgeSource.OFFSIDES: "aspirin",
+    KnowledgeSource.CELLONTOLOGY: "T cell",
+    KnowledgeSource.CELLMARKER: "CD4",
+    KnowledgeSource.CHEBI: "aspirin",
 }
 
 
@@ -580,6 +597,9 @@ _CHECK_QUERIES: dict[KnowledgeSource, str] = {
 _CHECK_CREDENTIALS: dict[KnowledgeSource, str] = {
     KnowledgeSource.OMIM: "OMIM_API_KEY",
     KnowledgeSource.COSMIC: "COSMIC_API_KEY",
+    KnowledgeSource.ICD11: "ICD11_CLIENT_ID",
+    KnowledgeSource.LOINC: "LOINC_USERNAME",
+    KnowledgeSource.SEMMEDDB: "SEMMEDDB_PATH",
 }
 
 

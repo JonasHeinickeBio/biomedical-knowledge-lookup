@@ -23,10 +23,16 @@ SourceName = Literal[
     "BIOLINKER",
     "BIOONTOLOGY",
     "BIOPORTAL",
+    "CELLMARKER",
+    "CELLONTOLOGY",
+    "CHEBI",
     "CHEMBL",
+    "CLINICALTRIALS",
     "CLINVAR",
     "COSMIC",
+    "CTD",
     "DBPEDIA",
+    "DGIDB",
     "DISGENET",
     "DRUGBANK",
     "EBIOLS",
@@ -34,12 +40,24 @@ SourceName = Literal[
     "EUROPEPMC",
     "EUTILS",
     "GENEONTOLOGY",
+    "GWASCATALOG",
     "HGNC",
     "HPO",
+    "HPOA",
+    "HUMANPROTEINATLAS",
+    "ICD10GM",
+    "ICD11",
+    "INTACT",
     "INTERPRO",
     "KEGG",
+    "LOINC",
+    "MESH",
+    "MONARCH",
     "MONDO",
+    "MYGENEINFO",
+    "NODENORM",
     "OBOFOUNDRY",
+    "OFFSIDES",
     "OLS",
     "OMIM",
     "OPENTARGETS",
@@ -47,8 +65,13 @@ SourceName = Literal[
     "PDB",
     "PFAM",
     "PUBCHEM",
+    "PUBTATOR",
     "QUICKGO",
     "REACTOME",
+    "RXCLASS",
+    "SEMMEDDB",
+    "SIDER",
+    "SNOMEDCT",
     "STRING",
     "TYTO",
     "UMLS",
@@ -124,6 +147,79 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
     KnowledgeSource.STRING: SourceSpec("STRING protein-protein interactions"),
     KnowledgeSource.WIKIPATHWAYS: SourceSpec(
         "WikiPathways community-curated pathways, e.g. WP4262"
+    ),
+    KnowledgeSource.MONARCH: SourceSpec(
+        "Monarch Initiative gene-disease-phenotype associations (HPO, MONDO, OMIM, Orphanet)",
+    ),
+    KnowledgeSource.HPOA: SourceSpec(
+        "HPO disease-to-phenotype annotations with frequency (phenotype.hpoa download)",
+    ),
+    KnowledgeSource.NODENORM: SourceSpec(
+        "NCATS Translator Node Normalizer / Name Resolver: equivalent identifiers across MONDO, HP, UMLS, MeSH, NCBIGene",
+    ),
+    KnowledgeSource.MESH: SourceSpec(
+        "NLM Medical Subject Headings descriptors and tree hierarchy, e.g. D003920",
+    ),
+    KnowledgeSource.RXCLASS: SourceSpec(
+        "ATC and other drug classes via NLM RxNav RxClass",
+    ),
+    KnowledgeSource.SNOMEDCT: SourceSpec(
+        "SNOMED CT concepts and hierarchy via a Snowstorm server (SNOMED licence applies)",
+    ),
+    KnowledgeSource.ICD11: SourceSpec(
+        "WHO ICD-11 entities and codes",
+        "the ICD11_CLIENT_ID and ICD11_CLIENT_SECRET environment variables",
+    ),
+    KnowledgeSource.ICD10GM: SourceSpec(
+        "German ICD-10-GM classification (BfArM), e.g. G93.3",
+        "the BfArM ICD-10-GM ClaML file (ICD10GM_CLAML_PATH or an automatic download)",
+    ),
+    KnowledgeSource.LOINC: SourceSpec(
+        "LOINC laboratory and clinical observation codes",
+        "the LOINC_USERNAME and LOINC_PASSWORD environment variables",
+    ),
+    KnowledgeSource.GWASCATALOG: SourceSpec(
+        "NHGRI-EBI GWAS Catalog traits, studies and variant-trait associations",
+    ),
+    KnowledgeSource.CTD: SourceSpec(
+        "Comparative Toxicogenomics Database chemical-gene-disease links (non-commercial use)",
+    ),
+    KnowledgeSource.DGIDB: SourceSpec(
+        "DGIdb aggregated drug-gene interactions",
+    ),
+    KnowledgeSource.INTACT: SourceSpec(
+        "IntAct curated experimental molecular interactions",
+    ),
+    KnowledgeSource.PUBTATOR: SourceSpec(
+        "PubTator 3 literature entities and relations for PubMed/PMC",
+    ),
+    KnowledgeSource.CLINICALTRIALS: SourceSpec(
+        "ClinicalTrials.gov registered studies, conditions and interventions",
+    ),
+    KnowledgeSource.SEMMEDDB: SourceSpec(
+        "SemMedDB subject-predicate-object relations from PubMed (local export; UMLS licence)",
+        "a local SemMedDB export (SEMMEDDB_PATH)",
+    ),
+    KnowledgeSource.SIDER: SourceSpec(
+        "SIDER drug side effects (dataset download; outdated, 2016)",
+    ),
+    KnowledgeSource.OFFSIDES: SourceSpec(
+        "OFFSIDES off-label drug side effects from adverse event reports (dataset download)",
+    ),
+    KnowledgeSource.HUMANPROTEINATLAS: SourceSpec(
+        "Human Protein Atlas tissue and blood protein expression (CC BY-SA)",
+    ),
+    KnowledgeSource.CELLONTOLOGY: SourceSpec(
+        "Cell Ontology cell types, e.g. CL:0000084",
+    ),
+    KnowledgeSource.CELLMARKER: SourceSpec(
+        "CellMarker 2.0 cell-type marker genes (dataset download)",
+    ),
+    KnowledgeSource.CHEBI: SourceSpec(
+        "ChEBI chemical entities and ontology, e.g. CHEBI:15365",
+    ),
+    KnowledgeSource.MYGENEINFO: SourceSpec(
+        "MyGene.info gene annotation and identifier cross-references",
     ),
 }
 

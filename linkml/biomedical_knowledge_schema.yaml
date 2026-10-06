@@ -120,6 +120,50 @@ enums:
         description: "STRING"
       WIKIPATHWAYS:
         description: "WikiPathways"
+      MONARCH:
+        description: "Monarch Initiative"
+      HPOA:
+        description: "HPO annotations (phenotype.hpoa)"
+      NODENORM:
+        description: "NCATS Node Normalizer and Name Resolver"
+      MESH:
+        description: "MeSH"
+      RXCLASS:
+        description: "RxClass (ATC)"
+      SNOMEDCT:
+        description: "SNOMED CT (Snowstorm)"
+      ICD11:
+        description: "WHO ICD-11"
+      ICD10GM:
+        description: "ICD-10-GM (BfArM)"
+      LOINC:
+        description: "LOINC"
+      GWASCATALOG:
+        description: "GWAS Catalog"
+      CTD:
+        description: "CTD"
+      DGIDB:
+        description: "DGIdb"
+      INTACT:
+        description: "IntAct"
+      PUBTATOR:
+        description: "PubTator 3"
+      CLINICALTRIALS:
+        description: "ClinicalTrials.gov"
+      SEMMEDDB:
+        description: "SemMedDB"
+      SIDER:
+        description: "SIDER"
+      OFFSIDES:
+        description: "OFFSIDES"
+      HUMANPROTEINATLAS:
+        description: "Human Protein Atlas"
+      CELLONTOLOGY:
+        description: "Cell Ontology"
+      CELLMARKER:
+        description: "CellMarker 2.0"
+      CHEBI:
+        description: "ChEBI"
 
   ConceptType:
     description: "Types of biological concepts based on AID-PAIS ontology"
