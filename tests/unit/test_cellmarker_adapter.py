@@ -171,11 +171,19 @@ class TestXlsxReader:
 class TestBasics:
     def test_source_and_availability(self, lookup_config, monkeypatch, tmp_path):
         monkeypatch.delenv(cm.CELLMARKER_PATH_ENV, raising=False)
+        monkeypatch.delenv(cm.CELLMARKER_URL_ENV, raising=False)
         adapter = CellMarkerAdapter(lookup_config)
         assert adapter.get_source() == KnowledgeSource.CELLMARKER
-        assert adapter.is_available() is True  # downloaded lazily
+        assert adapter.is_available() is False  # no built-in download location
+        monkeypatch.setenv(cm.CELLMARKER_URL_ENV, "https://example.org/Cell_marker_Human.xlsx")
+        assert adapter.is_available() is True
+        monkeypatch.delenv(cm.CELLMARKER_URL_ENV)
         monkeypatch.setenv(cm.CELLMARKER_PATH_ENV, str(tmp_path / "missing.xlsx"))
         assert adapter.is_available() is False
+        present = tmp_path / "present.xlsx"
+        present.write_bytes(b"x")
+        monkeypatch.setenv(cm.CELLMARKER_PATH_ENV, str(present))
+        assert adapter.is_available() is True
 
     def test_construction_never_touches_data(self, lookup_config, monkeypatch):
         monkeypatch.delenv(cm.CELLMARKER_PATH_ENV, raising=False)
@@ -463,8 +471,18 @@ class TestDataLoading:
         assert adapter._index is None
 
 
+XLSX_URL = "https://example.org/files/Cell_marker_Human.xlsx"
+
+
 class TestDownload:
     """The dataset is fetched lazily through the dataset cache; the network call is faked."""
+
+    @pytest.mark.asyncio
+    async def test_without_a_path_or_url_nothing_is_fetched(self, lookup_config):
+        with patch("knowledge_lookup.utils.dataset_cache._fetch") as fetch:
+            adapter = CellMarkerAdapter(lookup_config)
+            assert await adapter.search_concepts("CD4") == []
+        fetch.assert_not_called()
 
     @pytest.fixture(autouse=True)
     def _cache_dir(self, tmp_path, monkeypatch):
@@ -473,9 +491,10 @@ class TestDownload:
         monkeypatch.delenv(cm.CELLMARKER_URL_ENV, raising=False)
 
     @pytest.mark.asyncio
-    async def test_default_xlsx_download_is_lazy_cached_and_not_unpacked(
-        self, lookup_config, tmp_path
+    async def test_xlsx_download_is_lazy_cached_and_not_unpacked(
+        self, lookup_config, tmp_path, monkeypatch
     ):
+        monkeypatch.setenv(cm.CELLMARKER_URL_ENV, XLSX_URL)
         source = write_xlsx(tmp_path / "remote.xlsx", [HEADER_2_0, *ROWS_2_0])
         calls = []
 
@@ -489,7 +508,7 @@ class TestDownload:
             assert (await adapter.search_concepts("CD4"))[0].primary_id == "CD4"
             other = CellMarkerAdapter(lookup_config)
             assert await other.get_concept_details("CL:0000084") is not None
-        assert calls == [cm.DEFAULT_DATASET_URL]  # downloaded once, then fresh in the cache
+        assert calls == [XLSX_URL]  # downloaded once, then fresh in the cache
         cached = tmp_path / "cache" / "Cell_marker_Human.xlsx"
         assert (
             zipfile.is_zipfile(cached) and "xl/workbook.xml" in zipfile.ZipFile(cached).namelist()
@@ -497,8 +516,9 @@ class TestDownload:
 
     @pytest.mark.asyncio
     async def test_failed_refresh_uses_stale_copy_and_failure_without_copy(
-        self, lookup_config, tmp_path
+        self, lookup_config, tmp_path, monkeypatch
     ):
+        monkeypatch.setenv(cm.CELLMARKER_URL_ENV, XLSX_URL)
         source = write_xlsx(tmp_path / "remote.xlsx", [HEADER_2_0, *ROWS_2_0])
         cached = tmp_path / "cache" / "Cell_marker_Human.xlsx"
         cached.parent.mkdir()

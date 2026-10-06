@@ -187,11 +187,11 @@ as environment variables, for example with `claude mcp add ... -e UMLS_API_KEY=.
 
 ## Knowledge sources
 
-36 adapters, grouped by domain. Pass the name as `KnowledgeSource.<NAME>` in Python or as
+60 adapters, grouped by domain. Pass the name as `KnowledgeSource.<NAME>` in Python or as
 `--source <NAME>` on the CLI. A source marked **—** works without an API key or extra.
 
 <details>
-<summary><strong>Show all 36 sources and their requirements</strong></summary>
+<summary><strong>Show all 60 sources and their requirements</strong></summary>
 
 **Diseases and phenotypes**
 

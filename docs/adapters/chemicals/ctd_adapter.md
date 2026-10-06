@@ -10,7 +10,7 @@ Reads the Comparative Toxicogenomics Database (CTD) bulk reports to link chemica
 |---|---|
 | Source | `KnowledgeSource.CTD` |
 | Class | `knowledge_lookup.adapters.CTDAdapter` |
-| Requires | none (downloads CTD report files on first use; set `CTD_DATA_DIR` to use your own copy) |
+| Requires | opt-in download (~220 MB core reports): `CTD_DOWNLOAD=1` or `KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1`, or a local copy in `CTD_DATA_DIR` |
 | Identifiers | chemicals `MESH:D001241` (or a CAS number); diseases `MESH:D003920`, `OMIM:264300`; genes `NCBIGene:672` |
 | Upstream | `https://ctdbase.org/reports/` |
 

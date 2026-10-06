@@ -40,6 +40,8 @@ logger = logging.getLogger(__name__)
 
 HPOA_URL = "https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/phenotype.hpoa"
 HPOA_PATH_ENV = "HPOA_PATH"
+HPOA_DOWNLOAD_ENV = "HPOA_DOWNLOAD"
+HPOA_FILENAME = "phenotype.hpoa"
 
 # aspect letter -> relation label (a NOT qualifier prefixes "not_")
 _ASPECT_RELATIONS = {
@@ -169,10 +171,18 @@ class HPOAAdapter(KnowledgeSourceAdapter):
         return KnowledgeSource.HPOA
 
     def is_available(self) -> bool:
-        """True unless ``HPOA_PATH`` points at a file that does not exist (the default
-        path downloads the data on first use, so it is available without any setup)."""
+        """True when ``HPOA_PATH`` names an existing file, the file is already cached, or the
+        ~36 MB download is allowed (``HPOA_DOWNLOAD=1`` or ``KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1``).
+
+        Opt-in, so a default multi-source lookup never starts the download on its own."""
+        from ..utils.dataset_cache import default_cache_dir, downloads_allowed
+
         configured = os.environ.get(HPOA_PATH_ENV)
-        return Path(configured).is_file() if configured else True
+        if configured:
+            return Path(configured).is_file()
+        return (default_cache_dir() / HPOA_FILENAME).is_file() or downloads_allowed(
+            HPOA_DOWNLOAD_ENV
+        )
 
     # ------------------------------------------------------------------
     # Data loading
@@ -190,7 +200,7 @@ class HPOAAdapter(KnowledgeSourceAdapter):
                 else:
                     from ..utils.dataset_cache import ensure_dataset  # lazy: only on first use
 
-                    path = await ensure_dataset(HPOA_URL, filename="phenotype.hpoa")
+                    path = await ensure_dataset(HPOA_URL, filename=HPOA_FILENAME)
                 self._index = await asyncio.to_thread(parse_hpoa, path)
                 logger.info(
                     f"HPOA loaded: {len(self._index.names)} diseases, "

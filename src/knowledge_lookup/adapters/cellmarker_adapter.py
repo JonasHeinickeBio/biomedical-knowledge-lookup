@@ -46,9 +46,6 @@ logger = logging.getLogger(__name__)
 
 CELLMARKER_PATH_ENV = "CELLMARKER_PATH"
 CELLMARKER_URL_ENV = "CELLMARKER_URL"
-DEFAULT_DATASET_URL = (
-    "http://117.50.127.228/CellMarker/CellMarker_download_files/file/Cell_marker_Human.xlsx"
-)
 INDEX_VERSION = 1
 _DATASET_MAX_AGE_DAYS = 90  # CellMarker releases are infrequent
 
@@ -420,10 +417,15 @@ class CellMarkerAdapter(KnowledgeSourceAdapter):
         return KnowledgeSource.CELLMARKER
 
     def is_available(self) -> bool:
+        """True when ``CELLMARKER_PATH`` names an existing file or ``CELLMARKER_URL`` is set.
+
+        There is no built-in download location: the official site now serves CellMarker 3.0
+        (a 49 MB zip around a 577 MB TSV) and the old 2.0 workbook is only reachable through a
+        third-party host, so you choose the file explicitly."""
         override = os.getenv(CELLMARKER_PATH_ENV)
         if override:
             return Path(override).expanduser().is_file()
-        return True  # the dataset is downloaded on first use
+        return bool((os.getenv(CELLMARKER_URL_ENV) or "").strip())
 
     # ------------------------------------------------------------------
     # Data loading
@@ -436,40 +438,22 @@ class CellMarkerAdapter(KnowledgeSourceAdapter):
             if not path.is_file():
                 raise FileNotFoundError(f"{CELLMARKER_PATH_ENV}={override} does not exist")
             return path
-        url = os.getenv(CELLMARKER_URL_ENV) or DEFAULT_DATASET_URL
-        name = url.split("?", 1)[0].rstrip("/").rsplit("/", 1)[-1] or "cellmarker.dat"
-        if name.lower().endswith(".xlsx"):
-            return await self._download_raw(url, name)
+        url = (os.getenv(CELLMARKER_URL_ENV) or "").strip()
+        if not url:
+            raise FileNotFoundError(
+                f"CellMarker needs {CELLMARKER_PATH_ENV} (a local file) or {CELLMARKER_URL_ENV}"
+            )
         from ..utils.dataset_cache import ensure_dataset
 
-        return await ensure_dataset(url, filename=name, max_age_days=_DATASET_MAX_AGE_DAYS)
-
-    @staticmethod
-    async def _download_raw(url: str, name: str) -> Path:
-        """Download-once for ``.xlsx``: an xlsx *is* a zip archive, so ``ensure_dataset`` would
-        try to unpack it. Reuses its cache directory, freshness check and streaming fetch."""
-        from ..utils import dataset_cache as dc
-
-        directory = dc.default_cache_dir()
-        directory.mkdir(parents=True, exist_ok=True)
-        final = directory / name
-        lock = dc._locks.setdefault(final, asyncio.Lock())
-        async with lock:
-            if dc._is_fresh(final, _DATASET_MAX_AGE_DAYS):
-                return final
-            part = directory / f"{name}.part"
-            try:
-                logger.info(f"Downloading CellMarker dataset {url} -> {final}")
-                await dc._fetch(url, part, 600.0, {"User-Agent": "AID-PAIS-Knowledge-Lookup/1.0"})
-                part.replace(final)
-                return final
-            except Exception as exc:
-                if final.exists():
-                    logger.warning(f"Could not refresh {url} ({exc}); using the cached copy")
-                    return final
-                raise
-            finally:
-                part.unlink(missing_ok=True)
+        name = url.split("?", 1)[0].rstrip("/").rsplit("/", 1)[-1] or "cellmarker.dat"
+        # An .xlsx is a zip container that must be kept as one file, not unpacked.
+        return await ensure_dataset(
+            url,
+            filename=name,
+            max_age_days=_DATASET_MAX_AGE_DAYS,
+            raw=name.lower().endswith(".xlsx"),
+            headers={"User-Agent": "AID-PAIS-Knowledge-Lookup/1.0"},
+        )
 
     async def _get_index(self) -> _Index | None:
         """The aggregated index, built on first use; ``None`` when the data is unavailable."""

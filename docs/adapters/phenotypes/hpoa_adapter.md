@@ -10,7 +10,7 @@ Looks up rare diseases (OMIM, Orphanet, DECIPHER) and the HPO phenotypes annotat
 |---|---|
 | Source | `KnowledgeSource.HPOA` |
 | Class | `knowledge_lookup.adapters.HPOAAdapter` |
-| Requires | none (downloads ~36 MB on first use; or set `HPOA_PATH`) |
+| Requires | opt-in download (~36 MB): `HPOA_DOWNLOAD=1` or `KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1`, or a local file in `HPOA_PATH` |
 | Identifiers | `OMIM:154700`, `ORPHA:558`, `DECIPHER:5` (diseases); `HP:0012432` (phenotypes, relationships only) |
 | Data file | `https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/phenotype.hpoa` |
 | Environment | `HPOA_PATH` (optional), `KNOWLEDGE_LOOKUP_DATA_DIR` (cache location) |

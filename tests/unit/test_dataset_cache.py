@@ -139,3 +139,35 @@ def test_default_cache_dir_honours_the_environment(monkeypatch, tmp_path):
     assert default_cache_dir() == tmp_path
     monkeypatch.delenv("KNOWLEDGE_LOOKUP_DATA_DIR")
     assert default_cache_dir() == Path.home() / ".cache" / "knowledge_lookup" / "datasets"
+
+
+@pytest.mark.asyncio
+async def test_raw_keeps_zip_containers_such_as_xlsx(tmp_path, fetch):
+    archive = tmp_path / "book.xlsx"
+    with zipfile.ZipFile(archive, "w") as z:
+        z.writestr("xl/workbook.xml", "<x/>")
+        z.writestr("xl/sharedStrings.xml", "<s/>")
+    fetch.payload = archive.read_bytes()
+    path = await ensure_dataset(
+        "https://example.org/book.xlsx", cache_dir=tmp_path / "c", raw=True
+    )
+    assert path.read_bytes() == fetch.payload  # not unpacked, no "member" error
+
+
+@pytest.mark.parametrize("value", ["1", "true", "YES", " on "])
+def test_downloads_allowed_by_global_or_source_switch(monkeypatch, value):
+    monkeypatch.delenv("KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS", raising=False)
+    monkeypatch.delenv("X_DOWNLOAD", raising=False)
+    assert dataset_cache.downloads_allowed("X_DOWNLOAD") is False
+    monkeypatch.setenv("X_DOWNLOAD", value)
+    assert dataset_cache.downloads_allowed("X_DOWNLOAD") is True
+    monkeypatch.delenv("X_DOWNLOAD")
+    monkeypatch.setenv("KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS", value)
+    assert dataset_cache.downloads_allowed("X_DOWNLOAD") is True
+
+
+@pytest.mark.parametrize("value", ["0", "no", "", "maybe"])
+def test_downloads_not_allowed_for_other_values(monkeypatch, value):
+    monkeypatch.delenv("KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS", raising=False)
+    monkeypatch.setenv("X_DOWNLOAD", value)
+    assert dataset_cache.downloads_allowed("X_DOWNLOAD") is False

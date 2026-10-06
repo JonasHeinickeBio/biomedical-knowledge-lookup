@@ -152,7 +152,8 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
         "Monarch Initiative gene-disease-phenotype associations (HPO, MONDO, OMIM, Orphanet)",
     ),
     KnowledgeSource.HPOA: SourceSpec(
-        "HPO disease-to-phenotype annotations with frequency (phenotype.hpoa download)",
+        "HPO disease-to-phenotype annotations with frequency (phenotype.hpoa, ~36 MB download)",
+        "opt-in download: HPOA_DOWNLOAD=1, or a local file (HPOA_PATH)",
     ),
     KnowledgeSource.NODENORM: SourceSpec(
         "NCATS Translator Node Normalizer / Name Resolver: equivalent identifiers across MONDO, HP, UMLS, MeSH, NCBIGene",
@@ -164,7 +165,7 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
         "ATC and other drug classes via NLM RxNav RxClass",
     ),
     KnowledgeSource.SNOMEDCT: SourceSpec(
-        "SNOMED CT concepts and hierarchy via a Snowstorm server (SNOMED licence applies)",
+        "SNOMED CT concepts and hierarchy via Snowstorm (SNOMED licence applies; the public instance is for light use, set SNOMED_SNOWSTORM_URL for your own server)",
     ),
     KnowledgeSource.ICD11: SourceSpec(
         "WHO ICD-11 entities and codes",
@@ -172,7 +173,7 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
     ),
     KnowledgeSource.ICD10GM: SourceSpec(
         "German ICD-10-GM classification (BfArM), e.g. G93.3",
-        "the BfArM ICD-10-GM ClaML file (ICD10GM_CLAML_PATH or an automatic download)",
+        "the BfArM ICD-10-GM ClaML file (ICD10GM_CLAML_PATH, or ICD10GM_URL for a download you choose)",
     ),
     KnowledgeSource.LOINC: SourceSpec(
         "LOINC laboratory and clinical observation codes",
@@ -183,6 +184,7 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
     ),
     KnowledgeSource.CTD: SourceSpec(
         "Comparative Toxicogenomics Database chemical-gene-disease links (non-commercial use)",
+        "opt-in download (~220 MB core reports): CTD_DOWNLOAD=1, or CTD_DATA_DIR",
     ),
     KnowledgeSource.DGIDB: SourceSpec(
         "DGIdb aggregated drug-gene interactions",
@@ -201,19 +203,22 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
         "a local SemMedDB export (SEMMEDDB_PATH)",
     ),
     KnowledgeSource.SIDER: SourceSpec(
-        "SIDER drug side effects (dataset download; outdated, 2016)",
+        "SIDER drug side effects (dataset, CC BY-SA 4.0; frozen in 2016)",
+        "opt-in download (~5.5 MB): SIDER_DOWNLOAD=1, or SIDER_DATA_DIR",
     ),
     KnowledgeSource.OFFSIDES: SourceSpec(
-        "OFFSIDES off-label drug side effects from adverse event reports (dataset download)",
+        "OFFSIDES off-label drug side effects from adverse event reports (statistical signals)",
+        "opt-in download (~69 MB): OFFSIDES_DOWNLOAD=1, or OFFSIDES_PATH",
     ),
     KnowledgeSource.HUMANPROTEINATLAS: SourceSpec(
-        "Human Protein Atlas tissue and blood protein expression (CC BY-SA)",
+        "Human Protein Atlas tissue and blood protein expression (CC BY 4.0)",
     ),
     KnowledgeSource.CELLONTOLOGY: SourceSpec(
         "Cell Ontology cell types, e.g. CL:0000084",
     ),
     KnowledgeSource.CELLMARKER: SourceSpec(
-        "CellMarker 2.0 cell-type marker genes (dataset download)",
+        "CellMarker cell-type marker genes (dataset file you provide)",
+        "a data file: CELLMARKER_PATH, or CELLMARKER_URL",
     ),
     KnowledgeSource.CHEBI: SourceSpec(
         "ChEBI chemical entities and ontology, e.g. CHEBI:15365",

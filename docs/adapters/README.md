@@ -4,7 +4,7 @@ description: What adapters are, how to use them directly or through CentralKnowl
 
 # Adapters
 
-An adapter connects the library to one knowledge source: an ontology service, a database REST API, a SPARQL endpoint or a client library. It translates that source's responses into the common `UnifiedConcept` model, so results from OLS, UMLS, UniProt or ChEMBL can be handled the same way. The library ships **36 adapters**, one per `KnowledgeSource`, registered in `knowledge_lookup.adapters.ADAPTER_CLASSES`.
+An adapter connects the library to one knowledge source: an ontology service, a database REST API, a SPARQL endpoint or a client library. It translates that source's responses into the common `UnifiedConcept` model, so results from OLS, UMLS, UniProt or ChEMBL can be handled the same way. The library ships **60 adapters**, one per `KnowledgeSource`, registered in `knowledge_lookup.adapters.ADAPTER_CLASSES`.
 
 ## The common interface
 
@@ -80,7 +80,7 @@ Import the class from `knowledge_lookup.adapters` and use it as an async context
 
 ### Through `CentralKnowledgeLookup`
 
-`CentralKnowledgeLookup(config)` creates every adapter in `ADAPTER_CLASSES` that is enabled in `LookupConfig.enabled_sources` (all of them when the list is unset or empty) and whose `is_available()` returns `True`. Unavailable adapters are skipped with a log warning. Set `enabled_sources` explicitly: creating all 36 adapters also imports every adapter module and initialises the ChEMBL, UniChem and UMLS clients. Disabled sources are never imported.
+`CentralKnowledgeLookup(config)` creates every adapter in `ADAPTER_CLASSES` that is enabled in `LookupConfig.enabled_sources` (all of them when the list is unset or empty) and whose `is_available()` returns `True`. Unavailable adapters are skipped with a log warning. Set `enabled_sources` explicitly: creating all 60 adapters also imports every adapter module and initialises the ChEMBL, UniChem and UMLS clients. Disabled sources are never imported.
 
 - `search_concepts(query, concept_types=None, sources=None, max_results=50, parallel=True)` asks each source for `max(1, max_results // len(sources))` results. In parallel mode every source must finish within `timeout_per_source` (default 30 s). Results are merged when `enable_deduplication` is on (the default), filtered by `concept_types` (concepts typed `UNKNOWN` are kept), sorted by `confidence_score` and returned as a `LookupResult` with `concepts`, `errors` (per source), `sources_succeeded`, `sources_failed` and `execution_time`. Because most adapters catch their own errors and return `[]`, `errors` mainly shows timeouts and the few adapters that raise.
 - `get_concept_details(concept_id, source=None, timeout=None)` queries one adapter when `source` is given.
@@ -219,26 +219,26 @@ Pages are grouped by category.
 | [Tyto](other/tyto_adapter.md) | ontology term labels via `tyto` | `http://identifiers.org/SBO:0000241` | `[tyto]` extra |
 | [Wikidata](other/wikidata_adapter.md) | Wikidata items via SPARQL | `Q18216` | none |
 | [Monarch Initiative](phenotypes/monarch_adapter.md) | Monarch Initiative gene-disease-phenotype associations (HPO, MONDO, OMIM, Orphanet) | `MONDO:0005148` | none |
-| [HPO annotations (phenotype.hpoa)](phenotypes/hpoa_adapter.md) | HPO disease-to-phenotype annotations with frequency (phenotype.hpoa download) | `OMIM:104300` | none |
+| [HPO annotations (phenotype.hpoa)](phenotypes/hpoa_adapter.md) | HPO disease-to-phenotype annotations with frequency (phenotype.hpoa, ~36 MB download) | `OMIM:104300` | opt-in download: HPOA_DOWNLOAD=1, or a local file (HPOA_PATH) |
 | [NCATS Node Normalizer and Name Resolver](ontologies/nodenorm_adapter.md) | NCATS Translator Node Normalizer / Name Resolver: equivalent identifiers across MONDO, HP, UMLS, MeSH, NCBIGene | `MONDO:0005148` | none |
 | [MeSH](ontologies/mesh_adapter.md) | NLM Medical Subject Headings descriptors and tree hierarchy, e.g. D003920 | `D003920` | none |
 | [RxClass (ATC)](chemicals/rxclass_adapter.md) | ATC and other drug classes via NLM RxNav RxClass | `N02BA01` | none |
-| [SNOMED CT (Snowstorm)](ontologies/snomedct_adapter.md) | SNOMED CT concepts and hierarchy via a Snowstorm server (SNOMED licence applies) | `52448006` | none |
+| [SNOMED CT (Snowstorm)](ontologies/snomedct_adapter.md) | SNOMED CT concepts and hierarchy via Snowstorm (SNOMED licence applies; the public instance is for light use, set SNOMED_SNOWSTORM_URL for your own server) | `52448006` | none |
 | [WHO ICD-11](ontologies/icd11_adapter.md) | WHO ICD-11 entities and codes | `8E49` | the ICD11_CLIENT_ID and ICD11_CLIENT_SECRET environment variables |
-| [ICD-10-GM (BfArM)](ontologies/icd10gm_adapter.md) | German ICD-10-GM classification (BfArM), e.g. G93.3 | `G93.3` | the BfArM ICD-10-GM ClaML file (ICD10GM_CLAML_PATH or an automatic download) |
+| [ICD-10-GM (BfArM)](ontologies/icd10gm_adapter.md) | German ICD-10-GM classification (BfArM), e.g. G93.3 | `G93.3` | the BfArM ICD-10-GM ClaML file (ICD10GM_CLAML_PATH, or ICD10GM_URL for a download you choose) |
 | [LOINC](ontologies/loinc_adapter.md) | LOINC laboratory and clinical observation codes | `2093-3` | the LOINC_USERNAME and LOINC_PASSWORD environment variables |
-| [GWAS Catalog](phenotypes/gwascatalog_adapter.md) | NHGRI-EBI GWAS Catalog traits, studies and variant-trait associations | `EFO_0004540` | none |
-| [CTD](chemicals/ctd_adapter.md) | Comparative Toxicogenomics Database chemical-gene-disease links (non-commercial use) | `MESH:D001241` | none |
+| [GWAS Catalog](phenotypes/gwascatalog_adapter.md) | NHGRI-EBI GWAS Catalog traits, studies and variant-trait associations | `MONDO:0005404` | none |
+| [CTD](chemicals/ctd_adapter.md) | Comparative Toxicogenomics Database chemical-gene-disease links (non-commercial use) | `MESH:D001241` | opt-in download (~220 MB core reports): CTD_DOWNLOAD=1, or CTD_DATA_DIR |
 | [DGIdb](chemicals/dgidb_adapter.md) | DGIdb aggregated drug-gene interactions | `BRCA1` | none |
 | [IntAct](proteins/intact_adapter.md) | IntAct curated experimental molecular interactions | `P38398` | none |
 | [PubTator 3](literature/pubtator_adapter.md) | PubTator 3 literature entities and relations for PubMed/PMC | `@GENE_BRCA1` | none |
 | [ClinicalTrials.gov](literature/clinicaltrials_adapter.md) | ClinicalTrials.gov registered studies, conditions and interventions | `NCT04280705` | none |
 | [SemMedDB](literature/semmeddb_adapter.md) | SemMedDB subject-predicate-object relations from PubMed (local export; UMLS licence) | `C0015674` | a local SemMedDB export (SEMMEDDB_PATH) |
-| [SIDER](chemicals/sider_adapter.md) | SIDER drug side effects (dataset download; outdated, 2016) | `CID100002244` | none |
-| [OFFSIDES](chemicals/offsides_adapter.md) | OFFSIDES off-label drug side effects from adverse event reports (dataset download) | `RxNorm:1191` | none |
-| [Human Protein Atlas](proteins/hpa_adapter.md) | Human Protein Atlas tissue and blood protein expression (CC BY-SA) | `ENSG00000012048` | none |
+| [SIDER](chemicals/sider_adapter.md) | SIDER drug side effects (dataset, CC BY-SA 4.0; frozen in 2016) | `CID100002244` | opt-in download (~5.5 MB): SIDER_DOWNLOAD=1, or SIDER_DATA_DIR |
+| [OFFSIDES](chemicals/offsides_adapter.md) | OFFSIDES off-label drug side effects from adverse event reports (statistical signals) | `RxNorm:1191` | opt-in download (~69 MB): OFFSIDES_DOWNLOAD=1, or OFFSIDES_PATH |
+| [Human Protein Atlas](proteins/hpa_adapter.md) | Human Protein Atlas tissue and blood protein expression (CC BY 4.0) | `ENSG00000012048` | none |
 | [Cell Ontology](ontologies/cellontology_adapter.md) | Cell Ontology cell types, e.g. CL:0000084 | `CL:0000084` | none |
-| [CellMarker 2.0](ontologies/cellmarker_adapter.md) | CellMarker 2.0 cell-type marker genes (dataset download) | `CD4` | none |
+| [CellMarker 2.0](ontologies/cellmarker_adapter.md) | CellMarker cell-type marker genes (dataset file you provide) | `CD4` | a data file: CELLMARKER_PATH, or CELLMARKER_URL |
 | [ChEBI](chemicals/chebi_adapter.md) | ChEBI chemical entities and ontology, e.g. CHEBI:15365 | `CHEBI:15365` | none |
 | [MyGene.info](proteins/mygeneinfo_adapter.md) | MyGene.info gene annotation and identifier cross-references | `1017` | none |
 

@@ -30,6 +30,10 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 DATA_DIR_ENV = "KNOWLEDGE_LOOKUP_DATA_DIR"
+#: Setting this to 1/true/yes/on lets every dataset-backed source download its bulk files.
+#: Each source also has its own switch (e.g. ``HPOA_DOWNLOAD``); see :func:`downloads_allowed`.
+ALLOW_DOWNLOADS_ENV = "KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS"
+_TRUTHY = {"1", "true", "yes", "on"}
 _locks: dict[Path, asyncio.Lock] = {}
 
 
@@ -39,6 +43,21 @@ def default_cache_dir() -> Path:
     if configured:
         return Path(configured)
     return Path.home() / ".cache" / "knowledge_lookup" / "datasets"
+
+
+def downloads_allowed(*source_env_vars: str) -> bool:
+    """Whether the user has agreed to bulk dataset downloads.
+
+    Dataset-backed adapters (HPO annotations, SIDER, OFFSIDES, CTD, ...) are only
+    ``is_available()`` when their data is already on disk, a local path is configured, or
+    this returns True, so a default multi-source lookup never starts a download of tens or
+    hundreds of MB on its own. True when ``KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS`` or any of the
+    given per-source variables is set to 1/true/yes/on.
+    """
+    return any(
+        os.environ.get(name, "").strip().lower() in _TRUTHY
+        for name in (ALLOW_DOWNLOADS_ENV, *source_env_vars)
+    )
 
 
 def _is_fresh(path: Path, max_age_days: float | None) -> bool:
@@ -62,9 +81,13 @@ async def _fetch(url: str, dest: Path, timeout: float, headers: dict[str, str] |
                     handle.write(chunk)
 
 
-def _unpack(downloaded: Path, final: Path, member: str | None, decompress: bool) -> None:
+def _unpack(
+    downloaded: Path, final: Path, member: str | None, decompress: bool, raw: bool = False
+) -> None:
     """Turn the raw download into the file callers read (gunzip / extract one zip member)."""
-    if zipfile.is_zipfile(downloaded):
+    if raw:
+        shutil.copyfile(downloaded, final)
+    elif zipfile.is_zipfile(downloaded):
         with zipfile.ZipFile(downloaded) as archive:
             names = archive.namelist()
             chosen = member or (names[0] if len(names) == 1 else None)
@@ -87,6 +110,7 @@ async def ensure_dataset(
     max_age_days: float | None = 30,
     member: str | None = None,
     decompress: bool = True,
+    raw: bool = False,
     timeout: float = 600.0,
     headers: dict[str, str] | None = None,
 ) -> Path:
@@ -100,6 +124,8 @@ async def ensure_dataset(
         max_age_days: re-download when the cached file is older; ``None`` = never refresh.
         member: file to extract when ``url`` is a zip archive with several entries.
         decompress: gunzip ``.gz`` downloads.
+        raw: keep the download byte for byte. Needed for ``.xlsx`` and other formats that are
+            zip containers but are meant to be read as one file.
         timeout: total seconds allowed for the download.
         headers: extra request headers.
 
@@ -116,11 +142,11 @@ async def ensure_dataset(
         if _is_fresh(final, max_age_days):
             return final
         part = directory / f"{name}.part"
-        raw = directory / f"{name}.download"
+        download = directory / f"{name}.download"
         try:
             logger.info(f"Downloading dataset {url} -> {final}")
-            await _fetch(url, raw, timeout, headers)
-            _unpack(raw, part, member, decompress)
+            await _fetch(url, download, timeout, headers)
+            _unpack(download, part, member, decompress, raw)
             part.replace(final)
             return final
         except Exception as exc:
@@ -129,5 +155,5 @@ async def ensure_dataset(
                 return final
             raise
         finally:
-            raw.unlink(missing_ok=True)
+            download.unlink(missing_ok=True)
             part.unlink(missing_ok=True)

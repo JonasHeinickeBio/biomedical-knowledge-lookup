@@ -14,7 +14,7 @@ Searches and links the Side Effect Resource (SIDER 4.1, EMBL): side effects that
 |---|---|
 | Source | `KnowledgeSource.SIDER` |
 | Class | `knowledge_lookup.adapters.SIDERAdapter` |
-| Requires | none (downloads ~5.5 MB of data files once; optional `SIDER_DATA_DIR`) |
+| Requires | opt-in download (~5.5 MB): `SIDER_DOWNLOAD=1` or `KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1`, or local files in `SIDER_DATA_DIR` |
 | Identifiers | drugs: STITCH compound id `CID100002244`; side effects: UMLS CUI `C0015672` |
 | Upstream | `https://sideeffects.embl.de/media/download/` (flat files, no API) |
 

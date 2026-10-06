@@ -600,6 +600,13 @@ _CHECK_CREDENTIALS: dict[KnowledgeSource, str] = {
     KnowledgeSource.ICD11: "ICD11_CLIENT_ID",
     KnowledgeSource.LOINC: "LOINC_USERNAME",
     KnowledgeSource.SEMMEDDB: "SEMMEDDB_PATH",
+    KnowledgeSource.ICD10GM: "ICD10GM_CLAML_PATH",
+    # dataset-backed sources are opt-in so nothing downloads without consent
+    KnowledgeSource.HPOA: "HPOA_DOWNLOAD=1 (downloads ~36 MB) or HPOA_PATH",
+    KnowledgeSource.SIDER: "SIDER_DOWNLOAD=1 (downloads ~5.5 MB) or SIDER_DATA_DIR",
+    KnowledgeSource.OFFSIDES: "OFFSIDES_DOWNLOAD=1 (downloads ~69 MB) or OFFSIDES_PATH",
+    KnowledgeSource.CTD: "CTD_DOWNLOAD=1 (downloads ~220 MB) or CTD_DATA_DIR",
+    KnowledgeSource.CELLMARKER: "CELLMARKER_PATH or CELLMARKER_URL",
 }
 
 

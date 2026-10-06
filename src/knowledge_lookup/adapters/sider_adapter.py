@@ -41,7 +41,7 @@ from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
-from ..utils.dataset_cache import ensure_dataset
+from ..utils.dataset_cache import default_cache_dir, downloads_allowed, ensure_dataset
 from ._safety_common import (
     dedupe_mappings,
     fill_concept,
@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 
 SIDER_BASE_URL = "https://sideeffects.embl.de/media/download"
 SIDER_DATA_DIR_ENV = "SIDER_DATA_DIR"
+SIDER_DOWNLOAD_ENV = "SIDER_DOWNLOAD"
 
 # Logical name -> file name on the server (gz files are kept decompressed in the cache).
 SIDER_FILES: dict[str, str] = {
@@ -114,8 +115,15 @@ class SIDERAdapter(KnowledgeSourceAdapter):
         return KnowledgeSource.SIDER
 
     def is_available(self) -> bool:
-        # The data is fetched lazily on first use, so the source is always "available".
-        return True
+        """True when ``SIDER_DATA_DIR`` is set, the files are already cached, or the ~5.5 MB
+        download is allowed (``SIDER_DOWNLOAD=1`` or ``KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1``)."""
+        if self.data_dir:
+            return Path(self.data_dir).is_dir()
+        name = SIDER_FILES["se"]
+        directory = default_cache_dir()
+        if (directory / name.removesuffix(".gz")).exists() or (directory / name).exists():
+            return True
+        return downloads_allowed(SIDER_DOWNLOAD_ENV)
 
     # ------------------------------------------------------------------
     # Dataset loading

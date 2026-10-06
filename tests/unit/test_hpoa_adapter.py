@@ -124,7 +124,12 @@ class TestAvailabilityAndLoading:
         monkeypatch.setenv("HPOA_PATH", str(tmp_path / "missing.hpoa"))
         assert adapter.is_available() is False
         monkeypatch.delenv("HPOA_PATH")
-        assert adapter.is_available() is True  # default path downloads on first use
+        monkeypatch.setenv("KNOWLEDGE_LOOKUP_DATA_DIR", str(tmp_path / "cache"))
+        monkeypatch.delenv("HPOA_DOWNLOAD", raising=False)
+        monkeypatch.delenv("KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS", raising=False)
+        assert (
+            adapter.is_available() is False
+        )  # the ~36 MB download is opt-in (see test_dataset_opt_in)
 
     def test_construction_never_loads_or_downloads(self, lookup_config, monkeypatch):
         monkeypatch.delenv("HPOA_PATH", raising=False)

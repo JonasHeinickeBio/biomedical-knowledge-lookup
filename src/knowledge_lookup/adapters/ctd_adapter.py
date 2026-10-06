@@ -58,13 +58,14 @@ from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
-from ..utils.dataset_cache import default_cache_dir, ensure_dataset
+from ..utils.dataset_cache import default_cache_dir, downloads_allowed, ensure_dataset
 
 logger = logging.getLogger(__name__)
 
 CTD_REPORTS_URL = "https://ctdbase.org/reports/"
 CTD_WEB_BASE = "https://ctdbase.org/detail.go"
 DATA_DIR_ENV = "CTD_DATA_DIR"
+DOWNLOAD_ENV = "CTD_DOWNLOAD"
 MAX_AGE_DAYS = 60  # CTD publishes monthly; the cached copy is refreshed after two months
 MAX_SYNONYMS = 100
 MAX_PMIDS = 25
@@ -161,7 +162,14 @@ class CTDAdapter(KnowledgeSourceAdapter):
         return KnowledgeSource.CTD
 
     def is_available(self) -> bool:
-        return True  # keyless; data files are fetched lazily on first use
+        """True when a core CTD report is already on disk or the download is allowed.
+
+        The core reports are about 220 MB (chemical-disease alone is 164 MB), so the download is
+        opt-in: ``CTD_DOWNLOAD=1`` or ``KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1``. Otherwise a default
+        multi-source lookup would start it on its own."""
+        directory = self._data_dir()
+        core = (FILE_CHEMICALS, FILE_DISEASES, FILE_IXNS, FILE_CHEM_DISEASES)
+        return any((directory / name).exists() for name in core) or downloads_allowed(DOWNLOAD_ENV)
 
     # ------------------------------------------------------------------
     # Data files

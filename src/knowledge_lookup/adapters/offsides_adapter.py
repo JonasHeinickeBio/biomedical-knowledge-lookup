@@ -53,7 +53,7 @@ from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
-from ..utils.dataset_cache import default_cache_dir, ensure_dataset
+from ..utils.dataset_cache import default_cache_dir, downloads_allowed, ensure_dataset
 from ._safety_common import (
     dedupe_mappings,
     fill_concept,
@@ -210,7 +210,7 @@ class OFFSIDESAdapter(KnowledgeSourceAdapter):
 
     @staticmethod
     def _download_allowed() -> bool:
-        return os.getenv(OFFSIDES_DOWNLOAD_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
+        return downloads_allowed(OFFSIDES_DOWNLOAD_ENV)
 
     def is_available(self) -> bool:
         """True when a local file is configured/cached or the 69 MB download is opted into."""

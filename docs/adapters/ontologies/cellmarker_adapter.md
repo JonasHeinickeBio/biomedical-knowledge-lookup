@@ -10,7 +10,7 @@ Answers "which genes mark this cell type?" and "which cell types does this gene 
 |---|---|
 | Source | `KnowledgeSource.CELLMARKER` |
 | Class | `knowledge_lookup.adapters.CellMarkerAdapter` |
-| Requires | a downloaded data file (fetched on first use, or `CELLMARKER_PATH`) |
+| Requires | a data file you provide: `CELLMARKER_PATH`, or `CELLMARKER_URL` for a download you choose |
 | Identifiers | `CL:0000084` or a cell name, a gene symbol (`CD4`), a marker alias (`CD16`), `NCBIGene:920` |
 | Upstream | `http://bio-bigdata.hrbmu.edu.cn/CellMarker/` (no query API, files only) |
 | Licence | academic use; check the CellMarker terms before commercial use. Cite Hu C et al., *Nucleic Acids Res* 2023 |
