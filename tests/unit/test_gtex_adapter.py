@@ -439,7 +439,7 @@ class TestHttp:
         with patch.object(adapter, "_make_request", AsyncMock(return_value={})):
             await adapter._get("a", {})
             await adapter._get("b", {})
-        assert len(sleeps) == 1 and 0 < sleeps[0] <= 0.05
+        assert len(sleeps) == 1 and 0 < sleeps[0] <= 0.05 + 1e-6
 
     def test_tau_is_a_probability(self):
         values = [e["median"] for e in MEDIAN_BRCA1["data"]]

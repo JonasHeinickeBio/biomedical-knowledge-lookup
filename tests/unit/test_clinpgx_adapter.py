@@ -500,7 +500,7 @@ class TestHttp:
         _patch(adapter, _router())
         adapter._last_request = time.monotonic()
         await adapter._get("gene", {"symbol": "CYP2D6"})
-        assert sleeps and 0 < sleeps[0] <= 0.55
+        assert sleeps and 0 < sleeps[0] <= 0.55 + 1e-6  # float noise when the clock is coarse
 
     async def test_not_found_is_empty_other_errors_propagate(self, adapter):
         _patch(adapter, AsyncMock(side_effect=NotFound("gene")))

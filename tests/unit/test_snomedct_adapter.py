@@ -110,7 +110,7 @@ class TestConfiguration:
             with patch.object(mod.asyncio, "sleep", new=fake_sleep):
                 await adapter._get(f"{adapter.base_url}/x")
                 await adapter._get(f"{adapter.base_url}/x")
-                assert sleeps and 0 < sleeps[0] <= mod._PUBLIC_INTERVAL
+                assert sleeps and 0 < sleeps[0] <= mod._PUBLIC_INTERVAL + 1e-6
                 sleeps.clear()
                 monkeypatch.setenv(mod.ENV_URL, "http://localhost:8080")
                 adapter._last_request = 0.0

@@ -432,4 +432,4 @@ class TestThrottle:
 
         adapter._last_request = time.monotonic()
         await adapter._get("https://rxnav.nlm.nih.gov/REST/rxcui.json", {"name": "aspirin"})
-        assert sleeps and 0 < sleeps[0] <= 0.06
+        assert sleeps and 0 < sleeps[0] <= 0.06 + 1e-6  # float noise when the clock is coarse
