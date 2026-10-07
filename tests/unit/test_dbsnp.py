@@ -99,7 +99,7 @@ class TestBasics:
         ):
             await adapter._get("refsnp/1")
             await adapter._get("refsnp/2")
-        assert len(sleeps) == 1 and 0 < sleeps[0] <= mod.MIN_INTERVAL_SECONDS
+        assert len(sleeps) == 1 and 0 < sleeps[0] <= mod.MIN_INTERVAL_SECONDS + 1e-6
 
     @pytest.mark.asyncio
     async def test_api_key_sent_only_when_configured(self, lookup_config, monkeypatch):

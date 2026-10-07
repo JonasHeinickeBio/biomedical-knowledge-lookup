@@ -64,10 +64,12 @@ class TestParser:
 
     def test_reordered_columns_and_nbsp(self, tmp_path):
         path = tmp_path / "r.csv"
+        # the real export is UTF-8; the platform default (cp1252 on Windows) would write \xa0 as one byte
         path.write_text(
             "submitter_title,classification_title,gene_symbol,gene_curie,disease_title,"
             "disease_curie,submitted_as_pmids\n"
-            'X lab,Strong,ABC1,HGNC:5,some disease,MONDO:0000005,"PMID:\xa0123"\n'
+            'X lab,Strong,ABC1,HGNC:5,some disease,MONDO:0000005,"PMID:\xa0123"\n',
+            encoding="utf-8",
         )
         index = parse_submissions(path)
         sub = index.by_gene["HGNC:5"][0]

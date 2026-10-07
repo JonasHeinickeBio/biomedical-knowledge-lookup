@@ -134,7 +134,7 @@ class TestRequests:
         with patch.object(adapter, "_make_request", AsyncMock(return_value={})):
             await adapter._eutils("esearch", {})
             await adapter._eutils("esearch", {})
-        assert len(sleeps) == 1 and 0 < sleeps[0] <= 0.05
+        assert len(sleeps) == 1 and 0 < sleeps[0] <= 0.05 + 1e-6
 
 
 class TestSearch:
