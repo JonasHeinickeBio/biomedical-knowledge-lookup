@@ -111,3 +111,7 @@ Chemicals: MeSH, CAS, PubChem CID, DSSTox (`DTXSID`), InChIKey. Diseases: MeSH a
 
 - [DGIdb adapter](dgidb_adapter.md), [ChEMBL adapter](../core/chembl_adapter.md)
 - [All adapters](../README.md)
+
+## Live verification (2026-10-07)
+
+Run against the four core reports (chemicals 10.5 MB, diseases 1.8 MB, chemical-gene interactions 43.4 MB, chemical-disease 163.6 MB; 219 MB in total, downloaded through the adapter with `CTD_DOWNLOAD=1`). Searches take about 1 s and memory stays near 60 MB. The first relationship lookup for a chemical scans the two large files (about 26 s for aspirin, `MESH:D001241`); repeating it is instant. ME/CFS is `MESH:D015673` ("Fatigue Syndrome, Chronic"). Gene-disease edges need the optional 3.2 GB file and are absent by default.

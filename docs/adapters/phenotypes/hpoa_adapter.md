@@ -97,3 +97,9 @@ Extra keys per edge: `frequency` (numeric fraction), `frequency_label`, `frequen
 
 - [Monarch adapter](monarch_adapter.md), [HPO adapter](hpo_adapter.md), [OMIM adapter](omim_adapter.md)
 - [All adapters](../README.md)
+
+## Live verification (2026-10-07)
+
+Run against the full file (`phenotype.hpoa`, 35,816,037 bytes, release 2026-09-02, 12,881 diseases). Download plus first load about 45 s; from the cache the index builds in about 3 s and needs about 220 MB. Afterwards every call takes milliseconds. `Marfan syndrome` resolves to `OMIM:154700` and `ORPHA:558`, relationships carry real frequencies, and the reverse lookup from an HP term to diseases works.
+
+The file covers **rare diseases only** (OMIM, Orphanet, DECIPHER). Common or poorly defined conditions such as ME/CFS have no entry, so use [Monarch](monarch_adapter.md) or [OFFSIDES](../chemicals/offsides_adapter.md) for those.

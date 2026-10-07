@@ -105,3 +105,7 @@ The nSIDES pages state no licence for the flat files. Cite Tatonetti NP, Ye PP, 
 
 - [SIDER adapter](sider_adapter.md) (label-listed side effects, the complement of OFFSIDES)
 - [All adapters](../README.md)
+
+## Live verification (2026-10-07)
+
+Run against the full file (`OFFSIDES.csv.gz`, 68,762,346 bytes). Building the index takes about 27 s per process (peak about 170 MB); after that searches and relationship lookups take about 0.01 s. `fatigue` finds Fatigue, Chronic fatigue syndrome and Muscle fatigue; ibuprofen (`RXNORM:5640`) has 50 adverse-event edges with PRR values. Remember these are statistical signals, not causal effects.
