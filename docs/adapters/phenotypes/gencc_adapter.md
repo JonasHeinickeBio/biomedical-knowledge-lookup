@@ -89,3 +89,18 @@ One download per month at most; the host rate limits bursts (429). If the downlo
 
 - [ClinGen adapter](clingen_adapter.md), [Orphanet adapter](orphanet_adapter.md), [HPO annotations](hpoa_adapter.md)
 - [All adapters](../README.md)
+
+## Live verification (2026-10-07)
+
+Run against the full export (`gencc-submissions.csv`, 28,355,883 bytes, downloaded through the adapter with `GENCC_DOWNLOAD=1`). The file holds 30,345 submissions covering 6,109 genes and 8,139 diseases (every disease id is a MONDO id). The biggest submitters are Labcorp Genetics (5,528), PanelApp Australia (5,478), Orphanet (5,070), Ambry Genetics (4,216), ClinGen (3,695) and G2P (3,605). The classifications actually present are Strong, Definitive, Supportive (Orphanet's), Limited, Moderate, Disputed Evidence, No Known Disease Relationship and Refuted Evidence; the adapter's ranking knows all of them.
+
+Download plus first `check`: about 22 s with a peak of about 245 MB. From the cache the index builds in about 2.4 s (about 160 MB) and later calls take milliseconds.
+
+Cross-checks against the raw CSV: BRCA1 (`HGNC:1100`) has 6 gene-disease pairs in both the file and the adapter; `n_submitters` equals the number of raw rows for a pair; a pair that is Definitive from one submitter and Disputed Evidence from another (`HGNC:10484` / `MONDO:0010975`) gets `conflicting=True`; Marfan syndrome (`MONDO:0007947`) resolves to FBN1 as Definitive.
+
+Things to know when reading the results:
+
+- `consensus_classification` is the most frequent classification and ties go to the weaker one, which is deliberately conservative. For BRCA1 / Fanconi anemia complementation group S the four submitters say Definitive (ClinGen), Strong (G2P), Moderate (Ambry) and Limited (Labcorp), so the consensus is Limited while `best_classification` is Definitive. Read both fields.
+- Ambry Genetics puts the PMID in the assertion-criteria field in 1,574 rows (as `PMID:` plus a non-breaking space) and leaves the PMID column empty; the adapter passes this through as published.
+- GenCC is about monogenic gene-disease validity, so a condition such as ME/CFS has no entries.
+
