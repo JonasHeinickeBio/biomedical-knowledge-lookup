@@ -103,3 +103,7 @@ No requests are made after the files are cached. Download failures fall back to 
 
 - [OFFSIDES adapter](offsides_adapter.md), [PubChem adapter](pubchem_adapter.md), [UniChem adapter](unichem_adapter.md)
 - [All adapters](../README.md)
+
+## Live verification (2026-10-07)
+
+Downloaded through the adapter (`SIDER_DOWNLOAD=1`): names, ATC, `meddra_all_se` (2.4 MB gzipped, 19.5 MB unpacked) and `meddra_freq` (23.5 MB). First `check` including the download took about 1 minute with a peak of about 300 MB; later calls are fast. `fatigue` finds the side effects Fatigue, Chronic fatigue syndrome and Muscle fatigue; ibuprofen (`CID100003672`) has 50 side-effect edges with frequencies and maps to PubChem 3672 and ATC `M01AE01`.

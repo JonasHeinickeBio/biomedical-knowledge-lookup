@@ -572,7 +572,7 @@ _CHECK_QUERIES: dict[KnowledgeSource, str] = {
     KnowledgeSource.PFAM: "kinase",
     KnowledgeSource.ZOOMA: "diabetes",
     KnowledgeSource.OBOFOUNDRY: "diabetes",
-    KnowledgeSource.HPOA: "chronic fatigue",
+    KnowledgeSource.HPOA: "marfan",  # rare diseases only: ME/CFS is not in phenotype.hpoa
     KnowledgeSource.NODENORM: "diabetes mellitus",
     KnowledgeSource.MESH: "chronic fatigue syndrome",
     KnowledgeSource.RXCLASS: "aspirin",

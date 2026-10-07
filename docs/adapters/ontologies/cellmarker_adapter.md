@@ -114,3 +114,7 @@ Sorted by distinct PMIDs, then record count. Each item adds `species`, `tissues`
 
 - [Cell Ontology adapter](cellontology_adapter.md)
 - [All adapters](../README.md)
+
+## Live verification (2026-10-07)
+
+Run against the official **CellMarker 3.0** human file (`human_cell_marker.zip`, 48,740,702 bytes, unpacking to a 577,624,367-byte TSV) with `CELLMARKER_URL` set. The first load took about 2 minutes (peak about 460 MB) and wrote a 4.4 MB `*.index.json.gz` next to the data; later processes start in about 5 s. `NK cell` resolves to `CL:0000623` with markers NCAM1, NKG7, GNLY and KLRD1, and a marker search for `CD16` finds FCGR3B. The unpacked TSV keeps the name `human_cell_marker.zip` in the cache; that is cosmetic.
