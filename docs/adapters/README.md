@@ -4,7 +4,7 @@ description: What adapters are, how to use them directly or through CentralKnowl
 
 # Adapters
 
-An adapter connects the library to one knowledge source: an ontology service, a database REST API, a SPARQL endpoint or a client library. It translates that source's responses into the common `UnifiedConcept` model, so results from OLS, UMLS, UniProt or ChEMBL can be handled the same way. The library ships **60 adapters**, one per `KnowledgeSource`, registered in `knowledge_lookup.adapters.ADAPTER_CLASSES`.
+An adapter connects the library to one knowledge source: an ontology service, a database REST API, a SPARQL endpoint or a client library. It translates that source's responses into the common `UnifiedConcept` model, so results from OLS, UMLS, UniProt or ChEMBL can be handled the same way. The library ships **75 adapters**, one per `KnowledgeSource`, registered in `knowledge_lookup.adapters.ADAPTER_CLASSES`.
 
 ## The common interface
 
@@ -80,7 +80,7 @@ Import the class from `knowledge_lookup.adapters` and use it as an async context
 
 ### Through `CentralKnowledgeLookup`
 
-`CentralKnowledgeLookup(config)` creates every adapter in `ADAPTER_CLASSES` that is enabled in `LookupConfig.enabled_sources` (all of them when the list is unset or empty) and whose `is_available()` returns `True`. Unavailable adapters are skipped with a log warning. Set `enabled_sources` explicitly: creating all 60 adapters also imports every adapter module and initialises the ChEMBL, UniChem and UMLS clients. Disabled sources are never imported.
+`CentralKnowledgeLookup(config)` creates every adapter in `ADAPTER_CLASSES` that is enabled in `LookupConfig.enabled_sources` (all of them when the list is unset or empty) and whose `is_available()` returns `True`. Unavailable adapters are skipped with a log warning. Set `enabled_sources` explicitly: creating all 75 adapters also imports every adapter module and initialises the ChEMBL, UniChem and UMLS clients. Disabled sources are never imported.
 
 - `search_concepts(query, concept_types=None, sources=None, max_results=50, parallel=True)` asks each source for `max(1, max_results // len(sources))` results. In parallel mode every source must finish within `timeout_per_source` (default 30 s). Results are merged when `enable_deduplication` is on (the default), filtered by `concept_types` (concepts typed `UNKNOWN` are kept), sorted by `confidence_score` and returned as a `LookupResult` with `concepts`, `errors` (per source), `sources_succeeded`, `sources_failed` and `execution_time`. Because most adapters catch their own errors and return `[]`, `errors` mainly shows timeouts and the few adapters that raise.
 - `get_concept_details(concept_id, source=None, timeout=None)` queries one adapter when `source` is given.
@@ -245,8 +245,8 @@ Pages are grouped by category.
 | [OpenAlex](literature/openalex_adapter.md) | OpenAlex scholarly works, authors, topics and citation links | `W2741809807` | none |
 | [openFDA adverse events (FAERS)](chemicals/openfdaevents_adapter.md) | FDA adverse event reports (FAERS) by drug and reaction via openFDA | `aspirin` | none |
 | [Orphanet](phenotypes/orphanet_adapter.md) | Orphanet rare-disease nosology, genes, prevalence and HPO phenotypes (Orphadata) | `ORPHA:558` | none |
-| [ClinGen](phenotypes/clingen_adapter.md) | ClinGen gene-disease validity, dosage sensitivity and curated variants | `HGNC:1100` | none |
-| [GenCC](phenotypes/gencc_adapter.md) | GenCC harmonised gene-disease validity submissions | `HGNC:1100` | none |
+| [ClinGen](phenotypes/clingen_adapter.md) | ClinGen gene-disease validity and dosage sensitivity (CSV exports; CC0) | `HGNC:1100` | opt-in download (~1.4 MB): CLINGEN_DOWNLOAD=1, or CLINGEN_PATH |
+| [GenCC](phenotypes/gencc_adapter.md) | GenCC harmonised gene-disease validity submissions (CSV export) | `HGNC:1100` | opt-in download (~28 MB): GENCC_DOWNLOAD=1, or GENCC_PATH |
 | [MedGen](phenotypes/medgen_adapter.md) | NCBI MedGen medical-condition concepts with UMLS CUIs and cross-references | `C0015674` | none |
 | [Disease Ontology](ontologies/doid_adapter.md) | Human Disease Ontology (DOID) terms and hierarchy | `DOID:9351` | none |
 | [GTEx](proteins/gtex_adapter.md) | GTEx tissue gene expression and eQTLs | `ENSG00000012048` | none |

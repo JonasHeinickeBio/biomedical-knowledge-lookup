@@ -617,6 +617,8 @@ _CHECK_CREDENTIALS: dict[KnowledgeSource, str] = {
     KnowledgeSource.OFFSIDES: "OFFSIDES_DOWNLOAD=1 (downloads ~69 MB) or OFFSIDES_PATH",
     KnowledgeSource.CTD: "CTD_DOWNLOAD=1 (downloads ~220 MB) or CTD_DATA_DIR",
     KnowledgeSource.CELLMARKER: "CELLMARKER_PATH or CELLMARKER_URL",
+    KnowledgeSource.CLINGEN: "CLINGEN_DOWNLOAD=1 (downloads ~1.4 MB) or CLINGEN_PATH",
+    KnowledgeSource.GENCC: "GENCC_DOWNLOAD=1 (downloads ~28 MB) or GENCC_PATH",
 }
 
 
