@@ -241,6 +241,21 @@ Pages are grouped by category.
 | [CellMarker 2.0](ontologies/cellmarker_adapter.md) | CellMarker cell-type marker genes (dataset file you provide) | `CD4` | a data file: CELLMARKER_PATH, or CELLMARKER_URL |
 | [ChEBI](chemicals/chebi_adapter.md) | ChEBI chemical entities and ontology, e.g. CHEBI:15365 | `CHEBI:15365` | none |
 | [MyGene.info](proteins/mygeneinfo_adapter.md) | MyGene.info gene annotation and identifier cross-references | `1017` | none |
+| [LitCovid](literature/litcovid_adapter.md) | NCBI LitCovid COVID-19 and Long COVID literature with topics and entities | `PMID:32109013` | none |
+| [OpenAlex](literature/openalex_adapter.md) | OpenAlex scholarly works, authors, topics and citation links | `W2741809807` | none |
+| [openFDA adverse events (FAERS)](chemicals/openfdaevents_adapter.md) | FDA adverse event reports (FAERS) by drug and reaction via openFDA | `aspirin` | none |
+| [Orphanet](phenotypes/orphanet_adapter.md) | Orphanet rare-disease nosology, genes, prevalence and HPO phenotypes (Orphadata) | `ORPHA:558` | none |
+| [ClinGen](phenotypes/clingen_adapter.md) | ClinGen gene-disease validity, dosage sensitivity and curated variants | `HGNC:1100` | none |
+| [GenCC](phenotypes/gencc_adapter.md) | GenCC harmonised gene-disease validity submissions | `HGNC:1100` | none |
+| [MedGen](phenotypes/medgen_adapter.md) | NCBI MedGen medical-condition concepts with UMLS CUIs and cross-references | `C0015674` | none |
+| [Disease Ontology](ontologies/doid_adapter.md) | Human Disease Ontology (DOID) terms and hierarchy | `DOID:9351` | none |
+| [GTEx](proteins/gtex_adapter.md) | GTEx tissue gene expression and eQTLs | `ENSG00000012048` | none |
+| [gnomAD](phenotypes/gnomad_adapter.md) | gnomAD population variant frequencies and gene constraint (GraphQL) | `ENSG00000012048` | none |
+| [dbSNP](phenotypes/dbsnp_adapter.md) | NCBI dbSNP reference SNPs (rsIDs): alleles, frequencies and clinical significance | `rs1801133` | none |
+| [AlphaFold DB](proteins/alphafold_adapter.md) | AlphaFold DB predicted protein structures and confidence | `P38398` | none |
+| [RxNorm](chemicals/rxnorm_adapter.md) | NLM RxNorm drug concepts (ingredients, brands, clinical drugs) and relations | `1191` | none |
+| [ClinPGx (PharmGKB)](chemicals/clinpgx_adapter.md) | ClinPGx/PharmGKB genes, drugs, variants and clinical annotations (CC BY-SA) | `PA128` | none |
+| [openFDA drug labels (DailyMed)](chemicals/openfdalabels_adapter.md) | FDA structured drug labels (indications, warnings, adverse reactions) via openFDA | `aspirin` | none |
 
 {% hint style="warning" %}
 **Known issues (tested September 2026).** Details are on each page.

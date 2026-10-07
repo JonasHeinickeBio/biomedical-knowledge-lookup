@@ -379,6 +379,66 @@ class KnowledgeSource(str, Enum):
     """
     ChEBI
     """
+    LITCOVID = "LITCOVID"
+    """
+    LitCovid
+    """
+    OPENALEX = "OPENALEX"
+    """
+    OpenAlex
+    """
+    OPENFDAEVENTS = "OPENFDAEVENTS"
+    """
+    openFDA adverse events (FAERS)
+    """
+    ORPHANET = "ORPHANET"
+    """
+    Orphanet
+    """
+    CLINGEN = "CLINGEN"
+    """
+    ClinGen
+    """
+    GENCC = "GENCC"
+    """
+    GenCC
+    """
+    MEDGEN = "MEDGEN"
+    """
+    MedGen
+    """
+    DOID = "DOID"
+    """
+    Disease Ontology
+    """
+    GTEX = "GTEX"
+    """
+    GTEx
+    """
+    GNOMAD = "GNOMAD"
+    """
+    gnomAD
+    """
+    DBSNP = "DBSNP"
+    """
+    dbSNP
+    """
+    ALPHAFOLD = "ALPHAFOLD"
+    """
+    AlphaFold DB
+    """
+    RXNORM = "RXNORM"
+    """
+    RxNorm
+    """
+    CLINPGX = "CLINPGX"
+    """
+    ClinPGx (PharmGKB)
+    """
+    OPENFDALABELS = "OPENFDALABELS"
+    """
+    openFDA drug labels (DailyMed)
+    """
 
 
 class ConceptType(str, Enum):

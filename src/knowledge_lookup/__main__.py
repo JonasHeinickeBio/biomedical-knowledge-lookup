@@ -589,6 +589,16 @@ _CHECK_QUERIES: dict[KnowledgeSource, str] = {
     KnowledgeSource.CELLONTOLOGY: "T cell",
     KnowledgeSource.CELLMARKER: "CD4",
     KnowledgeSource.CHEBI: "aspirin",
+    KnowledgeSource.LITCOVID: "long covid",
+    KnowledgeSource.OPENALEX: "chronic fatigue syndrome",
+    KnowledgeSource.OPENFDAEVENTS: "aspirin",
+    KnowledgeSource.ORPHANET: "marfan",
+    KnowledgeSource.MEDGEN: "chronic fatigue syndrome",
+    KnowledgeSource.DOID: "diabetes mellitus",
+    KnowledgeSource.DBSNP: "rs1801133",
+    KnowledgeSource.RXNORM: "aspirin",
+    KnowledgeSource.CLINPGX: "CYP2D6",
+    KnowledgeSource.OPENFDALABELS: "aspirin",
 }
 
 

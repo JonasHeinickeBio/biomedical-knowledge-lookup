@@ -83,6 +83,21 @@
 * [CellMarker 2.0](adapters/ontologies/cellmarker_adapter.md)
 * [ChEBI](adapters/chemicals/chebi_adapter.md)
 * [MyGene.info](adapters/proteins/mygeneinfo_adapter.md)
+* [LitCovid](adapters/literature/litcovid_adapter.md)
+* [OpenAlex](adapters/literature/openalex_adapter.md)
+* [openFDA adverse events (FAERS)](adapters/chemicals/openfdaevents_adapter.md)
+* [Orphanet](adapters/phenotypes/orphanet_adapter.md)
+* [ClinGen](adapters/phenotypes/clingen_adapter.md)
+* [GenCC](adapters/phenotypes/gencc_adapter.md)
+* [MedGen](adapters/phenotypes/medgen_adapter.md)
+* [Disease Ontology](adapters/ontologies/doid_adapter.md)
+* [GTEx](adapters/proteins/gtex_adapter.md)
+* [gnomAD](adapters/phenotypes/gnomad_adapter.md)
+* [dbSNP](adapters/phenotypes/dbsnp_adapter.md)
+* [AlphaFold DB](adapters/proteins/alphafold_adapter.md)
+* [RxNorm](adapters/chemicals/rxnorm_adapter.md)
+* [ClinPGx (PharmGKB)](adapters/chemicals/clinpgx_adapter.md)
+* [openFDA drug labels (DailyMed)](adapters/chemicals/openfdalabels_adapter.md)
 
 ## Examples
 

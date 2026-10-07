@@ -164,6 +164,36 @@ enums:
         description: "CellMarker 2.0"
       CHEBI:
         description: "ChEBI"
+      LITCOVID:
+        description: "LitCovid"
+      OPENALEX:
+        description: "OpenAlex"
+      OPENFDAEVENTS:
+        description: "openFDA adverse events (FAERS)"
+      ORPHANET:
+        description: "Orphanet"
+      CLINGEN:
+        description: "ClinGen"
+      GENCC:
+        description: "GenCC"
+      MEDGEN:
+        description: "MedGen"
+      DOID:
+        description: "Disease Ontology"
+      GTEX:
+        description: "GTEx"
+      GNOMAD:
+        description: "gnomAD"
+      DBSNP:
+        description: "dbSNP"
+      ALPHAFOLD:
+        description: "AlphaFold DB"
+      RXNORM:
+        description: "RxNorm"
+      CLINPGX:
+        description: "ClinPGx (PharmGKB)"
+      OPENFDALABELS:
+        description: "openFDA drug labels (DailyMed)"
 
   ConceptType:
     description: "Types of biological concepts based on AID-PAIS ontology"

@@ -84,6 +84,21 @@ _ADAPTER_SPECS: dict[KnowledgeSource, tuple[str, str]] = {
     KnowledgeSource.CELLMARKER: ("cellmarker_adapter", "CellMarkerAdapter"),
     KnowledgeSource.CHEBI: ("chebi_adapter", "ChEBIAdapter"),
     KnowledgeSource.MYGENEINFO: ("mygeneinfo_adapter", "MyGeneInfoAdapter"),
+    KnowledgeSource.LITCOVID: ("litcovid_adapter", "LitCovidAdapter"),
+    KnowledgeSource.OPENALEX: ("openalex_adapter", "OpenAlexAdapter"),
+    KnowledgeSource.OPENFDAEVENTS: ("openfdaevents_adapter", "OpenFDAEventsAdapter"),
+    KnowledgeSource.ORPHANET: ("orphanet_adapter", "OrphanetAdapter"),
+    KnowledgeSource.CLINGEN: ("clingen_adapter", "ClinGenAdapter"),
+    KnowledgeSource.GENCC: ("gencc_adapter", "GenCCAdapter"),
+    KnowledgeSource.MEDGEN: ("medgen_adapter", "MedGenAdapter"),
+    KnowledgeSource.DOID: ("doid_adapter", "DiseaseOntologyAdapter"),
+    KnowledgeSource.GTEX: ("gtex_adapter", "GTExAdapter"),
+    KnowledgeSource.GNOMAD: ("gnomad_adapter", "GnomADAdapter"),
+    KnowledgeSource.DBSNP: ("dbsnp_adapter", "DbSNPAdapter"),
+    KnowledgeSource.ALPHAFOLD: ("alphafold_adapter", "AlphaFoldAdapter"),
+    KnowledgeSource.RXNORM: ("rxnorm_adapter", "RxNormAdapter"),
+    KnowledgeSource.CLINPGX: ("clinpgx_adapter", "ClinPGxAdapter"),
+    KnowledgeSource.OPENFDALABELS: ("openfdalabels_adapter", "OpenFDALabelsAdapter"),
 }
 
 # Adapters that need an optional extra: source -> importable top-level module the
