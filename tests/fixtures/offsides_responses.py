@@ -1,0 +1,7 @@
+"""Trimmed real OFFSIDES rows (first 64 KiB Range sample of OFFSIDES.csv.gz from
+https://tatonettilab-resources.s3.us-west-1.amazonaws.com/nsides/OFFSIDES.csv.gz).
+
+Note the real header typo ``drug_rxnorn_id`` (sic).
+"""
+
+OFFSIDES_CSV = 'drug_rxnorn_id,drug_concept_name,condition_meddra_id,condition_concept_name,A,B,C,D,PRR,PRR_error,mean_reporting_frequency\n4024,"ergoloid mesylates, USP",10002034,Anaemia,6,126,21,1299,2.85714,0.45382,0.0454545\n4024,"ergoloid mesylates, USP",10023126,Jaundice,2,130,7,1313,2.85714,0.79657,0.0151515\n4024,"ergoloid mesylates, USP",10003549,Asthenia,8,124,34,1286,2.35294,0.382202,0.0606061\n4024,"ergoloid mesylates, USP",10016256,Fatigue,4,128,58,1262,0.689655,0.50883,0.030303\n4024,"ergoloid mesylates, USP",10025482,Malaise,7,125,44,1276,1.59091,0.396549,0.0530303\n7514,Norethindrone,10002034,Anaemia,15,3072,397,30473,0.377834,0.262353,0.00485909\n7514,Norethindrone,10023126,Jaundice,22,3065,53,30817,4.15094,0.252915,0.00712666\n7514,Norethindrone,10003549,Asthenia,42,3045,663,30207,0.633484,0.157992,0.0136054\n7514,Norethindrone,10008874,Chronic fatigue syndrome,1,3086,10,30860,1.0,1.04864,0.000323939\n7514,Norethindrone,10016256,Fatigue,132,2955,1119,29751,1.17962,0.0900726,0.04276\n7514,Norethindrone,10025482,Malaise,55,3032,579,30291,0.949914,0.139831,0.0178166\n214354,candesartan,10002080,Anaemia vitamin B12 deficiency,1,23863,12,238628,0.833333,1.04081,4.19041e-05\n214354,candesartan,10022972,Iron deficiency anaemia,37,23827,347,238293,1.06628,0.172808,0.00155045\n'

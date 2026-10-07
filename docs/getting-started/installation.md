@@ -95,7 +95,7 @@ From Python:
 ```python
 from knowledge_lookup import ADAPTER_CLASSES
 
-print(f"{len(ADAPTER_CLASSES)} adapters registered")  # 36 with the chembl and umls extras
+print(f"{len(ADAPTER_CLASSES)} adapters registered")  # 60 with the chembl and umls extras
 ```
 
 ## Troubleshooting

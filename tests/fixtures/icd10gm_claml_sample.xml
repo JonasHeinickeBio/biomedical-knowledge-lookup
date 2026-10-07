@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE ClaML SYSTEM "ClaML.dtd">
+<!-- Tiny SYNTHETIC ClaML 2.0 sample in the layout of the BfArM ICD-10-GM export. Codes follow
+     ICD-10 (G93.3 ME/CFS, R53, U09.9 post-COVID); the German wording is illustrative and is NOT
+     an authoritative copy of the official catalogue. -->
+<ClaML version="2.0.0">
+  <Meta name="titleLong" value="Synthetic ICD-10-GM sample (tests only)"/>
+  <Identifier authority="test" uid="icd10gm-sample"/>
+  <Title name="ICD-10-GM Version 2099" date="2099-01-01" version="2099">Synthetic sample</Title>
+  <ClassKinds>
+    <ClassKind name="chapter"/>
+    <ClassKind name="block"/>
+    <ClassKind name="category"/>
+  </ClassKinds>
+  <UsageKinds>
+    <UsageKind name="dagger" mark="&#8224;"/>
+    <UsageKind name="aster" mark="*"/>
+  </UsageKinds>
+  <RubricKinds>
+    <RubricKind name="preferred"/>
+    <RubricKind name="inclusion"/>
+    <RubricKind name="exclusion"/>
+    <RubricKind name="note"/>
+  </RubricKinds>
+  <Class code="VI" kind="chapter">
+    <SubClass code="G90-G99"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Krankheiten des Nervensystems</Label>
+    </Rubric>
+  </Class>
+  <Class code="G90-G99" kind="block">
+    <SuperClass code="VI"/>
+    <SubClass code="G93"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Sonstige Krankheiten des Nervensystems</Label>
+    </Rubric>
+  </Class>
+  <Class code="G93" kind="category">
+    <SuperClass code="G90-G99"/>
+    <SubClass code="G93.2"/>
+    <SubClass code="G93.3"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Sonstige Krankheiten des Gehirns</Label>
+    </Rubric>
+  </Class>
+  <Class code="G93.2" kind="category">
+    <SuperClass code="G93"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Benigne intrakranielle Hypertension [Pseudotumor cerebri]</Label>
+    </Rubric>
+  </Class>
+  <Class code="G93.3" kind="category">
+    <SuperClass code="G93"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Chronisches Fatigue-Syndrom</Label>
+    </Rubric>
+    <Rubric kind="inclusion">
+      <Label xml:lang="de" xml:space="default">Myalgische Enzephalomyelitis</Label>
+    </Rubric>
+    <Rubric kind="inclusion">
+      <Label xml:lang="de" xml:space="default">Postvirales Müdigkeitssyndrom</Label>
+    </Rubric>
+    <Rubric kind="exclusion">
+      <Label xml:lang="de" xml:space="default">Neurasthenie <Reference>F48.0</Reference></Label>
+    </Rubric>
+    <Rubric kind="exclusion">
+      <Label xml:lang="de" xml:space="default">Unwohlsein und Ermüdung (<Reference code="R53">R53</Reference>)</Label>
+    </Rubric>
+    <Rubric kind="note">
+      <Label xml:lang="de" xml:space="default">Nur bei <Para>gesicherter</Para> Diagnose zu verwenden.</Label>
+    </Rubric>
+  </Class>
+  <Class code="F48" kind="category">
+    <SubClass code="F48.0"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Andere neurotische Störungen</Label>
+    </Rubric>
+  </Class>
+  <Class code="F48.0" kind="category">
+    <SuperClass code="F48"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Neurasthenie</Label>
+    </Rubric>
+    <Rubric kind="inclusion">
+      <Label xml:lang="de" xml:space="default">Ermüdungssyndrom</Label>
+    </Rubric>
+  </Class>
+  <Class code="XVIII" kind="chapter">
+    <SubClass code="R50-R69"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Symptome und abnorme klinische und Laborbefunde, die anderenorts nicht klassifiziert sind</Label>
+    </Rubric>
+  </Class>
+  <Class code="R50-R69" kind="block">
+    <SuperClass code="XVIII"/>
+    <SubClass code="R53"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Allgemeinsymptome</Label>
+    </Rubric>
+  </Class>
+  <Class code="R53" kind="category">
+    <SuperClass code="R50-R69"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Unwohlsein und Ermüdung</Label>
+    </Rubric>
+    <Rubric kind="inclusion">
+      <Label xml:lang="de" xml:space="default">Asthenie o.n.A.</Label>
+    </Rubric>
+    <Rubric kind="exclusion">
+      <Label xml:lang="de" xml:space="default">Chronisches Müdigkeitssyndrom (<Reference>G93.3</Reference>)</Label>
+    </Rubric>
+  </Class>
+  <Class code="XXII" kind="chapter">
+    <SubClass code="U00-U49"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Schlüsselnummern für besondere Zwecke</Label>
+    </Rubric>
+  </Class>
+  <Class code="U00-U49" kind="block">
+    <SuperClass code="XXII"/>
+    <SubClass code="U09"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Vorläufige Zuordnungen für neue Krankheiten</Label>
+    </Rubric>
+  </Class>
+  <Class code="U09" kind="category">
+    <SuperClass code="U00-U49"/>
+    <SubClass code="U09.9"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Post-COVID-19-Zustand</Label>
+    </Rubric>
+  </Class>
+  <Class code="U09.9" kind="category" usage="aster">
+    <SuperClass code="U09"/>
+    <Rubric kind="preferred">
+      <Label xml:lang="de" xml:space="default">Post-COVID-19-Zustand, nicht näher bezeichnet</Label>
+    </Rubric>
+  </Class>
+</ClaML>

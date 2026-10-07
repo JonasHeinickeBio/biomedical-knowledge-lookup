@@ -6,6 +6,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
+from fixtures.reactome_responses import (
+    ANCESTORS_APOPTOSIS,
+    ENTITY_PATHWAYS_COMPLEX,
+    HAS_EVENT_APOPTOSIS,
+    PARTICIPANTS_APOPTOSIS,
+    PARTICIPANTS_GLYCOLYSIS_SAMPLE,
+    PATHWAY_APOPTOSIS,
+    PATHWAYS_FOR_BRCA1,
+    REFERENCE_MAPPING_ENSG,
+    UNIPROT_BRCA1,
+)
 
 from knowledge_lookup.adapters.reactome_adapter import ReactomeAdapter
 from knowledge_lookup.models import ConceptType, KnowledgeSource, LookupConfig
@@ -393,3 +404,349 @@ class TestReactomeAdapter:
         assert session.get.call_count == 5  # every search reached Reactome
         assert breaker.state.value == "closed"
         assert breaker.failure_count == 0
+
+
+def _http_error(status: int) -> aiohttp.ClientResponseError:
+    return aiohttp.ClientResponseError(
+        request_info=MagicMock(), history=(), status=status, message="x"
+    )
+
+
+class TestReactomeRelationships:
+    """get_relationships: gene -> pathways and pathway hierarchy/participants."""
+
+    @pytest.fixture
+    def adapter(self, lookup_config):
+        return ReactomeAdapter(lookup_config)
+
+    @pytest.mark.asyncio
+    async def test_uniprot_accession_to_pathways(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.return_value = PATHWAYS_FOR_BRCA1
+            rels = await adapter.get_relationships("P38398")
+        url, params = req.call_args.args
+        assert url.endswith("/data/mapping/UniProt/P38398/pathways")
+        assert params == {"species": "9606"}
+        assert [r["related_id"] for r in rels] == [
+            "R-HSA-1221632",
+            "R-HSA-3108214",
+            "R-HSA-5685938",
+            "R-HSA-5685942",
+        ]
+        first = rels[0]
+        assert first["relation_label"] == "participates_in"
+        assert first["related_name"] == first["name"] == "Meiotic synapsis"
+        assert first["stId"] == "R-HSA-1221632"
+        assert first["species"] == "Homo sapiens"
+        assert first["source"] == "Reactome"
+        assert first["schema_class"] == "Pathway"
+        assert first["is_in_disease"] is False and first["is_inferred"] is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("identifier", "resource", "value"),
+        [
+            ("UniProt:P38398", "UniProt", "P38398"),
+            ("ENSG00000012048.19", "ENSEMBL", "ENSG00000012048"),
+            ("HGNC:1100", "HGNC", "1100"),
+            ("NCBIGene:672", "NCBI%20Gene", "672"),
+            ("672", "NCBI%20Gene", "672"),
+            ("BRCA1", "HGNC", "BRCA1"),
+        ],
+    )
+    async def test_identifier_forms_pick_the_mapping_resource(
+        self, adapter, identifier, resource, value
+    ):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.return_value = PATHWAYS_FOR_BRCA1
+            rels = await adapter.get_relationships(identifier)
+        assert req.call_args.args[0].endswith(f"/data/mapping/{resource}/{value}/pathways")
+        assert len(rels) == 4
+
+    @pytest.mark.asyncio
+    async def test_accession_shaped_symbol_falls_back_to_hgnc(self, adapter):
+        """P2RY12 looks like a UniProt accession but is a gene symbol."""
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.side_effect = [_http_error(404), PATHWAYS_FOR_BRCA1]
+            rels = await adapter.get_relationships("P2RY12")
+        assert len(rels) == 4
+        assert req.await_args_list[0].args[0].endswith("/UniProt/P2RY12/pathways")
+        assert req.await_args_list[1].args[0].endswith("/HGNC/P2RY12/pathways")
+
+    @pytest.mark.asyncio
+    async def test_species_option(self, lookup_config):
+        adapter = ReactomeAdapter(lookup_config, species=None)
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.return_value = PATHWAYS_FOR_BRCA1
+            await adapter.get_relationships("P38398")
+        assert req.call_args.args[1] == {}
+
+    @pytest.mark.asyncio
+    async def test_limit_dedupe_and_malformed_entries(self, adapter):
+        pathways = [*PATHWAYS_FOR_BRCA1, PATHWAYS_FOR_BRCA1[0], "junk", {"displayName": "no id"}]
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.return_value = pathways
+            assert len(await adapter.get_relationships("P38398", limit=3)) == 3
+            assert len(await adapter.get_relationships("P38398", limit=50)) == 4
+            assert await adapter.get_relationships("P38398", limit=0) == []
+
+    @pytest.mark.asyncio
+    async def test_no_pathways_unknown_and_errors(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.side_effect = _http_error(404)
+            assert await adapter.get_relationships("ZZZZNOPE") == []
+            assert await adapter.get_relationships("") == []
+            assert await adapter.get_relationships("not an id!") == []
+            req.side_effect = _http_error(500)
+            assert await adapter.get_relationships("P38398") == []
+            req.side_effect = RuntimeError("boom")
+            assert await adapter.get_relationships("P38398") == []
+            req.side_effect = None
+            req.return_value = {"unexpected": "dict"}
+            assert await adapter.get_relationships("P38398") == []
+
+    @pytest.mark.asyncio
+    async def test_pathway_hierarchy_and_participants(self, adapter):
+        with (
+            patch.object(adapter, "_make_request_text", new_callable=AsyncMock) as text,
+            patch.object(adapter, "_make_request", new_callable=AsyncMock) as req,
+        ):
+            text.side_effect = ["Pathway\n", HAS_EVENT_APOPTOSIS]
+            req.side_effect = [ANCESTORS_APOPTOSIS, PARTICIPANTS_APOPTOSIS]
+            rels = await adapter.get_relationships("R-HSA-109581.6", limit=3)
+        assert text.await_args_list[0].args[0].endswith("/data/query/R-HSA-109581/schemaClass")
+        assert text.await_args_list[1].args[0].endswith("/data/query/R-HSA-109581/hasEvent")
+        by_label: dict[str, list] = {}
+        for r in rels:
+            by_label.setdefault(r["relation_label"], []).append(r)
+
+        parent = by_label["part_of"][0]
+        assert parent["related_id"] == "R-HSA-5357801"
+        assert parent["related_name"] == "Programmed Cell Death"
+        assert parent["depth"] == 1 and parent["schema_class"] == "TopLevelPathway"
+
+        children = by_label["has_part"]
+        assert [c["related_id"] for c in children] == [
+            "R-HSA-5357769",
+            "R-HSA-109606",
+            "R-HSA-75153",
+        ]  # capped at limit=3 of 4
+        assert children[0]["schema_class"] == "Pathway"
+
+        participants = by_label["has_participant"]
+        assert [p["related_id"] for p in participants] == ["Q12933", "Q15628", "Q13546"]
+        assert participants[0]["related_name"] == "TRAF2"
+        assert participants[0]["related_id_source"] == "UniProt"
+
+    @pytest.mark.asyncio
+    async def test_multi_level_ancestors_and_missing_children(self, adapter):
+        paths = [
+            [{"stId": "R-HSA-1"}, {"stId": "R-HSA-2", "displayName": "P"}, {"stId": "R-HSA-3"}],
+            [{"stId": "R-HSA-1"}, {"stId": "R-HSA-3", "displayName": "Top"}],
+            ["junk"],
+            [{"stId": "R-HSA-1"}, {"displayName": "no id"}],
+        ]
+        with (
+            patch.object(adapter, "_make_request_text", new_callable=AsyncMock) as text,
+            patch.object(adapter, "_make_request", new_callable=AsyncMock) as req,
+        ):
+            text.side_effect = ["Reaction", _http_error(404)]
+            req.side_effect = [paths, []]
+            rels = await adapter.get_relationships("R-HSA-1")
+        assert [(r["related_id"], r["depth"]) for r in rels] == [
+            ("R-HSA-2", 1),
+            ("R-HSA-3", 1),  # the shallowest depth over all paths wins
+        ]
+
+    @pytest.mark.asyncio
+    async def test_participants_chebi_isoform_and_dedupe(self, adapter):
+        participants = [*PARTICIPANTS_GLYCOLYSIS_SAMPLE, *PARTICIPANTS_GLYCOLYSIS_SAMPLE]
+        participants.append({"displayName": "x", "refEntities": [{"stId": "other:abc"}, {}]})
+        participants.append({"displayName": "no refs", "refEntities": None})
+        with (
+            patch.object(adapter, "_make_request_text", new_callable=AsyncMock) as text,
+            patch.object(adapter, "_make_request", new_callable=AsyncMock) as req,
+        ):
+            text.side_effect = ["Pathway", ""]
+            req.side_effect = [None, participants]
+            rels = await adapter.get_relationships("R-HSA-70171")
+        assert [r["related_id"] for r in rels] == ["CHEBI:15377", "P14618", "abc"]
+        water, pkm, other = rels
+        assert water["related_name"] == "water" and water["related_id_source"] == "ChEBI"
+        assert water["participant"] == "H2O [cytosol]"
+        assert pkm["isoform"] == "P14618-1" and pkm["related_name"] == "PKM"
+        assert other["related_id_source"] == "other" and other["related_name"] == "abc"
+
+    @pytest.mark.asyncio
+    async def test_physical_entity_to_pathways(self, adapter):
+        with (
+            patch.object(adapter, "_make_request_text", new_callable=AsyncMock) as text,
+            patch.object(adapter, "_make_request", new_callable=AsyncMock) as req,
+        ):
+            text.return_value = "Complex"
+            req.return_value = ENTITY_PATHWAYS_COMPLEX
+            rels = await adapter.get_relationships("R-HSA-140976")
+        assert req.call_args.args[0].endswith("/data/pathways/low/entity/R-HSA-140976")
+        assert [r["related_id"] for r in rels][:2] == ["R-HSA-69416", "R-HSA-5357786"]
+        assert all(r["relation_label"] == "participates_in" for r in rels)
+
+    @pytest.mark.asyncio
+    async def test_unknown_stable_id_and_bad_entity_response(self, adapter):
+        with (
+            patch.object(adapter, "_make_request_text", new_callable=AsyncMock) as text,
+            patch.object(adapter, "_make_request", new_callable=AsyncMock) as req,
+        ):
+            text.side_effect = _http_error(404)
+            assert await adapter.get_relationships("R-HSA-0000000") == []
+            text.side_effect = None
+            text.return_value = "Complex"
+            req.return_value = None
+            assert await adapter.get_relationships("R-HSA-140976") == []
+
+    @pytest.mark.asyncio
+    async def test_text_endpoint_server_error_degrades(self, adapter):
+        with patch.object(adapter, "_make_request_text", new_callable=AsyncMock) as text:
+            text.side_effect = _http_error(500)
+            assert await adapter.get_relationships("R-HSA-109581") == []
+
+
+class TestReactomeMappings:
+    """get_mappings: cross-references of proteins, pathways and entities."""
+
+    @pytest.fixture
+    def adapter(self, lookup_config):
+        return ReactomeAdapter(lookup_config)
+
+    @pytest.mark.asyncio
+    async def test_uniprot_cross_references(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.return_value = UNIPROT_BRCA1
+            mappings = await adapter.get_mappings("UniProt:P38398")
+        assert req.call_args.args[0].endswith("/data/query/uniprot:P38398")
+        by_target = {(m["toSource"], m["toId"]): m for m in mappings}
+        assert by_target[("Ensembl", "ENSG00000012048")]["mappingType"] == "exact"
+        assert ("Ensembl", "ENSP00000350283") in by_target
+        assert not any(i.startswith("ENST") for _, i in by_target)  # transcripts dropped
+        assert by_target[("PDB", "1JM7")]["mappingType"] == "related"
+        assert ("GeneCards", "BRCA1") in by_target
+        assert ("OpenTargets", "ENSG00000012048") in by_target
+        assert ("Pharos", "P38398") in by_target
+        assert ("UniProt", "Q3LRJ0") in by_target  # secondary accession
+        assert ("UniProt", "BRCA1_HUMAN") not in by_target  # entry names are not accessions
+        assert not any(s.startswith("ZINC") for s, _ in by_target)
+        for source in ("RefSeq", "PDB", "Ensembl"):
+            assert sum(1 for m in mappings if m["toSource"] == source) <= 10
+        for m in mappings:
+            assert set(m) == {
+                "fromId",
+                "toId",
+                "fromSource",
+                "toSource",
+                "mappingType",
+                "confidence",
+            }
+            assert m["fromId"] == "P38398" and m["fromSource"] == "Reactome"
+
+    @pytest.mark.asyncio
+    async def test_ensembl_gene_is_resolved_through_uniprot(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.side_effect = [REFERENCE_MAPPING_ENSG, UNIPROT_BRCA1]
+            mappings = await adapter.get_mappings("ENSG00000012048")
+        assert req.await_args_list[0].args[0].endswith("/references/mapping/ENSG00000012048")
+        assert req.await_args_list[1].args[0].endswith("/data/query/uniprot:P38398")
+        assert mappings[0]["toSource"] == "UniProt" and mappings[0]["toId"] == "P38398"
+        assert mappings[0]["mappingType"] == "exact"
+        assert mappings[0]["fromId"] == "ENSG00000012048"
+
+    @pytest.mark.asyncio
+    async def test_gene_symbol_filters_unrelated_matches(self, adapter):
+        unrelated = {"stId": "uniprot:P84095", "identifier": "P84095", "geneName": ["RHOG"]}
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.side_effect = [[unrelated, *REFERENCE_MAPPING_ENSG], UNIPROT_BRCA1]
+            mappings = await adapter.get_mappings("BRCA1")
+        assert [m["toId"] for m in mappings if m["toSource"] == "UniProt"][0] == "P38398"
+        assert "P84095" not in {m["toId"] for m in mappings}
+        assert req.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_unresolvable_identifiers(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            for identifier in ("672", "HGNC:1100", "NCBIGene:672", "", "not an id!"):
+                assert await adapter.get_mappings(identifier) == []
+            assert req.await_count == 0
+            req.return_value = None
+            assert await adapter.get_mappings("ZZZZNOPE") == []
+            req.return_value = [{"stId": "ensembl:ENSG1"}, {"stId": "uniprot:", "identifier": ""}]
+            assert await adapter.get_mappings("ENSG00000012048") == []
+
+    @pytest.mark.asyncio
+    async def test_pathway_mappings(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.return_value = PATHWAY_APOPTOSIS
+            mappings = await adapter.get_mappings("R-HSA-109581")
+        assert req.call_args.args[0].endswith("/data/query/R-HSA-109581")
+        assert mappings[0] == {
+            "fromId": "R-HSA-109581",
+            "toId": "GO:0006915",
+            "fromSource": "Reactome",
+            "toSource": "GO",
+            "mappingType": "related",
+            "confidence": 0.9,
+        }
+        orthologs = [m for m in mappings if m["mappingType"] == "ortholog"]
+        assert [m["toId"] for m in orthologs] == [
+            "R-RNO-109581",
+            "R-CFA-109581",
+            "R-BTA-109581",
+            "R-SSC-109581",
+        ]
+
+    @pytest.mark.asyncio
+    async def test_physical_entity_mappings(self, adapter):
+        entity = {
+            "referenceEntity": {"databaseName": "ChEBI", "identifier": "15377"},
+            "goCellularComponent": {"accession": "0005829"},
+            "orthologousEvent": ["junk"],
+        }
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.return_value = entity
+            mappings = await adapter.get_mappings("R-ALL-113592")
+        assert {(m["toSource"], m["toId"]) for m in mappings} == {
+            ("GO", "GO:0005829"),
+            ("ChEBI", "15377"),
+        }
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.return_value = {"referenceEntity": {"databaseName": "ENSEMBL", "identifier": "X"}}
+            mappings = await adapter.get_mappings("R-HSA-5")
+        assert mappings[0]["toSource"] == "Ensembl"
+
+    @pytest.mark.asyncio
+    async def test_empty_and_malformed_data(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.return_value = ["not", "a", "dict"]
+            assert await adapter.get_mappings("R-HSA-109581") == []
+            assert await adapter.get_mappings("P38398") == []
+            req.return_value = {"crossReference": [{"databaseName": "", "identifier": "x"}]}
+            assert await adapter.get_mappings("P38398") == []
+
+    @pytest.mark.asyncio
+    async def test_errors_degrade_to_empty(self, adapter):
+        with patch.object(adapter, "_make_request", new_callable=AsyncMock) as req:
+            req.side_effect = _http_error(404)
+            assert await adapter.get_mappings("R-HSA-0000000") == []
+            req.side_effect = RuntimeError("boom")
+            assert await adapter.get_mappings("P38398") == []
+
+
+class TestReactomeChildParsing:
+    @pytest.mark.asyncio
+    async def test_malformed_tsv_lines_are_skipped(self, lookup_config):
+        adapter = ReactomeAdapter(lookup_config)
+        with (
+            patch.object(adapter, "_make_request_text", new_callable=AsyncMock) as text,
+            patch.object(adapter, "_make_request", new_callable=AsyncMock) as req,
+        ):
+            text.side_effect = ["Pathway", "onlyone\n\t\nR-HSA-2\tName\n"]
+            req.side_effect = [None, None]
+            rels = await adapter.get_relationships("R-HSA-1")
+        assert [(r["related_id"], r["schema_class"]) for r in rels] == [("R-HSA-2", None)]
