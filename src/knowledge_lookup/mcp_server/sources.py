@@ -20,6 +20,7 @@ from ..models import KnowledgeSource
 # Every source with an adapter (see ``adapters.ADAPTER_CLASSES``). Spelled out as a
 # Literal so tool input schemas list exactly the names a model may pass.
 SourceName = Literal[
+    "ALPHAFOLD",
     "BIOLINKER",
     "BIOONTOLOGY",
     "BIOPORTAL",
@@ -27,19 +28,26 @@ SourceName = Literal[
     "CELLONTOLOGY",
     "CHEBI",
     "CHEMBL",
+    "CLINGEN",
     "CLINICALTRIALS",
+    "CLINPGX",
     "CLINVAR",
     "COSMIC",
     "CTD",
     "DBPEDIA",
+    "DBSNP",
     "DGIDB",
     "DISGENET",
+    "DOID",
     "DRUGBANK",
     "EBIOLS",
     "ENSEMBL",
     "EUROPEPMC",
     "EUTILS",
+    "GENCC",
     "GENEONTOLOGY",
+    "GNOMAD",
+    "GTEX",
     "GWASCATALOG",
     "HGNC",
     "HPO",
@@ -50,17 +58,24 @@ SourceName = Literal[
     "INTACT",
     "INTERPRO",
     "KEGG",
+    "LITCOVID",
     "LOINC",
+    "MEDGEN",
     "MESH",
     "MONARCH",
     "MONDO",
+    "MYGENEINFO",
     "MYGENEINFO",
     "NODENORM",
     "OBOFOUNDRY",
     "OFFSIDES",
     "OLS",
     "OMIM",
+    "OPENALEX",
+    "OPENFDAEVENTS",
+    "OPENFDALABELS",
     "OPENTARGETS",
+    "ORPHANET",
     "OXO",
     "PDB",
     "PFAM",
@@ -69,6 +84,7 @@ SourceName = Literal[
     "QUICKGO",
     "REACTOME",
     "RXCLASS",
+    "RXNORM",
     "SEMMEDDB",
     "SIDER",
     "SNOMEDCT",
@@ -225,6 +241,53 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
     ),
     KnowledgeSource.MYGENEINFO: SourceSpec(
         "MyGene.info gene annotation and identifier cross-references",
+    ),
+    KnowledgeSource.LITCOVID: SourceSpec(
+        "NCBI LitCovid COVID-19 and Long COVID literature with topics and entities",
+    ),
+    KnowledgeSource.OPENALEX: SourceSpec(
+        "OpenAlex scholarly works, authors, topics and citation links (keyless budget ~100 searches/day; free key = 10x)",
+    ),
+    KnowledgeSource.OPENFDAEVENTS: SourceSpec(
+        "FDA adverse event reports (FAERS) by drug and reaction via openFDA: spontaneous reports, no causality (1,000 requests/day without a key)",
+    ),
+    KnowledgeSource.ORPHANET: SourceSpec(
+        "Orphanet rare-disease nosology, genes, prevalence and HPO phenotypes (Orphadata)",
+    ),
+    KnowledgeSource.CLINGEN: SourceSpec(
+        "ClinGen gene-disease validity and dosage sensitivity (CSV exports; CC0)",
+        "opt-in download (~1.4 MB): CLINGEN_DOWNLOAD=1, or CLINGEN_PATH",
+    ),
+    KnowledgeSource.GENCC: SourceSpec(
+        "GenCC harmonised gene-disease validity submissions (CSV export)",
+        "opt-in download (~28 MB): GENCC_DOWNLOAD=1, or GENCC_PATH",
+    ),
+    KnowledgeSource.MEDGEN: SourceSpec(
+        "NCBI MedGen medical-condition concepts with UMLS CUIs and cross-references",
+    ),
+    KnowledgeSource.DOID: SourceSpec(
+        "Human Disease Ontology (DOID) terms and hierarchy",
+    ),
+    KnowledgeSource.GTEX: SourceSpec(
+        "GTEx tissue gene expression and eQTLs",
+    ),
+    KnowledgeSource.GNOMAD: SourceSpec(
+        "gnomAD population variant frequencies and gene constraint (GraphQL)",
+    ),
+    KnowledgeSource.DBSNP: SourceSpec(
+        "NCBI dbSNP reference SNPs (rsIDs): alleles, frequencies and clinical significance",
+    ),
+    KnowledgeSource.ALPHAFOLD: SourceSpec(
+        "AlphaFold DB predicted protein structures and confidence",
+    ),
+    KnowledgeSource.RXNORM: SourceSpec(
+        "NLM RxNorm drug concepts (ingredients, brands, clinical drugs) and relations",
+    ),
+    KnowledgeSource.CLINPGX: SourceSpec(
+        "ClinPGx/PharmGKB genes, drugs, variants and clinical annotations (CC BY-SA)",
+    ),
+    KnowledgeSource.OPENFDALABELS: SourceSpec(
+        "FDA structured drug labels (indications, warnings, adverse reactions) via openFDA",
     ),
 }
 

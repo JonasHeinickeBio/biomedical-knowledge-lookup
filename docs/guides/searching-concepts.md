@@ -50,7 +50,7 @@ asyncio.run(main())
 | `parallel` | `True` (default) queries sources concurrently; `False` queries them one after another. Either way each source is bounded by `timeout_per_source`. |
 
 {% hint style="info" %}
-Name `sources` whenever you can. Searching all 60 adapters is slow and noisy. Good starting points: HPO for phenotypes, MONDO for diseases, HGNC, UniProt or Ensembl for genes and proteins, PubChem or ChEMBL for chemicals, Reactome for pathways, UMLS or BioPortal for clinical terminologies. The [adapter pages](../adapters/README.md) describe each source.
+Name `sources` whenever you can. Searching all 75 adapters is slow and noisy. Good starting points: HPO for phenotypes, MONDO for diseases, HGNC, UniProt or Ensembl for genes and proteins, PubChem or ChEMBL for chemicals, Reactome for pathways, UMLS or BioPortal for clinical terminologies. The [adapter pages](../adapters/README.md) describe each source.
 {% endhint %}
 
 ## Read the result

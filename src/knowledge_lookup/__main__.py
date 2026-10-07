@@ -589,6 +589,16 @@ _CHECK_QUERIES: dict[KnowledgeSource, str] = {
     KnowledgeSource.CELLONTOLOGY: "T cell",
     KnowledgeSource.CELLMARKER: "CD4",
     KnowledgeSource.CHEBI: "aspirin",
+    KnowledgeSource.LITCOVID: "long covid",
+    KnowledgeSource.OPENALEX: "chronic fatigue syndrome",
+    KnowledgeSource.OPENFDAEVENTS: "aspirin",
+    KnowledgeSource.ORPHANET: "marfan",
+    KnowledgeSource.MEDGEN: "chronic fatigue syndrome",
+    KnowledgeSource.DOID: "diabetes mellitus",
+    KnowledgeSource.DBSNP: "rs1801133",
+    KnowledgeSource.RXNORM: "aspirin",
+    KnowledgeSource.CLINPGX: "CYP2D6",
+    KnowledgeSource.OPENFDALABELS: "aspirin",
 }
 
 
@@ -607,6 +617,8 @@ _CHECK_CREDENTIALS: dict[KnowledgeSource, str] = {
     KnowledgeSource.OFFSIDES: "OFFSIDES_DOWNLOAD=1 (downloads ~69 MB) or OFFSIDES_PATH",
     KnowledgeSource.CTD: "CTD_DOWNLOAD=1 (downloads ~220 MB) or CTD_DATA_DIR",
     KnowledgeSource.CELLMARKER: "CELLMARKER_PATH or CELLMARKER_URL",
+    KnowledgeSource.CLINGEN: "CLINGEN_DOWNLOAD=1 (downloads ~1.4 MB) or CLINGEN_PATH",
+    KnowledgeSource.GENCC: "GENCC_DOWNLOAD=1 (downloads ~28 MB) or GENCC_PATH",
 }
 
 
