@@ -18,6 +18,7 @@ knowledge-lookup --help
 | `info` | Show the version and how many sources are available |
 | `benchmark` | Run latency and resilience benchmarks against live sources |
 | `explore` | Start a local web UI for browsing UMLS |
+| `semmeddb-build` | Convert a SemMedDB download from NLM into the SQLite database the [SemMedDB adapter](../adapters/literature/semmeddb_adapter.md) reads |
 
 ## `search`
 
@@ -139,6 +140,14 @@ The server also exposes JSON endpoints:
 | `GET /api/health` | none |
 
 The UMLS endpoints need the `umls` extra and `UMLS_API_KEY`; otherwise they return HTTP 503.
+
+## `semmeddb-build`
+
+```bash
+knowledge-lookup semmeddb-build SOURCE... --output semmeddb.sqlite [--max-rows N] [--force] [--no-aggregates]
+```
+
+Builds the SQLite database for the SemMedDB adapter from NLM's `PREDICATION` download (`.sql.gz` MySQL dump, or `.csv.gz`). It streams the file, loads the table, adds the indexes and precomputes the `CONCEPT` and `TRIPLE` lookup tables that keep name search and hub concepts fast. The full final release (about 130 million predications) takes hours and tens of GB, so test the format first with `--max-rows 100000`. Afterwards set `SEMMEDDB_PATH` to the output file. Details, formats and measured numbers are on the [SemMedDB adapter page](../adapters/literature/semmeddb_adapter.md).
 
 ## Next steps
 

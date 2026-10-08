@@ -216,7 +216,7 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
     ),
     KnowledgeSource.SEMMEDDB: SourceSpec(
         "SemMedDB subject-predicate-object relations from PubMed (local export; UMLS licence)",
-        "a local SemMedDB export (SEMMEDDB_PATH)",
+        "a SQLite database built with `knowledge-lookup semmeddb-build` (SEMMEDDB_PATH)",
     ),
     KnowledgeSource.SIDER: SourceSpec(
         "SIDER drug side effects (dataset, CC BY-SA 4.0; frozen in 2016)",

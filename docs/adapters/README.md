@@ -233,7 +233,7 @@ Pages are grouped by category.
 | [IntAct](proteins/intact_adapter.md) | IntAct curated experimental molecular interactions | `P38398` | none |
 | [PubTator 3](literature/pubtator_adapter.md) | PubTator 3 literature entities and relations for PubMed/PMC | `@GENE_BRCA1` | none |
 | [ClinicalTrials.gov](literature/clinicaltrials_adapter.md) | ClinicalTrials.gov registered studies, conditions and interventions | `NCT04280705` | none |
-| [SemMedDB](literature/semmeddb_adapter.md) | SemMedDB subject-predicate-object relations from PubMed (local export; UMLS licence) | `C0015674` | a local SemMedDB export (SEMMEDDB_PATH) |
+| [SemMedDB](literature/semmeddb_adapter.md) | SemMedDB subject-predicate-object relations from PubMed (local export; UMLS licence) | `C0015674` | a SQLite database built with `knowledge-lookup semmeddb-build` (SEMMEDDB_PATH) |
 | [SIDER](chemicals/sider_adapter.md) | SIDER drug side effects (dataset, CC BY-SA 4.0; frozen in 2016) | `CID100002244` | opt-in download (~5.5 MB): SIDER_DOWNLOAD=1, or SIDER_DATA_DIR |
 | [OFFSIDES](chemicals/offsides_adapter.md) | OFFSIDES off-label drug side effects from adverse event reports (statistical signals) | `RxNorm:1191` | opt-in download (~69 MB): OFFSIDES_DOWNLOAD=1, or OFFSIDES_PATH |
 | [Human Protein Atlas](proteins/hpa_adapter.md) | Human Protein Atlas tissue and blood protein expression (CC BY 4.0) | `ENSG00000012048` | none |

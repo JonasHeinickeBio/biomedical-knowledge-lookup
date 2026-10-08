@@ -12,10 +12,15 @@ a *local, read-only* database that you build yourself (see ``docs/adapters/liter
 semmeddb_adapter.md`` for the recipe):
 
 * ``SEMMEDDB_PATH`` (or ``config.api_keys['semmeddb']`` - a *file path*, not a secret) points
-  to either an SQLite database with a ``PREDICATION`` table, or a TSV/CSV export of that
-  table, which is imported once into an indexed SQLite file in the dataset cache directory.
-* ``is_available()`` is true only when that file exists, so ``CentralKnowledgeLookup`` skips
-  the source on machines without the data.
+  to an SQLite database with a ``PREDICATION`` table. Build it once, offline, from NLM's
+  download with ``knowledge-lookup semmeddb-build semmedVER43_2024_R_PREDICATION.sql.gz -o
+  semmeddb.sqlite`` (MySQL dump, or the ``.csv.gz`` export; see ``_semmeddb_build``).
+* A *small* TSV/CSV/SQL export may also be given directly; it is imported on first use into an
+  indexed SQLite file in the dataset cache directory. Anything larger than
+  :data:`MAX_LAZY_IMPORT_BYTES` (the full table is ~130 million rows) is refused with a
+  pointer to the builder, because importing it would block a lookup for hours.
+* ``is_available()`` is true only when a usable database (or importable small export) exists,
+  so ``CentralKnowledgeLookup`` skips the source on machines without the data.
 
 Schema (checked against the official SemMedDB database details page, lhncbc.nlm.nih.gov):
 ``PREDICATION(PREDICATION_ID, SENTENCE_ID, PMID, PREDICATE, SUBJECT_CUI, SUBJECT_NAME,
@@ -30,8 +35,6 @@ per predication), so treat counts as evidence strength, not as curated fact.
 """
 
 import asyncio
-import csv
-import gzip
 import hashlib
 import logging
 import os
@@ -39,13 +42,18 @@ import re
 import sqlite3
 import time
 from collections import Counter
-from collections.abc import Callable, Iterator
-from itertools import chain
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, TypeVar
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptType, KnowledgeSource, UnifiedConcept
+from ._semmeddb_build import (
+    PREDICATION_COLUMNS,  # noqa: F401  (re-exported for callers and tests)
+    REQUIRED_COLUMNS,
+    build_predication_db,
+    create_indexes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -53,36 +61,16 @@ T = TypeVar("T")
 
 SEMMEDDB_PATH_ENV = "SEMMEDDB_PATH"
 
-#: Canonical column order of the PREDICATION table (used for header-less TSV/CSV exports).
-PREDICATION_COLUMNS = (
-    "PREDICATION_ID",
-    "SENTENCE_ID",
-    "PMID",
-    "PREDICATE",
-    "SUBJECT_CUI",
-    "SUBJECT_NAME",
-    "SUBJECT_SEMTYPE",
-    "SUBJECT_NOVELTY",
-    "OBJECT_CUI",
-    "OBJECT_NAME",
-    "OBJECT_SEMTYPE",
-    "OBJECT_NOVELTY",
-)
-_REQUIRED_COLUMNS = {
-    "PMID",
-    "PREDICATE",
-    "SUBJECT_CUI",
-    "SUBJECT_NAME",
-    "SUBJECT_SEMTYPE",
-    "OBJECT_CUI",
-    "OBJECT_NAME",
-    "OBJECT_SEMTYPE",
-}
-
 _SQLITE_MAGIC = b"SQLite format 3\x00"
 _CUI_RE = re.compile(r"^(?:UMLS:|CUI:|UMLS_CUI:)?(C\d{7})$", re.IGNORECASE)
-_EXPORT_SUFFIXES = {".tsv", ".csv", ".txt", ".gz"}
-_IMPORT_BATCH = 50_000  # rows per executemany during TSV/CSV import
+_EXPORT_SUFFIXES = {".tsv", ".csv", ".txt", ".gz", ".sql"}
+#: Largest export that is imported lazily on first use. Bigger files must be converted with
+#: ``knowledge-lookup semmeddb-build`` (the full PREDICATION table takes hours to load).
+MAX_LAZY_IMPORT_BYTES = 256 * 1024 * 1024
+#: Without the CONCEPT table a ``%text%`` name search scans the whole PREDICATION table (twice).
+#: That is only attempted on databases up to this many rows; bigger ones need the lookup tables
+#: built by ``knowledge-lookup semmeddb-build`` (the default).
+SUBSTRING_SCAN_MAX_ROWS = 5_000_000
 
 #: UMLS semantic type abbreviations (as stored in SemMedDB) -> library concept types.
 #: Unlisted types map to UNKNOWN; the abbreviation is always kept in ``semantic_types``.
@@ -135,76 +123,17 @@ def _is_sqlite_file(path: Path) -> bool:
 
 
 def import_predication_export(source: Path, dest: Path) -> int:
-    """Import a TSV/CSV (optionally ``.gz``) export of PREDICATION into a new SQLite file.
+    """Import a CSV/TSV/SQL export (optionally ``.gz``) of PREDICATION into a new SQLite file.
 
-    The delimiter is a tab for ``.tsv``/``.txt`` and a comma for ``.csv``. A header row is
-    detected by the presence of a ``PREDICATE`` column name; without one the canonical
-    column order (:data:`PREDICATION_COLUMNS`) is assumed. MySQL's ``\\N`` becomes NULL.
-    Indexes are created after loading. Returns the number of rows imported. ``dest`` is
-    written via a ``.part`` file so an interrupted import never leaves a half-built database.
+    Thin wrapper over :func:`~._semmeddb_build.build_predication_db`; returns the number of
+    rows imported. Prefer ``knowledge-lookup semmeddb-build`` for full-size files.
     """
-    opener: Callable[..., Any] = gzip.open if source.suffix == ".gz" else open
-    stem = source.name.removesuffix(".gz")
-    delimiter = "," if stem.endswith(".csv") else "\t"
-    part = dest.with_name(dest.name + ".part")
-    part.unlink(missing_ok=True)
-    rows = 0
-    conn = sqlite3.connect(part)
-    try:
-        with opener(source, "rt", encoding="utf-8", newline="") as handle:
-            reader = csv.reader(handle, delimiter=delimiter)
-            first = next(reader, None)
-            if first is None:
-                raise ValueError(f"{source} is empty")
-            names = [c.strip().upper() for c in first]
-            data_rows: Iterator[list[str]]
-            if "PREDICATE" in names:
-                columns, data_rows = names, reader
-            else:
-                columns = list(PREDICATION_COLUMNS[: len(first)])
-                data_rows = chain([first], reader)  # streamed: never hold the dump in memory
-            missing = _REQUIRED_COLUMNS - set(columns)
-            if missing:
-                raise ValueError(f"export lacks required PREDICATION columns: {sorted(missing)}")
-            col_sql = ", ".join(f'"{c}"' for c in columns)
-            conn.execute(f"CREATE TABLE PREDICATION ({col_sql})")
-            insert = f"INSERT INTO PREDICATION ({col_sql}) VALUES ({','.join('?' * len(columns))})"
-            batch: list[list[str | None]] = []
-            for row in data_rows:
-                if len(row) != len(columns):
-                    continue  # skip truncated/garbled lines instead of aborting a long import
-                batch.append([None if v == "\\N" or v == "" else v for v in row])
-                if len(batch) >= _IMPORT_BATCH:
-                    conn.executemany(insert, batch)
-                    rows += len(batch)
-                    batch.clear()
-            if batch:
-                conn.executemany(insert, batch)
-                rows += len(batch)
-        _create_indexes(conn)
-        conn.commit()
-    except Exception:
-        conn.close()
-        part.unlink(missing_ok=True)
-        raise
-    conn.close()
-    part.replace(dest)
-    return rows
+    return build_predication_db([source], dest, overwrite=True).rows
 
 
 def _create_indexes(conn: sqlite3.Connection) -> None:
-    """Indexes the adapter's queries rely on (see the docs page for the same recipe)."""
-    conn.executescript(
-        """
-        CREATE INDEX IF NOT EXISTS idx_pred_subject_cui ON PREDICATION (SUBJECT_CUI);
-        CREATE INDEX IF NOT EXISTS idx_pred_object_cui ON PREDICATION (OBJECT_CUI);
-        CREATE INDEX IF NOT EXISTS idx_pred_subject_name
-            ON PREDICATION (SUBJECT_NAME COLLATE NOCASE);
-        CREATE INDEX IF NOT EXISTS idx_pred_object_name
-            ON PREDICATION (OBJECT_NAME COLLATE NOCASE);
-        CREATE INDEX IF NOT EXISTS idx_pred_pmid ON PREDICATION (PMID);
-        """
-    )
+    """Kept for backwards compatibility; see :func:`~._semmeddb_build.create_indexes`."""
+    create_indexes(conn)
 
 
 class SemMedDBAdapter(KnowledgeSourceAdapter):
@@ -236,9 +165,26 @@ class SemMedDBAdapter(KnowledgeSourceAdapter):
     def is_available(self) -> bool:
         path = self._configured_path()
         try:
-            return path is not None and path.is_file()
+            if path is None or not path.is_file():
+                return False
+            # A big export that has not been built yet cannot be used (see _resolve_db)
+            return _is_sqlite_file(path) or self._importable(path)
         except OSError:
             return False
+
+    @staticmethod
+    def _cache_dest(export: Path) -> Path:
+        from ..utils.dataset_cache import default_cache_dir
+
+        stat = export.stat()
+        tag = hashlib.sha1(f"{export.resolve()}|{stat.st_size}|{stat.st_mtime_ns}".encode())
+        return default_cache_dir() / f"semmeddb_{tag.hexdigest()[:12]}.sqlite"
+
+    def _importable(self, export: Path) -> bool:
+        """An export can be used when it was imported before or is small enough to import now."""
+        if export.suffix.lower() not in _EXPORT_SUFFIXES:
+            return False
+        return self._cache_dest(export).exists() or export.stat().st_size <= MAX_LAZY_IMPORT_BYTES
 
     async def _resolve_db(self) -> Path | None:
         """Return a validated SQLite file, importing a TSV/CSV export on first use."""
@@ -252,7 +198,15 @@ class SemMedDBAdapter(KnowledgeSourceAdapter):
             if not _is_sqlite_file(path):
                 if path.suffix.lower() not in _EXPORT_SUFFIXES:
                     logger.error(
-                        f"SemMedDB: {path} is neither an SQLite file nor a TSV/CSV export"
+                        f"SemMedDB: {path} is neither an SQLite file nor a TSV/CSV/SQL export"
+                    )
+                    return None
+                if not self._importable(path):
+                    logger.error(
+                        f"SemMedDB: {path} is too large to import on first use "
+                        f"({path.stat().st_size / 1e6:.0f} MB). Build the database once with: "
+                        f"knowledge-lookup semmeddb-build {path} -o semmeddb.sqlite "
+                        f"and point {SEMMEDDB_PATH_ENV} at the result"
                     )
                     return None
                 db = await asyncio.to_thread(self._ensure_imported, path)
@@ -264,13 +218,8 @@ class SemMedDBAdapter(KnowledgeSourceAdapter):
     @staticmethod
     def _ensure_imported(export: Path) -> Path:
         """Import ``export`` into the dataset cache dir, once per (path, size, mtime)."""
-        from ..utils.dataset_cache import default_cache_dir
-
-        stat = export.stat()
-        tag = hashlib.sha1(f"{export.resolve()}|{stat.st_size}|{stat.st_mtime_ns}".encode())
-        directory = default_cache_dir()
-        directory.mkdir(parents=True, exist_ok=True)
-        dest = directory / f"semmeddb_{tag.hexdigest()[:12]}.sqlite"
+        dest = SemMedDBAdapter._cache_dest(export)
+        dest.parent.mkdir(parents=True, exist_ok=True)
         if not dest.exists():
             logger.info(f"Importing SemMedDB export {export} -> {dest}")
             rows = import_predication_export(export, dest)
@@ -288,7 +237,7 @@ class SemMedDBAdapter(KnowledgeSourceAdapter):
         except sqlite3.Error as e:
             logger.error(f"SemMedDB: cannot open {db}: {e}")
             return False
-        missing = _REQUIRED_COLUMNS - columns
+        missing = REQUIRED_COLUMNS - columns
         if missing:
             logger.error(
                 f"SemMedDB: {db} has no usable PREDICATION table (missing {sorted(missing)})"
@@ -478,7 +427,22 @@ class SemMedDBAdapter(KnowledgeSourceAdapter):
         return match.group(1).upper() if match else None
 
     @staticmethod
-    def _exists(conn: sqlite3.Connection, cui: str) -> bool:
+    def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+        """Whether the precomputed ``CONCEPT`` / ``TRIPLE`` lookup table exists."""
+        return (
+            conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)
+            ).fetchone()
+            is not None
+        )
+
+    @classmethod
+    def _exists(cls, conn: sqlite3.Connection, cui: str) -> bool:
+        if cls._has_table(conn, "CONCEPT"):
+            return (
+                conn.execute("SELECT 1 FROM CONCEPT WHERE CUI = ? LIMIT 1", (cui,)).fetchone()
+                is not None
+            )
         row = conn.execute(
             "SELECT 1 FROM PREDICATION WHERE SUBJECT_CUI = ? "
             "UNION ALL SELECT 1 FROM PREDICATION WHERE OBJECT_CUI = ? LIMIT 1",
@@ -486,9 +450,13 @@ class SemMedDBAdapter(KnowledgeSourceAdapter):
         ).fetchone()
         return row is not None
 
-    @staticmethod
-    def _rows_for_cui(conn: sqlite3.Connection, cui: str) -> list[tuple]:
+    @classmethod
+    def _rows_for_cui(cls, conn: sqlite3.Connection, cui: str) -> list[tuple]:
         """(cui, name, semtype, side, predications, pmids) per name/semtype of one CUI."""
+        if cls._has_table(conn, "CONCEPT"):
+            return conn.execute(
+                "SELECT CUI, NAME, SEMTYPE, SIDE, N, P FROM CONCEPT WHERE CUI = ?", (cui,)
+            ).fetchall()
         return conn.execute(
             "SELECT SUBJECT_CUI, SUBJECT_NAME, SUBJECT_SEMTYPE, 's', COUNT(*), "
             "COUNT(DISTINCT PMID) FROM PREDICATION WHERE SUBJECT_CUI = ? "
@@ -501,28 +469,44 @@ class SemMedDBAdapter(KnowledgeSourceAdapter):
         ).fetchall()
 
     def _rows_for_name(self, conn: sqlite3.Connection, text: str, limit: int) -> list[tuple]:
-        """Name search: prefix match, then (optionally) substring match."""
+        """Name search: prefix match, then (when cheap enough) substring match."""
         patterns = [f"{_escape_like(text)}%"]
-        if self.allow_substring_search:
+        if self.allow_substring_search and self._substring_search_is_cheap(conn):
             patterns.append(f"%{_escape_like(text)}%")
+        use_concept = self._has_table(conn, "CONCEPT")
         rows: list[tuple] = []
         for pattern in patterns:
-            rows = conn.execute(
-                "SELECT cui, name, semtype, side, SUM(n), SUM(p) FROM ("
-                "SELECT SUBJECT_CUI AS cui, SUBJECT_NAME AS name, SUBJECT_SEMTYPE AS semtype, "
-                "'s' AS side, COUNT(*) AS n, COUNT(DISTINCT PMID) AS p FROM PREDICATION "
-                "WHERE SUBJECT_NAME LIKE ? ESCAPE '\\' "
-                "GROUP BY SUBJECT_CUI, SUBJECT_NAME, SUBJECT_SEMTYPE "
-                "UNION ALL "
-                "SELECT OBJECT_CUI, OBJECT_NAME, OBJECT_SEMTYPE, 'o', COUNT(*), "
-                "COUNT(DISTINCT PMID) FROM PREDICATION WHERE OBJECT_NAME LIKE ? ESCAPE '\\' "
-                "GROUP BY OBJECT_CUI, OBJECT_NAME, OBJECT_SEMTYPE) "
-                "GROUP BY cui, name, semtype, side ORDER BY SUM(n) DESC LIMIT ?",
-                (pattern, pattern, limit * 10),
-            ).fetchall()
+            if use_concept:
+                rows = conn.execute(
+                    "SELECT CUI, NAME, SEMTYPE, SIDE, N, P FROM CONCEPT "
+                    "WHERE NAME LIKE ? ESCAPE '\\' ORDER BY N DESC LIMIT ?",
+                    (pattern, limit * 10),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT cui, name, semtype, side, SUM(n), SUM(p) FROM ("
+                    "SELECT SUBJECT_CUI AS cui, SUBJECT_NAME AS name, SUBJECT_SEMTYPE AS "
+                    "semtype, 's' AS side, COUNT(*) AS n, COUNT(DISTINCT PMID) AS p "
+                    "FROM PREDICATION WHERE SUBJECT_NAME LIKE ? ESCAPE '\\' "
+                    "GROUP BY SUBJECT_CUI, SUBJECT_NAME, SUBJECT_SEMTYPE "
+                    "UNION ALL "
+                    "SELECT OBJECT_CUI, OBJECT_NAME, OBJECT_SEMTYPE, 'o', COUNT(*), "
+                    "COUNT(DISTINCT PMID) FROM PREDICATION WHERE OBJECT_NAME LIKE ? "
+                    "ESCAPE '\\' GROUP BY OBJECT_CUI, OBJECT_NAME, OBJECT_SEMTYPE) "
+                    "GROUP BY cui, name, semtype, side ORDER BY SUM(n) DESC LIMIT ?",
+                    (pattern, pattern, limit * 10),
+                ).fetchall()
             if len({r[0] for r in rows}) >= limit:
                 break
         return rows
+
+    @classmethod
+    def _substring_search_is_cheap(cls, conn: sqlite3.Connection) -> bool:
+        """A ``%text%`` search is cheap on the CONCEPT table and on small databases only."""
+        if cls._has_table(conn, "CONCEPT"):
+            return True
+        (biggest,) = conn.execute("SELECT MAX(rowid) FROM PREDICATION").fetchone()
+        return (biggest or 0) <= SUBSTRING_SCAN_MAX_ROWS
 
     @staticmethod
     def _triple_rows(
@@ -536,6 +520,21 @@ class SemMedDBAdapter(KnowledgeSourceAdapter):
             pred_sql = f" AND PREDICATE IN ({','.join('?' * len(predicates))})"
             extra = tuple(predicates)
         rows: list[tuple] = []
+        if SemMedDBAdapter._has_table(conn, "TRIPLE"):
+            for direction, own, other_cui, other_name, other_type in (
+                ("outgoing", "SUBJECT_CUI", "OBJECT_CUI", "OBJECT_NAME", "OBJECT_SEMTYPE"),
+                ("incoming", "OBJECT_CUI", "SUBJECT_CUI", "SUBJECT_NAME", "SUBJECT_SEMTYPE"),
+            ):
+                rows.extend(
+                    (direction, *r)
+                    for r in conn.execute(
+                        f"SELECT PREDICATE, {other_cui}, {other_name}, {other_type}, PMIDS, "
+                        f"PREDS FROM TRIPLE WHERE {own} = ?{pred_sql} "
+                        f"ORDER BY PMIDS DESC, PREDS DESC LIMIT ?",
+                        (cui, *extra, limit),
+                    )
+                )
+            return rows
         for direction, own, other_cui, other_name, other_type in (
             ("outgoing", "SUBJECT_CUI", "OBJECT_CUI", "OBJECT_NAME", "OBJECT_SEMTYPE"),
             ("incoming", "OBJECT_CUI", "SUBJECT_CUI", "SUBJECT_NAME", "SUBJECT_SEMTYPE"),

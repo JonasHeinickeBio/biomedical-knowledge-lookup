@@ -8,6 +8,7 @@ A unified tool for biological concept lookup across multiple biomedical knowledg
 import asyncio
 import json
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import typer
@@ -609,7 +610,7 @@ _CHECK_CREDENTIALS: dict[KnowledgeSource, str] = {
     KnowledgeSource.COSMIC: "COSMIC_API_KEY",
     KnowledgeSource.ICD11: "ICD11_CLIENT_ID",
     KnowledgeSource.LOINC: "LOINC_USERNAME",
-    KnowledgeSource.SEMMEDDB: "SEMMEDDB_PATH",
+    KnowledgeSource.SEMMEDDB: "SEMMEDDB_PATH (build the file with `knowledge-lookup semmeddb-build`)",
     KnowledgeSource.ICD10GM: "ICD10GM_CLAML_PATH",
     # dataset-backed sources are opt-in so nothing downloads without consent
     KnowledgeSource.HPOA: "HPOA_DOWNLOAD=1 (downloads ~36 MB) or HPOA_PATH",
@@ -889,6 +890,79 @@ def check(
 
     if not all(_check_passed(r) or _check_skipped(r) for r in results):
         raise typer.Exit(1)
+
+
+@app.command("semmeddb-build")
+def semmeddb_build(
+    sources: list[Path] = typer.Argument(
+        ...,
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="NLM SemMedDB PREDICATION download(s): semmedVER43_2024_R_PREDICATION.sql.gz "
+        "(MySQL dump) or the .csv.gz export; .gz optional",
+    ),
+    output: Path = typer.Option(
+        ..., "--output", "-o", help="SQLite file to create (set SEMMEDDB_PATH to it afterwards)"
+    ),
+    force: bool = typer.Option(False, "--force", help="Overwrite an existing output file"),
+    aggregates: bool = typer.Option(
+        True,
+        "--aggregates/--no-aggregates",
+        help="Precompute the CONCEPT and TRIPLE lookup tables (strongly recommended; adds "
+        "build time and disk but keeps name search and hub concepts fast)",
+    ),
+    max_rows: int | None = typer.Option(
+        None,
+        "--max-rows",
+        min=1,
+        help="Only load the first N rows: a quick format check before a multi-hour build",
+    ),
+):
+    """
+    Convert a SemMedDB download into the SQLite database the SemMedDB adapter reads.
+
+    SemMedDB has no public API: download the PREDICATION table from NLM (free UTS login,
+    https://lhncbc.nlm.nih.gov/ii/tools/SemRep_SemMedDB_SKR/SemMedDB_download.html), then run
+    this once. It streams the file (any size), loads the PREDICATION table and indexes it.
+    The full final release (VER43, ~130 million predications) takes hours and tens of GB.
+
+    Example:
+      knowledge-lookup semmeddb-build semmedVER43_2024_R_PREDICATION.sql.gz -o semmeddb.sqlite
+      export SEMMEDDB_PATH=$PWD/semmeddb.sqlite
+
+    Check the format first with a small sample (seconds):
+      knowledge-lookup semmeddb-build semmedVER43_2024_R_PREDICATION.csv.gz -o /tmp/s.sqlite \\
+          --max-rows 100000
+    """
+    from knowledge_lookup.adapters._semmeddb_build import build_predication_db
+
+    def report(rows: int, skipped: int) -> None:
+        extra = f", {skipped:,} malformed rows skipped" if skipped else ""
+        console.print(f"[dim]  {rows:,} predications loaded{extra}[/dim]")
+
+    console.print(f"[bold]Building {output}[/bold] from {len(sources)} file(s)")
+    try:
+        stats = build_predication_db(
+            sources,
+            output,
+            overwrite=force,
+            progress=report,
+            max_rows=max_rows,
+            aggregates=aggregates,
+        )
+    except FileExistsError as e:
+        console.print(f"[red]Error:[/red] {e}; pass --force to replace it")
+        raise typer.Exit(1) from None
+    except (ValueError, OSError) as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from None
+    console.print(
+        f"[green]Done:[/green] {stats.rows:,} predications in {stats.seconds:,.0f}s "
+        f"(indexes {stats.index_seconds:,.0f}s, lookup tables {stats.aggregate_seconds:,.0f}s), "
+        f"{stats.skipped:,} skipped"
+    )
+    console.print(f"Next: export SEMMEDDB_PATH={output.resolve()}")
 
 
 @app.command()
