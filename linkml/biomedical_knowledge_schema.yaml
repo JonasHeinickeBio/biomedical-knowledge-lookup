@@ -194,6 +194,40 @@ enums:
         description: "ClinPGx (PharmGKB)"
       OPENFDALABELS:
         description: "openFDA drug labels (DailyMed)"
+      CLINICALTABLES:
+        description: "NLM Clinical Tables"
+      NCIEVS:
+        description: "NCI Thesaurus (EVS)"
+      MEDLINEPLUS:
+        description: "MedlinePlus"
+      NCBITAXONOMY:
+        description: "NCBI Taxonomy"
+      METABOLOMICSWORKBENCH:
+        description: "Metabolomics Workbench"
+      METABOLIGHTS:
+        description: "MetaboLights"
+      LIPIDMAPS:
+        description: "LIPID MAPS"
+      RHEA:
+        description: "Rhea"
+      IEDB:
+        description: "IEDB"
+      CELLXGENE:
+        description: "CZ CELLxGENE"
+      PANELAPP:
+        description: "PanelApp"
+      EQTLCATALOGUE:
+        description: "eQTL Catalogue"
+      CROSSREF:
+        description: "Crossref"
+      BIORXIV:
+        description: "bioRxiv / medRxiv"
+      OPENCITATIONS:
+        description: "OpenCitations"
+      NIHREPORTER:
+        description: "NIH RePORTER"
+      SEMANTICSCHOLAR:
+        description: "Semantic Scholar"
 
   ConceptType:
     description: "Types of biological concepts based on AID-PAIS ontology"

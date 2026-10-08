@@ -99,6 +99,26 @@ _ADAPTER_SPECS: dict[KnowledgeSource, tuple[str, str]] = {
     KnowledgeSource.RXNORM: ("rxnorm_adapter", "RxNormAdapter"),
     KnowledgeSource.CLINPGX: ("clinpgx_adapter", "ClinPGxAdapter"),
     KnowledgeSource.OPENFDALABELS: ("openfdalabels_adapter", "OpenFDALabelsAdapter"),
+    KnowledgeSource.CLINICALTABLES: ("clinicaltables_adapter", "ClinicalTablesAdapter"),
+    KnowledgeSource.NCIEVS: ("ncievs_adapter", "NCIEVSAdapter"),
+    KnowledgeSource.MEDLINEPLUS: ("medlineplus_adapter", "MedlinePlusAdapter"),
+    KnowledgeSource.NCBITAXONOMY: ("ncbitaxonomy_adapter", "NCBITaxonomyAdapter"),
+    KnowledgeSource.METABOLOMICSWORKBENCH: (
+        "metabolomicsworkbench_adapter",
+        "MetabolomicsWorkbenchAdapter",
+    ),
+    KnowledgeSource.METABOLIGHTS: ("metabolights_adapter", "MetaboLightsAdapter"),
+    KnowledgeSource.LIPIDMAPS: ("lipidmaps_adapter", "LipidMapsAdapter"),
+    KnowledgeSource.RHEA: ("rhea_adapter", "RheaAdapter"),
+    KnowledgeSource.IEDB: ("iedb_adapter", "IEDBAdapter"),
+    KnowledgeSource.CELLXGENE: ("cellxgene_adapter", "CellxGeneAdapter"),
+    KnowledgeSource.PANELAPP: ("panelapp_adapter", "PanelAppAdapter"),
+    KnowledgeSource.EQTLCATALOGUE: ("eqtlcatalogue_adapter", "EQTLCatalogueAdapter"),
+    KnowledgeSource.CROSSREF: ("crossref_adapter", "CrossrefAdapter"),
+    KnowledgeSource.BIORXIV: ("biorxiv_adapter", "BioRxivAdapter"),
+    KnowledgeSource.OPENCITATIONS: ("opencitations_adapter", "OpenCitationsAdapter"),
+    KnowledgeSource.NIHREPORTER: ("nihreporter_adapter", "NIHReporterAdapter"),
+    KnowledgeSource.SEMANTICSCHOLAR: ("semanticscholar_adapter", "SemanticScholarAdapter"),
 }
 
 # Adapters that need an optional extra: source -> importable top-level module the
