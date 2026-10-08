@@ -98,6 +98,23 @@
 * [RxNorm](adapters/chemicals/rxnorm_adapter.md)
 * [ClinPGx (PharmGKB)](adapters/chemicals/clinpgx_adapter.md)
 * [openFDA drug labels (DailyMed)](adapters/chemicals/openfdalabels_adapter.md)
+* [NLM Clinical Tables](adapters/ontologies/clinicaltables_adapter.md)
+* [NCI Thesaurus (EVS)](adapters/ontologies/ncievs_adapter.md)
+* [MedlinePlus](adapters/literature/medlineplus_adapter.md)
+* [NCBI Taxonomy](adapters/ontologies/ncbitaxonomy_adapter.md)
+* [Metabolomics Workbench](adapters/chemicals/metabolomicsworkbench_adapter.md)
+* [MetaboLights](adapters/chemicals/metabolights_adapter.md)
+* [LIPID MAPS](adapters/chemicals/lipidmaps_adapter.md)
+* [Rhea](adapters/chemicals/rhea_adapter.md)
+* [IEDB](adapters/proteins/iedb_adapter.md)
+* [CZ CELLxGENE](adapters/ontologies/cellxgene_adapter.md)
+* [PanelApp](adapters/phenotypes/panelapp_adapter.md)
+* [eQTL Catalogue](adapters/phenotypes/eqtlcatalogue_adapter.md)
+* [Crossref](adapters/literature/crossref_adapter.md)
+* [bioRxiv / medRxiv](adapters/literature/biorxiv_adapter.md)
+* [OpenCitations](adapters/literature/opencitations_adapter.md)
+* [NIH RePORTER](adapters/literature/nihreporter_adapter.md)
+* [Semantic Scholar](adapters/literature/semanticscholar_adapter.md)
 
 ## Examples
 

@@ -256,6 +256,23 @@ Pages are grouped by category.
 | [RxNorm](chemicals/rxnorm_adapter.md) | NLM RxNorm drug concepts (ingredients, brands, clinical drugs) and relations | `1191` | none |
 | [ClinPGx (PharmGKB)](chemicals/clinpgx_adapter.md) | ClinPGx/PharmGKB genes, drugs, variants and clinical annotations (CC BY-SA) | `PA128` | none |
 | [openFDA drug labels (DailyMed)](chemicals/openfdalabels_adapter.md) | FDA structured drug labels (indications, warnings, adverse reactions) via openFDA | `aspirin` | none |
+| [NLM Clinical Tables](ontologies/clinicaltables_adapter.md) | NLM Clinical Table Search Service: ICD-10-CM, LOINC items, conditions and other code tables | `G93.32` | none |
+| [NCI Thesaurus (EVS)](ontologies/ncievs_adapter.md) | NCI Thesaurus and other NCI EVS terminologies via the EVS REST API | `C3138` | none |
+| [MedlinePlus](literature/medlineplus_adapter.md) | MedlinePlus consumer health information by condition, ICD-10-CM or SNOMED CT code | `G93.32` | none |
+| [NCBI Taxonomy](ontologies/ncbitaxonomy_adapter.md) | NCBI Taxonomy organisms, viruses and lineages (SARS-CoV-2, EBV, ...) | `2697049` | none |
+| [Metabolomics Workbench](chemicals/metabolomicsworkbench_adapter.md) | Metabolomics Workbench metabolites, studies and RefMet names | `lactate` | none |
+| [MetaboLights](chemicals/metabolights_adapter.md) | EMBL-EBI MetaboLights metabolomics studies and reference metabolites | `MTBLS1` | none |
+| [LIPID MAPS](chemicals/lipidmaps_adapter.md) | LIPID MAPS lipid structures and classification | `LMGP01010005` | none |
+| [Rhea](chemicals/rhea_adapter.md) | Rhea expert-curated biochemical reactions with ChEBI participants | `RHEA:10000` | none |
+| [IEDB](proteins/iedb_adapter.md) | Immune Epitope Database: epitopes, assays and MHC restriction | `epitope` | none |
+| [CZ CELLxGENE](ontologies/cellxgene_adapter.md) | CZ CELLxGENE Discover single-cell datasets, tissues and cell types | `CL:0000623` | none |
+| [PanelApp](phenotypes/panelapp_adapter.md) | Genomics England PanelApp expert-reviewed gene panels | `HGNC:1100` | none |
+| [eQTL Catalogue](phenotypes/eqtlcatalogue_adapter.md) | EBI eQTL Catalogue uniformly processed eQTL associations | `ENSG00000012048` | none |
+| [Crossref](literature/crossref_adapter.md) | Crossref DOI metadata, references and retraction/correction notices | `10.1038/s41586-020-2012-7` | none |
+| [bioRxiv / medRxiv](literature/biorxiv_adapter.md) | bioRxiv and medRxiv preprints (many Long COVID papers appear here first) | `10.1101/2020.01.01.000000` | none |
+| [OpenCitations](literature/opencitations_adapter.md) | OpenCitations open citation links between DOIs | `10.1038/s41586-020-2012-7` | none |
+| [NIH RePORTER](literature/nihreporter_adapter.md) | NIH RePORTER funded research projects and publications | `myalgic encephalomyelitis` | none |
+| [Semantic Scholar](literature/semanticscholar_adapter.md) | Semantic Scholar papers, citations and TLDR summaries (tight keyless limits) | `long covid` | none |
 
 {% hint style="warning" %}
 **Known issues (tested September 2026).** Details are on each page.

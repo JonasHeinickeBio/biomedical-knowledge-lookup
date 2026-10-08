@@ -439,6 +439,74 @@ class KnowledgeSource(str, Enum):
     """
     openFDA drug labels (DailyMed)
     """
+    CLINICALTABLES = "CLINICALTABLES"
+    """
+    NLM Clinical Tables
+    """
+    NCIEVS = "NCIEVS"
+    """
+    NCI Thesaurus (EVS)
+    """
+    MEDLINEPLUS = "MEDLINEPLUS"
+    """
+    MedlinePlus
+    """
+    NCBITAXONOMY = "NCBITAXONOMY"
+    """
+    NCBI Taxonomy
+    """
+    METABOLOMICSWORKBENCH = "METABOLOMICSWORKBENCH"
+    """
+    Metabolomics Workbench
+    """
+    METABOLIGHTS = "METABOLIGHTS"
+    """
+    MetaboLights
+    """
+    LIPIDMAPS = "LIPIDMAPS"
+    """
+    LIPID MAPS
+    """
+    RHEA = "RHEA"
+    """
+    Rhea
+    """
+    IEDB = "IEDB"
+    """
+    IEDB
+    """
+    CELLXGENE = "CELLXGENE"
+    """
+    CZ CELLxGENE
+    """
+    PANELAPP = "PANELAPP"
+    """
+    PanelApp
+    """
+    EQTLCATALOGUE = "EQTLCATALOGUE"
+    """
+    eQTL Catalogue
+    """
+    CROSSREF = "CROSSREF"
+    """
+    Crossref
+    """
+    BIORXIV = "BIORXIV"
+    """
+    bioRxiv / medRxiv
+    """
+    OPENCITATIONS = "OPENCITATIONS"
+    """
+    OpenCitations
+    """
+    NIHREPORTER = "NIHREPORTER"
+    """
+    NIH RePORTER
+    """
+    SEMANTICSCHOLAR = "SEMANTICSCHOLAR"
+    """
+    Semantic Scholar
+    """
 
 
 class ConceptType(str, Enum):

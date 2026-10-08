@@ -600,6 +600,22 @@ _CHECK_QUERIES: dict[KnowledgeSource, str] = {
     KnowledgeSource.RXNORM: "aspirin",
     KnowledgeSource.CLINPGX: "CYP2D6",
     KnowledgeSource.OPENFDALABELS: "aspirin",
+    KnowledgeSource.CLINICALTABLES: "fatigue",
+    KnowledgeSource.NCIEVS: "fatigue",
+    KnowledgeSource.MEDLINEPLUS: "chronic fatigue syndrome",
+    KnowledgeSource.NCBITAXONOMY: "SARS-CoV-2",
+    KnowledgeSource.METABOLOMICSWORKBENCH: "lactate",
+    KnowledgeSource.METABOLIGHTS: "chronic fatigue",
+    KnowledgeSource.LIPIDMAPS: "cholesterol",
+    KnowledgeSource.RHEA: "lactate",
+    KnowledgeSource.IEDB: "spike",
+    KnowledgeSource.CELLXGENE: "natural killer cell",
+    KnowledgeSource.PANELAPP: "ataxia",
+    KnowledgeSource.CROSSREF: "long covid",
+    KnowledgeSource.BIORXIV: "long covid",
+    KnowledgeSource.OPENCITATIONS: "10.1038/s41586-020-2012-7",
+    KnowledgeSource.NIHREPORTER: "myalgic encephalomyelitis",
+    KnowledgeSource.SEMANTICSCHOLAR: "long covid",
 }
 
 
