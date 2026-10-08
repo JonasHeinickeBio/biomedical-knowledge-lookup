@@ -6,13 +6,13 @@ description: SemMedDB subject-predicate-object relations extracted from PubMed, 
 
 Reads SemMedDB, the NLM database of subject-predicate-object "predications" that the SemRep NLP system extracted from PubMed titles and abstracts (`Hydrocortisone -TREATS-> Chronic fatigue syndrome`), from a **local, read-only SQLite file that you build yourself**. Concepts are UMLS CUIs and every predication carries the PMID it came from, so the adapter is a good source of literature-backed relations and supporting PMIDs.
 
-> **Not live-verified.** SemMedDB has no public API and the data needs a UMLS licence, so this adapter was tested only against a small synthetic SQLite database (100% line coverage), and the schema was checked against the official database details page, not against a real SemMedDB dump. Run it against your own build before relying on it.
+> **Verification status.** SemMedDB needs a UMLS licence and a UTS login, so the adapter and the SQLite builder have **not been run on the real NLM files**. They are tested on synthetic data in the real formats (a `mysqldump`-style file with the awkward escapes, CSV and TSV) and were measured at 2 million rows including a skewed "hub" concept (see [Scale](#scale-and-measured-numbers)). Use `--max-rows` on your real download first to confirm the format is understood.
 
 | | |
 |---|---|
 | Source | `KnowledgeSource.SEMMEDDB` |
 | Class | `knowledge_lookup.adapters.SemMedDBAdapter` |
-| Requires | a local database file: `SEMMEDDB_PATH` (or `api_keys={"semmeddb": "/path/file"}`, a file path rather than a secret) |
+| Requires | a SQLite database built from the NLM download with `knowledge-lookup semmeddb-build`, then `SEMMEDDB_PATH` (or `api_keys={"semmeddb": "/path/file"}`, a file path rather than a secret) |
 | Identifiers | UMLS CUI: `C0015674`, `UMLS:C0015674` |
 | Upstream | [SemMedDB](https://lhncbc.nlm.nih.gov/ii/tools/SemRep_SemMedDB_SKR/SemMedDB_download.html) (NLM Lister Hill Center), no API |
 
@@ -20,7 +20,11 @@ Reads SemMedDB, the NLM database of subject-predicate-object "predications" that
 
 ## Licence and data
 
-SemMedDB is distributed as a MySQL dump by the NLM Lister Hill Center. Downloading it requires a (free) UMLS Metathesaurus licence; see the SemMedDB download page. The NLM announced that SemRep/SemMedDB tooling would no longer be maintained after December 2024, so the most recent release is likely the final one (the archived details page names `semmedVER30` as the latest; check the download page for the current name). The full PREDICATION table is very large (tens of millions of rows or more), so create the indexes in the recipe below before querying. SemRep output is machine-extracted: precision is far from perfect, and negated findings are encoded in the predicate (`NEG_TREATS`).
+SemMedDB is distributed by the NLM Lister Hill Center. Downloading needs a free UMLS Terminology Services (UTS) account, i.e. acceptance of the UMLS licence; see the [download page](https://lhncbc.nlm.nih.gov/ii/tools/SemRep_SemMedDB_SKR/SemMedDB_download.html).
+
+**VER43 is the final release.** NLM states there will be no further updates and has removed the earlier versions. It was processed with the MEDLINE 2022 baseline plus PubMed update files through 8 May 2024 using SemRep 1.8, and holds 37,233,341 citations and **130,480,195 predications**. The files are named `semmedVER43_2024_R_<TABLE>.sql.gz` (MySQL dump) and `semmedVER43_2024_R_<TABLE>.csv.gz` (CSV), each with `.md5sum` and `.sha1sum` checksum files. You only need the `PREDICATION` table; `PREDICATION_AUX` (character offsets and scores), `SENTENCE`, `CITATIONS`, `ENTITY` and `GENERIC_CONCEPT` are not used.
+
+SemRep output is machine-extracted: precision is roughly 70-80% per predication, so treat counts as evidence strength, not as curated fact.
 
 ## Schema
 
@@ -38,36 +42,55 @@ Note that for genes SemMedDB stores NCBI Gene ids instead of CUIs in `*_CUI` (so
 
 ## Building the SQLite database
 
-Option A, from the licensed MySQL dump, loading only `PREDICATION` into SQLite. Export from MySQL, then import (adjust the database name):
+Download `semmedVER43_2024_R_PREDICATION.sql.gz` (the MySQL dump) or `semmedVER43_2024_R_PREDICATION.csv.gz`, check the checksum, and run the builder once. It streams the file (any size, memory use does not depend on it), writes `<output>.part` and renames it when finished, so an interrupted build leaves nothing half-built:
 
 ```bash
-# 1. restore the PREDICATION dump into a MySQL/MariaDB instance, then export to TSV
-mysql semmeddb -e "SELECT PREDICATION_ID, SENTENCE_ID, PMID, PREDICATE, SUBJECT_CUI, SUBJECT_NAME,
-  SUBJECT_SEMTYPE, SUBJECT_NOVELTY, OBJECT_CUI, OBJECT_NAME, OBJECT_SEMTYPE, OBJECT_NOVELTY
-  FROM PREDICATION" --batch --raw --skip-column-names > predication.tsv
+# 1. quick format check on the first 100,000 rows (seconds)
+knowledge-lookup semmeddb-build semmedVER43_2024_R_PREDICATION.sql.gz -o /tmp/sample.sqlite --max-rows 100000
 
-# 2. load into SQLite
-sqlite3 semmeddb.sqlite <<'SQL'
-CREATE TABLE PREDICATION (
-  PREDICATION_ID INTEGER, SENTENCE_ID INTEGER, PMID TEXT, PREDICATE TEXT,
-  SUBJECT_CUI TEXT, SUBJECT_NAME TEXT, SUBJECT_SEMTYPE TEXT, SUBJECT_NOVELTY INTEGER,
-  OBJECT_CUI TEXT,  OBJECT_NAME TEXT,  OBJECT_SEMTYPE TEXT,  OBJECT_NOVELTY INTEGER);
-.mode tabs
-.import predication.tsv PREDICATION
--- indexes: CUI lookups, relationship grouping, and case-insensitive name prefix search
-CREATE INDEX idx_pred_subject_cui  ON PREDICATION (SUBJECT_CUI);
-CREATE INDEX idx_pred_object_cui   ON PREDICATION (OBJECT_CUI);
-CREATE INDEX idx_pred_subject_name ON PREDICATION (SUBJECT_NAME COLLATE NOCASE);
-CREATE INDEX idx_pred_object_name  ON PREDICATION (OBJECT_NAME COLLATE NOCASE);
-CREATE INDEX idx_pred_pmid         ON PREDICATION (PMID);
-ANALYZE;
-SQL
+# 2. the real build (hours; see "Scale")
+knowledge-lookup semmeddb-build semmedVER43_2024_R_PREDICATION.sql.gz -o semmeddb.sqlite
 export SEMMEDDB_PATH=$PWD/semmeddb.sqlite
 ```
 
-MySQL's `--batch --raw` writes NULL as the text `NULL`; only the two `*_NOVELTY` columns are normally affected and the adapter does not use them. The `COLLATE NOCASE` name indexes are what make prefix name search fast (`LIKE 'fatigue%'` becomes an index range scan). Substring search (`%fatigue%`) cannot use an index; see "Query behaviour".
+What it reads:
 
-Option B, point `SEMMEDDB_PATH` at a TSV or CSV export of `PREDICATION` (optionally `.gz`). On first use the adapter streams it into an indexed SQLite file under `$KNOWLEDGE_LOOKUP_DATA_DIR` (default `~/.cache/knowledge_lookup/datasets`) and reuses that file while the export is unchanged. A header row with column names is detected by the `PREDICATE` column; a file without a header must use the column order shown in the schema above. `\N` becomes NULL and rows with the wrong number of fields are skipped. This is convenient for small or filtered exports (a PubMed subset, say); for the full table, Option A is faster and more transparent. You can also call `knowledge_lookup.adapters.semmeddb_adapter.import_predication_export(src, dest)` directly.
+- **MySQL dump** (`.sql`, `.sql.gz`): `INSERT INTO `PREDICATION` VALUES (...),(...);` statements as written by `mysqldump` (extended inserts, `\'`, `\\` and `\n` escapes, `''`, `NULL`, an optional column list; column order is taken from `CREATE TABLE`). Statements for other tables are ignored, so a dump of the whole database also works. This is the unambiguous format.
+- **CSV / TSV** (`.csv`, `.tsv`, `.txt`, `.gz`): with or without a header row (without one, the canonical column order from the schema above is assumed); `\N` and empty fields become NULL. It is about 3-5 times faster to parse than the dump, but NLM's exact CSV quoting could not be checked without an account: if more than 0.5% of rows are malformed the build stops with an error suggesting the dump instead. `--max-rows` shows this immediately.
+- Several files may be passed to one build; rows are appended.
+
+What it writes:
+
+- the `PREDICATION` table with the five indexes the adapter needs (CUI, name with `COLLATE NOCASE`, PMID);
+- two precomputed lookup tables, unless you pass `--no-aggregates`:
+  - `CONCEPT(CUI, NAME, SEMTYPE, SIDE, N, P)`: one row per concept name with its predication count `N` and distinct-PMID count `P`. Name search (prefix **and** substring), concept details and existence checks read this table.
+  - `TRIPLE(SUBJECT_CUI, PREDICATE, OBJECT_CUI, ..., PMIDS, PREDS)`: one row per distinct triple, indexed best-supported first, plus a composite (subject, object, predicate) index on `PREDICATION` for the supporting-PMID lookup. Relationships of even the biggest concepts are index range scans.
+
+The adapter uses `CONCEPT` and `TRIPLE` when they exist and otherwise falls back to queries on `PREDICATION` (so a database you built by hand, or with `--no-aggregates`, still works, only slowly on a big table). A small export (up to 256 MB) can also be given directly as `SEMMEDDB_PATH`; it is imported on first use into `$KNOWLEDGE_LOOKUP_DATA_DIR` (default `~/.cache/knowledge_lookup/datasets`). Larger files are refused with a message pointing to the builder, because importing 130 million rows would block a lookup for hours.
+
+### Scale and measured numbers
+
+Measured on 2,000,000 synthetic rows in the real formats (names about 55 characters, longer than real ones), on a heavily loaded machine (load average about 20), so treat these as rough:
+
+| | Measured |
+|---|---|
+| CSV, parse + insert | about 46,000 rows/s |
+| MySQL dump, parse only | about 10,000-21,000 rows/s |
+| Indexes | about 45 s per 2 M rows |
+| Lookup tables (`CONCEPT`, `TRIPLE`) | about 72 s per 2 M rows |
+| Size | 0.73 GB for the table and indexes, +0.47 GB for the lookup tables |
+| Builder memory | about 0.9 GB (a 1 GB SQLite page cache) |
+
+Extrapolating to the 130 M real predications is an **estimate, not a measurement**: roughly 45-70 GB for the table and indexes plus 20-30 GB for the lookup tables, and several hours (the load is linear, indexing and aggregation grow a little faster). Sorting needs temporary space of about the size of the table, so keep 150 GB or more free in the output volume (and in `$TMPDIR`, or set `SQLITE_TMPDIR`).
+
+Query latency on the 2 M-row test database with a 400,000-row hub concept (20% of all rows):
+
+| Query | Without the lookup tables | With them |
+|---|---|---|
+| hub concept details | 9.8 s | 0.04 s |
+| hub relationships | 5.4 s | 0.01 s |
+| name search, specific name | timed out (60 s) | 0.2 s |
+| name search, very common prefix | timed out (60 s) | 0.7 s |
 
 ## Quick example
 
@@ -110,7 +133,7 @@ Relationship edges carry `relation_label` (the SemMedDB predicate: `TREATS`, `CA
 
 - The database is opened read-only (`mode=ro` URI plus `PRAGMA query_only`) on a worker thread (`asyncio.to_thread`); the adapter never writes to your database file.
 - All SQL is parameterised, `LIKE` patterns escape `%`, `_` and `\`, and CUIs are validated against `C\d{7}` before use.
-- Name search matches by prefix first, which uses the `COLLATE NOCASE` indexes, then by substring when fewer than `limit` concepts were found. Substring search scans the table; set `adapter.allow_substring_search = False` on very large databases.
+- Name search matches by prefix first, then by substring when fewer than `limit` concepts were found. With the `CONCEPT` table both are cheap. Without it the substring pass would scan the whole `PREDICATION` table twice, so it is skipped on databases of more than 5 million rows (`SUBSTRING_SCAN_MAX_ROWS`); you then only get prefix matches.
 - Each query is aborted after `adapter.query_timeout` (60 s) so an accidental full scan cannot occupy a worker thread forever; the call then returns `[]`/`None` like any other error.
 - `pmid_count` on a *concept* is summed over names and roles, so it can slightly over-count a PMID that supports a CUI in several roles; per-triple `pmid_count` in `get_relationships` is exact.
 

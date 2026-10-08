@@ -429,7 +429,9 @@ class TestExportImport:
         assert import_predication_export(src, dest) == len(TRIPLES)
 
     def test_import_flushes_in_batches(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(mod, "_IMPORT_BATCH", 5)
+        from knowledge_lookup.adapters import _semmeddb_build
+
+        monkeypatch.setattr(_semmeddb_build, "INSERT_BATCH", 5)
         src = tmp_path / "pred.tsv"
         src.write_text(self._rows_as_text("\t", True))
         assert import_predication_export(src, tmp_path / "out.sqlite") == len(TRIPLES)
