@@ -310,7 +310,7 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
         "NLM Clinical Table Search Service: ICD-10-CM, LOINC items, conditions and other code tables",
     ),
     KnowledgeSource.NCIEVS: SourceSpec(
-        "NCI Thesaurus and other NCI EVS terminologies via the EVS REST API",
+        "NCI Thesaurus and other NCI EVS terminologies via the EVS REST API (NCIM, SNOMED CT and MedDRA texts carry non-commercial restrictions)",
     ),
     KnowledgeSource.MEDLINEPLUS: SourceSpec(
         "MedlinePlus consumer health information by condition, ICD-10-CM or SNOMED CT code",
@@ -337,10 +337,10 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
         "CZ CELLxGENE Discover single-cell datasets, tissues and cell types",
     ),
     KnowledgeSource.PANELAPP: SourceSpec(
-        "Genomics England PanelApp expert-reviewed gene panels",
+        "Genomics England PanelApp expert-reviewed gene panels (terms exclude commercial and diagnostic use)",
     ),
     KnowledgeSource.EQTLCATALOGUE: SourceSpec(
-        "EBI eQTL Catalogue uniformly processed eQTL associations",
+        "eQTL Catalogue dataset, study and tissue metadata only (its association API was retired)",
     ),
     KnowledgeSource.CROSSREF: SourceSpec(
         "Crossref DOI metadata, references and retraction/correction notices",
@@ -355,7 +355,7 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
         "NIH RePORTER funded research projects and publications",
     ),
     KnowledgeSource.SEMANTICSCHOLAR: SourceSpec(
-        "Semantic Scholar papers, citations and TLDR summaries (tight keyless limits)",
+        "Semantic Scholar papers, citations and TLDR summaries (keyless search is heavily rate limited; a free key is recommended)",
     ),
 }
 

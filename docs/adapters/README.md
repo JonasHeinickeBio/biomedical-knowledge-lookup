@@ -4,7 +4,7 @@ description: What adapters are, how to use them directly or through CentralKnowl
 
 # Adapters
 
-An adapter connects the library to one knowledge source: an ontology service, a database REST API, a SPARQL endpoint or a client library. It translates that source's responses into the common `UnifiedConcept` model, so results from OLS, UMLS, UniProt or ChEMBL can be handled the same way. The library ships **75 adapters**, one per `KnowledgeSource`, registered in `knowledge_lookup.adapters.ADAPTER_CLASSES`.
+An adapter connects the library to one knowledge source: an ontology service, a database REST API, a SPARQL endpoint or a client library. It translates that source's responses into the common `UnifiedConcept` model, so results from OLS, UMLS, UniProt or ChEMBL can be handled the same way. The library ships **92 adapters**, one per `KnowledgeSource`, registered in `knowledge_lookup.adapters.ADAPTER_CLASSES`.
 
 ## The common interface
 
@@ -80,7 +80,7 @@ Import the class from `knowledge_lookup.adapters` and use it as an async context
 
 ### Through `CentralKnowledgeLookup`
 
-`CentralKnowledgeLookup(config)` creates every adapter in `ADAPTER_CLASSES` that is enabled in `LookupConfig.enabled_sources` (all of them when the list is unset or empty) and whose `is_available()` returns `True`. Unavailable adapters are skipped with a log warning. Set `enabled_sources` explicitly: creating all 75 adapters also imports every adapter module and initialises the ChEMBL, UniChem and UMLS clients. Disabled sources are never imported.
+`CentralKnowledgeLookup(config)` creates every adapter in `ADAPTER_CLASSES` that is enabled in `LookupConfig.enabled_sources` (all of them when the list is unset or empty) and whose `is_available()` returns `True`. Unavailable adapters are skipped with a log warning. Set `enabled_sources` explicitly: creating all 92 adapters also imports every adapter module and initialises the ChEMBL, UniChem and UMLS clients. Disabled sources are never imported.
 
 - `search_concepts(query, concept_types=None, sources=None, max_results=50, parallel=True)` asks each source for `max(1, max_results // len(sources))` results. In parallel mode every source must finish within `timeout_per_source` (default 30 s). Results are merged when `enable_deduplication` is on (the default), filtered by `concept_types` (concepts typed `UNKNOWN` are kept), sorted by `confidence_score` and returned as a `LookupResult` with `concepts`, `errors` (per source), `sources_succeeded`, `sources_failed` and `execution_time`. Because most adapters catch their own errors and return `[]`, `errors` mainly shows timeouts and the few adapters that raise.
 - `get_concept_details(concept_id, source=None, timeout=None)` queries one adapter when `source` is given.
@@ -257,7 +257,7 @@ Pages are grouped by category.
 | [ClinPGx (PharmGKB)](chemicals/clinpgx_adapter.md) | ClinPGx/PharmGKB genes, drugs, variants and clinical annotations (CC BY-SA) | `PA128` | none |
 | [openFDA drug labels (DailyMed)](chemicals/openfdalabels_adapter.md) | FDA structured drug labels (indications, warnings, adverse reactions) via openFDA | `aspirin` | none |
 | [NLM Clinical Tables](ontologies/clinicaltables_adapter.md) | NLM Clinical Table Search Service: ICD-10-CM, LOINC items, conditions and other code tables | `G93.32` | none |
-| [NCI Thesaurus (EVS)](ontologies/ncievs_adapter.md) | NCI Thesaurus and other NCI EVS terminologies via the EVS REST API | `C3138` | none |
+| [NCI Thesaurus (EVS)](ontologies/ncievs_adapter.md) | NCI Thesaurus and other NCI EVS terminologies via the EVS REST API (NCIM, SNOMED CT and MedDRA texts carry non-commercial restrictions) | `C3138` | none |
 | [MedlinePlus](literature/medlineplus_adapter.md) | MedlinePlus consumer health information by condition, ICD-10-CM or SNOMED CT code | `G93.32` | none |
 | [NCBI Taxonomy](ontologies/ncbitaxonomy_adapter.md) | NCBI Taxonomy organisms, viruses and lineages (SARS-CoV-2, EBV, ...) | `2697049` | none |
 | [Metabolomics Workbench](chemicals/metabolomicsworkbench_adapter.md) | Metabolomics Workbench metabolites, studies and RefMet names | `lactate` | none |
@@ -266,13 +266,13 @@ Pages are grouped by category.
 | [Rhea](chemicals/rhea_adapter.md) | Rhea expert-curated biochemical reactions with ChEBI participants | `RHEA:10000` | none |
 | [IEDB](proteins/iedb_adapter.md) | Immune Epitope Database: epitopes, assays and MHC restriction | `epitope` | none |
 | [CZ CELLxGENE](ontologies/cellxgene_adapter.md) | CZ CELLxGENE Discover single-cell datasets, tissues and cell types | `CL:0000623` | none |
-| [PanelApp](phenotypes/panelapp_adapter.md) | Genomics England PanelApp expert-reviewed gene panels | `HGNC:1100` | none |
-| [eQTL Catalogue](phenotypes/eqtlcatalogue_adapter.md) | EBI eQTL Catalogue uniformly processed eQTL associations | `ENSG00000012048` | none |
+| [PanelApp](phenotypes/panelapp_adapter.md) | Genomics England PanelApp expert-reviewed gene panels (terms exclude commercial and diagnostic use) | `HGNC:1100` | none |
+| [eQTL Catalogue](phenotypes/eqtlcatalogue_adapter.md) | eQTL Catalogue dataset, study and tissue metadata only (its association API was retired) | `ENSG00000012048` | none |
 | [Crossref](literature/crossref_adapter.md) | Crossref DOI metadata, references and retraction/correction notices | `10.1038/s41586-020-2012-7` | none |
 | [bioRxiv / medRxiv](literature/biorxiv_adapter.md) | bioRxiv and medRxiv preprints (many Long COVID papers appear here first) | `10.1101/2020.01.01.000000` | none |
 | [OpenCitations](literature/opencitations_adapter.md) | OpenCitations open citation links between DOIs | `10.1038/s41586-020-2012-7` | none |
 | [NIH RePORTER](literature/nihreporter_adapter.md) | NIH RePORTER funded research projects and publications | `myalgic encephalomyelitis` | none |
-| [Semantic Scholar](literature/semanticscholar_adapter.md) | Semantic Scholar papers, citations and TLDR summaries (tight keyless limits) | `long covid` | none |
+| [Semantic Scholar](literature/semanticscholar_adapter.md) | Semantic Scholar papers, citations and TLDR summaries (keyless search is heavily rate limited; a free key is recommended) | `long covid` | none |
 
 {% hint style="warning" %}
 **Known issues (tested September 2026).** Details are on each page.

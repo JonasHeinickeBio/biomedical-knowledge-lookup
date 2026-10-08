@@ -14,7 +14,7 @@ Biomedical Knowledge Lookup is a layered library: front-ends call an orchestrato
  Orchestration        CentralKnowledgeLookup   MultiSourceAnnotator   term expansion
                       parallel search, timeouts, de-duplication, ranking, source health
                                                |
- Adapters             75 KnowledgeSourceAdapter subclasses, registered in ADAPTER_CLASSES
+ Adapters             92 KnowledgeSourceAdapter subclasses, registered in ADAPTER_CLASSES
                       HTTP helpers with retry and circuit breaker | third-party client wrappers
                                                |
  External APIs        OLS, MONDO, HPO, UMLS, BioPortal, UniProt, ChEMBL, OxO, Reactome, ...

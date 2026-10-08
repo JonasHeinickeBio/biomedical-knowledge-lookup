@@ -616,6 +616,7 @@ _CHECK_QUERIES: dict[KnowledgeSource, str] = {
     KnowledgeSource.OPENCITATIONS: "10.1038/s41586-020-2012-7",
     KnowledgeSource.NIHREPORTER: "myalgic encephalomyelitis",
     KnowledgeSource.SEMANTICSCHOLAR: "long covid",
+    KnowledgeSource.EQTLCATALOGUE: "macrophage",  # the gene-level API is retired: datasets only
 }
 
 
