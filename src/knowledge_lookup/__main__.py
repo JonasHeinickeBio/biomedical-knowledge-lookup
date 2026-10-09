@@ -617,6 +617,18 @@ _CHECK_QUERIES: dict[KnowledgeSource, str] = {
     KnowledgeSource.NIHREPORTER: "myalgic encephalomyelitis",
     KnowledgeSource.SEMANTICSCHOLAR: "long covid",
     KnowledgeSource.EQTLCATALOGUE: "macrophage",  # the gene-level API is retired: datasets only
+    KnowledgeSource.FHIRTERMINOLOGY: "fatigue",
+    KnowledgeSource.ISRCTN: "chronic fatigue",
+    KnowledgeSource.OMICSDI: "chronic fatigue syndrome",
+    KnowledgeSource.BIOSTUDIES: "chronic fatigue",
+    KnowledgeSource.PRIDE: "fatigue",
+    KnowledgeSource.GEO: "chronic fatigue syndrome",
+    KnowledgeSource.ZENODO: "long covid",
+    KnowledgeSource.IMPC: "Brca1",
+    KnowledgeSource.ENRICHR: "BRCA1",
+    KnowledgeSource.OPENAIRE: "long covid",
+    KnowledgeSource.DOAJ: "long covid",
+    KnowledgeSource.UNPAYWALL: "10.1038/s41586-020-2012-7",
 }
 
 
@@ -637,6 +649,7 @@ _CHECK_CREDENTIALS: dict[KnowledgeSource, str] = {
     KnowledgeSource.CELLMARKER: "CELLMARKER_PATH or CELLMARKER_URL",
     KnowledgeSource.CLINGEN: "CLINGEN_DOWNLOAD=1 (downloads ~1.4 MB) or CLINGEN_PATH",
     KnowledgeSource.GENCC: "GENCC_DOWNLOAD=1 (downloads ~28 MB) or GENCC_PATH",
+    KnowledgeSource.UNPAYWALL: "UNPAYWALL_EMAIL (Unpaywall requires a contact e-mail you choose)",
 }
 
 

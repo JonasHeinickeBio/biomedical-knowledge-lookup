@@ -228,6 +228,34 @@ enums:
         description: "NIH RePORTER"
       SEMANTICSCHOLAR:
         description: "Semantic Scholar"
+      FHIRTERMINOLOGY:
+        description: "FHIR terminology server"
+      ISRCTN:
+        description: "ISRCTN registry"
+      NCBIGENE:
+        description: "NCBI Gene"
+      OMICSDI:
+        description: "OmicsDI"
+      BIOSTUDIES:
+        description: "BioStudies / ArrayExpress"
+      PRIDE:
+        description: "PRIDE"
+      GEO:
+        description: "GEO"
+      ZENODO:
+        description: "Zenodo"
+      IMPC:
+        description: "IMPC"
+      ALLIANCE:
+        description: "Alliance of Genome Resources"
+      ENRICHR:
+        description: "Enrichr"
+      OPENAIRE:
+        description: "OpenAIRE Graph"
+      DOAJ:
+        description: "DOAJ"
+      UNPAYWALL:
+        description: "Unpaywall"
 
   ConceptType:
     description: "Types of biological concepts based on AID-PAIS ontology"

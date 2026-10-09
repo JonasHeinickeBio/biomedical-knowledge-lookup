@@ -507,6 +507,62 @@ class KnowledgeSource(str, Enum):
     """
     Semantic Scholar
     """
+    FHIRTERMINOLOGY = "FHIRTERMINOLOGY"
+    """
+    FHIR terminology server
+    """
+    ISRCTN = "ISRCTN"
+    """
+    ISRCTN registry
+    """
+    NCBIGENE = "NCBIGENE"
+    """
+    NCBI Gene
+    """
+    OMICSDI = "OMICSDI"
+    """
+    OmicsDI
+    """
+    BIOSTUDIES = "BIOSTUDIES"
+    """
+    BioStudies / ArrayExpress
+    """
+    PRIDE = "PRIDE"
+    """
+    PRIDE
+    """
+    GEO = "GEO"
+    """
+    GEO
+    """
+    ZENODO = "ZENODO"
+    """
+    Zenodo
+    """
+    IMPC = "IMPC"
+    """
+    IMPC
+    """
+    ALLIANCE = "ALLIANCE"
+    """
+    Alliance of Genome Resources
+    """
+    ENRICHR = "ENRICHR"
+    """
+    Enrichr
+    """
+    OPENAIRE = "OPENAIRE"
+    """
+    OpenAIRE Graph
+    """
+    DOAJ = "DOAJ"
+    """
+    DOAJ
+    """
+    UNPAYWALL = "UNPAYWALL"
+    """
+    Unpaywall
+    """
 
 
 class ConceptType(str, Enum):

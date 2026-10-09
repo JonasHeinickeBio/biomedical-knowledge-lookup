@@ -273,6 +273,20 @@ Pages are grouped by category.
 | [OpenCitations](literature/opencitations_adapter.md) | OpenCitations open citation links between DOIs | `10.1038/s41586-020-2012-7` | none |
 | [NIH RePORTER](literature/nihreporter_adapter.md) | NIH RePORTER funded research projects and publications | `myalgic encephalomyelitis` | none |
 | [Semantic Scholar](literature/semanticscholar_adapter.md) | Semantic Scholar papers, citations and TLDR summaries (keyless search is heavily rate limited; a free key is recommended) | `long covid` | none |
+| [FHIR terminology server](ontologies/fhirterminology_adapter.md) | Generic HL7 FHIR terminology server client (tx.fhir.org, Ontoserver, German MII or any $lookup/$expand server) | `http://loinc.org|2093-3` | none |
+| [ISRCTN registry](literature/isrctn_adapter.md) | ISRCTN clinical trial registry (UK-based, international) | `ISRCTN12345678` | none |
+| [NCBI Gene](proteins/ncbigene_adapter.md) | NCBI Gene records, summaries and cross-references (Datasets API) | `672` | none |
+| [OmicsDI](literature/omicsdi_adapter.md) | OmicsDI omics dataset discovery across ArrayExpress, PRIDE, GEO, MetaboLights and more | `E-GEOD-1234` | none |
+| [BioStudies / ArrayExpress](literature/biostudies_adapter.md) | EMBL-EBI BioStudies and ArrayExpress functional genomics studies | `E-MTAB-1234` | none |
+| [PRIDE](proteins/pride_adapter.md) | PRIDE Archive proteomics projects and datasets | `PXD000001` | none |
+| [GEO](literature/geo_adapter.md) | NCBI Gene Expression Omnibus series, samples and platforms via E-utilities | `GSE12345` | none |
+| [Zenodo](literature/zenodo_adapter.md) | Zenodo research data and software records | `10.5281/zenodo.1234567` | none |
+| [IMPC](phenotypes/impc_adapter.md) | International Mouse Phenotyping Consortium gene-phenotype associations | `MGI:104537` | none |
+| [Alliance of Genome Resources](proteins/alliance_adapter.md) | Alliance of Genome Resources model-organism genes, orthologs, diseases and phenotypes | `HGNC:1100` | none |
+| [Enrichr](pathways/enrichr_adapter.md) | Enrichr gene-set enrichment over hundreds of gene-set libraries | `BRCA1` | none |
+| [OpenAIRE Graph](literature/openaire_adapter.md) | OpenAIRE research graph: publications, datasets, software, projects and funders | `long covid` | none |
+| [DOAJ](literature/doaj_adapter.md) | Directory of Open Access Journals and articles | `long covid` | none |
+| [Unpaywall](literature/unpaywall_adapter.md) | Unpaywall open-access locations for DOIs (needs a contact e-mail you set) | `10.1038/s41586-020-2012-7` | the UNPAYWALL_EMAIL environment variable |
 
 {% hint style="warning" %}
 **Known issues (tested September 2026).** Details are on each page.
