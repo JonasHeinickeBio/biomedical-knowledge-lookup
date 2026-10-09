@@ -14,7 +14,7 @@ knowledge-lookup --help
 | --- | --- |
 | `search` | Search knowledge sources and print a table, JSON or CSV |
 | `workflow` | Run the LangGraph [agent workflow](agent-workflow.md) with review and approval |
-| `sources` | List all 92 sources with their requirements and whether they are available |
+| `sources` | List all 106 sources with their requirements and whether they are available |
 | `info` | Show the version and how many sources are available |
 | `benchmark` | Run latency and resilience benchmarks against live sources |
 | `explore` | Start a local web UI for browsing UMLS |
@@ -104,7 +104,7 @@ When standard input is closed or not interactive (for example in a script or CI 
 knowledge-lookup sources
 ```
 
-Prints a table of all 92 sources that have an adapter, with a description, what the source requires (an API key environment variable or an optional extra, `-` for nothing) and whether it is available in the current environment, followed by `<n>/36 sources available in this environment`. The same catalog backs the MCP server's `biomed_list_sources` tool; see [Knowledge source adapters](../adapters/README.md) for details on each adapter.
+Prints a table of all 106 sources that have an adapter, with a description, what the source requires (an API key environment variable or an optional extra, `-` for nothing) and whether it is available in the current environment, followed by `<n>/36 sources available in this environment`. The same catalog backs the MCP server's `biomed_list_sources` tool; see [Knowledge source adapters](../adapters/README.md) for details on each adapter.
 
 ## `info`
 

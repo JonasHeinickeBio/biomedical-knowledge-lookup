@@ -16,7 +16,7 @@ This page lists the public API with signatures taken from the source. For task-o
 | Annotation results | `AnnotationConfidence`, `SourceAnnotation`, `ConceptAgreement`, `MultiSourceAnnotationResult` |
 | Models | `KnowledgeSource`, `ConceptType`, `ConceptIdentifier`, `ConceptMapping`, `UnifiedConcept`, `LookupResult`, `LookupConfig` |
 | Cache | `KnowledgeLookupCache`, `get_cache`, `init_cache` |
-| Adapters | `ADAPTER_CLASSES` and 92 adapter classes (`OLSAdapter`, `MondoAdapter`, `HPOAdapter`, `UMLSAdapter`, ...) |
+| Adapters | `ADAPTER_CLASSES` and 106 adapter classes (`OLSAdapter`, `MondoAdapter`, `HPOAdapter`, `UMLSAdapter`, ...) |
 
 All 36 adapter classes are importable from `knowledge_lookup.adapters`.
 
@@ -130,7 +130,7 @@ The models are pydantic v2 classes generated from the LinkML schema, wrapped for
 
 ### `KnowledgeSource`
 
-A `str` enum with 95 members. The 92 with an adapter:
+A `str` enum with 109 members. The 106 with an adapter:
 
 `BIOLINKER`, `BIOONTOLOGY`, `BIOPORTAL`, `CHEMBL`, `CLINVAR`, `COSMIC`, `DBPEDIA`, `DISGENET`, `DRUGBANK`, `EBIOLS`, `ENSEMBL`, `EUROPEPMC`, `EUTILS`, `GENEONTOLOGY`, `HGNC`, `HPO`, `INTERPRO`, `KEGG`, `MONDO`, `OBOFOUNDRY`, `OLS`, `OMIM`, `OPENTARGETS`, `OXO`, `PDB`, `PFAM`, `PUBCHEM`, `QUICKGO`, `REACTOME`, `STRING`, `TYTO`, `UMLS`, `UNICHEM`, `UNIPROT`, `WIKIDATA`, `ZOOMA`
 

@@ -4,7 +4,7 @@ description: What adapters are, how to use them directly or through CentralKnowl
 
 # Adapters
 
-An adapter connects the library to one knowledge source: an ontology service, a database REST API, a SPARQL endpoint or a client library. It translates that source's responses into the common `UnifiedConcept` model, so results from OLS, UMLS, UniProt or ChEMBL can be handled the same way. The library ships **92 adapters**, one per `KnowledgeSource`, registered in `knowledge_lookup.adapters.ADAPTER_CLASSES`.
+An adapter connects the library to one knowledge source: an ontology service, a database REST API, a SPARQL endpoint or a client library. It translates that source's responses into the common `UnifiedConcept` model, so results from OLS, UMLS, UniProt or ChEMBL can be handled the same way. The library ships **106 adapters**, one per `KnowledgeSource`, registered in `knowledge_lookup.adapters.ADAPTER_CLASSES`.
 
 ## The common interface
 
@@ -80,7 +80,7 @@ Import the class from `knowledge_lookup.adapters` and use it as an async context
 
 ### Through `CentralKnowledgeLookup`
 
-`CentralKnowledgeLookup(config)` creates every adapter in `ADAPTER_CLASSES` that is enabled in `LookupConfig.enabled_sources` (all of them when the list is unset or empty) and whose `is_available()` returns `True`. Unavailable adapters are skipped with a log warning. Set `enabled_sources` explicitly: creating all 92 adapters also imports every adapter module and initialises the ChEMBL, UniChem and UMLS clients. Disabled sources are never imported.
+`CentralKnowledgeLookup(config)` creates every adapter in `ADAPTER_CLASSES` that is enabled in `LookupConfig.enabled_sources` (all of them when the list is unset or empty) and whose `is_available()` returns `True`. Unavailable adapters are skipped with a log warning. Set `enabled_sources` explicitly: creating all 106 adapters also imports every adapter module and initialises the ChEMBL, UniChem and UMLS clients. Disabled sources are never imported.
 
 - `search_concepts(query, concept_types=None, sources=None, max_results=50, parallel=True)` asks each source for `max(1, max_results // len(sources))` results. In parallel mode every source must finish within `timeout_per_source` (default 30 s). Results are merged when `enable_deduplication` is on (the default), filtered by `concept_types` (concepts typed `UNKNOWN` are kept), sorted by `confidence_score` and returned as a `LookupResult` with `concepts`, `errors` (per source), `sources_succeeded`, `sources_failed` and `execution_time`. Because most adapters catch their own errors and return `[]`, `errors` mainly shows timeouts and the few adapters that raise.
 - `get_concept_details(concept_id, source=None, timeout=None)` queries one adapter when `source` is given.
@@ -283,7 +283,7 @@ Pages are grouped by category.
 | [Zenodo](literature/zenodo_adapter.md) | Zenodo research data and software records | `10.5281/zenodo.1234567` | none |
 | [IMPC](phenotypes/impc_adapter.md) | International Mouse Phenotyping Consortium gene-phenotype associations | `MGI:104537` | none |
 | [Alliance of Genome Resources](proteins/alliance_adapter.md) | Alliance of Genome Resources model-organism genes, orthologs, diseases and phenotypes | `HGNC:1100` | none |
-| [Enrichr](pathways/enrichr_adapter.md) | Enrichr gene-set enrichment over hundreds of gene-set libraries | `BRCA1` | none |
+| [Enrichr](pathways/enrichr_adapter.md) | Enrichr gene-set enrichment over hundreds of libraries (uploads your gene list to maayanlab.cloud, which stores it) | `BRCA1` | none |
 | [OpenAIRE Graph](literature/openaire_adapter.md) | OpenAIRE research graph: publications, datasets, software, projects and funders | `long covid` | none |
 | [DOAJ](literature/doaj_adapter.md) | Directory of Open Access Journals and articles | `long covid` | none |
 | [Unpaywall](literature/unpaywall_adapter.md) | Unpaywall open-access locations for DOIs (needs a contact e-mail you set) | `10.1038/s41586-020-2012-7` | the UNPAYWALL_EMAIL environment variable |

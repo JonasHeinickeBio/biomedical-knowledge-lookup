@@ -62,7 +62,7 @@ Run it with `python quickstart.py`. Live APIs change, so your exact output will 
 
 ### 1. Configure and create the lookup
 
-`CentralKnowledgeLookup` initialises one adapter per enabled source. Without `enabled_sources` it tries all 92 adapters, which takes a few seconds and means `search_concepts()` without `sources=` queries every one of them. Limiting `enabled_sources` keeps scripts fast.
+`CentralKnowledgeLookup` initialises one adapter per enabled source. Without `enabled_sources` it tries all 106 adapters, which takes a few seconds and means `search_concepts()` without `sources=` queries every one of them. Limiting `enabled_sources` keeps scripts fast.
 
 Always call `await lookup.close()` when you are done (a `try`/`finally` block is the easiest way). It closes the HTTP sessions of all adapters.
 

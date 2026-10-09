@@ -402,7 +402,7 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
         "Alliance of Genome Resources model-organism genes, orthologs, diseases and phenotypes",
     ),
     KnowledgeSource.ENRICHR: SourceSpec(
-        "Enrichr gene-set enrichment over hundreds of gene-set libraries",
+        "Enrichr gene-set enrichment over hundreds of libraries (UPLOADS your gene list to maayanlab.cloud, which stores it)",
     ),
     KnowledgeSource.OPENAIRE: SourceSpec(
         "OpenAIRE research graph: publications, datasets, software, projects and funders",
