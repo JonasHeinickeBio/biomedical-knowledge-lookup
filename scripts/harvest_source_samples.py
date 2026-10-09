@@ -9,8 +9,8 @@ relationship predicates and mapping targets seen, and the raw upstream keys.
 ``docs/guides/data-coverage.md``.
 
 Usage:
-    poetry run python scripts/harvest_source_samples.py --out samples.json
-    poetry run python scripts/harvest_source_samples.py --only HPO,MONDO --out s.json
+    poetry run python scripts/harvest_source_samples.py --out scripts/data/source_samples.json
+    poetry run python scripts/harvest_source_samples.py --only HPO,MONDO --out scripts/data/source_samples.json  # merges
 
 Sources that need credentials or an opt-in dataset are recorded as ``skipped``.
 Requests are sequential per source and capped at ``--concurrency`` sources at a
@@ -162,6 +162,10 @@ async def main() -> None:
         await asyncio.gather(*(run(s) for s in sources))
     finally:
         await lkp.close()
+    if args.out.exists():  # merge: rows for other sources are kept
+        kept = {r["source"]: r for r in json.loads(args.out.read_text(encoding="utf-8"))}
+        kept.update({r["source"]: r for r in results})
+        results = list(kept.values())
     results.sort(key=lambda r: r["source"])
     args.out.write_text(json.dumps(results, indent=1, ensure_ascii=False), encoding="utf-8")
 

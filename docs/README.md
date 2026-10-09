@@ -60,6 +60,9 @@ One phrase, four sources: a UMLS CUI, an ICD-10-CM code, an NCI Thesaurus concep
 | set API keys, timeouts and rate limits | [Configuration](getting-started/configuration.md) |
 | fix an unavailable source or a slow call | [Troubleshooting and FAQ](getting-started/troubleshooting.md) |
 | look up one adapter's identifiers and quirks | [All adapters](adapters/README.md) |
+| copy a complete workflow (codes, drugs, datasets, literature) | [Recipes](guides/recipes.md) |
+| find a setting or variable | [Environment variables](reference/environment-variables.md) |
+| add a new source | [Writing an adapter](contributing/writing-an-adapter.md) |
 | understand an abbreviation (CUI, CURIE, ATC ...) | [Glossary](reference/glossary.md) |
 
 ## What you can do

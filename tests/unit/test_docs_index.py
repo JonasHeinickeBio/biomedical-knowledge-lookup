@@ -51,3 +51,22 @@ def test_relative_markdown_links_resolve():
             if path and not (f.parent / path).resolve().exists():
                 broken.append(f"{f.relative_to(ROOT)} -> {link}")
     assert not broken, "\n".join(broken[:20])
+
+
+def test_every_environment_variable_is_documented():
+    """New ``os.getenv`` names must be added to docs/reference/environment-variables.md."""
+    patterns = [
+        re.compile(r"getenv\(\s*[\"']([A-Z][A-Z0-9_]+)[\"']"),
+        re.compile(r"environ\.get\(\s*[\"']([A-Z][A-Z0-9_]+)[\"']"),
+        re.compile(r"environ\[\s*[\"']([A-Z][A-Z0-9_]+)[\"']"),
+        re.compile(r"^\w*(?:ENV|_VAR)\w*\s*(?::[^=]+)?=\s*[\"']([A-Z][A-Z0-9_]+)[\"']", re.M),
+    ]
+    found: set[str] = set()
+    for f in (ROOT / "src" / "knowledge_lookup").rglob("*.py"):
+        text = f.read_text(encoding="utf-8")
+        for p in patterns:
+            found.update(p.findall(text))
+    found -= {"PYTEST_CURRENT_TEST"}
+    page = (ROOT / "docs/reference/environment-variables.md").read_text(encoding="utf-8")
+    missing = sorted(v for v in found if f"`{v}`" not in page)
+    assert not missing, f"undocumented environment variables: {missing}"

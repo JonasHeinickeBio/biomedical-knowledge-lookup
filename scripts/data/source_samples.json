@@ -1,0 +1,8737 @@
+[
+ {
+  "source": "ALLIANCE",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 4.19,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "HGNC:1100",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "MGI:104537",
+     "label": "Brca1",
+     "type": "GENE"
+    },
+    {
+     "id": "RGD:2218",
+     "label": "Brca1",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.17,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 23,
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "This gene encodes a 190 kD nuclear phosphoprotein that plays a role in maintaining genomic stability, and it also acts as a tumor suppressor. The BRCA1 gene co…",
+   "synonyms": [
+    "BRCA1 DNA repair associated",
+    "BROVCA1",
+    "IRIS",
+    "PSCP"
+   ],
+   "raw_keys": [
+    "name",
+    "species",
+    "taxon",
+    "gene_type",
+    "cross_references",
+    "location",
+    "evidence_note"
+   ],
+   "identifiers": [
+    "ALLIANCE:HGNC:1100"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.22,
+   "count": 32,
+   "error": null,
+   "predicates": [
+    [
+     "has_phenotype",
+     10
+    ],
+    [
+     "associated_with_disease",
+     9
+    ],
+    [
+     "interacts_with",
+     8
+    ],
+    [
+     "ortholog_of",
+     5
+    ]
+   ],
+   "sample": [
+    "ortholog_of -> Xenbase:XB-GENE-6254021 (brca1.L)",
+    "ortholog_of -> WB:WBGene00000264 (brc-1)",
+    "ortholog_of -> MGI:104537 (Brca1)"
+   ]
+  },
+  "mappings": {
+   "seconds": 1.07,
+   "count": 10,
+   "error": null,
+   "targets": [
+    [
+     "UniProt",
+     5
+    ],
+    [
+     "RGD",
+     1
+    ],
+    [
+     "Ensembl",
+     1
+    ],
+    [
+     "NCBI Gene",
+     1
+    ],
+    [
+     "OMIM",
+     1
+    ],
+    [
+     "PANTHER",
+     1
+    ]
+   ],
+   "sample": [
+    "UniProt:UniProtKB:P38398",
+    "RGD:RGD:69132",
+    "Ensembl:ENSEMBL:ENSG00000012048"
+   ]
+  },
+  "first_id": "HGNC:1100",
+  "status": "ok"
+ },
+ {
+  "source": "ALPHAFOLD",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.47,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "AF-P38398-F1",
+     "label": "Breast cancer type 1 susceptibility protein",
+     "type": "PROTEIN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.11,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 4,
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "AlphaFold v6 predicted structure of BRCA1_HUMAN (Homo sapiens), 1863 residues, mean pLDDT 41.6 (80% very low confidence)",
+   "synonyms": [
+    "BRCA1",
+    "BRCA1_HUMAN",
+    "P38398",
+    "AF-P38398-F1"
+   ],
+   "raw_keys": [
+    "entry_id",
+    "uniprot_accession",
+    "uniprot_id",
+    "gene",
+    "description",
+    "organism",
+    "tax_id",
+    "sequence_length",
+    "global_plddt",
+    "plddt_fractions",
+    "model_version",
+    "all_versions",
+    "model_created",
+    "tool"
+   ],
+   "identifiers": [
+    "ALPHAFOLD:AF-P38398-F1",
+    "UNIPROT:P38398"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.17,
+   "count": 10,
+   "error": null,
+   "predicates": [
+    [
+     "has_experimental_structure",
+     9
+    ],
+    [
+     "has_predicted_structure",
+     1
+    ]
+   ],
+   "sample": [
+    "has_predicted_structure -> AF-P38398-F1 (AlphaFold model AF-P38398-F1 (v6))",
+    "has_experimental_structure -> 8RS8 (PDB 8RS8 (X-ray, 1.31 A))",
+    "has_experimental_structure -> 4IGK (PDB 4IGK (X-ray, 1.75 A))"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.08,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "UniProt",
+     1
+    ]
+   ],
+   "sample": [
+    "UniProt:P38398"
+   ]
+  },
+  "first_id": "AF-P38398-F1",
+  "status": "ok"
+ },
+ {
+  "source": "BIOLINKER",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 5.85,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "C0376571",
+     "label": "brca1",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.0,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 1,
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "A tumor suppressor gene located on human chromosome 17 at locus 17q21. Mutations of this gene are associated with hereditary breast and ovarian cancer syndrome…",
+   "synonyms": [
+    "BRCA1"
+   ],
+   "raw_keys": [
+    "surface_form",
+    "text_position",
+    "category",
+    "biolinker_source"
+   ],
+   "identifiers": [
+    "BIOLINKER:C0376571"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "C0376571",
+  "status": "ok"
+ },
+ {
+  "source": "BIOONTOLOGY",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.68,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "http://purl.bioontology.org/ontology/LNC/LP36227-4",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "http://purl.bioontology.org/ontology/PDQ/CDR0000043111",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "http://www.semanticweb.org/admin/ontologies/OM#BRCA1",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 2.46,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "raw_keys": [
+    "page",
+    "pageCount",
+    "totalCount",
+    "prevPage",
+    "nextPage",
+    "links",
+    "collection"
+   ],
+   "identifiers": [
+    "BIOONTOLOGY:http://purl.bioontology.org/ontology/LNC/LP36227-4"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "http://purl.bioontology.org/ontology/LNC/LP36227-4",
+  "status": "ok"
+ },
+ {
+  "source": "BIOPORTAL",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.69,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "http://purl.bioontology.org/ontology/LNC/LP36227-4",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "http://purl.bioontology.org/ontology/PDQ/CDR0000043111",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "http://www.semanticweb.org/admin/ontologies/OM#BRCA1",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.19,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1
+   },
+   "raw_keys": [
+    "prefLabel",
+    "synonym",
+    "definition",
+    "cui",
+    "semanticType",
+    "obsolete",
+    "created",
+    "modified",
+    "memberOf",
+    "inScheme",
+    "@id",
+    "@type",
+    "links",
+    "@context"
+   ],
+   "identifiers": [
+    "BIOPORTAL:http://purl.bioontology.org/ontology/LNC/LP36227-4"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "http://purl.bioontology.org/ontology/LNC/LP36227-4",
+  "status": "ok"
+ },
+ {
+  "source": "BIORXIV",
+  "query": "long covid",
+  "search": {
+   "seconds": 14.61,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "10.64898/2026.09.22.26363331",
+     "label": "Worsening pre-existing health conditions in U.S. adults with Long COVID",
+     "type": "CITATION"
+    },
+    {
+     "id": "10.64898/2026.08.20.26360874",
+     "label": "Persistent Hypercoagulability and Further Characterization of Microclot Complexes in Long…",
+     "type": "CITATION"
+    },
+    {
+     "id": "10.64898/2026.08.07.26359942",
+     "label": "Peripheral metabolic signatures in patients with neuropsychiatric long COVID syndrome",
+     "type": "CITATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.72,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 5
+   },
+   "definition": "PurposeLong COVID literature often describes new-onset symptoms or conditions following SARS-CoV-2 infection; however, Long COVID also encompasses the exacerba…",
+   "raw_keys": [
+    "doi",
+    "title",
+    "authors",
+    "corresponding_author",
+    "corresponding_institution",
+    "category",
+    "date",
+    "version",
+    "versions",
+    "server",
+    "type",
+    "license",
+    "license_text",
+    "published_doi"
+   ],
+   "identifiers": [
+    "BIORXIV:10.64898/2026.09.22.26363331"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.24,
+   "count": 1,
+   "error": null,
+   "predicates": [
+    [
+     "has_earlier_version",
+     1
+    ]
+   ],
+   "sample": [
+    "has_earlier_version -> 10.64898/2026.09.22.26363331v1 (Worsening pre-existing health conditions in U.S. …)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.46,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "DOI",
+     1
+    ]
+   ],
+   "sample": [
+    "DOI:10.64898/2026.09.22.26363331"
+   ]
+  },
+  "first_id": "10.64898/2026.09.22.26363331",
+  "status": "ok"
+ },
+ {
+  "source": "BIOSTUDIES",
+  "query": "chronic fatigue",
+  "search": {
+   "seconds": 0.34,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "E-GEOD-59489",
+     "label": "DNA methylation modifications associated with Chronic Fatigue Syndrome",
+     "type": "STUDY"
+    },
+    {
+     "id": "E-GEOD-14577",
+     "label": "Transcription profiling of human peripheral blood mononuclear cells (PMBCs) from male pat…",
+     "type": "STUDY"
+    },
+    {
+     "id": "E-GEOD-31187",
+     "label": "Molecular signatures of peripheral blood mononuclear cells following chronic IFN-alpha: R…",
+     "type": "STUDY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.77,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 5,
+    "semantic_types": 1
+   },
+   "definition": "Chronic Fatigue Syndrome (CFS), also known as myalgic encephalomyelitis, is a complex multifactorial disease that is characterized by the persistent presence o…",
+   "raw_keys": [
+    "accession",
+    "title",
+    "collection",
+    "release_date",
+    "organisms",
+    "taxon_ids",
+    "study_types",
+    "technologies",
+    "assay_molecules",
+    "sample_count",
+    "authors_count",
+    "organizations",
+    "links",
+    "files_count"
+   ],
+   "identifiers": [
+    "BIOSTUDIES:E-GEOD-59489",
+    "OMICSDI:biostudies-arrayexpress:E-GEOD-59489"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.97,
+   "count": 5,
+   "error": null,
+   "predicates": [
+    [
+     "has_organism",
+     1
+    ],
+    [
+     "has_experiment_type",
+     1
+    ],
+    [
+     "uses_technology",
+     1
+    ],
+    [
+     "has_assay_molecule",
+     1
+    ],
+    [
+     "has_geo_series",
+     1
+    ]
+   ],
+   "sample": [
+    "has_organism -> NCBITaxon:9606 (Homo sapiens)",
+    "has_experiment_type -> EFO:0002759 (methylation profiling by array)",
+    "uses_technology -> BIOSTUDIES:TECHNOLOGY:Array assay (Array assay)"
+   ]
+  },
+  "mappings": {
+   "seconds": 1.02,
+   "count": 2,
+   "error": null,
+   "targets": [
+    [
+     "ArrayExpress",
+     1
+    ],
+    [
+     "GEO",
+     1
+    ]
+   ],
+   "sample": [
+    "ArrayExpress:E-GEOD-59489",
+    "GEO:GSE59489"
+   ]
+  },
+  "first_id": "E-GEOD-59489",
+  "status": "ok"
+ },
+ {
+  "source": "CELLMARKER",
+  "query": "CD4",
+  "status": "skipped",
+  "needs": "CELLMARKER_PATH or CELLMARKER_URL"
+ },
+ {
+  "source": "CELLONTOLOGY",
+  "query": "T cell",
+  "search": {
+   "seconds": 3.51,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "CL:0000084",
+     "label": "T cell",
+     "type": "CELL_TYPE"
+    },
+    {
+     "id": "CL:0000827",
+     "label": "pro-T cell",
+     "type": "CELL_TYPE"
+    },
+    {
+     "id": "CL:0000814",
+     "label": "mature NK T cell",
+     "type": "CELL_TYPE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.26,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 5,
+    "definitions": 1,
+    "identifiers": 2,
+    "parents": 1,
+    "children": 9,
+    "categories": 6
+   },
+   "definition": "A type of lymphocyte whose defining characteristic is the expression of a T cell receptor complex.",
+   "synonyms": [
+    "T lymphocyte",
+    "T-cell",
+    "T-lymphocyte",
+    "immature T cell"
+   ],
+   "raw_keys": [
+    "iri",
+    "obo_id",
+    "label",
+    "in_subset",
+    "is_obsolete",
+    "term_replaced_by",
+    "annotation"
+   ],
+   "identifiers": [
+    "CELLONTOLOGY:CL:0000084",
+    "CELLONTOLOGY:http://purl.obolibrary.org/obo/CL_0000084"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.09,
+   "count": 25,
+   "error": null,
+   "predicates": [
+    [
+     "has_subclass",
+     9
+    ],
+    [
+     "inverse_occurs_in",
+     5
+    ],
+    [
+     "inverse_has_primary_input",
+     3
+    ],
+    [
+     "inverse_acts_on_population_of",
+     2
+    ],
+    [
+     "is_a",
+     1
+    ],
+    [
+     "develops_from",
+     1
+    ]
+   ],
+   "sample": [
+    "is_a -> CL:0000542 (lymphocyte)",
+    "develops_from -> CL:0000827 (pro-T cell)",
+    "capable_of -> GO:0002456 (T cell mediated immunity)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.06,
+   "count": 6,
+   "error": null,
+   "targets": [
+    [
+     "BTO",
+     1
+    ],
+    [
+     "CALOHA",
+     1
+    ],
+    [
+     "FMA",
+     1
+    ],
+    [
+     "MESH",
+     1
+    ],
+    [
+     "VHOG",
+     1
+    ],
+    [
+     "ZFA",
+     1
+    ]
+   ],
+   "sample": [
+    "BTO:BTO:0000782",
+    "CALOHA:CALOHA:TS-1001",
+    "FMA:FMA:62870"
+   ]
+  },
+  "first_id": "CL:0000084",
+  "status": "ok"
+ },
+ {
+  "source": "CELLXGENE",
+  "query": "natural killer cell",
+  "search": {
+   "seconds": 3.6,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "CL:0000623",
+     "label": "natural killer cell",
+     "type": "CELL_TYPE"
+    },
+    {
+     "id": "CL:0000938",
+     "label": "CD16-negative, CD56-bright natural killer cell, human",
+     "type": "CELL_TYPE"
+    },
+    {
+     "id": "CL:0000939",
+     "label": "CD16-positive, CD56-dim natural killer cell, human",
+     "type": "CELL_TYPE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.0,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1
+   },
+   "raw_keys": [
+    "kind",
+    "n_datasets",
+    "n_collections",
+    "cells_in_datasets",
+    "top_tissues"
+   ],
+   "identifiers": [
+    "CELLXGENE:CL:0000623"
+   ]
+  },
+  "relationships": {
+   "seconds": 2.58,
+   "count": 75,
+   "error": null,
+   "predicates": [
+    [
+     "found_in_tissue",
+     25
+    ],
+    [
+     "found_in_dataset",
+     25
+    ],
+    [
+     "has_marker_gene",
+     25
+    ]
+   ],
+   "sample": [
+    "found_in_tissue -> UBERON:0000178 (blood)",
+    "found_in_tissue -> UBERON:0002113 (kidney)",
+    "found_in_tissue -> UBERON:0002048 (lung)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "CL",
+     1
+    ]
+   ],
+   "sample": [
+    "CL:CL:0000623"
+   ]
+  },
+  "first_id": "CL:0000623",
+  "status": "ok"
+ },
+ {
+  "source": "CHEBI",
+  "query": "aspirin",
+  "search": {
+   "seconds": 0.35,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "CHEBI:759292",
+     "label": "aspirin trelamine",
+     "type": "CHEMICAL"
+    },
+    {
+     "id": "CHEBI:749969",
+     "label": "aspirin dl-lysine",
+     "type": "CHEMICAL"
+    },
+    {
+     "id": "CHEBI:759293",
+     "label": "aspirin trelamine hydrochloride",
+     "type": "CHEMICAL"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.1,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 6,
+    "identifiers": 2,
+    "parents": 1,
+    "categories": 4,
+    "semantic_types": 1
+   },
+   "synonyms": [
+    "Aspirin trelamine",
+    "Edan",
+    "TF-0023",
+    "TF0023"
+   ],
+   "raw_keys": [
+    "stars",
+    "formula",
+    "mass",
+    "monoisotopic_mass",
+    "charge",
+    "smiles",
+    "inchi",
+    "inchikey",
+    "secondary_ids",
+    "roles",
+    "modified_on"
+   ],
+   "identifiers": [
+    "CHEBI:CHEBI:759292",
+    "CHEBI:CHEBI:759292"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.16,
+   "count": 5,
+   "error": null,
+   "predicates": [
+    [
+     "has_role",
+     4
+    ],
+    [
+     "is_a",
+     1
+    ]
+   ],
+   "sample": [
+    "is_a -> CHEBI:26596 (salicylates)",
+    "has_role -> CHEBI:35480 (analgesic)",
+    "has_role -> CHEBI:35554 (cardiovascular drug)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.11,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "CHEBI:759292",
+  "status": "ok"
+ },
+ {
+  "source": "CHEMBL",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 16.5,
+   "count": 0,
+   "error": null,
+   "top": []
+  },
+  "status": "empty"
+ },
+ {
+  "source": "CLINGEN",
+  "query": "BRCA1",
+  "status": "skipped",
+  "needs": "CLINGEN_DOWNLOAD=1 (downloads ~1.4 MB) or CLINGEN_PATH"
+ },
+ {
+  "source": "CLINICALTABLES",
+  "query": "fatigue",
+  "search": {
+   "seconds": 0.83,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "ICD10CM:R53.83",
+     "label": "Other fatigue",
+     "type": "DISEASE"
+    },
+    {
+     "id": "CONDITIONS:2329",
+     "label": "Fatigue",
+     "type": "DISEASE"
+    },
+    {
+     "id": "LOINC:64101-9",
+     "label": "Fatigue --resting",
+     "type": "OBSERVATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.12,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "categories": 1
+   },
+   "raw_keys": [
+    "table",
+    "code"
+   ],
+   "identifiers": [
+    "CLINICALTABLES:ICD10CM:R53.83"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.14,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.12,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "ICD10CM:R53.83",
+  "status": "ok"
+ },
+ {
+  "source": "CLINICALTRIALS",
+  "query": "long covid",
+  "search": {
+   "seconds": 0.52,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "NCT04583293",
+     "label": "Acute KIDnEy Injury in CoviD-19",
+     "type": "OBSERVATIONAL_STUDY"
+    },
+    {
+     "id": "NCT05172011",
+     "label": "Understanding the Long-term Impact of COVID on Children and Families",
+     "type": "OBSERVATIONAL_STUDY"
+    },
+    {
+     "id": "NCT06178952",
+     "label": "Transcranial Pulse Stimulation (TPS) in Post-COVID-19",
+     "type": "CLINICAL_TRIAL"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.87,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 2,
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "definition": "This is a prospective observational parallel group cohort study that will aim to recruit 220 participants who were admitted to the hospital with COVID-19 betwe…",
+   "synonyms": [
+    "Long-term Outcomes After Acute Kidney Injury in C…",
+    "AIDED"
+   ],
+   "raw_keys": [
+    "nct_id",
+    "brief_title",
+    "official_title",
+    "acronym",
+    "brief_summary",
+    "status",
+    "study_type",
+    "phases",
+    "enrollment",
+    "enrollment_type",
+    "start_date",
+    "completion_date",
+    "last_update",
+    "sponsor"
+   ],
+   "identifiers": [
+    "CLINICALTRIALS:NCT04583293"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.24,
+   "count": 3,
+   "error": null,
+   "predicates": [
+    [
+     "studies_condition",
+     2
+    ],
+    [
+     "tests_intervention",
+     1
+    ]
+   ],
+   "sample": [
+    "studies_condition -> Acute Kidney Injury (Acute Kidney Injury)",
+    "studies_condition -> MESH:D058186 (Acute Kidney Injury)",
+    "tests_intervention -> No intervention (No intervention)"
+   ]
+  },
+  "mappings": {
+   "seconds": 1.26,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "MeSH",
+     1
+    ]
+   ],
+   "sample": [
+    "MeSH:MESH:D058186"
+   ]
+  },
+  "first_id": "NCT04583293",
+  "status": "ok"
+ },
+ {
+  "source": "CLINPGX",
+  "query": "CYP2D6",
+  "search": {
+   "seconds": 1.06,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "PA128",
+     "label": "CYP2D6",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.62,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 11,
+    "definitions": 1,
+    "identifiers": 9,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "definition": "CYP2D6 is one of the key pharmacogenes involved in implementation of pharmacogenomics. It is highly polymorphic and involved in the metabolism of up to 25% of …",
+   "synonyms": [
+    "cytochrome P450 family 2 subfamily D member 6",
+    "cytochrome P450, family 2, subfamily D, polypepti…",
+    "CPD6",
+    "CYP2D"
+   ],
+   "raw_keys": [
+    "objCls",
+    "id",
+    "symbol",
+    "name",
+    "alleleFile",
+    "alleleFunctionSource",
+    "amp",
+    "buildVersion",
+    "cbStart",
+    "cbStop",
+    "chrStartPosB37",
+    "chrStartPosB38",
+    "chrStopPosB37",
+    "chrStopPosB38"
+   ],
+   "identifiers": [
+    "CLINPGX:PA128",
+    "CTD:1565",
+    "ENSEMBL:ENSG00000100197",
+    "HGNC:HGNC:2625",
+    "NCBI:1565"
+   ]
+  },
+  "relationships": {
+   "seconds": 3.58,
+   "count": 75,
+   "error": null,
+   "predicates": [
+    [
+     "has_clinical_annotation",
+     25
+    ],
+    [
+     "has_guideline",
+     25
+    ],
+    [
+     "has_haplotype",
+     25
+    ]
+   ],
+   "sample": [
+    "has_clinical_annotation -> PA448385 (amitriptyline)",
+    "has_clinical_annotation -> PA10026 (aripiprazole)",
+    "has_clinical_annotation -> PA134688071 (atomoxetine)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.03,
+   "count": 10,
+   "error": null,
+   "targets": [
+    [
+     "OMIM",
+     2
+    ],
+    [
+     "UNIPROT",
+     2
+    ],
+    [
+     "CTD",
+     1
+    ],
+    [
+     "ENSEMBL",
+     1
+    ],
+    [
+     "GeneCards",
+     1
+    ],
+    [
+     "HGNC",
+     1
+    ],
+    [
+     "NCBI",
+     1
+    ],
+    [
+     "PharmVar",
+     1
+    ]
+   ],
+   "sample": [
+    "CTD:1565",
+    "ENSEMBL:ENSG00000100197",
+    "GeneCards:CYP2D6"
+   ]
+  },
+  "first_id": "PA128",
+  "status": "ok"
+ },
+ {
+  "source": "CLINVAR",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.79,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "ClinVar:5008101",
+     "label": "NM_004656.4(BAP1):c.1105T>G (p.Ser369Ala)",
+     "type": "MOLECULAR_ENTITY"
+    },
+    {
+     "id": "ClinVar:5007770",
+     "label": "NM_000051.4(ATM):c.5826del (p.Lys1943fs)",
+     "type": "MOLECULAR_ENTITY"
+    },
+    {
+     "id": "ClinVar:5007769",
+     "label": "NM_000051.4(ATM):c.5674+2T>C",
+     "type": "MOLECULAR_ENTITY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.13,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "categories": 4,
+    "semantic_types": 2
+   },
+   "raw_keys": [
+    "uid",
+    "obj_type",
+    "accession",
+    "accession_version",
+    "title",
+    "variation_set",
+    "supporting_submissions",
+    "germline_classification",
+    "clinical_impact_classification",
+    "oncogenicity_classification",
+    "record_status",
+    "gene_sort",
+    "chr_sort",
+    "location_sort"
+   ],
+   "identifiers": [
+    "CLINVAR:ClinVar:5008101"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "ClinVar:5008101",
+  "status": "ok"
+ },
+ {
+  "source": "COSMIC",
+  "query": "BRCA1",
+  "status": "skipped",
+  "needs": "COSMIC_API_KEY"
+ },
+ {
+  "source": "CROSSREF",
+  "query": "long covid",
+  "search": {
+   "seconds": 0.95,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "10.36255/long-covid-public-education",
+     "label": "Long COVID: Public Education",
+     "type": "CITATION"
+    },
+    {
+     "id": "10.1002/9781119891338.ch1",
+     "label": "Long‐COVID Disease or Long‐COVID Syndrome?",
+     "type": "CITATION"
+    },
+    {
+     "id": "10.3390/books978-3-7258-3552-2",
+     "label": "Latest Research in Post-COVID (Long COVID)",
+     "type": "CITATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.39,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 4
+   },
+   "definition": "Long COVID, also known as post-acute sequelae of SARS-CoV-2 infection (PASC), is a condition where individuals experience persistent symptoms and health issues…",
+   "raw_keys": [
+    "doi",
+    "title",
+    "container",
+    "date",
+    "year",
+    "type",
+    "publisher",
+    "issn",
+    "author_count",
+    "authors",
+    "cited_by_count",
+    "references_count",
+    "abstract_available",
+    "update_notices"
+   ],
+   "identifiers": [
+    "CROSSREF:10.36255/long-covid-public-education"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "10.36255/long-covid-public-education",
+  "status": "ok"
+ },
+ {
+  "source": "CTD",
+  "query": "aspirin",
+  "search": {
+   "seconds": 1.18,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "MESH:D001241",
+     "label": "Aspirin",
+     "type": "CHEMICAL"
+    },
+    {
+     "id": "MESH:C575435",
+     "label": "aspirin eugenol ester",
+     "type": "CHEMICAL"
+    },
+    {
+     "id": "MESH:C557598",
+     "label": "aspirin-phosphatidylcholine",
+     "type": "CHEMICAL"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 1.02,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 19,
+    "definitions": 1,
+    "identifiers": 3,
+    "parents": 1,
+    "categories": 1
+   },
+   "definition": "The prototypical analgesic used in the treatment of mild to moderate pain. It has anti-inflammatory and antipyretic properties and acts as an inhibitor of cycl…",
+   "synonyms": [
+    "2-(Acetyloxy)benzoic Acid",
+    "Acetylsalicylic Acid",
+    "Acetysal",
+    "Acid, Acetylsalicylic"
+   ],
+   "raw_keys": [
+    "ChemicalName",
+    "ChemicalID",
+    "CasRN",
+    "PubChemCID",
+    "DTXSID",
+    "InChIKey",
+    "TreeNumbers"
+   ],
+   "identifiers": [
+    "CTD:MESH:D001241",
+    "MESH:MESH:D001241",
+    "PUBCHEM:2244"
+   ]
+  },
+  "relationships": {
+   "seconds": 60.0,
+   "count": 0,
+   "error": "TimeoutError: ",
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 4,
+   "error": null,
+   "targets": [
+    [
+     "MESH",
+     1
+    ],
+    [
+     "CAS",
+     1
+    ],
+    [
+     "PUBCHEM",
+     1
+    ],
+    [
+     "DSSTOX",
+     1
+    ]
+   ],
+   "sample": [
+    "MESH:MESH:D001241",
+    "CAS:50-78-2",
+    "PUBCHEM:2244"
+   ]
+  },
+  "first_id": "MESH:D001241",
+  "status": "ok"
+ },
+ {
+  "source": "DBPEDIA",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.37,
+   "count": 3,
+   "error": null,
+   "top": [
+    {
+     "id": "BRCA1",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "Cofactor_of_BRCA1",
+     "label": "Cofactor of BRCA1",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "BRISC_and_BRCA1-A_complex_member_2",
+     "label": "BRISC and BRCA1-A complex member 2",
+     "type": "UNKNOWN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.03,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "categories": 3
+   },
+   "raw_keys": [
+    "property",
+    "value"
+   ],
+   "identifiers": [
+    "DBPEDIA:BRCA1"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "BRCA1",
+  "status": "ok"
+ },
+ {
+  "source": "DBSNP",
+  "query": "rs1801133",
+  "search": {
+   "seconds": 0.73,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "rs1801133",
+     "label": "rs1801133",
+     "type": "MOLECULAR_ENTITY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.72,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 6,
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "definition": "SNV rs1801133 in MTHFR (coding_sequence_variant, missense_variant) ClinVar: benign, conflicting-interpretations-of-pathogenicity, drug-response, likely-benign",
+   "synonyms": [
+    "rs4134713",
+    "rs59514310",
+    "rs386545618",
+    "NC_000001.11:g.11796321G>A"
+   ],
+   "raw_keys": [
+    "rsid",
+    "requested_id",
+    "status",
+    "merged_from",
+    "merged_rsids",
+    "variant_type",
+    "anchor",
+    "created",
+    "last_updated",
+    "build",
+    "placements",
+    "genes",
+    "consequences",
+    "mane_select_ids"
+   ],
+   "identifiers": [
+    "DBSNP:rs1801133",
+    "NCBI:4524"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.07,
+   "count": 8,
+   "error": null,
+   "predicates": [
+    [
+     "has_clinical_association",
+     7
+    ],
+    [
+     "located_in",
+     1
+    ]
+   ],
+   "sample": [
+    "located_in -> 4524 (MTHFR)",
+    "has_clinical_association -> C1856059 (MTHFR THERMOLABILE POLYMORPHISM)",
+    "has_clinical_association -> C0238198 (Gastrointestinal stromal tumor)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.92,
+   "count": 22,
+   "error": null,
+   "targets": [
+    [
+     "ClinVar",
+     12
+    ],
+    [
+     "HGVS",
+     6
+    ],
+    [
+     "dbSNP",
+     3
+    ],
+    [
+     "NCBI",
+     1
+    ]
+   ],
+   "sample": [
+    "dbSNP:rs4134713",
+    "dbSNP:rs59514310",
+    "dbSNP:rs386545618"
+   ]
+  },
+  "first_id": "rs1801133",
+  "status": "ok"
+ },
+ {
+  "source": "DBVAR",
+  "query": "BRCA1",
+  "status": "skipped",
+  "needs": "credentials or optional dependency"
+ },
+ {
+  "source": "DGIDB",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.61,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "hgnc:1100",
+     "label": "BRCA1",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.21,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 12,
+    "definitions": 2,
+    "identifiers": 1,
+    "categories": 6
+   },
+   "definition": "BRCA1 DNA repair associated",
+   "synonyms": [
+    "BRCA1 DNA REPAIR ASSOCIATED",
+    "FANCS",
+    "RNF53",
+    "PPP1R53"
+   ],
+   "raw_keys": [
+    "name",
+    "conceptId",
+    "longName",
+    "geneAliases",
+    "geneCategories",
+    "interactions"
+   ],
+   "identifiers": [
+    "DGIDB:hgnc:1100"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.5,
+   "count": 25,
+   "error": null,
+   "predicates": [
+    [
+     "interacts_with",
+     25
+    ]
+   ],
+   "sample": [
+    "interacts_with -> ncit:C126798 (PIDNARULEX)",
+    "interacts_with -> chembl:CHEMBL1481721 (CHEMBL:CHEMBL1481721)",
+    "interacts_with -> chembl:CHEMBL89786 (2-PHENYLQUINOLINE)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.19,
+   "count": 9,
+   "error": null,
+   "targets": [
+    [
+     "HGNC",
+     1
+    ],
+    [
+     "ENSEMBL",
+     1
+    ],
+    [
+     "NCBI",
+     1
+    ],
+    [
+     "ORPHANET",
+     1
+    ],
+    [
+     "UNIPROT",
+     1
+    ],
+    [
+     "OMIM",
+     1
+    ],
+    [
+     "COSMIC",
+     1
+    ],
+    [
+     "PHARMGKB",
+     1
+    ]
+   ],
+   "sample": [
+    "HGNC:HGNC:1100",
+    "ENSEMBL:ENSEMBL:ENSG00000012048",
+    "NCBI:NCBIGENE:672"
+   ]
+  },
+  "first_id": "hgnc:1100",
+  "status": "ok"
+ },
+ {
+  "source": "DISGENET",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 1.5,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "UMLS_C0677776",
+     "label": "Hereditary Breast and Ovarian Cancer Syndrome",
+     "type": "DISEASE"
+    },
+    {
+     "id": "UMLS_C0376358",
+     "label": "Malignant neoplasm of prostate",
+     "type": "DISEASE"
+    },
+    {
+     "id": "UMLS_C4721610",
+     "label": "Carcinoma, Ovarian Epithelial",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.7,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 11,
+    "identifiers": 1,
+    "categories": 5,
+    "semantic_types": 1
+   },
+   "synonyms": [
+    "HBOC Syndromes",
+    "Syndrome, HBOC",
+    "Syndromes, HBOC",
+    "Familial Breast and Ovarian Cancer Syndrome"
+   ],
+   "raw_keys": [
+    "diseaseClasses_MSH",
+    "diseaseClasses_UMLS_ST",
+    "diseaseClasses_DO",
+    "diseaseClasses_HPO",
+    "name",
+    "diseaseUMLSCUI",
+    "disease_prevalence_class",
+    "disease_prevalence_geo_area",
+    "disease_prevalence_type",
+    "disease_inheritance",
+    "type",
+    "diseaseCodes",
+    "synonyms",
+    "search_rank"
+   ],
+   "identifiers": [
+    "DISGENET:UMLS_C0677776"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.0,
+   "count": 20,
+   "error": null,
+   "predicates": [
+    [
+     "has_gene",
+     20
+    ]
+   ],
+   "sample": [
+    "has_gene -> 675 (BRCA2)",
+    "has_gene -> 672 (BRCA1)",
+    "has_gene -> 5889 (RAD51C)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "UMLS_C0677776",
+  "status": "ok"
+ },
+ {
+  "source": "DOAJ",
+  "query": "long covid",
+  "search": {
+   "seconds": 0.71,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "article:0000a525710d408db4971f44da5a6e0c",
+     "label": "IMPACT OF COVID-19 ON EUROPEAN AND TURKEY AIR TRAFFIC NETWORKS",
+     "type": "CITATION"
+    },
+    {
+     "id": "article:0000ea0a2f3046379a3b6e8fbdfb28ce",
+     "label": "CSR and CEO’s Moral Reasoning in the Automotive Industry in the Era of COVID-19",
+     "type": "CITATION"
+    },
+    {
+     "id": "article:000336160559451790ac88fa7f3c418b",
+     "label": "Tourism SMMEs Recovery from COVID-19: A Case of SMMEs in the City of Polokwane, Limpopo p…",
+     "type": "CITATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.56,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 5,
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 5,
+    "semantic_types": 1
+   },
+   "definition": "Covid-19, which was defined as a result of research conducted in a group of patients developing respiratory symptoms in late December 2019 in Wuhan province of…",
+   "synonyms": [
+    "European Air Traffic",
+    "Turkey Air Traffic",
+    "Covid-19",
+    "Pandemic"
+   ],
+   "raw_keys": [
+    "id",
+    "doi",
+    "year",
+    "month",
+    "journal",
+    "journal_issns",
+    "publisher",
+    "journal_country",
+    "languages",
+    "volume",
+    "number",
+    "start_page",
+    "end_page",
+    "authors"
+   ],
+   "identifiers": [
+    "DOAJ:article:0000a525710d408db4971f44da5a6e0c",
+    "EUROPEPMC:DOI:10.33975/riuq.vol33n2.603"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.08,
+   "count": 4,
+   "error": null,
+   "predicates": [
+    [
+     "has_subject",
+     3
+    ],
+    [
+     "published_in",
+     1
+    ]
+   ],
+   "sample": [
+    "published_in -> Revista de Investigaciones Universidad del Quindío (Revista de Investigaciones Universidad del Quindío)",
+    "has_subject -> LCC:T1-995 (Technology (General))",
+    "has_subject -> LCC:A (General Works)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.12,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "DOI",
+     1
+    ]
+   ],
+   "sample": [
+    "DOI:10.33975/riuq.vol33n2.603"
+   ]
+  },
+  "first_id": "article:0000a525710d408db4971f44da5a6e0c",
+  "status": "ok"
+ },
+ {
+  "source": "DOID",
+  "query": "diabetes mellitus",
+  "search": {
+   "seconds": 0.42,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "DOID:9351",
+     "label": "diabetes mellitus",
+     "type": "DISEASE"
+    },
+    {
+     "id": "DOID:9352",
+     "label": "type 2 diabetes mellitus",
+     "type": "DISEASE"
+    },
+    {
+     "id": "DOID:9744",
+     "label": "type 1 diabetes mellitus",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.28,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 1,
+    "definitions": 1,
+    "identifiers": 2,
+    "parents": 1,
+    "children": 5,
+    "categories": 6
+   },
+   "definition": "A glucose metabolism disease that is characterized by chronic hyperglycaemia with disturbances of carbohydrate, fat and protein metabolism resulting from defec…",
+   "synonyms": [
+    "diabetes"
+   ],
+   "raw_keys": [
+    "iri",
+    "obo_id",
+    "label",
+    "in_subset",
+    "is_obsolete",
+    "term_replaced_by"
+   ],
+   "identifiers": [
+    "DOID:DOID:9351",
+    "DOID:http://purl.obolibrary.org/obo/DOID_9351"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.07,
+   "count": 8,
+   "error": null,
+   "predicates": [
+    [
+     "has_subclass",
+     5
+    ],
+    [
+     "is_a",
+     1
+    ],
+    [
+     "has_phenotype",
+     1
+    ],
+    [
+     "has_symptom",
+     1
+    ]
+   ],
+   "sample": [
+    "is_a -> DOID:4194 (glucose metabolism disease)",
+    "has_phenotype -> HP:0000818 (Abnormality of the endocrine system)",
+    "has_symptom -> SYMP:0000565 (polyuria)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.07,
+   "count": 6,
+   "error": null,
+   "targets": [
+    [
+     "ICD10CM",
+     1
+    ],
+    [
+     "ICD9CM",
+     1
+    ],
+    [
+     "MESH",
+     1
+    ],
+    [
+     "NCIT",
+     1
+    ],
+    [
+     "SNOMEDCT_US",
+     1
+    ],
+    [
+     "UMLS",
+     1
+    ]
+   ],
+   "sample": [
+    "ICD10CM:ICD10CM:E08-E13",
+    "ICD9CM:ICD9CM:250",
+    "MESH:MESH:D003920"
+   ]
+  },
+  "first_id": "DOID:9351",
+  "status": "ok"
+ },
+ {
+  "source": "DRUGBANK",
+  "query": "aspirin",
+  "search": {
+   "seconds": 1.1,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "DB00945",
+     "label": "Acetylsalicylic acid",
+     "type": "DRUG"
+    },
+    {
+     "id": "DB00388",
+     "label": "Phenylephrine",
+     "type": "DRUG"
+    },
+    {
+     "id": "DB00201",
+     "label": "Caffeine",
+     "type": "DRUG"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.21,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 19,
+    "identifiers": 1,
+    "categories": 3
+   },
+   "synonyms": [
+    "2-Acetoxybenzenecarboxylic acid",
+    "2-Acetoxybenzoic acid",
+    "acetyl salicylic acid",
+    "acetyl-salicylic acid"
+   ],
+   "raw_keys": [
+    "_license",
+    "accession_number",
+    "cas",
+    "id",
+    "inchi_key",
+    "name",
+    "synonyms",
+    "unii"
+   ],
+   "identifiers": [
+    "DRUGBANK:DB00945"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "DB00945",
+  "status": "ok"
+ },
+ {
+  "source": "EBIOLS",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.23,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/1100",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "http://purl.obolibrary.org/obo/OMIT_0030554",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "http://identifiers.org/ncbigene/12189",
+     "label": "Brca1",
+     "type": "UNKNOWN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.15,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 9,
+    "definitions": 1,
+    "identifiers": 1,
+    "parents": 1,
+    "categories": 6
+   },
+   "definition": "BRCA1 DNA repair associated",
+   "synonyms": [
+    "BRCA1/BRCA2-containing complex, subunit 1",
+    "Fanconi anemia, complementation group S",
+    "protein phosphatase 1, regulatory subunit 53",
+    "BRCC1"
+   ],
+   "raw_keys": [
+    "iri",
+    "lang",
+    "description",
+    "synonyms",
+    "annotation",
+    "label",
+    "ontology_name",
+    "ontology_prefix",
+    "ontology_iri",
+    "is_obsolete",
+    "term_replaced_by",
+    "is_defining_ontology",
+    "has_children",
+    "is_root"
+   ],
+   "identifiers": [
+    "EBIOLS:https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/1100"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.18,
+   "count": 1,
+   "error": null,
+   "predicates": [
+    [
+     "has_broader",
+     1
+    ]
+   ],
+   "sample": [
+    "has_broader -> http://purl.obolibrary.org/obo/SO_0001217 (protein_coding_gene)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/1100",
+  "status": "ok"
+ },
+ {
+  "source": "ENRICHR",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 3.25,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "GO_Biological_Process_2025::DNA Strand Resection Involved in Replication Fork Processing (GO:0110025)",
+     "label": "DNA Strand Resection Involved in Replication Fork Processing (GO:0110025)",
+     "type": "BIOLOGICAL_PROCESS"
+    },
+    {
+     "id": "KEGG_2026::HOMOLOGOUS RECOMBINATION",
+     "label": "HOMOLOGOUS RECOMBINATION",
+     "type": "PATHWAY"
+    },
+    {
+     "id": "Reactome_Pathways_2024::Impaired BRCA2 Binding to PALB2",
+     "label": "Impaired BRCA2 Binding to PALB2",
+     "type": "PATHWAY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 1.08,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "GO_Biological_Process_2025 gene set with 7 genes.",
+   "raw_keys": [
+    "library",
+    "term_id",
+    "n_genes",
+    "genes",
+    "truncated"
+   ],
+   "identifiers": [
+    "ENRICHR:GO_Biological_Process_2025::DNA Strand Resection Involved in Replication Fork Processing (GO:0110025)"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 7,
+   "error": null,
+   "predicates": [
+    [
+     "has_member",
+     7
+    ]
+   ],
+   "sample": [
+    "has_member -> BARD1 (BARD1)",
+    "has_member -> BRCA1 (BRCA1)",
+    "has_member -> EXO1 (EXO1)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "GO_Biological_Process_2025::DNA Strand Resection Involved in Replication Fork Processing (GO:0110025)",
+  "status": "ok"
+ },
+ {
+  "source": "ENSEMBL",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 22.46,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "ENSG00000012048",
+     "label": "BRCA1",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 12.83,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 2
+   },
+   "definition": "BRCA1 DNA repair associated [Source:HGNC Symbol;Acc:HGNC:1100]",
+   "raw_keys": [
+    "end",
+    "start",
+    "Transcript",
+    "species",
+    "display_name",
+    "logic_name",
+    "strand",
+    "assembly_name",
+    "biotype",
+    "canonical_transcript",
+    "object_type",
+    "version",
+    "id",
+    "description"
+   ],
+   "identifiers": [
+    "ENSEMBL:ENSG00000012048"
+   ]
+  },
+  "relationships": {
+   "seconds": 7.14,
+   "count": 10,
+   "error": null,
+   "predicates": [
+    [
+     "ortholog",
+     10
+    ]
+   ],
+   "sample": [
+    "ortholog -> ENSPPAG00000030624 (ENSPPAG00000030624)",
+    "ortholog -> ENSPPYG00000008363 (ENSPPYG00000008363)",
+    "ortholog -> ENSPTRG00000009236 (ENSPTRG00000009236)"
+   ]
+  },
+  "mappings": {
+   "seconds": 14.88,
+   "count": 90,
+   "error": null,
+   "targets": [
+    [
+     "Reactome_gene",
+     59
+    ],
+    [
+     "Uniprot_gn",
+     19
+    ],
+    [
+     "MIM_MORBID",
+     4
+    ],
+    [
+     "ENS_LRG_gene",
+     1
+    ],
+    [
+     "ArrayExpress",
+     1
+    ],
+    [
+     "DBASS5",
+     1
+    ],
+    [
+     "EntrezGene",
+     1
+    ],
+    [
+     "GeneCards",
+     1
+    ]
+   ],
+   "sample": [
+    "ENS_LRG_gene:LRG_292",
+    "ArrayExpress:ENSG00000012048",
+    "DBASS5:383"
+   ]
+  },
+  "first_id": "ENSG00000012048",
+  "status": "ok"
+ },
+ {
+  "source": "EQTLCATALOGUE",
+  "query": "macrophage",
+  "search": {
+   "seconds": 0.96,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "CL:0000235",
+     "label": "macrophage",
+     "type": "CELL_TYPE"
+    },
+    {
+     "id": "QTS000001",
+     "label": "Alasoo_2018",
+     "type": "REFERENCE"
+    },
+    {
+     "id": "QTS000021",
+     "label": "Nedelec_2016",
+     "type": "REFERENCE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.0,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1
+   },
+   "raw_keys": [
+    "release",
+    "n_datasets",
+    "studies",
+    "conditions",
+    "quant_methods"
+   ],
+   "identifiers": [
+    "EQTLCATALOGUE:CL:0000235"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 27,
+   "error": null,
+   "predicates": [
+    [
+     "has_dataset",
+     25
+    ],
+    [
+     "profiled_in_study",
+     2
+    ]
+   ],
+   "sample": [
+    "profiled_in_study -> QTS000001 (Alasoo_2018)",
+    "profiled_in_study -> QTS000021 (Nedelec_2016)",
+    "has_dataset -> QTD000001 (Alasoo_2018 macrophage (ge))"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "CL",
+     1
+    ]
+   ],
+   "sample": [
+    "CL:CL:0000235"
+   ]
+  },
+  "first_id": "CL:0000235",
+  "status": "ok"
+ },
+ {
+  "source": "EUROPEPMC",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 8.58,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "PMID:42826492",
+     "label": "The BRCA1-A complex: At the edge of resection and the beauty of restraint.",
+     "type": "CITATION"
+    },
+    {
+     "id": "PMID:42791527",
+     "label": "Pathogenic germline variants in BRCA1/2 are associated with a decreased number of hypomet…",
+     "type": "CITATION"
+    },
+    {
+     "id": "PMID:42757486",
+     "label": "Pemetrexed increases BRCA1 protein stability and sensitizes TNBC cells to radiotherapy.",
+     "type": "CITATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.07,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 3
+   },
+   "definition": "How a DNA double-strand break (DSB) is repaired by the cell is organized around a fundamental decision between DNA end protection and 5'-end resection. BRCA1 i…",
+   "raw_keys": [
+    "id",
+    "source",
+    "pmid",
+    "doi",
+    "title",
+    "authorString",
+    "authorList",
+    "journalInfo",
+    "pubYear",
+    "pageInfo",
+    "abstractText",
+    "affiliation",
+    "publicationStatus",
+    "language"
+   ],
+   "identifiers": [
+    "EUROPEPMC:PMID:42826492",
+    "EUROPEPMC:DOI:10.1016/j.dnarep.2026.103964"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "PMID:42826492",
+  "status": "ok"
+ },
+ {
+  "source": "EUTILS",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 60.0,
+   "count": 0,
+   "error": "TimeoutError: ",
+   "top": []
+  },
+  "status": "failed"
+ },
+ {
+  "source": "FHIRTERMINOLOGY",
+  "query": "fatigue",
+  "search": {
+   "seconds": 2.31,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "snomed|84229001",
+     "label": "Fatigue",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "icd10cm|G93.3",
+     "label": "Postviral and related fatigue syndromes",
+     "type": "DISEASE"
+    },
+    {
+     "id": "loinc|LA19104-1",
+     "label": "0 - no fatigue",
+     "type": "OBSERVATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.47,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 2,
+    "definitions": 1,
+    "identifiers": 2,
+    "parents": 2,
+    "children": 14,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "definition": "Fatigue refers to a lack of energy, and it may be either acute or chronic. Fatigue may result from exertion, stress, and a wide variety of underlying medical c…",
+   "synonyms": [
+    "Weariness",
+    "Fatigue (finding)"
+   ],
+   "raw_keys": [
+    "server",
+    "system",
+    "code",
+    "version",
+    "name",
+    "abstract",
+    "properties",
+    "designations",
+    "parents",
+    "children"
+   ],
+   "identifiers": [
+    "FHIRTERMINOLOGY:snomed|84229001",
+    "SNOMEDCT:84229001"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.52,
+   "count": 16,
+   "error": null,
+   "predicates": [
+    [
+     "has_subtype",
+     14
+    ],
+    [
+     "is_a",
+     2
+    ]
+   ],
+   "sample": [
+    "is_a -> snomed|359752005 (Energy and stamina finding)",
+    "is_a -> snomed|105721009 (General problem AND/OR complaint)",
+    "has_subtype -> snomed|224960004 (Tired)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.49,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "snomed|84229001",
+  "status": "ok"
+ },
+ {
+  "source": "GENCC",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 2.95,
+   "count": 2,
+   "error": null,
+   "top": [
+    {
+     "id": "HGNC:1100",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "MONDO:0700268",
+     "label": "BRCA1-related cancer predisposition",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.0,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "BRCA1: 11 GenCC submission(s) from 6 submitter(s) on 6 disease(s); strongest classification: Definitive.",
+   "raw_keys": [
+    "url",
+    "n_submissions",
+    "n_diseases",
+    "submitters",
+    "validity_summary",
+    "diseases"
+   ],
+   "identifiers": [
+    "GENCC:HGNC:1100",
+    "HGNC:HGNC:1100"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 6,
+   "error": null,
+   "predicates": [
+    [
+     "associated_with",
+     6
+    ]
+   ],
+   "sample": [
+    "associated_with -> MONDO:0054748 (Fanconi anemia, complementation group S)",
+    "associated_with -> MONDO:0011450 (breast-ovarian cancer, familial, susceptibility t…)",
+    "associated_with -> MONDO:0700268 (BRCA1-related cancer predisposition)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "HGNC:1100",
+  "status": "ok"
+ },
+ {
+  "source": "GENEONTOLOGY",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.2,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "GO:0070533",
+     "label": "BRCA1-C complex",
+     "type": "GENE"
+    },
+    {
+     "id": "GO:0070531",
+     "label": "BRCA1-A complex",
+     "type": "GENE"
+    },
+    {
+     "id": "GO:0070532",
+     "label": "BRCA1-B complex",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.04,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 1
+   },
+   "definition": "A protein complex that contains the BRCA1-BARD1 heterodimer, CtIP and Mre11/Rad50/NBS1 (M/R/N) complex, and binds to DNA at DNA damage sites. BRCA1-C binding t…",
+   "raw_keys": [
+    "id",
+    "isObsolete",
+    "name",
+    "definition",
+    "aspect",
+    "usage"
+   ],
+   "identifiers": [
+    "GENEONTOLOGY:GO:0070533"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "GO:0070533",
+  "status": "ok"
+ },
+ {
+  "source": "GEO",
+  "query": "chronic fatigue syndrome",
+  "search": {
+   "seconds": 0.81,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "GSE327255",
+     "label": "PTPRN2 hypomethylation and PHB2-modulated miR-153-3p maturation reveal dual epigenetic me…",
+     "type": "STUDY"
+    },
+    {
+     "id": "GSE317067",
+     "label": "Extracellular vesicle protein and miRNA signatures as biomarkers for post-infectious ME/C…",
+     "type": "STUDY"
+    },
+    {
+     "id": "GSE304805",
+     "label": "Precision Medicine Study of Post-Exertional Malaise epigenetic changes in Myalgic Encepha…",
+     "type": "STUDY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.24,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 1,
+    "semantic_types": 2
+   },
+   "definition": "Background: Myalgic encephalomyelitis (ME) is a chronic, debilitating condition increasingly linked to epigenetic changes. With its unclear pathophysiology and…",
+   "raw_keys": [
+    "uid",
+    "accession",
+    "entry_type",
+    "url",
+    "organisms",
+    "data_type",
+    "platforms",
+    "series",
+    "n_samples",
+    "pubmed_ids",
+    "bioproject",
+    "sra_studies",
+    "publication_date",
+    "supplementary_file_types"
+   ],
+   "identifiers": [
+    "GEO:GSE327255"
+   ]
+  },
+  "relationships": {
+   "seconds": 5.87,
+   "count": 53,
+   "error": null,
+   "predicates": [
+    [
+     "has_sample",
+     50
+    ],
+    [
+     "uses_platform",
+     1
+    ],
+    [
+     "has_publication",
+     1
+    ],
+    [
+     "has_organism",
+     1
+    ]
+   ],
+   "sample": [
+    "uses_platform -> GPL21145 (Infinium MethylationEPIC)",
+    "has_sample -> GSM9652281 (Case 009)",
+    "has_sample -> GSM9652282 (Case 012)"
+   ]
+  },
+  "mappings": {
+   "seconds": 3.07,
+   "count": 3,
+   "error": null,
+   "targets": [
+    [
+     "PUBMED",
+     1
+    ],
+    [
+     "NCBITAXON",
+     1
+    ],
+    [
+     "BIOPROJECT",
+     1
+    ]
+   ],
+   "sample": [
+    "PUBMED:PMID:42010606",
+    "NCBITAXON:NCBITaxon:9606",
+    "BIOPROJECT:BioProject:PRJNA1450064"
+   ]
+  },
+  "first_id": "GSE327255",
+  "status": "ok"
+ },
+ {
+  "source": "GNOMAD",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.55,
+   "count": 2,
+   "error": null,
+   "top": [
+    {
+     "id": "ENSG00000012048",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "ENSG00000267595",
+     "label": "BRCA1P1",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.15,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 1,
+    "definitions": 1,
+    "identifiers": 4,
+    "semantic_types": 1
+   },
+   "definition": "BRCA1 DNA repair associated",
+   "synonyms": [
+    "BRCA1 DNA repair associated"
+   ],
+   "raw_keys": [
+    "kind",
+    "gene_id",
+    "symbol",
+    "name",
+    "hgnc_id",
+    "ncbi_id",
+    "omim_id",
+    "chrom",
+    "start",
+    "stop",
+    "strand",
+    "reference_genome",
+    "canonical_transcript_id",
+    "constraint"
+   ],
+   "identifiers": [
+    "GNOMAD:ENSG00000012048",
+    "HGNC:HGNC:1100",
+    "NCBI:672",
+    "OMIM:113705"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.41,
+   "count": 10,
+   "error": null,
+   "predicates": [
+    [
+     "has_variant",
+     10
+    ]
+   ],
+   "sample": [
+    "has_variant -> 17-43092919-G-A (rs799917)",
+    "has_variant -> 17-43071077-T-C (rs1799966)",
+    "has_variant -> 17-43091983-T-C (rs16942)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.15,
+   "count": 4,
+   "error": null,
+   "targets": [
+    [
+     "HGNC",
+     1
+    ],
+    [
+     "NCBI",
+     1
+    ],
+    [
+     "OMIM",
+     1
+    ],
+    [
+     "Ensembl",
+     1
+    ]
+   ],
+   "sample": [
+    "HGNC:HGNC:1100",
+    "NCBI:672",
+    "OMIM:113705"
+   ]
+  },
+  "first_id": "ENSG00000012048",
+  "status": "ok"
+ },
+ {
+  "source": "GO",
+  "query": "BRCA1",
+  "status": "skipped",
+  "needs": "credentials or optional dependency"
+ },
+ {
+  "source": "GTEX",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.85,
+   "count": 2,
+   "error": null,
+   "top": [
+    {
+     "id": "ENSG00000012048",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "ENSG00000267595",
+     "label": "BRCA1P1",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.46,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 3,
+    "categories": 1
+   },
+   "definition": "BRCA1 DNA repair associated",
+   "raw_keys": [
+    "dataset",
+    "gencode_id",
+    "gencode_version",
+    "gene_type",
+    "chromosome",
+    "start",
+    "end",
+    "strand",
+    "genome_build",
+    "entrez_gene_id",
+    "top_tissues_tpm",
+    "n_tissues",
+    "n_tissues_expressed",
+    "max_tpm"
+   ],
+   "identifiers": [
+    "GTEX:ENSG00000012048",
+    "GTEX:ENSG00000012048.23",
+    "NCBI:NCBIGene:672"
+   ]
+  },
+  "relationships": {
+   "seconds": 3.64,
+   "count": 20,
+   "error": null,
+   "predicates": [
+    [
+     "expressed_in",
+     10
+    ],
+    [
+     "has_eqtl_variant",
+     10
+    ]
+   ],
+   "sample": [
+    "expressed_in -> EFO:0000572 (Cells_EBV-transformed_lymphocytes)",
+    "expressed_in -> UBERON:0000473 (Testis)",
+    "expressed_in -> EFO:0002009 (Cells_Cultured_fibroblasts)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.27,
+   "count": 4,
+   "error": null,
+   "targets": [
+    [
+     "NCBIGene",
+     1
+    ],
+    [
+     "HGNC",
+     1
+    ],
+    [
+     "ENSEMBL",
+     1
+    ],
+    [
+     "HGNC.SYMBOL",
+     1
+    ]
+   ],
+   "sample": [
+    "NCBIGene:NCBIGene:672",
+    "HGNC:HGNC:1100",
+    "ENSEMBL:ENSEMBL:ENSG00000012048.23"
+   ]
+  },
+  "first_id": "ENSG00000012048",
+  "status": "ok"
+ },
+ {
+  "source": "GWASCATALOG",
+  "query": "chronic fatigue syndrome",
+  "search": {
+   "seconds": 0.76,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "MONDO:0005404",
+     "label": "myalgic encephalomeyelitis/chronic fatigue syndrome",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 1.72,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 2,
+    "identifiers": 2,
+    "categories": 1
+   },
+   "definition": "GWAS Catalog trait mapped to http://purl.obolibrary.org/obo/MONDO_0005404",
+   "raw_keys": [
+    "efo_trait",
+    "uri",
+    "efo_id",
+    "_links",
+    "gwas_counts"
+   ],
+   "identifiers": [
+    "GWASCATALOG:MONDO:0005404",
+    "GWASCATALOG:MONDO_0005404"
+   ]
+  },
+  "relationships": {
+   "seconds": 5.2,
+   "count": 9,
+   "error": null,
+   "predicates": [
+    [
+     "associated_variant",
+     9
+    ]
+   ],
+   "sample": [
+    "associated_variant -> rs141691232 (rs141691232)",
+    "associated_variant -> rs190241717 (rs190241717)",
+    "associated_variant -> rs189511601 (rs189511601)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "MONDO",
+     1
+    ]
+   ],
+   "sample": [
+    "MONDO:MONDO:0005404"
+   ]
+  },
+  "first_id": "MONDO:0005404",
+  "status": "ok"
+ },
+ {
+  "source": "HGNC",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.2,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "HGNC:1100",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "HGNC:25829",
+     "label": "ABRAXAS1",
+     "type": "GENE"
+    },
+    {
+     "id": "HGNC:20691",
+     "label": "NBR2",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.06,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 5,
+    "identifiers": 4,
+    "categories": 7,
+    "semantic_types": 1
+   },
+   "synonyms": [
+    "BRCA1",
+    "RNF53",
+    "BRCC1",
+    "PPP1R53"
+   ],
+   "raw_keys": [
+    "locus_group",
+    "gencc",
+    "status",
+    "name",
+    "mgd_id",
+    "gene_group_id",
+    "vega_id",
+    "locus_type",
+    "alias_symbol",
+    "uniprot_ids",
+    "agr",
+    "omim_id",
+    "entrez_id",
+    "hgnc_id"
+   ],
+   "identifiers": [
+    "HGNC:HGNC:1100",
+    "NCBI:672",
+    "UNIPROT:P38398",
+    "ENSEMBL:ENSG00000012048"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "HGNC:1100",
+  "status": "ok"
+ },
+ {
+  "source": "HPO",
+  "query": "seizure",
+  "search": {
+   "seconds": 0.4,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "HP:0032894",
+     "label": "Seizure precipitated by febrile infection",
+     "type": "PHENOTYPE"
+    },
+    {
+     "id": "HP:0031165",
+     "label": "Multifocal seizures",
+     "type": "PHENOTYPE"
+    },
+    {
+     "id": "HP:0020220",
+     "label": "Focal atonic seizure",
+     "type": "PHENOTYPE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.16,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 1,
+    "definitions": 1,
+    "identifiers": 1
+   },
+   "definition": "Any form of seizure occurring at the time of a fever (temperature at or above 38.0 degrees Celcius) without infection of the central nervous system, and withou…",
+   "synonyms": [
+    "Fever induced seizure"
+   ],
+   "raw_keys": [
+    "id",
+    "name",
+    "definition",
+    "comment",
+    "descendantCount",
+    "synonyms",
+    "xrefs",
+    "publicationReferences",
+    "translations"
+   ],
+   "identifiers": [
+    "HPO:HP:0032894"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "HP:0032894",
+  "status": "ok"
+ },
+ {
+  "source": "HPOA",
+  "query": "marfan",
+  "search": {
+   "seconds": 3.8,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "OMIM:154700",
+     "label": "Marfan syndrome",
+     "type": "DISEASE"
+    },
+    {
+     "id": "ORPHA:558",
+     "label": "Marfan syndrome",
+     "type": "DISEASE"
+    },
+    {
+     "id": "OMIM:616914",
+     "label": "Marfan lipodystrophy syndrome",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.0,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 2,
+    "categories": 1
+   },
+   "raw_keys": [
+    "annotations",
+    "phenotypes",
+    "excluded_phenotypes",
+    "inheritance",
+    "clinical_course",
+    "references",
+    "hpoa_version",
+    "hpo_version"
+   ],
+   "identifiers": [
+    "HPOA:OMIM:154700",
+    "OMIM:OMIM:154700"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 50,
+   "error": null,
+   "predicates": [
+    [
+     "has_phenotype",
+     50
+    ]
+   ],
+   "sample": [
+    "has_phenotype -> HP:0100775 (HP:0100775)",
+    "has_phenotype -> HP:0002616 (HP:0002616)",
+    "has_phenotype -> HP:0430043 (HP:0430043)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "OMIM:154700",
+  "status": "ok"
+ },
+ {
+  "source": "HUMANPROTEINATLAS",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.36,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "ENSG00000012048",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "ENSG00000138376",
+     "label": "BARD1",
+     "type": "GENE"
+    },
+    {
+     "id": "ENSG00000106009",
+     "label": "BRAT1",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.23,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 5,
+    "definitions": 1,
+    "identifiers": 4,
+    "categories": 7,
+    "semantic_types": 1
+   },
+   "definition": "BRCA1 DNA repair associated",
+   "synonyms": [
+    "BRCA1",
+    "BRCC1",
+    "FANCS",
+    "PPP1R53"
+   ],
+   "raw_keys": [
+    "ensembl",
+    "symbol",
+    "description",
+    "uniprot",
+    "chromosome",
+    "position",
+    "protein_class",
+    "evidence",
+    "rna_tissue_specificity",
+    "rna_tissue_distribution",
+    "rna_tissue_enriched_ntpm",
+    "rna_blood_cell_specificity",
+    "rna_blood_cell_distribution",
+    "rna_blood_cell_enriched_ntpm"
+   ],
+   "identifiers": [
+    "HUMANPROTEINATLAS:ENSG00000012048",
+    "ENSEMBL:ENSG00000012048",
+    "UNIPROT:P38398",
+    "HUMANPROTEINATLAS:ENSG00000012048"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 20,
+   "error": null,
+   "predicates": [
+    [
+     "expressed_in",
+     10
+    ],
+    [
+     "expressed_in_cell_type",
+     10
+    ]
+   ],
+   "sample": [
+    "expressed_in -> thymus (thymus)",
+    "expressed_in -> testis (testis)",
+    "expressed_in -> bone marrow (bone marrow)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.14,
+   "count": 3,
+   "error": null,
+   "targets": [
+    [
+     "ENSEMBL",
+     1
+    ],
+    [
+     "UNIPROT",
+     1
+    ],
+    [
+     "HGNC",
+     1
+    ]
+   ],
+   "sample": [
+    "ENSEMBL:ENSG00000012048",
+    "UNIPROT:P38398",
+    "HGNC:BRCA1"
+   ]
+  },
+  "first_id": "ENSG00000012048",
+  "status": "ok"
+ },
+ {
+  "source": "ICD10GM",
+  "query": "fatigue",
+  "status": "skipped",
+  "needs": "ICD10GM_CLAML_PATH"
+ },
+ {
+  "source": "ICD11",
+  "query": "fatigue",
+  "status": "skipped",
+  "needs": "ICD11_CLIENT_ID"
+ },
+ {
+  "source": "IEDB",
+  "query": "spike",
+  "search": {
+   "seconds": 0.96,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "IEDB_EPITOPE:146741",
+     "label": "AAAGVPFSLSVQYRI",
+     "type": "MOLECULAR_ENTITY"
+    },
+    {
+     "id": "IEDB_EPITOPE:146743",
+     "label": "AAQAIEKVNECVKSQ",
+     "type": "MOLECULAR_ENTITY"
+    },
+    {
+     "id": "IEDB_EPITOPE:146745",
+     "label": "AAYHQDAPEPALLYR",
+     "type": "MOLECULAR_ENTITY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 7.63,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 2,
+    "identifiers": 3,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "IEDB linear peptide of 15 residues from Spike glycoprotein (Betacoronavirus muris).",
+   "raw_keys": [
+    "structure_type",
+    "linear_sequence",
+    "linear_sequence_length",
+    "antigens",
+    "organisms",
+    "tcell_assay_count",
+    "mhc_classes",
+    "mhc_alleles",
+    "hosts",
+    "pubmed_count",
+    "epitope_structures_defined"
+   ],
+   "identifiers": [
+    "IEDB:IEDB_EPITOPE:146741",
+    "UNIPROT:P11224",
+    "NCBITAXONOMY:3433759"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.19,
+   "count": 11,
+   "error": null,
+   "predicates": [
+    [
+     "restricted_by_mhc_allele",
+     4
+    ],
+    [
+     "has_source_antigen",
+     2
+    ],
+    [
+     "has_source_organism",
+     2
+    ],
+    [
+     "has_host_organism",
+     2
+    ],
+    [
+     "has_tcell_assays",
+     1
+    ]
+   ],
+   "sample": [
+    "has_source_antigen -> UNIPROT:P11224 (Spike glycoprotein)",
+    "has_source_organism -> NCBITaxon:3433759 (Betacoronavirus muris)",
+    "has_source_organism -> NCBITaxon:11138 (Murine hepatitis virus (mouse hepatitis virus))"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.5,
+   "count": 5,
+   "error": null,
+   "targets": [
+    [
+     "NCBITaxon",
+     2
+    ],
+    [
+     "UniProt",
+     1
+    ],
+    [
+     "NCBI Protein",
+     1
+    ],
+    [
+     "PubMed",
+     1
+    ]
+   ],
+   "sample": [
+    "UniProt:P11224",
+    "NCBI Protein:ABS87264.1",
+    "NCBITaxon:NCBITaxon:3433759"
+   ]
+  },
+  "first_id": "IEDB_EPITOPE:146741",
+  "status": "ok"
+ },
+ {
+  "source": "IMPC",
+  "query": "Brca1",
+  "search": {
+   "seconds": 0.38,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "MGI:104537",
+     "label": "Brca1",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.29,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 2,
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "Mouse gene Brca1 (breast cancer 1, early onset). Human ortholog: BRCA1.",
+   "synonyms": [
+    "breast cancer 1, early onset",
+    "BRCA1"
+   ],
+   "raw_keys": [
+    "kind",
+    "marker_symbol",
+    "marker_name",
+    "human_gene_symbol",
+    "human_symbol_synonym",
+    "chromosome",
+    "strand",
+    "start",
+    "end",
+    "phenotyping_data_available",
+    "phenotype_status",
+    "mouse_production_status",
+    "significant_top_level_mp_terms",
+    "not_significant_top_level_mp_terms"
+   ],
+   "identifiers": [
+    "IMPC:MGI:104537"
+   ]
+  },
+  "relationships": {
+   "seconds": 2.44,
+   "count": 1,
+   "error": null,
+   "predicates": [
+    [
+     "ortholog_of",
+     1
+    ]
+   ],
+   "sample": [
+    "ortholog_of -> BRCA1 (BRCA1)"
+   ]
+  },
+  "mappings": {
+   "seconds": 1.21,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "HGNC",
+     1
+    ]
+   ],
+   "sample": [
+    "HGNC:BRCA1"
+   ]
+  },
+  "first_id": "MGI:104537",
+  "status": "ok"
+ },
+ {
+  "source": "INTACT",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.39,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "P38398",
+     "label": "BRCA1",
+     "type": "PROTEIN"
+    },
+    {
+     "id": "Q9NQR3",
+     "label": "BRCA1",
+     "type": "PROTEIN"
+    },
+    {
+     "id": "Q8IZK2",
+     "label": "BRCA1",
+     "type": "PROTEIN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.05,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 1,
+    "definitions": 1,
+    "identifiers": 3,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "definition": "Breast cancer type 1 susceptibility protein",
+   "synonyms": [
+    "Breast cancer type 1 susceptibility protein"
+   ],
+   "raw_keys": [
+    "interactorAc",
+    "interactorName",
+    "interactorIntactName",
+    "interactorPreferredIdentifier",
+    "interactorDescription",
+    "interactorAlias",
+    "interactorAliasNames",
+    "interactorAltIds",
+    "interactorType",
+    "interactorTypeMIIdentifier",
+    "interactorTypeMIIdentifierStyled",
+    "interactorSpecies",
+    "interactorTaxId",
+    "interactorTaxIdStyled"
+   ],
+   "identifiers": [
+    "INTACT:P38398",
+    "INTACT:EBI-349905",
+    "UNIPROT:P38398"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.14,
+   "count": 25,
+   "error": null,
+   "predicates": [
+    [
+     "interacts_with",
+     25
+    ]
+   ],
+   "sample": [
+    "interacts_with -> Q9BX63 (BRIP1)",
+    "interacts_with -> Q99728 (BARD1)",
+    "interacts_with -> Q99708 (RBBP8)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.13,
+   "count": 59,
+   "error": null,
+   "targets": [
+    [
+     "PDB",
+     10
+    ],
+    [
+     "Reactome",
+     10
+    ],
+    [
+     "RefSeq",
+     10
+    ],
+    [
+     "InterPro",
+     9
+    ],
+    [
+     "Orphanet",
+     7
+    ],
+    [
+     "Ensembl",
+     6
+    ],
+    [
+     "UniProt",
+     5
+    ],
+    [
+     "IntAct",
+     1
+    ]
+   ],
+   "sample": [
+    "IntAct:EBI-349905",
+    "UniProt:Q3LRJ0",
+    "UniProt:O15129"
+   ]
+  },
+  "first_id": "P38398",
+  "status": "ok"
+ },
+ {
+  "source": "INTERPRO",
+  "query": "kinase",
+  "search": {
+   "seconds": 0.17,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "InterPro:IPR000023",
+     "label": "Phosphofructokinase domain",
+     "type": "MOLECULAR_ENTITY"
+    },
+    {
+     "id": "InterPro:IPR000239",
+     "label": "GPCR kinase",
+     "type": "PROTEIN"
+    },
+    {
+     "id": "InterPro:IPR000333",
+     "label": "Ser/Thr protein kinase, TGFB receptor",
+     "type": "PROTEIN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.06,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "semantic_types": 1
+   },
+   "definition": "<p>The enzyme-catalysed transfer of a phosphoryl group from ATP is an important reaction in a wide variety of biological processes [[cite:PUB00004002]]. One en…",
+   "raw_keys": [
+    "metadata"
+   ],
+   "identifiers": [
+    "INTERPRO:InterPro:IPR000023"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "InterPro:IPR000023",
+  "status": "ok"
+ },
+ {
+  "source": "ISRCTN",
+  "query": "chronic fatigue",
+  "search": {
+   "seconds": 0.31,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "ISRCTN85256968",
+     "label": "Sarcopenia and diabetes in elderly adults with type 2 diabetes",
+     "type": "OBSERVATIONAL_STUDY"
+    },
+    {
+     "id": "ISRCTN68329800",
+     "label": "Can personalized listening training reduce tinnitus in adults?",
+     "type": "CLINICAL_TRIAL"
+    },
+    {
+     "id": "ISRCTN15880445",
+     "label": "Effects of mild hyperbaric oxygen therapy on fatigue recovery following a simulated fenci…",
+     "type": "CLINICAL_TRIAL"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.33,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 2,
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 2,
+    "semantic_types": 2
+   },
+   "definition": "The study conducted at the community diabetes clinic in Cesano Boscone (Milan) aimed to assess the prevalence of sarcopenia in patients with type 2 diabetes me…",
+   "synonyms": [
+    "Prevalence and predictors of sarcopenia in elderl…",
+    "SARCODIAB"
+   ],
+   "raw_keys": [
+    "isrctn",
+    "title",
+    "scientific_title",
+    "acronym",
+    "summary",
+    "hypothesis",
+    "primary_outcomes",
+    "secondary_outcomes",
+    "study_design",
+    "status",
+    "status_derived",
+    "recruitment_start",
+    "recruitment_end",
+    "overall_end"
+   ],
+   "identifiers": [
+    "ISRCTN:ISRCTN85256968"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.48,
+   "count": 5,
+   "error": null,
+   "predicates": [
+    [
+     "studies_condition",
+     2
+    ],
+    [
+     "tests_intervention",
+     1
+    ],
+    [
+     "has_sponsor",
+     1
+    ],
+    [
+     "funded_by",
+     1
+    ]
+   ],
+   "sample": [
+    "studies_condition -> Sarcopenia in diabetic patients (Sarcopenia in diabetic patients)",
+    "studies_condition -> Musculoskeletal Diseases (Musculoskeletal Diseases)",
+    "tests_intervention -> An observational, cross-sectional, retrospective study. Patient data will be extracted from the diabetes medical reco... (An observational, cross-sectional, retrospective …)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.49,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "DOI",
+     1
+    ]
+   ],
+   "sample": [
+    "DOI:10.1186/ISRCTN85256968"
+   ]
+  },
+  "first_id": "ISRCTN85256968",
+  "status": "ok"
+ },
+ {
+  "source": "KEGG",
+  "query": "diabetes",
+  "search": {
+   "seconds": 3.33,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "H00252",
+     "label": "Congenital nephrogenic diabetes insipidus",
+     "type": "DISEASE"
+    },
+    {
+     "id": "H00253",
+     "label": "Neurohypophyseal diabetes insipidus",
+     "type": "DISEASE"
+    },
+    {
+     "id": "H00408",
+     "label": "Type 1 diabetes mellitus",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.28,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1
+   },
+   "definition": "Nephrogenic diabetes insipidus (NDI) is characterized by renal insensitivity to the antidiuretic effect of arginine vasopressin.",
+   "raw_keys": [
+    "raw_text"
+   ],
+   "identifiers": [
+    "KEGG:H00252"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.28,
+   "count": 4,
+   "error": null,
+   "targets": [
+    [
+     "OMIM",
+     2
+    ],
+    [
+     "ICD-11",
+     1
+    ],
+    [
+     "MeSH",
+     1
+    ]
+   ],
+   "sample": [
+    "ICD-11:GB90.4A",
+    "MeSH:D018500",
+    "OMIM:304800"
+   ]
+  },
+  "first_id": "H00252",
+  "status": "ok"
+ },
+ {
+  "source": "LIPIDMAPS",
+  "query": "cholesterol",
+  "search": {
+   "seconds": 0.74,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "LMST01010001",
+     "label": "Cholesterol",
+     "type": "CHEMICAL"
+    },
+    {
+     "id": "LMST01010081",
+     "label": "Epicholesterol",
+     "type": "CHEMICAL"
+    },
+    {
+     "id": "LMST01010093",
+     "label": "Cholesterol(d7)",
+     "type": "CHEMICAL"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.48,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 5,
+    "definitions": 1,
+    "identifiers": 4,
+    "parents": 1,
+    "categories": 3,
+    "semantic_types": 1
+   },
+   "definition": "Lipid classified as Cholesterol and derivatives (ST0101) within Sterols.",
+   "synonyms": [
+    "cholest-5-en-3beta-ol",
+    "ST 27:1;O",
+    "Cholest-5-en-3-ol",
+    "(3beta)-Cholest-5-en-3-ol"
+   ],
+   "raw_keys": [
+    "regno",
+    "sys_name",
+    "abbrev",
+    "core",
+    "main_class",
+    "sub_class",
+    "formula",
+    "exactmass",
+    "inchi_key",
+    "inchi",
+    "smiles",
+    "hmdb_id",
+    "lipidbank_id"
+   ],
+   "identifiers": [
+    "LIPIDMAPS:LMST01010001",
+    "PUBCHEM:5997",
+    "CHEBI:CHEBI:16113",
+    "KEGG:C00187"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.11,
+   "count": 3,
+   "error": null,
+   "predicates": [
+    [
+     "is_a",
+     3
+    ]
+   ],
+   "sample": [
+    "is_a -> LMST0101 (Cholesterol and derivatives)",
+    "is_a -> LMST01 (Sterols)",
+    "is_a -> LMST (Sterols)"
+   ]
+  },
+  "mappings": {
+   "seconds": 6.42,
+   "count": 7,
+   "error": null,
+   "targets": [
+    [
+     "PubChem",
+     1
+    ],
+    [
+     "ChEBI",
+     1
+    ],
+    [
+     "HMDB",
+     1
+    ],
+    [
+     "KEGG",
+     1
+    ],
+    [
+     "LipidBank",
+     1
+    ],
+    [
+     "SwissLipids",
+     1
+    ],
+    [
+     "RefMet",
+     1
+    ]
+   ],
+   "sample": [
+    "PubChem:5997",
+    "ChEBI:CHEBI:16113",
+    "HMDB:HMDB0000067"
+   ]
+  },
+  "first_id": "LMST01010001",
+  "status": "ok"
+ },
+ {
+  "source": "LITCOVID",
+  "query": "long covid",
+  "search": {
+   "seconds": 0.84,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "PMID:36972723",
+     "label": "Long COVID? What is that?",
+     "type": "CITATION"
+    },
+    {
+     "id": "PMID:35474919",
+     "label": "[Long COVID?].",
+     "type": "CITATION"
+    },
+    {
+     "id": "PMID:34316076",
+     "label": "Long COVID.",
+     "type": "CITATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.2,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 2,
+    "categories": 3
+   },
+   "raw_keys": [
+    "pmid",
+    "pmcid",
+    "title",
+    "journal",
+    "year",
+    "date_publication",
+    "authors",
+    "volume",
+    "issue",
+    "pages",
+    "topics",
+    "countries",
+    "entities",
+    "citation"
+   ],
+   "identifiers": [
+    "LITCOVID:PMID:36972723",
+    "EUROPEPMC:PMC10038666"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.36,
+   "count": 1,
+   "error": null,
+   "predicates": [
+    [
+     "annotated_with_condition",
+     1
+    ]
+   ],
+   "sample": [
+    "annotated_with_condition -> LITCOVID:CONDITION:LongCovid (LongCovid)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.17,
+   "count": 2,
+   "error": null,
+   "targets": [
+    [
+     "PubMed",
+     1
+    ],
+    [
+     "PMC",
+     1
+    ]
+   ],
+   "sample": [
+    "PubMed:36972723",
+    "PMC:PMC10038666"
+   ]
+  },
+  "first_id": "PMID:36972723",
+  "status": "ok"
+ },
+ {
+  "source": "LOINC",
+  "query": "hemoglobin",
+  "status": "skipped",
+  "needs": "LOINC_USERNAME"
+ },
+ {
+  "source": "MEDGEN",
+  "query": "chronic fatigue syndrome",
+  "search": {
+   "seconds": 0.79,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "C0015674",
+     "label": "Myalgic encephalomeyelitis/chronic fatigue syndrome",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 2.97,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 34,
+    "definitions": 1,
+    "identifiers": 2,
+    "semantic_types": 1
+   },
+   "definition": "A syndrome of unknown etiology. Chronic fatigue syndrome (CFS) is a clinical diagnosis characterized by an unexplained persistent or relapsing chronic fatigue …",
+   "synonyms": [
+    "Chronic Fatigue Syndromes",
+    "Fatigue Syndrome, Chronic",
+    "Fatigue Syndromes, Chronic",
+    "Postviral Fatigue Syndromes"
+   ],
+   "raw_keys": [
+    "uid",
+    "conceptid",
+    "semantic_type",
+    "semantic_type_id",
+    "definition_sources",
+    "source_vocabularies",
+    "omim",
+    "associated_genes",
+    "suppressed",
+    "merged"
+   ],
+   "identifiers": [
+    "MEDGEN:C0015674",
+    "MEDGEN:MedGen:5130"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.53,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 2.63,
+   "count": 7,
+   "error": null,
+   "targets": [
+    [
+     "SNOMEDCT_US",
+     2
+    ],
+    [
+     "MESH",
+     1
+    ],
+    [
+     "NCIT",
+     1
+    ],
+    [
+     "GTR",
+     1
+    ],
+    [
+     "MONDO",
+     1
+    ],
+    [
+     "Orphanet",
+     1
+    ]
+   ],
+   "sample": [
+    "MESH:MESH:D015673",
+    "NCIT:NCIT:C3037",
+    "SNOMEDCT_US:SNOMEDCT_US:52702003"
+   ]
+  },
+  "first_id": "C0015674",
+  "status": "ok"
+ },
+ {
+  "source": "MEDLINEPLUS",
+  "query": "chronic fatigue syndrome",
+  "search": {
+   "seconds": 0.57,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "MEDLINEPLUS:myalgicencephalomyelitischronicfatiguesyndrome",
+     "label": "Myalgic Encephalomyelitis/Chronic Fatigue Syndrome",
+     "type": "DISEASE"
+    },
+    {
+     "id": "MEDLINEPLUS:fatigue",
+     "label": "Fatigue",
+     "type": "SYMPTOM"
+    },
+    {
+     "id": "MEDLINEPLUS:postcovidconditionslongcovid",
+     "label": "Post-COVID Conditions (Long COVID)",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.28,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 6,
+    "definitions": 1,
+    "identifiers": 3,
+    "related": 1,
+    "categories": 2
+   },
+   "definition": "What is myalgic encephalomyelitis/chronic fatigue syndrome (ME/CFS)? Myalgic encephalomyelitis/chronic fatigue syndrome (ME/CFS) is a serious, long-term illnes…",
+   "synonyms": [
+    "CFS",
+    "Chronic fatigue syndrome",
+    "ME/CFS",
+    "Myalgic encephalomyelitis"
+   ],
+   "raw_keys": [
+    "topic_id",
+    "url",
+    "language",
+    "meta_description",
+    "audience",
+    "groups",
+    "mesh",
+    "primary_institute",
+    "external_site_links",
+    "attribution"
+   ],
+   "identifiers": [
+    "MEDLINEPLUS:MEDLINEPLUS:myalgicencephalomyelitischronicfatiguesyndrome",
+    "MEDLINEPLUS:89",
+    "MESH:D015673"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.79,
+   "count": 5,
+   "error": null,
+   "predicates": [
+    [
+     "member_of_group",
+     2
+    ],
+    [
+     "related_topic",
+     1
+    ],
+    [
+     "has_translation",
+     1
+    ],
+    [
+     "primary_institute",
+     1
+    ]
+   ],
+   "sample": [
+    "related_topic -> MEDLINEPLUS:fatigue (Fatigue)",
+    "member_of_group -> MEDLINEPLUS_GROUP:10 (Bones, Joints and Muscles)",
+    "member_of_group -> MEDLINEPLUS_GROUP:12 (Infections)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.8,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "MESH",
+     1
+    ]
+   ],
+   "sample": [
+    "MESH:D015673"
+   ]
+  },
+  "first_id": "MEDLINEPLUS:myalgicencephalomyelitischronicfatiguesyndrome",
+  "status": "ok"
+ },
+ {
+  "source": "MESH",
+  "query": "chronic fatigue syndrome",
+  "search": {
+   "seconds": 2.31,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "D015673",
+     "label": "Fatigue Syndrome, Chronic",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.14,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 10,
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "A syndrome characterized by persistent or recurrent fatigue, diffuse musculoskeletal pain, sleep disturbances, and subjective cognitive impairment of 6 months …",
+   "synonyms": [
+    "Systemic Exertion Intolerance Disease",
+    "Myalgic Encephalomyelitis",
+    "Encephalomyelitis, Myalgic",
+    "Chronic Fatigue Syndrome"
+   ],
+   "raw_keys": [
+    "ui",
+    "record_type",
+    "tree_numbers",
+    "active"
+   ],
+   "identifiers": [
+    "MESH:D015673"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.14,
+   "count": 40,
+   "error": null,
+   "predicates": [
+    [
+     "allowed_qualifier",
+     35
+    ],
+    [
+     "broader_than",
+     4
+    ],
+    [
+     "see_also",
+     1
+    ]
+   ],
+   "sample": [
+    "broader_than -> MESH:D002908 (Chronic Disease)",
+    "broader_than -> MESH:D004679 (Encephalomyelitis)",
+    "broader_than -> MESH:D009135 (Muscular Diseases)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.18,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "D015673",
+  "status": "ok"
+ },
+ {
+  "source": "METABOLIGHTS",
+  "query": "chronic fatigue",
+  "search": {
+   "seconds": 0.37,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "MTBLS161",
+     "label": "Metabolic profiling reveals anomalous energy metabolism and oxidative stress pathways in …",
+     "type": "STUDY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.12,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "definition": "Myalgic encephalomyelitis/chronic fatigue syndrome (ME/CFS) is a debilitating long-term multisystem disorder with a central and inexplicably persistent fatigue…",
+   "raw_keys": [
+    "kind",
+    "organisms",
+    "technology",
+    "factors",
+    "release_date",
+    "design_descriptors",
+    "tissues",
+    "instruments",
+    "status",
+    "submission_date",
+    "publication",
+    "pubmed_ids",
+    "dois",
+    "compound_count"
+   ],
+   "identifiers": [
+    "METABOLIGHTS:MTBLS161"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.4,
+   "count": 43,
+   "error": null,
+   "predicates": [
+    [
+     "measures_compound",
+     41
+    ],
+    [
+     "studies_organism",
+     1
+    ],
+    [
+     "has_publication",
+     1
+    ]
+   ],
+   "sample": [
+    "measures_compound -> MTBLC16797 (1-methylnicotinamide)",
+    "measures_compound -> MTBLC15366 (acetic acid)",
+    "measures_compound -> MTBLC16977 (L-alanine)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.19,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "DOI",
+     1
+    ]
+   ],
+   "sample": [
+    "DOI:doi:10.1007/s11306-015-0816-5"
+   ]
+  },
+  "first_id": "MTBLS161",
+  "status": "ok"
+ },
+ {
+  "source": "METABOLOMICSWORKBENCH",
+  "query": "lactate",
+  "search": {
+   "seconds": 1.88,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "RM0135904",
+     "label": "Lactic acid",
+     "type": "METABOLITE"
+    },
+    {
+     "id": "ST004837",
+     "label": "Qihuang Jianpi Zishen decoction ameliorates lupus nephritis by reshaping an Akkermansia–H…",
+     "type": "STUDY"
+    },
+    {
+     "id": "ST004305",
+     "label": "Lactate mitochondrial oxidation drives stemness potential in metastatic breast cancer",
+     "type": "STUDY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 5.83,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 2,
+    "definitions": 1,
+    "identifiers": 4,
+    "categories": 2
+   },
+   "definition": "Metabolite Lactic acid, formula C3H6O3, exact mass 90.031695",
+   "synonyms": [
+    "L-Lactic acid",
+    "(2S)-2-hydroxypropanoic acid"
+   ],
+   "raw_keys": [
+    "kind",
+    "refmet_id",
+    "regno",
+    "formula",
+    "exactmass",
+    "smiles",
+    "inchi_key",
+    "hmdb_id",
+    "metacyc_id"
+   ],
+   "identifiers": [
+    "METABOLOMICSWORKBENCH:RM0135904",
+    "PUBCHEM:107689",
+    "KEGG:C00186",
+    "CHEBI:422"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.6,
+   "count": 50,
+   "error": null,
+   "predicates": [
+    [
+     "measured_in_study",
+     50
+    ]
+   ],
+   "sample": [
+    "measured_in_study -> ST005235 (ST005235)",
+    "measured_in_study -> ST005234 (ST005234)",
+    "measured_in_study -> ST005231 (ST005231)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.7,
+   "count": 6,
+   "error": null,
+   "targets": [
+    [
+     "PUBCHEM",
+     1
+    ],
+    [
+     "KEGG",
+     1
+    ],
+    [
+     "CHEBI",
+     1
+    ],
+    [
+     "HMDB",
+     1
+    ],
+    [
+     "METACYC",
+     1
+    ],
+    [
+     "INCHIKEY",
+     1
+    ]
+   ],
+   "sample": [
+    "PUBCHEM:PUBCHEM:107689",
+    "KEGG:KEGG:C00186",
+    "CHEBI:CHEBI:422"
+   ]
+  },
+  "first_id": "RM0135904",
+  "status": "ok"
+ },
+ {
+  "source": "MONARCH",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.74,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "HGNC:1100",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "HGNC:58363",
+     "label": "BRCA1-OT1",
+     "type": "GENE"
+    },
+    {
+     "id": "MONDO:0700268",
+     "label": "BRCA1-related cancer predisposition",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 3.9,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 10,
+    "identifiers": 5,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "synonyms": [
+    "BRCA1 DNA repair associated",
+    "RNF53",
+    "BRCC1",
+    "PPP1R53"
+   ],
+   "raw_keys": [
+    "id",
+    "category",
+    "name",
+    "xref",
+    "synonym",
+    "in_taxon",
+    "in_taxon_label",
+    "file_source",
+    "provided_by",
+    "full_name",
+    "symbol",
+    "type",
+    "namespace",
+    "has_phenotype"
+   ],
+   "identifiers": [
+    "MONARCH:HGNC:1100",
+    "ENSEMBL:ENSG00000012048",
+    "OMIM:OMIM:113705",
+    "NCBI:672",
+    "UNIPROT:P38398"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.22,
+   "count": 30,
+   "error": null,
+   "predicates": [
+    [
+     "has_phenotype",
+     10
+    ],
+    [
+     "orthologous_to",
+     8
+    ],
+    [
+     "gene_associated_with_condition",
+     7
+    ],
+    [
+     "causes",
+     3
+    ],
+    [
+     "contributes_to",
+     2
+    ]
+   ],
+   "sample": [
+    "has_phenotype -> HP:0000294 (Low anterior hairline)",
+    "has_phenotype -> HP:0001249 (Intellectual disability)",
+    "has_phenotype -> HP:0003002 (Breast carcinoma)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.86,
+   "count": 4,
+   "error": null,
+   "targets": [
+    [
+     "ENSEMBL",
+     1
+    ],
+    [
+     "OMIM",
+     1
+    ],
+    [
+     "NCBIGene",
+     1
+    ],
+    [
+     "UniProtKB",
+     1
+    ]
+   ],
+   "sample": [
+    "ENSEMBL:ENSEMBL:ENSG00000012048",
+    "OMIM:OMIM:113705",
+    "NCBIGene:NCBIGene:672"
+   ]
+  },
+  "first_id": "HGNC:1100",
+  "status": "ok"
+ },
+ {
+  "source": "MONDO",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.41,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "1100",
+     "label": "BRCA1",
+     "type": "DISEASE"
+    },
+    {
+     "id": "MONDO_0700268",
+     "label": "BRCA1-related cancer predisposition",
+     "type": "DISEASE"
+    },
+    {
+     "id": "MONDO_0003582",
+     "label": "hereditary breast ovarian cancer syndrome",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.09,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 11,
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 9
+   },
+   "definition": "Excessive enlargement of one or both breasts. Causes include pregnancy, obesity, and penicillamine therapy. It may result in neck, back, and shoulder pain.",
+   "synonyms": [
+    "breast Hypertrophy",
+    "drug-induced gigantomastia (subtype)",
+    "gestational gigantomastia (subtype)",
+    "gigantomastia"
+   ],
+   "raw_keys": [
+    "iri",
+    "lang",
+    "description",
+    "synonyms",
+    "annotation",
+    "label",
+    "ontology_name",
+    "ontology_prefix",
+    "ontology_iri",
+    "is_obsolete",
+    "term_replaced_by",
+    "is_defining_ontology",
+    "has_children",
+    "is_root"
+   ],
+   "identifiers": [
+    "MONDO:MONDO_0001100"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "1100",
+  "status": "ok"
+ },
+ {
+  "source": "MYGENEINFO",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.78,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "NCBIGene:672",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "NCBIGene:8315",
+     "label": "BRAP",
+     "type": "GENE"
+    },
+    {
+     "id": "NCBIGene:111589215",
+     "label": "LOC111589215",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 1.04,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 18,
+    "definitions": 1,
+    "identifiers": 6,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "definition": "This gene encodes a 190 kD nuclear phosphoprotein that plays a role in maintaining genomic stability, and it also acts as a tumor suppressor. The BRCA1 gene co…",
+   "synonyms": [
+    "BRCA1 DNA repair associated",
+    "BRCAI",
+    "BRCC1",
+    "BROVCA1"
+   ],
+   "raw_keys": [
+    "HGNC",
+    "MIM",
+    "_id",
+    "_version",
+    "alias",
+    "ensembl",
+    "entrezgene",
+    "map_location",
+    "name",
+    "other_names",
+    "pdb",
+    "pharmgkb",
+    "summary",
+    "symbol"
+   ],
+   "identifiers": [
+    "MYGENEINFO:NCBIGene:672",
+    "NCBI:672",
+    "ENSEMBL:ENSG00000012048",
+    "HGNC:HGNC:1100",
+    "UNIPROT:P38398"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.4,
+   "count": 38,
+   "error": null,
+   "predicates": [
+    [
+     "participates_in",
+     31
+    ],
+    [
+     "ortholog",
+     7
+    ]
+   ],
+   "sample": [
+    "participates_in -> WP138 (Androgen receptor signaling pathway)",
+    "participates_in -> WP1530 (miRNA regulation of DNA damage response)",
+    "participates_in -> WP2261 (Glioblastoma signaling pathways)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.19,
+   "count": 25,
+   "error": null,
+   "targets": [
+    [
+     "UniProt",
+     11
+    ],
+    [
+     "PDB",
+     10
+    ],
+    [
+     "Ensembl",
+     1
+    ],
+    [
+     "HGNC",
+     1
+    ],
+    [
+     "OMIM",
+     1
+    ],
+    [
+     "PharmGKB",
+     1
+    ]
+   ],
+   "sample": [
+    "Ensembl:ENSG00000012048",
+    "HGNC:HGNC:1100",
+    "UniProt:P38398"
+   ]
+  },
+  "first_id": "NCBIGene:672",
+  "status": "ok"
+ },
+ {
+  "source": "NCBI",
+  "query": "BRCA1",
+  "status": "skipped",
+  "needs": "credentials or optional dependency"
+ },
+ {
+  "source": "NCBIGENE",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 1.41,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "672",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "8314",
+     "label": "BAP1",
+     "type": "GENE"
+    },
+    {
+     "id": "580",
+     "label": "BARD1",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.37,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 18,
+    "definitions": 1,
+    "identifiers": 5,
+    "categories": 3,
+    "semantic_types": 1
+   },
+   "definition": "This gene encodes a 190 kD nuclear phosphoprotein that plays a role in maintaining genomic stability, and it also acts as a tumor suppressor. The BRCA1 gene co…",
+   "synonyms": [
+    "BRCA1 DNA repair associated",
+    "IRIS",
+    "PSCP",
+    "BRCAI"
+   ],
+   "raw_keys": [
+    "gene_id",
+    "symbol",
+    "description",
+    "tax_id",
+    "taxname",
+    "common_name",
+    "type",
+    "orientation",
+    "chromosomes",
+    "map_locations",
+    "nomenclature_authority",
+    "ensembl_gene_ids",
+    "omim_ids",
+    "swiss_prot_accessions"
+   ],
+   "identifiers": [
+    "NCBIGENE:672",
+    "HGNC:HGNC:1100",
+    "ENSEMBL:ENSG00000012048",
+    "OMIM:113705",
+    "UNIPROT:P38398"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.72,
+   "count": 53,
+   "error": null,
+   "predicates": [
+    [
+     "has_transcript",
+     25
+    ],
+    [
+     "encodes",
+     25
+    ],
+    [
+     "located_on",
+     2
+    ],
+    [
+     "has_ortholog",
+     1
+    ]
+   ],
+   "sample": [
+    "located_on -> NC_000017.11 (chromosome 17 (GRCh38.p14))",
+    "located_on -> NC_060941.1 (chromosome 17 (T2T-CHM13v2.0))",
+    "has_transcript -> NM_007294.4 (transcript variant 1)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.37,
+   "count": 5,
+   "error": null,
+   "targets": [
+    [
+     "NCBIGENE",
+     1
+    ],
+    [
+     "HGNC",
+     1
+    ],
+    [
+     "ENSEMBL",
+     1
+    ],
+    [
+     "OMIM",
+     1
+    ],
+    [
+     "UNIPROT",
+     1
+    ]
+   ],
+   "sample": [
+    "NCBIGENE:NCBIGene:672",
+    "HGNC:HGNC:1100",
+    "ENSEMBL:ENSG00000012048"
+   ]
+  },
+  "first_id": "672",
+  "status": "ok"
+ },
+ {
+  "source": "NCBITAXONOMY",
+  "query": "SARS-CoV-2",
+  "search": {
+   "seconds": 0.79,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "2901879",
+     "label": "Severe acute respiratory syndrome coronavirus",
+     "type": "ORGANISM"
+    },
+    {
+     "id": "2697049",
+     "label": "Severe acute respiratory syndrome coronavirus 2",
+     "type": "ORGANISM"
+    },
+    {
+     "id": "3092168",
+     "label": "SARS-CoV-2 pseudovirus",
+     "type": "ORGANISM"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.82,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 3,
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "definition": "NCBI Taxonomy no rank (taxid 2901879): Orthornavirae > Pisuviricota > Pisoniviricetes > Nidovirales > Coronaviridae > Betacoronavirus > Betacoronavirus pandemi…",
+   "synonyms": [
+    "SARS-CoV",
+    "SARS coronavirus",
+    "SARS virus"
+   ],
+   "raw_keys": [
+    "tax_id",
+    "rank",
+    "classification",
+    "parents",
+    "children",
+    "counts",
+    "genomic_moltype",
+    "secondary_tax_ids",
+    "authority"
+   ],
+   "identifiers": [
+    "NCBITAXONOMY:2901879",
+    "NCBITAXONOMY:NCBITaxon:2901879"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.96,
+   "count": 15,
+   "error": null,
+   "predicates": [
+    [
+     "descendant_of",
+     13
+    ],
+    [
+     "is_a",
+     1
+    ],
+    [
+     "has_subclass",
+     1
+    ]
+   ],
+   "sample": [
+    "is_a -> NCBITaxon:694009 (Severe acute respiratory syndrome-related coronav…)",
+    "descendant_of -> NCBITaxon:1 (root)",
+    "descendant_of -> NCBITaxon:10239 (Viruses)"
+   ]
+  },
+  "mappings": {
+   "seconds": 5.56,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "NCBITAXON",
+     1
+    ]
+   ],
+   "sample": [
+    "NCBITAXON:NCBITaxon:2901879"
+   ]
+  },
+  "first_id": "2901879",
+  "status": "ok"
+ },
+ {
+  "source": "NCIEVS",
+  "query": "fatigue",
+  "search": {
+   "seconds": 1.06,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "NCIT:C3036",
+     "label": "Fatigue",
+     "type": "SYMPTOM"
+    },
+    {
+     "id": "NCIT:C146753",
+     "label": "Fatigue, CTCAE",
+     "type": "OBSERVATION"
+    },
+    {
+     "id": "NCIT:C122347",
+     "label": "Fatigue Subordinate Domain",
+     "type": "UNKNOWN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.19,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 2,
+    "definitions": 6,
+    "identifiers": 2,
+    "parents": 1,
+    "children": 5,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "Overall tiredness and lack of energy.",
+   "synonyms": [
+    "Fatigue (lassitude)",
+    "Lack of Energy"
+   ],
+   "raw_keys": [
+    "terminology",
+    "code",
+    "version",
+    "active",
+    "leaf",
+    "concept_status"
+   ],
+   "identifiers": [
+    "NCIEVS:NCIT:C3036",
+    "UMLS:C0015672"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.18,
+   "count": 134,
+   "error": null,
+   "predicates": [
+    [
+     "Disease_May_Have_Finding",
+     93
+    ],
+    [
+     "Concept_In_Subset",
+     23
+    ],
+    [
+     "has_subclass",
+     5
+    ],
+    [
+     "Has_SeroNet_Authorized_Value",
+     5
+    ],
+    [
+     "Has_ACC-AHA_SARS2_Authorized_Value",
+     3
+    ],
+    [
+     "Has_DIPG_DMG_Authorized_Value",
+     2
+    ]
+   ],
+   "sample": [
+    "is_a -> NCIT:C3858 (Mental and Behavioral Signs and Symptoms)",
+    "has_subclass -> NCIT:C5062 (Cancer Fatigue)",
+    "has_subclass -> NCIT:C180621 (Exertional Fatigue)"
+   ]
+  },
+  "mappings": {
+   "seconds": 1.1,
+   "count": 29,
+   "error": null,
+   "targets": [
+    [
+     "MEDDRA",
+     10
+    ],
+    [
+     "ICD10CM",
+     6
+    ],
+    [
+     "SNOMEDCT",
+     3
+    ],
+    [
+     "ICD10",
+     3
+    ],
+    [
+     "UMLS",
+     1
+    ],
+    [
+     "IMDRF",
+     1
+    ],
+    [
+     "HPO",
+     1
+    ],
+    [
+     "LOINC",
+     1
+    ]
+   ],
+   "sample": [
+    "UMLS:C0015672",
+    "IMDRF:E2312",
+    "MEDDRA:10016256"
+   ]
+  },
+  "first_id": "NCIT:C3036",
+  "status": "ok"
+ },
+ {
+  "source": "NIHREPORTER",
+  "query": "myalgic encephalomyelitis",
+  "search": {
+   "seconds": 1.22,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "R01NS131967",
+     "label": "Non-Invasive Multi-Modal Neuromonitoring in Adults Undergoing Extracorporeal Membrane Oxy…",
+     "type": "STUDY"
+    },
+    {
+     "id": "U54AI178855",
+     "label": "Immune dysfunction in ME/CFS",
+     "type": "STUDY"
+    },
+    {
+     "id": "R01NS133905",
+     "label": "Mechanisms of Cognitive Control Impairment in ME/CFS and PASC-ME/CFS",
+     "type": "STUDY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.2,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 2,
+    "identifiers": 2,
+    "categories": 9,
+    "semantic_types": 1
+   },
+   "definition": "Myalgic encephalomyelitis/chronic fatigue syndrome (ME/CFS) is a debilitating disease that affects approximately 1.5 million people in the U.S. Evidence exists…",
+   "raw_keys": [
+    "core_project_num",
+    "project_num",
+    "appl_id",
+    "fiscal_year",
+    "award_amount",
+    "is_active",
+    "activity_code",
+    "project_start_date",
+    "project_end_date",
+    "institute",
+    "organization",
+    "principal_investigators",
+    "spending_categories",
+    "spending_category_ids"
+   ],
+   "identifiers": [
+    "NIHREPORTER:R01NS131967",
+    "NIHREPORTER:APPL:11232343"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.96,
+   "count": 61,
+   "error": null,
+   "predicates": [
+    [
+     "has_term",
+     50
+    ],
+    [
+     "has_spending_category",
+     7
+    ],
+    [
+     "has_publication",
+     2
+    ],
+    [
+     "funded_by",
+     1
+    ],
+    [
+     "conducted_at",
+     1
+    ]
+   ],
+   "sample": [
+    "funded_by -> NIHREPORTER:IC:NS (National Institute of Neurological Disorders and …)",
+    "has_spending_category -> NIHREPORTER:RCDC:Bioengineering (Bioengineering)",
+    "has_spending_category -> NIHREPORTER:RCDC:Brain Disorders (Brain Disorders)"
+   ]
+  },
+  "mappings": {
+   "seconds": 2.0,
+   "count": 8,
+   "error": null,
+   "targets": [
+    [
+     "NIH_PROJECT_NUMBER",
+     3
+    ],
+    [
+     "NIH_APPLICATION_ID",
+     3
+    ],
+    [
+     "PMID",
+     2
+    ]
+   ],
+   "sample": [
+    "NIH_PROJECT_NUMBER:5R01NS131967-03",
+    "NIH_APPLICATION_ID:11232343",
+    "NIH_PROJECT_NUMBER:5R01NS131967-02"
+   ]
+  },
+  "first_id": "R01NS131967",
+  "status": "ok"
+ },
+ {
+  "source": "NODENORM",
+  "query": "diabetes mellitus",
+  "search": {
+   "seconds": 2.19,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "MONDO:0005015",
+     "label": "diabetes mellitus",
+     "type": "DISEASE"
+    },
+    {
+     "id": "MONDO:0005147",
+     "label": "type 1 diabetes mellitus",
+     "type": "DISEASE"
+    },
+    {
+     "id": "MONDO:0005148",
+     "label": "type 2 diabetes mellitus",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.6,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 3,
+    "definitions": 2,
+    "identifiers": 6,
+    "semantic_types": 6
+   },
+   "definition": "A metabolic disorder characterized by abnormally high blood sugar levels due to diminished production of insulin or insulin resistance/desensitization.",
+   "synonyms": [
+    "obsolete_diabetes mellitus",
+    "Diabetes Mellitus",
+    "Diabetes mellitus"
+   ],
+   "raw_keys": [
+    "id",
+    "label",
+    "type",
+    "types",
+    "equivalent_identifiers",
+    "information_content",
+    "descriptions",
+    "taxa"
+   ],
+   "identifiers": [
+    "NODENORM:MONDO:0005015",
+    "MONDO:MONDO:0005015",
+    "UMLS:C0011849",
+    "MESH:D003920",
+    "SNOMEDCT:73211009"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.12,
+   "count": 13,
+   "error": null,
+   "targets": [
+    [
+     "MEDDRA",
+     3
+    ],
+    [
+     "DOID",
+     1
+    ],
+    [
+     "EFO",
+     1
+    ],
+    [
+     "UMLS",
+     1
+    ],
+    [
+     "MESH",
+     1
+    ],
+    [
+     "NCIT",
+     1
+    ],
+    [
+     "SNOMEDCT",
+     1
+    ],
+    [
+     "medgen",
+     1
+    ]
+   ],
+   "sample": [
+    "DOID:DOID:9351",
+    "EFO:EFO:0000400",
+    "UMLS:UMLS:C0011849"
+   ]
+  },
+  "first_id": "MONDO:0005015",
+  "status": "ok"
+ },
+ {
+  "source": "OBOFOUNDRY",
+  "query": "diabetes",
+  "search": {
+   "seconds": 0.71,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "HP_0005978",
+     "label": "Type II diabetes mellitus",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "mesh_D003929",
+     "label": "Diabetic Neuropathies",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "HP_0100651",
+     "label": "Type I diabetes mellitus",
+     "type": "UNKNOWN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.08,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "categories": 1
+   },
+   "raw_keys": [
+    "iri",
+    "lang",
+    "description",
+    "synonyms",
+    "annotation",
+    "label",
+    "ontology_name",
+    "ontology_prefix",
+    "ontology_iri",
+    "is_obsolete",
+    "term_replaced_by",
+    "is_defining_ontology",
+    "has_children",
+    "is_root"
+   ],
+   "identifiers": [
+    "OBOFOUNDRY:HP_0005978"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "HP_0005978",
+  "status": "ok"
+ },
+ {
+  "source": "OFFSIDES",
+  "query": "aspirin",
+  "search": {
+   "seconds": 37.84,
+   "count": 3,
+   "error": null,
+   "top": [
+    {
+     "id": "RXNORM:1191",
+     "label": "Aspirin",
+     "type": "DRUG"
+    },
+    {
+     "id": "MEDDRA:10075084",
+     "label": "Aspirin-exacerbated respiratory disease",
+     "type": "PHENOTYPE"
+    },
+    {
+     "id": "RXNORM:611",
+     "label": "Aluminum aspirin",
+     "type": "DRUG"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.0,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "semantic_types": 1
+   },
+   "definition": "Aspirin: 9789 drug-event pairs in OFFSIDES, 1425 with a PRR whose 95% CI lies above 1. Statistical signal from FAERS spontaneous reports (not causal; confounde…",
+   "raw_keys": [
+    "rxnorm_id",
+    "n_pairs",
+    "n_prr_signals_ci95_above_1"
+   ],
+   "identifiers": [
+    "OFFSIDES:RXNORM:1191"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.01,
+   "count": 50,
+   "error": null,
+   "predicates": [
+    [
+     "has_adverse_event_signal",
+     50
+    ]
+   ],
+   "sample": [
+    "has_adverse_event_signal -> MEDDRA:10075084 (Aspirin-exacerbated respiratory disease)",
+    "has_adverse_event_signal -> MEDDRA:10039012 (Reye's syndrome)",
+    "has_adverse_event_signal -> MEDDRA:10063023 (Analgesic asthma syndrome)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "RXNORM",
+     1
+    ]
+   ],
+   "sample": [
+    "RXNORM:1191"
+   ]
+  },
+  "first_id": "RXNORM:1191",
+  "status": "ok"
+ },
+ {
+  "source": "OLS",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.49,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/1100",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "http://purl.obolibrary.org/obo/OMIT_0030554",
+     "label": "BRCA1",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "http://identifiers.org/ncbigene/12189",
+     "label": "Brca1",
+     "type": "UNKNOWN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.17,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 9,
+    "definitions": 1,
+    "identifiers": 1,
+    "parents": 1,
+    "categories": 6
+   },
+   "definition": "BRCA1 DNA repair associated",
+   "synonyms": [
+    "BRCA1/BRCA2-containing complex, subunit 1",
+    "Fanconi anemia, complementation group S",
+    "protein phosphatase 1, regulatory subunit 53",
+    "BRCC1"
+   ],
+   "raw_keys": [
+    "iri",
+    "lang",
+    "description",
+    "synonyms",
+    "annotation",
+    "label",
+    "ontology_name",
+    "ontology_prefix",
+    "ontology_iri",
+    "is_obsolete",
+    "term_replaced_by",
+    "is_defining_ontology",
+    "has_children",
+    "is_root"
+   ],
+   "identifiers": [
+    "OLS:https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/1100"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.09,
+   "count": 1,
+   "error": null,
+   "predicates": [
+    [
+     "has_broader",
+     1
+    ]
+   ],
+   "sample": [
+    "has_broader -> http://purl.obolibrary.org/obo/SO_0001217 (protein_coding_gene)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/1100",
+  "status": "ok"
+ },
+ {
+  "source": "OMICSDI",
+  "query": "chronic fatigue syndrome",
+  "search": {
+   "seconds": 0.43,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "metabolights_dataset:MTBLS161",
+     "label": "Metabolic profiling reveals anomalous energy metabolism and oxidative stress pathways in …",
+     "type": "STUDY"
+    },
+    {
+     "id": "metabolomics_workbench:ST000450",
+     "label": "Metabolic features of chronic fatigue syndrome",
+     "type": "STUDY"
+    },
+    {
+     "id": "massive:MSV000090685",
+     "label": "Proteomic Analysis of Cerebrospinal Fluids from Chronic Fatigue Syndrome Patients with an…",
+     "type": "STUDY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.12,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 3,
+    "semantic_types": 1
+   },
+   "definition": "Myalgic encephalomyelitis/chronic fatigue syndrome (ME/CFS) is a debilitating long-term multisystem disorder with a central and inexplicably persistent fatigue…",
+   "raw_keys": [
+    "accession",
+    "database",
+    "repository",
+    "title",
+    "organisms",
+    "taxon_ids",
+    "omics_types",
+    "omics_types_raw",
+    "publication_date",
+    "pmids",
+    "instruments",
+    "experiment_types",
+    "tissues",
+    "diseases"
+   ],
+   "identifiers": [
+    "OMICSDI:metabolights_dataset:MTBLS161"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.17,
+   "count": 12,
+   "error": null,
+   "predicates": [
+    [
+     "similar_to",
+     10
+    ],
+    [
+     "has_omics_type",
+     1
+    ],
+    [
+     "uses_instrument",
+     1
+    ]
+   ],
+   "sample": [
+    "has_omics_type -> OMICSDI:OMICS_TYPE:Metabolomics (Metabolomics)",
+    "uses_instrument -> OMICSDI:INSTRUMENT:Bruker (Bruker)",
+    "similar_to -> biostudies-arrayexpress:E-GEOD-59489 (DNA methylation modifications associated with Chr…)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.33,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "MetaboLights",
+     1
+    ]
+   ],
+   "sample": [
+    "MetaboLights:MTBLS161"
+   ]
+  },
+  "first_id": "metabolights_dataset:MTBLS161",
+  "status": "ok"
+ },
+ {
+  "source": "OMIM",
+  "query": "BRCA1",
+  "status": "skipped",
+  "needs": "OMIM_API_KEY"
+ },
+ {
+  "source": "OPENAIRE",
+  "query": "long covid",
+  "search": {
+   "seconds": 0.4,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "doi_________::f1f64d679d42c1024e9d4067946afbe6",
+     "label": "Rolle psychosozialer Faktoren beim Entstehen von Long Covid",
+     "type": "CITATION"
+    },
+    {
+     "id": "doi_dedup___::49cbf36fde8ff26e3f46ddb66287ca4e",
+     "label": "The Importance of Including Long COVID Outcomes When Developing Novel Treatments for Acut…",
+     "type": "CITATION"
+    },
+    {
+     "id": "doi_________::2faac99a0e54b0fecbd74632b250ac18",
+     "label": "AARP Long COVID October 2022 Omni Survey",
+     "type": "REFERENCE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.64,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 1,
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "Hintergrund. Sind mehr als vier Wochen nach Erkrankungsbeginn mit Covid-19 noch Symptome vorhanden, wird von Long Covid gesprochen. Einige Studien, die bei and…",
+   "synonyms": [
+    "The role of psychosocial factors in the etiology …"
+   ],
+   "raw_keys": [
+    "id",
+    "type",
+    "doi",
+    "pmid",
+    "pmcid",
+    "arxiv",
+    "pids",
+    "publication_date",
+    "year",
+    "publisher",
+    "language",
+    "journal",
+    "issn_print",
+    "issn_online"
+   ],
+   "identifiers": [
+    "OPENAIRE:doi_________::f1f64d679d42c1024e9d4067946afbe6",
+    "EUROPEPMC:DOI:10.25365/thesis.76528"
+   ]
+  },
+  "relationships": {
+   "seconds": 2.03,
+   "count": 2,
+   "error": null,
+   "predicates": [
+    [
+     "hosted_by",
+     1
+    ],
+    [
+     "collected_from",
+     1
+    ]
+   ],
+   "sample": [
+    "hosted_by -> openaire____::55045bd2a65019fd8e6741a755395c8c (Unknown Repository)",
+    "collected_from -> openaire____::9e3be59865b2c1c335d32dae2fe7b254 (Datacite)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.97,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "DOI",
+     1
+    ]
+   ],
+   "sample": [
+    "DOI:10.25365/thesis.76528"
+   ]
+  },
+  "first_id": "doi_________::f1f64d679d42c1024e9d4067946afbe6",
+  "status": "ok"
+ },
+ {
+  "source": "OPENALEX",
+  "query": "chronic fatigue syndrome",
+  "search": {
+   "seconds": 0.98,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "W3143129303",
+     "label": "Chronic fatigue syndrome",
+     "type": "CITATION"
+    },
+    {
+     "id": "W2123845747",
+     "label": "Chronic Fatigue Syndrome: A Review",
+     "type": "CITATION"
+    },
+    {
+     "id": "W2008087869",
+     "label": "Myalgic Encephalomyelitis/Chronic Fatigue Syndrome",
+     "type": "CITATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.17,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 9,
+    "identifiers": 3,
+    "categories": 6,
+    "semantic_types": 1
+   },
+   "synonyms": [
+    "chronic fatigue syndrome",
+    "pathophysiology",
+    "diagnosis",
+    "treatment"
+   ],
+   "raw_keys": [
+    "id",
+    "doi",
+    "pmid",
+    "pmcid",
+    "mag",
+    "year",
+    "publication_date",
+    "type",
+    "language",
+    "journal",
+    "authors",
+    "cited_by_count",
+    "referenced_works_count",
+    "fwci"
+   ],
+   "identifiers": [
+    "OPENALEX:W3143129303",
+    "EUROPEPMC:DOI:10.1016/s0140-6736(06)68073-2",
+    "EUROPEPMC:PMID:16443043"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.42,
+   "count": 53,
+   "error": null,
+   "predicates": [
+    [
+     "cites",
+     25
+    ],
+    [
+     "cited_by",
+     25
+    ],
+    [
+     "has_topic",
+     3
+    ]
+   ],
+   "sample": [
+    "has_topic -> T11282 (Fibromyalgia and Chronic Fatigue Syndrome Research)",
+    "has_topic -> T11368 (Long-Term Effects of COVID-19)",
+    "has_topic -> T11334 (Psychosomatic Disorders and Their Treatments)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.26,
+   "count": 3,
+   "error": null,
+   "targets": [
+    [
+     "DOI",
+     1
+    ],
+    [
+     "PMID",
+     1
+    ],
+    [
+     "MAG",
+     1
+    ]
+   ],
+   "sample": [
+    "DOI:10.1016/s0140-6736(06)68073-2",
+    "PMID:16443043",
+    "MAG:3143129303"
+   ]
+  },
+  "first_id": "W3143129303",
+  "status": "ok"
+ },
+ {
+  "source": "OPENCITATIONS",
+  "query": "10.1038/s41586-020-2012-7",
+  "search": {
+   "seconds": 1.26,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "10.1038/s41586-020-2012-7",
+     "label": "A Pneumonia Outbreak Associated With A New Coronavirus Of Probable Bat Origin",
+     "type": "CITATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 1.37,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 2,
+    "categories": 3
+   },
+   "raw_keys": [
+    "ids",
+    "title",
+    "authors",
+    "pub_date",
+    "venue",
+    "issn",
+    "volume",
+    "issue",
+    "page",
+    "type",
+    "publisher",
+    "citation_count",
+    "reference_count",
+    "license"
+   ],
+   "identifiers": [
+    "OPENCITATIONS:10.1038/s41586-020-2012-7",
+    "EUROPEPMC:32015507"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.6,
+   "count": 114,
+   "error": null,
+   "predicates": [
+    [
+     "cited_by",
+     100
+    ],
+    [
+     "cites",
+     14
+    ]
+   ],
+   "sample": [
+    "cites -> 10.1038/nature12711 (10.1038/nature12711)",
+    "cites -> 10.1073/pnas.1517719113 (10.1073/pnas.1517719113)",
+    "cites -> 10.1371/journal.ppat.1006698 (10.1371/journal.ppat.1006698)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.46,
+   "count": 8,
+   "error": null,
+   "targets": [
+    [
+     "ISSN",
+     5
+    ],
+    [
+     "OPENALEX",
+     1
+    ],
+    [
+     "PubMed",
+     1
+    ],
+    [
+     "OMID",
+     1
+    ]
+   ],
+   "sample": [
+    "OPENALEX:W3004280078",
+    "PubMed:32015507",
+    "OMID:br/06130344922"
+   ]
+  },
+  "first_id": "10.1038/s41586-020-2012-7",
+  "status": "ok"
+ },
+ {
+  "source": "OPENFDAEVENTS",
+  "query": "aspirin",
+  "search": {
+   "seconds": 1.93,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "FAERS:DRUG:ASPIRIN",
+     "label": "ASPIRIN",
+     "type": "DRUG"
+    },
+    {
+     "id": "FAERS:DRUG:ASPIRIN 81 MG",
+     "label": "ASPIRIN 81 MG",
+     "type": "DRUG"
+    },
+    {
+     "id": "FAERS:DRUG:ASPIRIN 325 MG",
+     "label": "ASPIRIN 325 MG",
+     "type": "DRUG"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.42,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "raw_keys": [
+    "kind",
+    "term",
+    "caveat",
+    "total_reports",
+    "serious_reports",
+    "non_serious_reports"
+   ],
+   "identifiers": [
+    "OPENFDAEVENTS:FAERS:DRUG:ASPIRIN"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.53,
+   "count": 25,
+   "error": null,
+   "predicates": [
+    [
+     "reported_adverse_event",
+     25
+    ]
+   ],
+   "sample": [
+    "reported_adverse_event -> FAERS:REACTION:FATIGUE (FATIGUE)",
+    "reported_adverse_event -> FAERS:REACTION:DYSPNOEA (DYSPNOEA)",
+    "reported_adverse_event -> FAERS:REACTION:DIARRHOEA (DIARRHOEA)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "FAERS:DRUG:ASPIRIN",
+  "status": "ok"
+ },
+ {
+  "source": "OPENFDALABELS",
+  "query": "aspirin",
+  "search": {
+   "seconds": 1.25,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "0058175f-3474-40c3-a046-6cfaec86d84b",
+     "label": "Low Dose Aspirin",
+     "type": "DRUG"
+    },
+    {
+     "id": "00d9ab0d-ff25-784f-e063-6294a90a8497",
+     "label": "Rapidol Aspirin",
+     "type": "DRUG"
+    },
+    {
+     "id": "024c5054-959f-4ea5-a71f-c0e16cc4b90c",
+     "label": "Aspirin Low Dose",
+     "type": "DRUG"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.28,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 1,
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "definition": "Uses for the temporary relief of minor aches and pains or as recommended by your doctor. Because of its delayed action, this product will not provide fast reli…",
+   "synonyms": [
+    "ASPIRIN"
+   ],
+   "raw_keys": [
+    "set_id",
+    "spl_id",
+    "version",
+    "effective_time",
+    "openfda",
+    "sections",
+    "sections_truncated",
+    "section_names"
+   ],
+   "identifiers": [
+    "OPENFDALABELS:0058175f-3474-40c3-a046-6cfaec86d84b"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.3,
+   "count": 8,
+   "error": null,
+   "predicates": [
+    [
+     "has_pharm_class",
+     6
+    ],
+    [
+     "has_ingredient",
+     1
+    ],
+    [
+     "has_rxnorm_product",
+     1
+    ]
+   ],
+   "sample": [
+    "has_ingredient -> ASPIRIN (ASPIRIN)",
+    "has_pharm_class -> Nonsteroidal Anti-inflammatory Drug [EPC] (Nonsteroidal Anti-inflammatory Drug)",
+    "has_pharm_class -> Platelet Aggregation Inhibitor [EPC] (Platelet Aggregation Inhibitor)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.31,
+   "count": 6,
+   "error": null,
+   "targets": [
+    [
+     "NDC",
+     2
+    ],
+    [
+     "DailyMed",
+     1
+    ],
+    [
+     "RxNorm",
+     1
+    ],
+    [
+     "UNII",
+     1
+    ],
+    [
+     "FDA_APPLICATION",
+     1
+    ]
+   ],
+   "sample": [
+    "DailyMed:https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=0058175f-3474-40c3-a046-6cfaec86d84b",
+    "RxNorm:308416",
+    "UNII:R16CO5Y76E"
+   ]
+  },
+  "first_id": "0058175f-3474-40c3-a046-6cfaec86d84b",
+  "status": "ok"
+ },
+ {
+  "source": "OPENTARGETS",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.9,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "ENSG00000012048",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "MONDO_0003582",
+     "label": "hereditary breast ovarian cancer syndrome",
+     "type": "DISEASE"
+    },
+    {
+     "id": "MONDO_0700268",
+     "label": "BRCA1-related cancer predisposition",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.09,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 21,
+    "definitions": 2,
+    "identifiers": 1
+   },
+   "definition": "E3 ubiquitin-protein ligase that specifically mediates the formation of 'Lys-6'-linked polyubiquitin chains and plays a central role in DNA repair by facilitat…",
+   "synonyms": [
+    "BRCA1",
+    "BRCA1 DNA repair associated",
+    "Breast cancer type 1 susceptibility protein",
+    "RNF53"
+   ],
+   "raw_keys": [
+    "id",
+    "approvedSymbol",
+    "approvedName",
+    "biotype",
+    "functionDescriptions",
+    "synonyms"
+   ],
+   "identifiers": [
+    "OPENTARGETS:ENSG00000012048"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.11,
+   "count": 20,
+   "error": null,
+   "predicates": [
+    [
+     "associated_with_disease",
+     20
+    ]
+   ],
+   "sample": [
+    "associated_with_disease -> MONDO_0007254 (breast cancer)",
+    "associated_with_disease -> MONDO_0003582 (hereditary breast ovarian cancer syndrome)",
+    "associated_with_disease -> MONDO_0054748 (Fanconi anemia, complementation group S)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "ENSG00000012048",
+  "status": "ok"
+ },
+ {
+  "source": "ORPHANET",
+  "query": "marfan",
+  "search": {
+   "seconds": 2.14,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "ORPHA:558",
+     "label": "Marfan syndrome",
+     "type": "DISEASE"
+    },
+    {
+     "id": "ORPHA:284963",
+     "label": "Marfan syndrome type 1",
+     "type": "DISEASE"
+    },
+    {
+     "id": "ORPHA:284973",
+     "label": "Marfan syndrome type 2",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 3.57,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 1,
+    "definitions": 1,
+    "identifiers": 6,
+    "parents": 8,
+    "children": 2,
+    "categories": 2,
+    "semantic_types": 1
+   },
+   "definition": "Marfan syndrome is a systemic disease of connective tissue characterized by a variable combination of cardiovascular, musculo-skeletal, ophthalmic and pulmonar…",
+   "synonyms": [
+    "MFS"
+   ],
+   "raw_keys": [
+    "orphacode",
+    "typology",
+    "disorder_group",
+    "flags",
+    "url",
+    "release_date",
+    "prevalence",
+    "average_age_of_onset",
+    "average_age_of_death",
+    "type_of_inheritance"
+   ],
+   "identifiers": [
+    "ORPHANET:ORPHA:558",
+    "MONDO:MONDO:0007947",
+    "MESH:D008382",
+    "OMIM:OMIM:154700",
+    "OMIM:OMIM:610168"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.1,
+   "count": 60,
+   "error": null,
+   "predicates": [
+    [
+     "has_phenotype",
+     50
+    ],
+    [
+     "subclass_of",
+     8
+    ],
+    [
+     "has_subclass",
+     2
+    ]
+   ],
+   "sample": [
+    "has_phenotype -> HP:0000768 (Pectus carinatum)",
+    "has_phenotype -> HP:0001065 (Striae distensae)",
+    "has_phenotype -> HP:0001166 (Arachnodactyly)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.06,
+   "count": 8,
+   "error": null,
+   "targets": [
+    [
+     "OMIM",
+     2
+    ],
+    [
+     "ICD10",
+     1
+    ],
+    [
+     "ICD11",
+     1
+    ],
+    [
+     "MONDO",
+     1
+    ],
+    [
+     "MESH",
+     1
+    ],
+    [
+     "MEDDRA",
+     1
+    ],
+    [
+     "UMLS",
+     1
+    ]
+   ],
+   "sample": [
+    "ICD10:ICD10:Q87.4",
+    "ICD11:ICD11:LD28.01",
+    "MONDO:MONDO:0007947"
+   ]
+  },
+  "first_id": "ORPHA:558",
+  "status": "ok"
+ },
+ {
+  "source": "OXO",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.27,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "MGI:104537",
+     "label": "Brca1",
+     "type": "UNKNOWN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.06,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "mappings": 2
+   },
+   "raw_keys": [
+    "queryId",
+    "querySource",
+    "curie",
+    "label",
+    "mappingResponseList"
+   ],
+   "identifiers": [
+    "OXO:MGI:104537"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "MGI:104537",
+  "status": "ok"
+ },
+ {
+  "source": "PANELAPP",
+  "query": "ataxia",
+  "search": {
+   "seconds": 5.02,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "488",
+     "label": "Hereditary ataxia and cerebellar anomalies, childhood onset",
+     "type": "DISEASE"
+    },
+    {
+     "id": "477",
+     "label": "Ataxia and cerebellar anomalies - childhood onset",
+     "type": "DISEASE"
+    },
+    {
+     "id": "466",
+     "label": "Hereditary ataxia, adult onset",
+     "type": "DISEASE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.51,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 3,
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 1
+   },
+   "definition": "PanelApp gene panel (Neurology), version 23.51",
+   "synonyms": [
+    "Hereditary ataxia and cerebellar anomalies - chil…",
+    "Hereditary ataxia with onset in childhood",
+    "Cerebellar anomalies"
+   ],
+   "raw_keys": [
+    "version",
+    "version_created",
+    "disease_group",
+    "disease_sub_group",
+    "relevant_disorders",
+    "stats",
+    "types",
+    "status",
+    "api_base",
+    "gene_confidence_counts"
+   ],
+   "identifiers": [
+    "PANELAPP:488",
+    "PANELAPP:488"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.24,
+   "count": 26,
+   "error": null,
+   "predicates": [
+    [
+     "has_gene",
+     25
+    ],
+    [
+     "has_relevant_disorder",
+     1
+    ]
+   ],
+   "sample": [
+    "has_gene -> HGNC:13666 (AAAS)",
+    "has_gene -> HGNC:48 (ABCB7)",
+    "has_gene -> HGNC:15868 (ABHD12)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "488",
+  "status": "ok"
+ },
+ {
+  "source": "PDB",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 1.25,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "PDB:2CP8",
+     "label": "Solution structure of the RSGI RUH-046, a UBA domain from human Next to BRCA1 gene 1 prot…",
+     "type": "PROTEIN"
+    },
+    {
+     "id": "PDB:3FA2",
+     "label": "Crystal Structure of the BRCA1 Associated Ring Domain (BARD1) Tandem BRCT Domains",
+     "type": "PROTEIN"
+    },
+    {
+     "id": "PDB:4OLE",
+     "label": "Crystal structure of a neighbor of BRCA1 gene 1 (NBR1) from Homo sapiens at 2.52 A resolu…",
+     "type": "PROTEIN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.11,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "categories": 1
+   },
+   "raw_keys": [
+    "audit_author",
+    "citation",
+    "database_2",
+    "entry",
+    "exptl",
+    "pdbx_SG_project",
+    "pdbx_audit_revision_category",
+    "pdbx_audit_revision_details",
+    "pdbx_audit_revision_group",
+    "pdbx_audit_revision_history",
+    "pdbx_audit_revision_item",
+    "pdbx_database_related",
+    "pdbx_database_status",
+    "pdbx_nmr_details"
+   ],
+   "identifiers": [
+    "PDB:PDB:2CP8"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "PDB:2CP8",
+  "status": "ok"
+ },
+ {
+  "source": "PFAM",
+  "query": "kinase",
+  "search": {
+   "seconds": 0.21,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "Pfam:PF00069",
+     "label": "Protein kinase domain",
+     "type": "MOLECULAR_ENTITY"
+    },
+    {
+     "id": "Pfam:PF00162",
+     "label": "Phosphoglycerate kinase",
+     "type": "MOLECULAR_ENTITY"
+    },
+    {
+     "id": "Pfam:PF00224",
+     "label": "Pyruvate kinase, barrel domain",
+     "type": "MOLECULAR_ENTITY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.09,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "semantic_types": 1
+   },
+   "raw_keys": [
+    "metadata"
+   ],
+   "identifiers": [
+    "PFAM:Pfam:PF00069"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "Pfam:PF00069",
+  "status": "ok"
+ },
+ {
+  "source": "PRIDE",
+  "query": "fatigue",
+  "search": {
+   "seconds": 0.26,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "PXD076216",
+     "label": "Proteomic Signatures in Cerebrospinal Fluid and Their Clinical Associations in Patients w…",
+     "type": "STUDY"
+    },
+    {
+     "id": "PXD073644",
+     "label": "Proteomic characterization of plasma extracellular vesicles of post-COVID-19 ME/CFS patie…",
+     "type": "STUDY"
+    },
+    {
+     "id": "PAD000026",
+     "label": "Charting the Circulating Proteome in ME/CFS Using Cross System Profiling to Uncover Mecha…",
+     "type": "STUDY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.84,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 6,
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 6,
+    "semantic_types": 1
+   },
+   "definition": "This study evaluated the cerebrospinal fluid (CSF) proteomes from 31 patients diagnosed with myalgic encephalomyelitis/chronic fatigue syndrome (ME/CFS). We qu…",
+   "synonyms": [
+    "Cerebrospinal fluid",
+    "Myalgic encephalomyelitis",
+    "Chronic fatigue syndrome",
+    "Proteomics"
+   ],
+   "raw_keys": [
+    "accession",
+    "title",
+    "keywords",
+    "species",
+    "taxon_ids",
+    "tissues",
+    "diseases",
+    "instruments",
+    "modifications",
+    "experiment_types",
+    "software",
+    "submission_date",
+    "publication_date",
+    "publications"
+   ],
+   "identifiers": [
+    "PRIDE:PXD076216",
+    "OMICSDI:pride:PXD076216"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.49,
+   "count": 9,
+   "error": null,
+   "predicates": [
+    [
+     "has_modification",
+     3
+    ],
+    [
+     "has_species",
+     1
+    ],
+    [
+     "has_tissue",
+     1
+    ],
+    [
+     "has_disease",
+     1
+    ],
+    [
+     "uses_instrument",
+     1
+    ],
+    [
+     "has_experiment_type",
+     1
+    ]
+   ],
+   "sample": [
+    "has_species -> NCBITaxon:9606 (Homo sapiens (human))",
+    "has_tissue -> BTO:0000237 (Cerebrospinal fluid)",
+    "has_disease -> DOID:8544 (Chronic fatigue syndrome)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.51,
+   "count": 4,
+   "error": null,
+   "targets": [
+    [
+     "PRIDE",
+     1
+    ],
+    [
+     "PubMed",
+     1
+    ],
+    [
+     "DOI",
+     1
+    ],
+    [
+     "NCBITaxon",
+     1
+    ]
+   ],
+   "sample": [
+    "PRIDE:PXD076216",
+    "PubMed:41932997",
+    "DOI:10.1038/s41598-026-46965-1"
+   ]
+  },
+  "first_id": "PXD076216",
+  "status": "ok"
+ },
+ {
+  "source": "PUBCHEM",
+  "query": "aspirin",
+  "search": {
+   "seconds": 2.01,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "2244",
+     "label": "Aspirin",
+     "type": "CHEMICAL"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.85,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 1,
+    "identifiers": 2,
+    "categories": 1
+   },
+   "synonyms": [
+    "2-acetyloxybenzoic acid"
+   ],
+   "raw_keys": [
+    "InformationList"
+   ],
+   "identifiers": [
+    "PUBCHEM:2244",
+    "PUBCHEM:BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "2244",
+  "status": "ok"
+ },
+ {
+  "source": "PUBTATOR",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.56,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "@GENE_BRCA1",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "@GENE_BRCA1.L",
+     "label": "brca1.L",
+     "type": "GENE"
+    },
+    {
+     "id": "@VARIANT_c.5382insC_BRCA1_human",
+     "label": "c.5382insC",
+     "type": "MOLECULAR_ENTITY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.4,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 2,
+    "categories": 1
+   },
+   "raw_keys": [
+    "_id",
+    "biotype",
+    "db_id",
+    "db",
+    "name",
+    "description",
+    "match"
+   ],
+   "identifiers": [
+    "PUBTATOR:@GENE_BRCA1",
+    "NCBI:672"
+   ]
+  },
+  "relationships": {
+   "seconds": 3.25,
+   "count": 50,
+   "error": null,
+   "predicates": [
+    [
+     "associate",
+     46
+    ],
+    [
+     "inhibit",
+     2
+    ],
+    [
+     "negative_correlate",
+     1
+    ],
+    [
+     "interact",
+     1
+    ]
+   ],
+   "sample": [
+    "associate -> @DISEASE_Breast_Neoplasms (Breast Neoplasms)",
+    "associate -> @DISEASE_Neoplasms (Neoplasms)",
+    "associate -> @DISEASE_Hereditary_Breast_and_Ovarian_Cancer_Syndrome (Hereditary Breast and Ovarian Cancer Syndrome)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.15,
+   "count": 1,
+   "error": null,
+   "targets": [
+    [
+     "NCBI Gene",
+     1
+    ]
+   ],
+   "sample": [
+    "NCBI Gene:NCBIGene:672"
+   ]
+  },
+  "first_id": "@GENE_BRCA1",
+  "status": "ok"
+ },
+ {
+  "source": "QUICKGO",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 1.06,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "GO:0070533",
+     "label": "BRCA1-C complex",
+     "type": "CELLULAR_COMPONENT"
+    },
+    {
+     "id": "GO:0070531",
+     "label": "BRCA1-A complex",
+     "type": "CELLULAR_COMPONENT"
+    },
+    {
+     "id": "GO:0070532",
+     "label": "BRCA1-B complex",
+     "type": "CELLULAR_COMPONENT"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 1.35,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1
+   },
+   "definition": "A protein complex that contains the BRCA1-BARD1 heterodimer, CtIP and Mre11/Rad50/NBS1 (M/R/N) complex, and binds to DNA at DNA damage sites. BRCA1-C binding t…",
+   "raw_keys": [
+    "go_aspect",
+    "definition",
+    "obsolete",
+    "synonyms",
+    "comment",
+    "usage",
+    "full_details"
+   ],
+   "identifiers": [
+    "QUICKGO:GO:0070533"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "GO:0070533",
+  "status": "ok"
+ },
+ {
+  "source": "REACTOME",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 1.11,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "R-GGA-265987",
+     "label": "Phosphorylation of BRCA1",
+     "type": "BIOLOGICAL_PROCESS"
+    },
+    {
+     "id": "R-HSA-5683801",
+     "label": "CHEK2 phosphorylates BRCA1",
+     "type": "BIOLOGICAL_PROCESS"
+    },
+    {
+     "id": "R-GGA-265968",
+     "label": "Association of RAD51 with BRCA1",
+     "type": "BIOLOGICAL_PROCESS"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.12,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1
+   },
+   "definition": "BRCA1 phosphorylation occurs at multiple sites by ATM and is regulated by MDC1 in human. Although Ser1189 and Ser1542 are conserved in chicken BRCA1, ATM phosp…",
+   "raw_keys": [
+    "dbId",
+    "displayName",
+    "stId",
+    "stIdVersion",
+    "isInDisease",
+    "isInferred",
+    "maxDepth",
+    "name",
+    "releaseDate",
+    "speciesName",
+    "compartment",
+    "literatureReference",
+    "species",
+    "summation"
+   ],
+   "identifiers": [
+    "REACTOME:R-GGA-265987"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.91,
+   "count": 10,
+   "error": null,
+   "predicates": [
+    [
+     "part_of",
+     7
+    ],
+    [
+     "has_participant",
+     3
+    ]
+   ],
+   "sample": [
+    "part_of -> R-GGA-351433 (ATM mediated phosphorylation of repair proteins)",
+    "part_of -> R-GGA-351442 (ATM mediated response to DNA double-strand break)",
+    "part_of -> R-GGA-351470 (Homologous recombination repair (HRR) of replicat…)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.12,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "R-GGA-265987",
+  "status": "ok"
+ },
+ {
+  "source": "RHEA",
+  "query": "lactate",
+  "search": {
+   "seconds": 0.47,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "RHEA:19909",
+     "label": "(S)-lactate + 2 Fe(III)-[cytochrome c] = 2 Fe(II)-[cytochrome c] + pyruvate + 2 H(+)",
+     "type": "MOLECULAR_FUNCTION"
+    },
+    {
+     "id": "RHEA:23444",
+     "label": "(S)-lactate + NAD(+) = pyruvate + NADH + H(+)",
+     "type": "MOLECULAR_FUNCTION"
+    },
+    {
+     "id": "RHEA:13521",
+     "label": "(R)-lactate + 2 Fe(III)-[cytochrome c] = 2 Fe(II)-[cytochrome c] + pyruvate + 2 H(+)",
+     "type": "MOLECULAR_FUNCTION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.58,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 3,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "raw_keys": [
+    "equation",
+    "ec",
+    "chebi_ids",
+    "chebi_names",
+    "pubmed",
+    "go",
+    "kegg",
+    "metacyc",
+    "uniprot_count",
+    "status",
+    "balanced",
+    "transport"
+   ],
+   "identifiers": [
+    "RHEA:RHEA:19909",
+    "KEGG:R00196",
+    "GO:GO:0004460"
+   ]
+  },
+  "relationships": {
+   "seconds": 4.61,
+   "count": 10,
+   "error": null,
+   "predicates": [
+    [
+     "has_product",
+     3
+    ],
+    [
+     "has_substrate",
+     2
+    ],
+    [
+     "has_directional_variant",
+     2
+    ],
+    [
+     "has_ec_number",
+     1
+    ],
+    [
+     "has_bidirectional_variant",
+     1
+    ],
+    [
+     "has_go_term",
+     1
+    ]
+   ],
+   "sample": [
+    "has_substrate -> CHEBI:16651 ((S)-lactate)",
+    "has_substrate -> GENERIC:14399 (Fe(III)-[cytochrome c])",
+    "has_product -> GENERIC:10350 (Fe(II)-[cytochrome c])"
+   ]
+  },
+  "mappings": {
+   "seconds": 1.42,
+   "count": 5,
+   "error": null,
+   "targets": [
+    [
+     "EC",
+     1
+    ],
+    [
+     "KEGG",
+     1
+    ],
+    [
+     "MetaCyc",
+     1
+    ],
+    [
+     "GO",
+     1
+    ],
+    [
+     "UniProt",
+     1
+    ]
+   ],
+   "sample": [
+    "EC:EC:1.1.2.3",
+    "KEGG:R00196",
+    "MetaCyc:L-LACTATE-DEHYDROGENASE-CYTOCHROME-RXN"
+   ]
+  },
+  "first_id": "RHEA:19909",
+  "status": "ok"
+ },
+ {
+  "source": "RXCLASS",
+  "query": "aspirin",
+  "search": {
+   "seconds": 1.04,
+   "count": 2,
+   "error": null,
+   "top": [
+    {
+     "id": "1191",
+     "label": "aspirin",
+     "type": "DRUG"
+    },
+    {
+     "id": "135095",
+     "label": "aspirin / codeine",
+     "type": "DRUG"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.27,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "categories": 3,
+    "semantic_types": 1
+   },
+   "raw_keys": [
+    "kind",
+    "rxcui",
+    "tty",
+    "atc_classes"
+   ],
+   "identifiers": [
+    "RXCLASS:1191"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.25,
+   "count": 3,
+   "error": null,
+   "predicates": [
+    [
+     "has_atc_class",
+     3
+    ]
+   ],
+   "sample": [
+    "has_atc_class -> A01AD (Other agents for local oral treatment)",
+    "has_atc_class -> B01AC (Platelet aggregation inhibitors excl. heparin)",
+    "has_atc_class -> N02BA (Salicylic acid and derivatives)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.65,
+   "count": 6,
+   "error": null,
+   "targets": [
+    [
+     "ATC",
+     6
+    ]
+   ],
+   "sample": [
+    "ATC:A01AD",
+    "ATC:B01AC",
+    "ATC:N02BA"
+   ]
+  },
+  "first_id": "1191",
+  "status": "ok"
+ },
+ {
+  "source": "RXNORM",
+  "query": "aspirin",
+  "search": {
+   "seconds": 1.21,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "1191",
+     "label": "aspirin",
+     "type": "DRUG"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.12,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 1,
+    "semantic_types": 1
+   },
+   "definition": "RxNorm ingredient (RxCUI 1191, TTY IN)",
+   "raw_keys": [
+    "rxcui",
+    "name",
+    "synonym",
+    "tty",
+    "language",
+    "suppress",
+    "umlscui"
+   ],
+   "identifiers": [
+    "RXNORM:1191"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.26,
+   "count": 76,
+   "error": null,
+   "predicates": [
+    [
+     "ingredient_of",
+     50
+    ],
+    [
+     "has_tradename",
+     25
+    ],
+    [
+     "has_form",
+     1
+    ]
+   ],
+   "sample": [
+    "has_tradename -> 1052413 (Pamprin Max Formula)",
+    "has_tradename -> 1053324 (Stanback Headache Powder Reformulated Jan 2011)",
+    "has_tradename -> 1247393 (BC Arthritis)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.39,
+   "count": 9,
+   "error": null,
+   "targets": [
+    [
+     "ATC",
+     3
+    ],
+    [
+     "SNOMEDCT",
+     2
+    ],
+    [
+     "DrugBank",
+     1
+    ],
+    [
+     "UNII",
+     1
+    ],
+    [
+     "USP",
+     1
+    ],
+    [
+     "VUID",
+     1
+    ]
+   ],
+   "sample": [
+    "ATC:A01AD05",
+    "ATC:B01AC06",
+    "ATC:N02BA01"
+   ]
+  },
+  "first_id": "1191",
+  "status": "ok"
+ },
+ {
+  "source": "SEMANTICSCHOLAR",
+  "query": "long covid",
+  "search": {
+   "seconds": 1.5,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "e7b00aef2c3fa2da51aa4647e1e9e38566bf1be6",
+     "label": "Long COVID: major findings, mechanisms and recommendations",
+     "type": "CITATION"
+    },
+    {
+     "id": "eb87ec5c85fa1c7465835962fb7962d6519b82fd",
+     "label": "Attributes and predictors of long COVID",
+     "type": "CITATION"
+    },
+    {
+     "id": "106e848928d72aa7235a14cc90bb85ff8fb818a2",
+     "label": "Characterizing long COVID in an international cohort: 7 months of symptoms and their impa…",
+     "type": "CITATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 2.58,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 4,
+    "categories": 4,
+    "semantic_types": 2
+   },
+   "definition": "Long COVID is an often debilitating illness that occurs in at least 10% of severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) infections. More than 2…",
+   "raw_keys": [
+    "paperId",
+    "corpusId",
+    "title",
+    "year",
+    "venue",
+    "publication_date",
+    "publication_types",
+    "fields_of_study",
+    "authors",
+    "tldr",
+    "citation_count",
+    "influential_citation_count",
+    "reference_count",
+    "is_open_access"
+   ],
+   "identifiers": [
+    "SEMANTICSCHOLAR:e7b00aef2c3fa2da51aa4647e1e9e38566bf1be6",
+    "EUROPEPMC:DOI:10.1038/s41579-022-00846-2",
+    "EUROPEPMC:PMID:36639608",
+    "EUROPEPMC:PMC9839201"
+   ]
+  },
+  "relationships": {
+   "seconds": 4.98,
+   "count": 50,
+   "error": null,
+   "predicates": [
+    [
+     "cites",
+     25
+    ],
+    [
+     "cited_by",
+     25
+    ]
+   ],
+   "sample": [
+    "cites -> fdb535c517dad226dff562fcc222d76b39695f11 (Nirmatrelvir and the Risk of Post-Acute Sequelae …)",
+    "cites -> a029ef6b4632918d70296f95e71cf2820cec8fed (Acute and postacute sequelae associated with SARS…)",
+    "cites -> d8a91108266de47190433b55bc268bd78c96968b (Signatures of Mitochondrial Dysfunction and Impai…)"
+   ]
+  },
+  "mappings": {
+   "seconds": 3.31,
+   "count": 4,
+   "error": null,
+   "targets": [
+    [
+     "DOI",
+     1
+    ],
+    [
+     "PMID",
+     1
+    ],
+    [
+     "PMCID",
+     1
+    ],
+    [
+     "CorpusId",
+     1
+    ]
+   ],
+   "sample": [
+    "DOI:10.1038/s41579-022-00846-2",
+    "PMID:36639608",
+    "PMCID:PMC9839201"
+   ]
+  },
+  "first_id": "e7b00aef2c3fa2da51aa4647e1e9e38566bf1be6",
+  "status": "ok"
+ },
+ {
+  "source": "SEMMEDDB",
+  "query": "fatigue",
+  "status": "skipped",
+  "needs": "SEMMEDDB_PATH (build the file with `knowledge-lookup semmeddb-build`)"
+ },
+ {
+  "source": "SIDER",
+  "query": "aspirin",
+  "search": {
+   "seconds": 0.96,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "CID100002244",
+     "label": "aspirin",
+     "type": "DRUG"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.0,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 3,
+    "semantic_types": 1
+   },
+   "definition": "aspirin: 70 side effects listed on drug labels (SIDER 4.1, 2015; label-derived, not causal).",
+   "raw_keys": [
+    "stitch_flat_id",
+    "stitch_stereo_ids",
+    "pubchem_cid",
+    "atc_codes",
+    "n_side_effects",
+    "release"
+   ],
+   "identifiers": [
+    "SIDER:CID100002244",
+    "PUBCHEM:2244"
+   ]
+  },
+  "relationships": {
+   "seconds": 1.87,
+   "count": 50,
+   "error": null,
+   "predicates": [
+    [
+     "has_side_effect",
+     50
+    ]
+   ],
+   "sample": [
+    "has_side_effect -> C0001122 (Acidosis)",
+    "has_side_effect -> C0085631 (Agitation)",
+    "has_side_effect -> C0002871 (Anaemia)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 4,
+   "error": null,
+   "targets": [
+    [
+     "ATC",
+     3
+    ],
+    [
+     "PUBCHEM",
+     1
+    ]
+   ],
+   "sample": [
+    "PUBCHEM:2244",
+    "ATC:A01AD05",
+    "ATC:B01AC06"
+   ]
+  },
+  "first_id": "CID100002244",
+  "status": "ok"
+ },
+ {
+  "source": "SNOMEDCT",
+  "query": "fatigue",
+  "search": {
+   "seconds": 60.03,
+   "count": 0,
+   "error": "TimeoutError: ",
+   "top": []
+  },
+  "status": "failed"
+ },
+ {
+  "source": "STRING",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.43,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "STRING:9606.ENSP00000418960",
+     "label": "BRCA1",
+     "type": "PROTEIN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.15,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "related": 5,
+    "categories": 1
+   },
+   "definition": "Breast cancer type 1 susceptibility protein; E3 ubiquitin-protein ligase that specifically mediates the formation of 'Lys-6'-linked polyubiquitin chains and pl…",
+   "raw_keys": [
+    "queryIndex",
+    "queryItem",
+    "stringId",
+    "ncbiTaxonId",
+    "taxonName",
+    "preferredName",
+    "annotation"
+   ],
+   "identifiers": [
+    "STRING:STRING:9606.ENSP00000418960"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.07,
+   "count": 10,
+   "error": null,
+   "predicates": [
+    [
+     "interaction",
+     10
+    ]
+   ],
+   "sample": [
+    "interaction -> 9606.ENSP00000231790 (MLH1)",
+    "interaction -> 9606.ENSP00000251413 (TUBG1)",
+    "interaction -> 9606.ENSP00000254719 (RPA1)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "STRING:9606.ENSP00000418960",
+  "status": "ok"
+ },
+ {
+  "source": "TYTO",
+  "query": "gene",
+  "search": {
+   "seconds": 10.82,
+   "count": 3,
+   "error": null,
+   "top": [
+    {
+     "id": "https://identifiers.org/SO:0000704",
+     "label": "gene",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "https://identifiers.org/SBO:0000243",
+     "label": "gene",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "https://identifiers.org/ncit:C16612",
+     "label": "Gene",
+     "type": "UNKNOWN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.0,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1,
+    "categories": 1
+   },
+   "raw_keys": [
+    "ontology",
+    "uri",
+    "label"
+   ],
+   "identifiers": [
+    "TYTO:https://identifiers.org/SO:0000704"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "https://identifiers.org/SO:0000704",
+  "status": "ok"
+ },
+ {
+  "source": "UMLS",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.93,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "C0376571",
+     "label": "BRCA1 gene",
+     "type": "GENE"
+    },
+    {
+     "id": "C1528558",
+     "label": "BRCA1 protein, human",
+     "type": "GENE"
+    },
+    {
+     "id": "C0259275",
+     "label": "BRCA1 Protein",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 1.56,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 59,
+    "definitions": 7,
+    "identifiers": 1,
+    "parents": 1,
+    "related": 24,
+    "categories": 23,
+    "semantic_types": 1
+   },
+   "definition": "Tumor supresorový gen umístěný na lidském chromozomu 17, na lokusu 17q21. Mutace tohoto genu je spojena s dědičným syndromem nádoru prsu a vaječníků. Kóduje ve…",
+   "synonyms": [
+    "BRCA1 gene",
+    "geny BRCA1",
+    "BRCA1 geny",
+    "gen BRCA1"
+   ],
+   "raw_keys": [
+    "semantic_types",
+    "definitions",
+    "synonyms",
+    "sources",
+    "atoms",
+    "relations"
+   ],
+   "identifiers": [
+    "UMLS:C0376571"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.14,
+   "count": 100,
+   "error": null,
+   "predicates": [
+    [
+     "RQ",
+     36
+    ],
+    [
+     "RO",
+     33
+    ],
+    [
+     "SY",
+     23
+    ],
+    [
+     "CHD",
+     3
+    ],
+    [
+     "PAR",
+     2
+    ],
+    [
+     "RB",
+     1
+    ]
+   ],
+   "sample": [
+    "RO -> https://uts-ws.nlm.nih.gov/rest/content/2026AA/source/LNC/50995-0 (BRCA1+BRCA2 gene targeted mutation analysis:Find:…)",
+    "RQ -> https://uts-ws.nlm.nih.gov/rest/content/2026AA/AUI/A24606983 (BRCA1, 1-BP INS)",
+    "RQ -> https://uts-ws.nlm.nih.gov/rest/content/2026AA/AUI/A24602818 (BRCA1, 1-BP DEL, 3121A)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.55,
+   "count": 13,
+   "error": null,
+   "targets": [
+    [
+     "LNC",
+     2
+    ],
+    [
+     "MSHCZE",
+     1
+    ],
+    [
+     "MSHDUT",
+     1
+    ],
+    [
+     "HGNC",
+     1
+    ],
+    [
+     "MEDLINEPLUS",
+     1
+    ],
+    [
+     "MTH",
+     1
+    ],
+    [
+     "NCI",
+     1
+    ],
+    [
+     "MSH",
+     1
+    ]
+   ],
+   "sample": [
+    "MSHCZE:D019398",
+    "MSHDUT:D019398",
+    "LNC:LP19666-4"
+   ]
+  },
+  "first_id": "C0376571",
+  "status": "ok"
+ },
+ {
+  "source": "UNICHEM",
+  "query": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+  "search": {
+   "seconds": 1.34,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "161671",
+     "label": "UCI_161671",
+     "type": "CHEMICAL"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.64,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 1018,
+    "categories": 1017
+   },
+   "raw_keys": [
+    "inchi",
+    "sources",
+    "standardInchiKey",
+    "uci"
+   ],
+   "identifiers": [
+    "UNICHEM:161671",
+    "UNICHEM:CHEMBL25",
+    "UNICHEM:DB00945",
+    "UNICHEM:AIN",
+    "UNICHEM:4139"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "161671",
+  "status": "ok"
+ },
+ {
+  "source": "UNIPROT",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.32,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "Q8RXD4",
+     "label": "BRCA1",
+     "type": "PROTEIN"
+    },
+    {
+     "id": "Q95153",
+     "label": "BRCA1",
+     "type": "PROTEIN"
+    },
+    {
+     "id": "P38398",
+     "label": "BRCA1",
+     "type": "PROTEIN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.04,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "synonyms": 1,
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 1
+   },
+   "definition": "Plays a role in DNA repair and in cell-cycle control. Required for the repair of DNA double-strand breaks (DSBs), both natural and induced by genotoxic stress,…",
+   "synonyms": [
+    "Protein BREAST CANCER SUSCEPTIBILITY 1 homolog"
+   ],
+   "raw_keys": [
+    "entryType",
+    "primaryAccession",
+    "secondaryAccessions",
+    "uniProtkbId",
+    "entryAudit",
+    "annotationScore",
+    "organism",
+    "proteinExistence",
+    "proteinDescription",
+    "genes",
+    "comments",
+    "features",
+    "keywords",
+    "references"
+   ],
+   "identifiers": [
+    "UNIPROT:Q8RXD4"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "Q8RXD4",
+  "status": "ok"
+ },
+ {
+  "source": "UNPAYWALL",
+  "query": "10.1038/s41586-020-2012-7",
+  "search": {
+   "seconds": 0.45,
+   "count": 1,
+   "error": null,
+   "top": [
+    {
+     "id": "10.1038/s41586-020-2012-7",
+     "label": "A pneumonia outbreak associated with a new coronavirus of probable bat origin",
+     "type": "CITATION"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.0,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "identifiers": 2,
+    "categories": 3,
+    "semantic_types": 1
+   },
+   "raw_keys": [
+    "doi",
+    "title",
+    "genre",
+    "year",
+    "published_date",
+    "journal",
+    "journal_issns",
+    "journal_issn_l",
+    "journal_is_oa",
+    "journal_is_in_doaj",
+    "publisher",
+    "is_oa",
+    "oa_status",
+    "has_repository_copy"
+   ],
+   "identifiers": [
+    "UNPAYWALL:10.1038/s41586-020-2012-7",
+    "EUROPEPMC:DOI:10.1038/s41586-020-2012-7"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 8,
+   "error": null,
+   "predicates": [
+    [
+     "available_at",
+     6
+    ],
+    [
+     "published_in",
+     1
+    ],
+    [
+     "published_by",
+     1
+    ]
+   ],
+   "sample": [
+    "available_at -> https://doi.org/10.1038/s41586-020-2012-7 (publisher copy)",
+    "available_at -> https://doi.org/10.1101/2020.01.22.914952 (Cold Spring Harbor Laboratory)",
+    "available_at -> https://repositorio.ufla.br/handle/1/39411 (LA Referencia)"
+   ]
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 4,
+   "error": null,
+   "targets": [
+    [
+     "ISSN",
+     2
+    ],
+    [
+     "DOI",
+     1
+    ],
+    [
+     "ISSN-L",
+     1
+    ]
+   ],
+   "sample": [
+    "DOI:10.1038/s41586-020-2012-7",
+    "ISSN-L:0028-0836",
+    "ISSN:0028-0836"
+   ]
+  },
+  "first_id": "10.1038/s41586-020-2012-7",
+  "status": "ok"
+ },
+ {
+  "source": "WIKIDATA",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 1.97,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "Q17487737",
+     "label": "BRCA1",
+     "type": "PROTEIN"
+    },
+    {
+     "id": "Q227339",
+     "label": "BRCA1",
+     "type": "GENE"
+    },
+    {
+     "id": "Q28444960",
+     "label": "BRCA1 Mutation",
+     "type": "GENE"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.21,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 2
+   },
+   "definition": "mammalian protein found in Homo sapiens",
+   "raw_keys": [
+    "item",
+    "umlsCui",
+    "meshId",
+    "itemLabel",
+    "itemDescription",
+    "instanceOfLabel"
+   ],
+   "identifiers": [
+    "WIKIDATA:Q17487737",
+    "UMLS:C0259275"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "Q17487737",
+  "status": "ok"
+ },
+ {
+  "source": "WIKIPATHWAYS",
+  "query": "BRCA1",
+  "search": {
+   "seconds": 0.88,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "WP1014",
+     "label": "Androgen receptor signaling pathway",
+     "type": "PATHWAY"
+    },
+    {
+     "id": "WP1133",
+     "label": "Androgen receptor signaling pathway",
+     "type": "PATHWAY"
+    },
+    {
+     "id": "WP1244",
+     "label": "Estrogen signaling",
+     "type": "PATHWAY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.26,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 1
+   },
+   "definition": "Androgens, mainly testosterone and 5alpha-dihydrotestosterone (DHT) play significant role in the growth and development of the male reproductive organs. These …",
+   "raw_keys": [
+    "id",
+    "url",
+    "name",
+    "species",
+    "revision",
+    "authors",
+    "description",
+    "citedIn"
+   ],
+   "identifiers": [
+    "WIKIPATHWAYS:WP1014",
+    "WIKIPATHWAYS:WP1014"
+   ]
+  },
+  "relationships": {
+   "seconds": 3.56,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "WP1014",
+  "status": "ok"
+ },
+ {
+  "source": "ZENODO",
+  "query": "long covid",
+  "search": {
+   "seconds": 0.69,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "10576421",
+     "label": "Characterising long COVID-like COVID-19 vaccine reactions",
+     "type": "STUDY"
+    },
+    {
+     "id": "10077491",
+     "label": "Long COVID: new persectives and review of the literature",
+     "type": "REFERENCE"
+    },
+    {
+     "id": "6078874",
+     "label": "Phenotyping long COVID",
+     "type": "STUDY"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.13,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 2,
+    "categories": 4,
+    "semantic_types": 1
+   },
+   "definition": "Dataset for a cross-sectional study asking participants identifying as having chronic long COVID-like reactions to COVID-19 vaccinations about symptoms, tests,…",
+   "raw_keys": [
+    "record_id",
+    "url",
+    "doi",
+    "concept_doi",
+    "concept_record_id",
+    "resource_type",
+    "resource_subtype",
+    "creators",
+    "creator_count",
+    "publication_date",
+    "version",
+    "language",
+    "keywords",
+    "communities"
+   ],
+   "identifiers": [
+    "ZENODO:10576421",
+    "ZENODO:DOI:10.5281/zenodo.10576421"
+   ]
+  },
+  "relationships": {
+   "seconds": 2.61,
+   "count": 2,
+   "error": null,
+   "predicates": [
+    [
+     "has_license",
+     1
+    ],
+    [
+     "is_version_of",
+     1
+    ]
+   ],
+   "sample": [
+    "has_license -> cc-by-4.0 ()",
+    "is_version_of -> DOI:10.5281/zenodo.10576420 (all versions)"
+   ]
+  },
+  "mappings": {
+   "seconds": 1.38,
+   "count": 2,
+   "error": null,
+   "targets": [
+    [
+     "DOI",
+     2
+    ]
+   ],
+   "sample": [
+    "DOI:DOI:10.5281/zenodo.10576421",
+    "DOI:DOI:10.5281/zenodo.10576420"
+   ]
+  },
+  "first_id": "10576421",
+  "status": "ok"
+ },
+ {
+  "source": "ZOOMA",
+  "query": "diabetes",
+  "search": {
+   "seconds": 0.23,
+   "count": 5,
+   "error": null,
+   "top": [
+    {
+     "id": "http://purl.obolibrary.org/obo/DOID_9351",
+     "label": "diabetes",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "http://purl.obolibrary.org/obo/MONDO_0005015",
+     "label": "diabetes",
+     "type": "UNKNOWN"
+    },
+    {
+     "id": "http://purl.obolibrary.org/obo/NCIT_C2985",
+     "label": "diabetes",
+     "type": "UNKNOWN"
+    }
+   ]
+  },
+  "details": {
+   "seconds": 0.98,
+   "ok": true,
+   "error": null,
+   "filled": {
+    "definitions": 1,
+    "identifiers": 1,
+    "categories": 1
+   },
+   "definition": "A glucose metabolism disease characterized by chronic hyperglycaemia with disturbances of carbohydrate, fat and protein metabolism resulting from defects in in…",
+   "raw_keys": [
+    "iri",
+    "lang",
+    "description",
+    "synonyms",
+    "annotation",
+    "label",
+    "ontology_name",
+    "ontology_prefix",
+    "ontology_iri",
+    "is_obsolete",
+    "term_replaced_by",
+    "is_defining_ontology",
+    "has_children",
+    "is_root"
+   ],
+   "identifiers": [
+    "ZOOMA:http://purl.obolibrary.org/obo/DOID_9351"
+   ]
+  },
+  "relationships": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "predicates": [],
+   "sample": []
+  },
+  "mappings": {
+   "seconds": 0.0,
+   "count": 0,
+   "error": null,
+   "targets": [],
+   "sample": []
+  },
+  "first_id": "http://purl.obolibrary.org/obo/DOID_9351",
+  "status": "ok"
+ }
+]

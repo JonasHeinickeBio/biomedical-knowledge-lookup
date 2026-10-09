@@ -120,4 +120,4 @@ The models are defined once in a [LinkML](https://linkml.io/) schema (`linkml/bi
 4. Add the source to `SOURCE_CATALOG` and `SourceName` in `mcp_server/sources.py`; the MCP tests check that both cover every adapter.
 5. Add unit tests with mocked responses and a documentation page under `docs/adapters/<category>/`.
 
-See [Contributing](../contributing/README.md) for the development workflow.
+The full walkthrough, with a skeleton and the testing rules, is in [Writing an adapter](../contributing/writing-an-adapter.md). See [Contributing](../contributing/README.md) for the development workflow.
