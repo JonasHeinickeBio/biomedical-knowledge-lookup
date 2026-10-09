@@ -49,11 +49,16 @@ class TestKnowledgeSourceAdapter:
         import asyncio
 
         first = asyncio.run(adapter._get_session())
-        second = asyncio.run(adapter._get_session())
+        second = None
         try:
+            second = asyncio.run(adapter._get_session())
             assert second is not first
             assert not second.closed
+            assert first.closed  # the replaced session is released, not leaked
         finally:
+            for session in (first, second):
+                if session is not None and not session.closed:
+                    asyncio.run(session.close())
             asyncio.run(adapter.close())
 
     @pytest.mark.asyncio
@@ -69,6 +74,16 @@ class TestKnowledgeSourceAdapter:
         asyncio.run(adapter._get_session())
         asyncio.run(adapter.close())  # must not raise
         assert adapter.session is None
+
+    @pytest.mark.asyncio
+    async def test_session_assigned_after_close_is_kept(self, adapter):
+        """close() forgets the loop, so a later directly-assigned session stays usable."""
+        await adapter._get_session()
+        await adapter.close()
+        assert adapter._session_loop is None
+        injected = MagicMock(closed=False)
+        adapter.session = injected
+        assert await adapter._get_session() is injected
 
     @pytest.mark.asyncio
     async def test_session_timeout_floor_for_slow_sources(self, adapter):

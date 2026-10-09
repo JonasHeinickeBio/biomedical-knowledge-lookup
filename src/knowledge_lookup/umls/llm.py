@@ -37,6 +37,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..models import UnifiedConcept
+from ..utils.session_utils import close_session
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +121,7 @@ class AnthropicBackend(LLMBackend):
 
         loop = asyncio.get_running_loop()
         if self._session is None or self._session.closed or self._session_loop is not loop:
+            await close_session(self._session, self._session_loop)
             self._session = aiohttp.ClientSession()
             self._session_loop = loop
         assert self._session is not None
@@ -147,12 +149,9 @@ class AnthropicBackend(LLMBackend):
             return data["content"][0]["text"].strip()
 
     async def close(self):
-        session, self._session = self._session, None
-        if session and not session.closed:
-            try:
-                await session.close()
-            except RuntimeError:
-                pass  # the session's event loop is already closed
+        session, loop = self._session, self._session_loop
+        self._session = self._session_loop = None
+        await close_session(session, loop)
 
 
 class HuggingFaceBackend(LLMBackend):

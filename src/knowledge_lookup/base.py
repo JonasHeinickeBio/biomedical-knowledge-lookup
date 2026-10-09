@@ -23,6 +23,7 @@ from .utils.retry_utils import (
     ErrorCategory,
     classify_error,
 )
+from .utils.session_utils import close_session
 
 logger = logging.getLogger(__name__)
 
@@ -288,6 +289,7 @@ class KnowledgeSourceAdapter(ABC):
         ):
             import aiohttp  # deferred: a sizeable import that only HTTP adapters need
 
+            await close_session(self.session, self._session_loop)
             configured = self.config.timeout_per_source or 0.0
             timeout = aiohttp.ClientTimeout(total=max(configured, self.min_request_timeout))
             self.session = aiohttp.ClientSession(timeout=timeout)
@@ -340,13 +342,9 @@ class KnowledgeSourceAdapter(ABC):
 
     async def close(self):
         """Close the adapter and cleanup resources."""
-        session, self.session = self.session, None
-        if session and not session.closed:
-            try:
-                await session.close()
-            except RuntimeError:
-                # The session belongs to an event loop that is already closed.
-                pass
+        session, loop = self.session, self._session_loop
+        self.session = self._session_loop = None
+        await close_session(session, loop)
 
     def _get_cache_key(self, operation: str, *params: Any) -> str:
         """Generate a cache key for adapter operations."""
