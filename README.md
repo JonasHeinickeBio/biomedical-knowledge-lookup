@@ -291,9 +291,9 @@ See the [configuration guide](docs/getting-started/configuration.md) for every o
 |---|---|
 | **Getting started** | [Installation](docs/getting-started/installation.md) · [Quickstart](docs/getting-started/quickstart.md) · [Configuration](docs/getting-started/configuration.md) · [Troubleshooting](docs/getting-started/troubleshooting.md) |
 | **Guides** | [Searching](docs/guides/searching-concepts.md) · [Term expansion](docs/guides/term-expansion.md) · [Multi-source annotation](docs/guides/multi-source-annotation.md) · [CURIEs](docs/guides/curie-management.md) · [Caching](docs/guides/caching.md) · [Exporting](docs/guides/exporting-results.md) · [CLI](docs/guides/cli.md) · [Agent workflow](docs/guides/agent-workflow.md) · [MCP server](docs/guides/mcp-server.md) |
-| **Choosing sources** | [Which source for which question](docs/guides/choosing-sources.md) · [What each source returns](docs/guides/data-coverage.md) · [All adapters](docs/adapters/README.md) |
-| **Reference** | [API reference](docs/reference/api-reference.md) · [Architecture](docs/reference/architecture.md) · [Glossary](docs/reference/glossary.md) |
-| **More** | [Examples](docs/examples/README.md) · [Example notebooks](example_notebooks/) · [Contributing](docs/contributing/README.md) · [Changelog](CHANGELOG.md) |
+| **Choosing sources** | [Which source for which question](docs/guides/choosing-sources.md) · [Recipes](docs/guides/recipes.md) · [What each source returns](docs/guides/data-coverage.md) · [All adapters](docs/adapters/README.md) |
+| **Reference** | [API reference](docs/reference/api-reference.md) · [Architecture](docs/reference/architecture.md) · [Environment variables](docs/reference/environment-variables.md) · [Glossary](docs/reference/glossary.md) |
+| **More** | [Examples](docs/examples/README.md) · [Example notebooks](example_notebooks/) · [Contributing](docs/contributing/README.md) · [Writing an adapter](docs/contributing/writing-an-adapter.md) · [Changelog](CHANGELOG.md) |
 
 ### Package layout
 

@@ -53,7 +53,7 @@ The hooks run Ruff (lint and format, line length 99), mypy and basic file checks
 
 ## Add a knowledge source
 
-The steps (adapter class, `KnowledgeSource` enum, registry, MCP source catalog, tests and docs) are listed in [Architecture](../reference/architecture.md). Existing adapters in `src/knowledge_lookup/adapters/` are the best templates.
+Follow [Writing an adapter](writing-an-adapter.md): check the API live, implement the contract, register the source, write Windows-safe tests and document it. The short version is in [Architecture](../reference/architecture.md). Existing adapters in `src/knowledge_lookup/adapters/` are the best templates.
 
 ## Improve the documentation
 

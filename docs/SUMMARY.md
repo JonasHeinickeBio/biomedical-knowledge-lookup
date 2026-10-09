@@ -25,6 +25,7 @@
 ## Choosing sources
 
 * [Which source for which question](guides/choosing-sources.md)
+* [Recipes](guides/recipes.md)
 * [What each source returns](guides/data-coverage.md)
 * [All adapters](adapters/README.md)
 
@@ -182,9 +183,11 @@
 
 * [API reference](reference/api-reference.md)
 * [Architecture](reference/architecture.md)
+* [Environment variables](reference/environment-variables.md)
 * [Glossary](reference/glossary.md)
 
 ## Project
 
 * [Contributing](contributing/README.md)
+* [Writing an adapter](contributing/writing-an-adapter.md)
 * [Changelog](https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup/blob/main/CHANGELOG.md)
