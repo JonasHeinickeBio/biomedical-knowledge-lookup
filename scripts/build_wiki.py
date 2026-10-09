@@ -35,8 +35,37 @@ HINT_LABEL = {
     "warning": "⚠️ **Warning**",
     "danger": "🛑 **Caution**",
 }
-LINK = re.compile(r"(?<!\!)\[([^\]]*)\]\(([^)\s]+)\)")
-FENCE = re.compile(r"^\s*(```|~~~)")
+# [text](destination "optional title"): the destination is either <...> or text with at most one
+# level of balanced parentheses (file names such as ``a_(b).md``).
+LINK = re.compile(
+    r"(?<!\!)\[([^\]]*)\]\((<[^>\n]*>|(?:[^()\s]|\([^()\s]*\))+)"
+    r"(\s+(?:\"[^\"]*\"|'[^']*'))?\)"
+)
+FENCE_LINE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+
+
+class Fence:
+    """Track fenced code blocks the way CommonMark does.
+
+    A fence closes only with the same character and at least as many of them as the opener,
+    so a three-backtick line inside a four-backtick block stays literal.
+    """
+
+    def __init__(self) -> None:
+        self.marker: str | None = None
+
+    def feed(self, line: str) -> bool:
+        """Return True when ``line`` is inside a fence or is a fence line itself."""
+        m = FENCE_LINE.match(line)
+        if self.marker is None:
+            if m and not (m.group(1)[0] == "`" and "`" in m.group(2)):
+                self.marker = m.group(1)
+                return True
+            return False
+        if m and m.group(1)[0] == self.marker[0] and len(m.group(1)) >= len(self.marker):
+            if not m.group(2).strip():
+                self.marker = None
+        return True
 
 
 def sanitize(text: str) -> str:
@@ -96,18 +125,31 @@ def rewrite_link(target: str, src: Path, names: dict[Path, str]) -> str:
     return f"{BLOB}/{rel}" + (f"#{anchor}" if anchor else "")
 
 
+def rewrite_links(line: str, src: Path, names: dict[Path, str]) -> str:
+    """Rewrite every Markdown link in ``line`` (angle-bracket and parenthesised targets included)."""
+
+    def one(m: re.Match[str]) -> str:
+        dest = m.group(2)
+        if dest.startswith("<"):
+            dest = dest[1:-1]
+        new = rewrite_link(dest, src, names)
+        if new == dest:  # external or in-page link: leave exactly as written
+            return m.group(0)
+        if re.search(r"[\s()]", new):
+            new = f"<{new}>"
+        return f"[{m.group(1)}]({new}{m.group(3) or ''})"
+
+    return LINK.sub(one, line)
+
+
 def convert_blocks(lines: list[str]) -> list[str]:
     """Replace GitBook blocks outside code fences with plain Markdown."""
     out: list[str] = []
-    in_fence = False
+    fence = Fence()
     in_hint = False
     for line in lines:
-        if FENCE.match(line):
-            in_fence = not in_fence
-            out.append(line)
-            continue
-        if in_fence:
-            out.append(line)
+        if fence.feed(line):
+            out.append(f"> {line}" if in_hint else line)
             continue
         stripped = line.strip()
         m = re.match(r'\{%\s*hint(?:\s+style="(\w+)")?\s*%\}', stripped)
@@ -140,16 +182,11 @@ def convert_page(path: Path, names: dict[Path, str]) -> str:
     meta, body = split_front_matter(path.read_text(encoding="utf-8"))
     lines = convert_blocks(body.splitlines())
 
-    # rewrite links outside code fences
-    in_fence = False
+    # rewrite links outside code fences (inside a hint the fence lines carry a "> " prefix)
+    fence = Fence()
     for i, line in enumerate(lines):
-        if FENCE.match(line):
-            in_fence = not in_fence
-            continue
-        if not in_fence:
-            lines[i] = LINK.sub(
-                lambda m: f"[{m.group(1)}]({rewrite_link(m.group(2), path, names)})", line
-            )
+        if not fence.feed(line.removeprefix("> ")):
+            lines[i] = rewrite_links(line, path, names)
 
     rel = path.relative_to(ROOT).as_posix()
     banner = (

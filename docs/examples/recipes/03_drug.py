@@ -11,13 +11,21 @@ async def main() -> None:
         RxClassAdapter(cfg) as rxclass,
         OpenFDAEventsAdapter(cfg) as faers,
     ):
-        drug = (await rxnorm.search_concepts("naltrexone", limit=1))[0]
+        found = await rxnorm.search_concepts("naltrexone", limit=1)
+        if not found:
+            print("RxNorm does not know this drug")
+            return
+        drug = found[0]
         print("RxNorm  ", drug.primary_id, drug.primary_label)
 
         for m in (await rxclass.get_mappings(drug.primary_id))[:4]:
             print("RxClass ", m["toSource"], m["toId"])
 
-        hit = (await faers.search_concepts("naltrexone", limit=1))[0]
+        reports = await faers.search_concepts("naltrexone", limit=1)
+        if not reports:
+            print("no FAERS reports found")
+            return
+        hit = reports[0]
         print("FAERS   ", hit.primary_id)
         for e in (await faers.get_relationships(hit.primary_id))[:5]:
             print(

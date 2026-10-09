@@ -2,7 +2,7 @@
 """Render the JSON written by ``harvest_source_samples.py`` as a docs page.
 
 Usage:
-    poetry run python scripts/build_data_coverage_doc.py samples.json \
+    poetry run python scripts/build_data_coverage_doc.py scripts/data/source_samples.json \
         --date 2026-10-09 --out docs/guides/data-coverage.md
 
 The page is generated: edit this script (or the hand-written intro in

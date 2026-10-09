@@ -19,9 +19,20 @@ async def main() -> None:
         for c in result.concepts:
             print(f"{c.primary_id:<18} {c.primary_label[:48]:<48} {c.sources}")
 
-        # 2. Follow one hit to its cross-references in other vocabularies
-        maps = await lookup.find_mappings("MONDO:0005404")
-        print(len(maps), "cross-references, e.g.", [m.identifier for m in maps[:6]])
+        if not result.concepts:
+            print("no source knew this phrase:", result.errors)
+            return
+
+        # 2. Follow the top hit to its cross-references in other vocabularies
+        top = result.concepts[0]
+        maps = await lookup.find_mappings(top.primary_id)
+        print(
+            top.primary_id,
+            "->",
+            len(maps),
+            "cross-references, e.g.",
+            [m.identifier for m in maps[:6]],
+        )
     finally:
         await lookup.close()
 

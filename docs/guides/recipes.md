@@ -46,9 +46,20 @@ async def main() -> None:
         for c in result.concepts:
             print(f"{c.primary_id:<18} {c.primary_label[:48]:<48} {c.sources}")
 
-        # 2. Follow one hit to its cross-references in other vocabularies
-        maps = await lookup.find_mappings("MONDO:0005404")
-        print(len(maps), "cross-references, e.g.", [m.identifier for m in maps[:6]])
+        if not result.concepts:
+            print("no source knew this phrase:", result.errors)
+            return
+
+        # 2. Follow the top hit to its cross-references in other vocabularies
+        top = result.concepts[0]
+        maps = await lookup.find_mappings(top.primary_id)
+        print(
+            top.primary_id,
+            "->",
+            len(maps),
+            "cross-references, e.g.",
+            [m.identifier for m in maps[:6]],
+        )
     finally:
         await lookup.close()
 
@@ -65,7 +76,7 @@ CONDITIONS:12927   Chronic fatigue syndrome                         ['CLINICALTA
 NCIT:C227796       Chronic Fatigue Syndrome Primary Factor Question ['NCIEVS']
 UMLS:C3824694      Chronic fatigue syndrome in adolescence          ['NODENORM']
 D015673            Fatigue Syndrome, Chronic                        ['MESH']
-4 cross-references, e.g. ['C0015674', 'D015673', '51771007', '52702003']
+MONDO:0005404 -> 4 cross-references, e.g. ['C0015674', 'D015673', '51771007', '52702003']
 ```
 
 **What to notice**
@@ -137,13 +148,21 @@ async def main() -> None:
         RxClassAdapter(cfg) as rxclass,
         OpenFDAEventsAdapter(cfg) as faers,
     ):
-        drug = (await rxnorm.search_concepts("naltrexone", limit=1))[0]
+        found = await rxnorm.search_concepts("naltrexone", limit=1)
+        if not found:
+            print("RxNorm does not know this drug")
+            return
+        drug = found[0]
         print("RxNorm  ", drug.primary_id, drug.primary_label)
 
         for m in (await rxclass.get_mappings(drug.primary_id))[:4]:
             print("RxClass ", m["toSource"], m["toId"])
 
-        hit = (await faers.search_concepts("naltrexone", limit=1))[0]
+        reports = await faers.search_concepts("naltrexone", limit=1)
+        if not reports:
+            print("no FAERS reports found")
+            return
+        hit = reports[0]
         print("FAERS   ", hit.primary_id)
         for e in (await faers.get_relationships(hit.primary_id))[:5]:
             print(
@@ -295,7 +314,11 @@ from knowledge_lookup.adapters import CellOntologyAdapter, CellxGeneAdapter
 async def main() -> None:
     cfg = LookupConfig()
     async with CellOntologyAdapter(cfg) as cl, CellxGeneAdapter(cfg) as cxg:
-        nk = (await cl.search_concepts("natural killer cell", limit=1))[0]
+        found = await cl.search_concepts("natural killer cell", limit=1)
+        if not found:
+            print("Cell Ontology returned nothing")
+            return
+        nk = found[0]
         print(nk.primary_id, nk.primary_label)
         for e in (await cl.get_relationships(nk.primary_id))[:5]:
             print("  ", e["relation_label"], e["related_id"], e["related_name"])

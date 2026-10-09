@@ -94,7 +94,7 @@ Preview the wiki locally with `python scripts/build_wiki.py --out wiki-build`. `
 1. Copy the layout of a similar page under `docs/adapters/<folder>/<module>.md`: front-matter `description:`, an info table with `Source`, `Class`, `Requires`, `Identifiers` and `Upstream API` rows, a quick example with real output, and a "Live verification" section with measured latency.
 2. Add the source to one domain in `scripts/_source_taxonomy.py`.
 3. Run `poetry run python scripts/build_source_index.py`. It rewrites the sidebar, the adapter index, the README tables and the landing page, and fails if a source is missing from the taxonomy.
-4. Refresh [What each source returns](../guides/data-coverage.md) with `scripts/harvest_source_samples.py` and `scripts/build_data_coverage_doc.py` (see the header of each script).
+4. Refresh [What each source returns](../guides/data-coverage.md): `harvest_source_samples.py --only <NAME> --out scripts/data/source_samples.json` merges the new rows into the committed samples, then `build_data_coverage_doc.py` renders the page (commands in [Writing an adapter](writing-an-adapter.md#6-document-it)).
 
 `tests/unit/test_docs_index.py` checks that the indexes are fresh and that relative links resolve.
 

@@ -64,3 +64,44 @@ def test_sidebar_lists_the_domains(wiki):
     out, _pages = wiki
     sidebar = (out / "_Sidebar.md").read_text(encoding="utf-8")
     assert "<details>" in sidebar and "Source-HGNC" in sidebar
+
+
+def test_links_with_angle_brackets_and_parentheses(tmp_path):
+    from build_wiki import rewrite_links
+
+    src = ROOT / "docs" / "guides" / "recipes.md"
+    target = (ROOT / "docs" / "guides" / "choosing-sources.md").resolve()
+    names = {target: "Which-source-for-which-question"}
+
+    assert (
+        rewrite_links("see [guide](<choosing-sources.md>)", src, names)
+        == "see [guide](Which-source-for-which-question)"
+    )
+    assert (
+        rewrite_links(
+            '[g](choosing-sources.md#terms "title") and [x](https://a.b/c_(d))', src, names
+        )
+        == '[g](Which-source-for-which-question#terms "title") and [x](https://a.b/c_(d))'
+    )
+    # a repository file whose name contains parentheses becomes a bracketed URL
+    out = rewrite_links("[f](../adapters/odd_(name).md)", src, names)
+    assert out.startswith("[f](<https://github.com/") and out.endswith("odd_(name).md>)")
+
+
+def test_fence_closes_only_with_matching_marker():
+    from build_wiki import convert_blocks
+
+    lines = [
+        "````markdown",
+        "```",
+        '{% hint style="info" %}',
+        "```",
+        "````",
+        '{% hint style="info" %}',
+        "inside",
+        "{% endhint %}",
+    ]
+    out = convert_blocks(lines)
+    assert out[:5] == lines[:5]  # the literal example is untouched
+    assert out[5].startswith("> ") and "Note" in out[5]
+    assert out[-1] == "> inside"

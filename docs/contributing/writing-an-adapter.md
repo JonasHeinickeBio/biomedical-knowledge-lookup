@@ -20,7 +20,7 @@ Do this before writing code. Four batches of new sources taught us that document
 
 ## 2. The contract
 
-Subclass `KnowledgeSourceAdapter` (`knowledge_lookup/base.py`). All methods are `async`.
+Subclass `KnowledgeSourceAdapter` (`knowledge_lookup/base.py`). `get_source()` and `is_available()` are **synchronous**; every lookup method (`search_concepts`, `get_concept_details`, `get_relationships`, `get_mappings`) is `async`. An `async def get_source` would return a coroutine instead of the `KnowledgeSource` member.
 
 | Method | Required | Rules |
 |---|---|---|
@@ -131,7 +131,14 @@ Then add the source to a domain in `scripts/_source_taxonomy.py` and run:
 poetry run python scripts/build_source_index.py
 ```
 
-This regenerates the sidebar, the adapter index and the README tables. Refresh [What each source returns](../guides/data-coverage.md) with `scripts/harvest_source_samples.py --only EXAMPLE` when you can.
+This regenerates the sidebar, the adapter index and the README tables. Refresh [What each source returns](../guides/data-coverage.md) for the new source:
+
+```bash
+poetry run python scripts/harvest_source_samples.py --only EXAMPLE --out scripts/data/source_samples.json
+poetry run python scripts/build_data_coverage_doc.py scripts/data/source_samples.json --date "$(date +%F)" --out docs/guides/data-coverage.md
+```
+
+`--out` is merged into the file if it exists: only the sources named in `--only` are replaced and every other row is kept, so a single-source refresh does not need a full run.
 
 ## 7. Before you open the pull request
 
