@@ -1,0 +1,62 @@
+name: Sync wiki
+
+# docs/ is the single source of truth. This workflow flattens it into GitHub wiki
+# pages (scripts/build_wiki.py) and pushes them to the wiki repository whenever
+# documentation changes on main. Do not edit the wiki by hand: the next sync
+# overwrites it.
+#
+# One-time setup: GitHub only creates the wiki repository when the first page
+# exists. Open the repository's Wiki tab, click "Create the first page", save it
+# with any content, then re-run this workflow (Actions > Sync wiki > Run workflow).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "scripts/build_wiki.py"
+      - ".github/workflows/wiki.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: wiki-sync
+  cancel-in-progress: true
+
+permissions:
+  contents: write  # pushes to the wiki repository
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Build wiki pages from docs/
+      run: python scripts/build_wiki.py --out wiki-build
+
+    - name: Clone the wiki repository
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        if ! git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki-repo 2>/dev/null; then
+          echo "::error::The wiki repository does not exist yet. Create the first page in the Wiki tab, then re-run this workflow."
+          exit 1
+        fi
+
+    - name: Replace the wiki content and push
+      run: |
+        rsync -a --delete --exclude ".git" wiki-build/ wiki-repo/
+        cd wiki-repo
+        git add -A
+        if git diff --cached --quiet; then
+          echo "Wiki already up to date."
+          exit 0
+        fi
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git commit -m "Sync docs from ${GITHUB_SHA::7}"
+        git push
