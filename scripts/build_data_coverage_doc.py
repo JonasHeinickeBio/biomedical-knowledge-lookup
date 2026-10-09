@@ -11,25 +11,17 @@ The page is generated: edit this script (or the hand-written intro in
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
-from knowledge_lookup import KnowledgeSource
-from knowledge_lookup.adapters import _ADAPTER_SPECS
+sys.path.insert(0, str(Path(__file__).parent))
+from _source_taxonomy import TAXONOMY  # noqa: E402
+
+from knowledge_lookup import KnowledgeSource  # noqa: E402
+from knowledge_lookup.adapters import _ADAPTER_SPECS  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 ADAPTER_DOCS = ROOT / "docs" / "adapters"
-CATEGORY_TITLES = {
-    "core": "General-purpose and disease-gene hubs",
-    "ontologies": "Ontologies and terminologies",
-    "phenotypes": "Phenotypes, genes and variants",
-    "proteins": "Genes and proteins",
-    "chemicals": "Chemicals, drugs and metabolites",
-    "pathways": "Pathways and interactions",
-    "literature": "Literature, trials and datasets",
-    "families": "Protein families and domains",
-    "other": "Other",
-}
-CATEGORY_ORDER = list(CATEGORY_TITLES)
 
 INTRO = """\
 # What each source returns
@@ -42,22 +34,7 @@ the library actually received.
 
 {summary}
 
-## Quick picks for ME/CFS and Long COVID work
-
-Every row below was observed in the harvest (see the tables further down for the evidence).
-
-| You want to ... | Use | What you get |
-|---|---|---|
-| turn a disease or symptom name into codes | [MeSH](../adapters/ontologies/mesh_adapter.md), [MedGen](../adapters/phenotypes/medgen_adapter.md), [NCI EVS](../adapters/ontologies/ncievs_adapter.md), [NCATS Node Normalizer](../adapters/ontologies/nodenorm_adapter.md), [FHIR terminology server](../adapters/ontologies/fhirterminology_adapter.md), [Clinical Tables](../adapters/ontologies/clinicaltables_adapter.md) | "chronic fatigue syndrome" gives MeSH `D015673`, MedGen `C0015674`; "fatigue" gives NCIT `C3036` with 29 cross-references, SNOMED `84229001` (via a FHIR server) and ICD-10-CM `R53.83` |
-| find phenotypes and rare-disease links | [HPO annotations](../adapters/phenotypes/hpoa_adapter.md), [Orphanet](../adapters/phenotypes/orphanet_adapter.md), [Monarch](../adapters/phenotypes/monarch_adapter.md), [GenCC](../adapters/phenotypes/gencc_adapter.md), [PanelApp](../adapters/phenotypes/panelapp_adapter.md) | disease-phenotype and disease-gene edges (50-60 per disease for HPOA and Orphanet) |
-| look up a gene | [NCBI Gene](../adapters/proteins/ncbigene_adapter.md), [MyGene.info](../adapters/proteins/mygeneinfo_adapter.md), [Ensembl](../adapters/proteins/ensembl_adapter.md), [HGNC](../adapters/proteins/hgnc_adapter.md), [GTEx](../adapters/proteins/gtex_adapter.md), [Human Protein Atlas](../adapters/proteins/hpa_adapter.md) | identifiers across databases (Ensembl: 90 cross-references) and tissue expression (GTEx, Human Protein Atlas) |
-| look up a drug and its effects | [RxNorm](../adapters/chemicals/rxnorm_adapter.md), [RxClass](../adapters/chemicals/rxclass_adapter.md) (ATC), [openFDA labels](../adapters/chemicals/openfdalabels_adapter.md) and [events](../adapters/chemicals/openfdaevents_adapter.md), [SIDER](../adapters/chemicals/sider_adapter.md), [OFFSIDES](../adapters/chemicals/offsides_adapter.md), [DGIdb](../adapters/chemicals/dgidb_adapter.md) | codes, ATC classes, label sections, adverse-event reports and side-effect terms |
-| find metabolomics studies and metabolites | [MetaboLights](../adapters/chemicals/metabolights_adapter.md), [Metabolomics Workbench](../adapters/chemicals/metabolomicsworkbench_adapter.md), [LIPID MAPS](../adapters/chemicals/lipidmaps_adapter.md), [ChEBI](../adapters/chemicals/chebi_adapter.md), [Rhea](../adapters/chemicals/rhea_adapter.md) | study records (e.g. a chronic-fatigue profiling study), metabolite structures and reactions |
-| find public omics datasets | [GEO](../adapters/literature/geo_adapter.md), [OmicsDI](../adapters/literature/omicsdi_adapter.md), [BioStudies](../adapters/literature/biostudies_adapter.md), [PRIDE](../adapters/proteins/pride_adapter.md), [Zenodo](../adapters/literature/zenodo_adapter.md) | accessions (`GSE...`, `PXD...`, `E-GEOD-...`), titles, organisms and links to papers |
-| search the literature | [Europe PMC](../adapters/literature/europepmc_adapter.md), [OpenAlex](../adapters/literature/openalex_adapter.md), [Semantic Scholar](../adapters/literature/semanticscholar_adapter.md), [LitCovid](../adapters/literature/litcovid_adapter.md), [PubTator](../adapters/literature/pubtator_adapter.md) | papers with IDs, abstracts and (OpenAlex, Semantic Scholar) citation or concept links |
-| follow citations and open access | [OpenCitations](../adapters/literature/opencitations_adapter.md), [Unpaywall](../adapters/literature/unpaywall_adapter.md) (DOI only) | citing and cited DOIs; legal open-access locations |
-| find trials and funded projects | [ClinicalTrials.gov](../adapters/literature/clinicaltrials_adapter.md), [ISRCTN](../adapters/literature/isrctn_adapter.md), [NIH RePORTER](../adapters/literature/nihreporter_adapter.md) | trial records and funded grants |
-| work with immune cells | [Cell Ontology](../adapters/ontologies/cellontology_adapter.md), [CELLxGENE](../adapters/ontologies/cellxgene_adapter.md), [IEDB](../adapters/proteins/iedb_adapter.md), [eQTL Catalogue](../adapters/phenotypes/eqtlcatalogue_adapter.md) | cell types with parents and children, single-cell datasets, epitopes |
+Looking for the right source for a question? Start with [Which source for which question](choosing-sources.md); this page is the evidence behind it.
 
 ## Things the harvest showed
 
@@ -95,8 +72,8 @@ parameters.
 ## Try it yourself
 
 ```bash
-knowledge-lookup check HPO MONDO CHEBI            # search -> details -> relationships, per source
-knowledge-lookup check all                        # every source (about 2 minutes)
+knowledge-lookup check HPO                        # search -> details -> relationships for one source
+knowledge-lookup check all                        # every source (several minutes)
 poetry run python scripts/harvest_source_samples.py --out samples.json   # the data behind this page
 ```
 
@@ -184,16 +161,12 @@ def build(rows: list[dict], date: str) -> str:
     )
     out = [INTRO.format(date=date, summary=summary)]
 
-    by_cat: dict[str, list[dict]] = {}
-    for r in ok:
-        dp = doc_path(r["source"])
-        by_cat.setdefault(dp[0] if dp else "other", []).append(r)
-
-    for cat in CATEGORY_ORDER:
-        group = by_cat.get(cat)
+    ok_by_name = {r["source"]: r for r in ok}
+    for _key, title, blurb, members in TAXONOMY:
+        group = [ok_by_name[n] for n in members.split() if n in ok_by_name]
         if not group:
             continue
-        out.append(f"\n## {CATEGORY_TITLES[cat]}\n")
+        out.append(f"\n## {title}\n\n{blurb}\n")
         out.append(
             "| Source | Query | Hits | Details | Edges | Maps | Filled fields |\n"
             "|---|---|---|---|---|---|---|"

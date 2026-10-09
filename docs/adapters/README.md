@@ -136,176 +136,194 @@ Adapters built on synchronous libraries (NCBI E-utilities, QuickGO and UniChem v
 
 ## All adapters
 
-Pages are grouped by category.
+The 106 adapters are grouped by what they are used for. "Access" says what you need before the adapter works; most need nothing.
 
-### Core sources
+### Ontology services and mappings
 
-| Adapter | Covers | Identifier example | Requires |
+Search hundreds of ontologies at once and translate identifiers between them.
+
+| Adapter | Covers | Identifier example | Access |
 |---|---|---|---|
-| [ChEMBL](core/chembl_adapter.md) | bioactive molecules, drugs, targets, bioactivity records | `CHEMBL25` | `[chembl]` extra |
-| [DisGeNET](core/disgenet_adapter.md) | gene–disease associations with scores | `UMLS_C0011849` | `DISGENET_API_KEY` |
-| [Mondo](core/mondo_adapter.md) | Mondo Disease Ontology (via OLS) | `MONDO:0005148` | none |
-| [OLS](core/ols_adapter.md) | search across all EBI OLS4 ontologies | `http://purl.obolibrary.org/obo/HP_0001250` | none |
-| [Open Targets](core/opentargets_adapter.md) | Open Targets Platform targets and diseases | `ENSG00000012048` | none |
-| [UMLS](core/umls_adapter.md) | UMLS Metathesaurus: CUIs, definitions, relations, crosswalks | `C0011849` | `[umls]` extra, `UMLS_API_KEY` |
-| [UniProt](core/uniprot_adapter.md) | UniProtKB protein entries | `P38398` | none |
+| [OLS](core/ols_adapter.md) | Free-text search across every ontology in the EMBL-EBI Ontology Lookup Service (OLS4) | term IRI, e.g. `http://purl.obolibrary.org/obo/MONDO_0005148` | none |
+| [EBI OLS](ontologies/ebiols_adapter.md) | A second registration of the OLS adapter under KnowledgeSource.EBIOLS | term IRI, e.g. `http://purl.obolibrary.org/obo/HP_0001250` | none |
+| [BioPortal](ontologies/bioportal_adapter.md) | Search across 1000+ ontologies in NCBO BioPortal - SNOMED CT, MeSH, LOINC, ICD and more (API key required) | class IRI, e.g. `http://purl.bioontology.org/ontology/MESH/D003920` | `BIOPORTAL_API_KEY` |
+| [BioOntology](ontologies/bioontology_adapter.md) | Full NCBO BioPortal REST client - search, class details, Annotator and generic endpoints (API key required) | class IRI plus ontology acronym, e.g. `http://purl.bioontology.org/ontology/MESH/D003920` in `MESH` | `BIOPORTAL_API_KEY` |
+| [OBO Foundry](ontologies/obofoundry_adapter.md) | Lightweight term search over the ontologies in OLS4, labelled as OBO Foundry | OLS short form, e.g. `NCIT_C17557` | none |
+| [ZOOMA](ontologies/zooma_adapter.md) | EBI ZOOMA - map free-text annotation values to ontology terms using curated annotations | ontology term IRIs, e.g. `http://purl.obolibrary.org/obo/HP_0001658` | none |
+| [OxO](other/oxo_adapter.md) | EBI OxO cross-references between ontology and vocabulary identifiers (CURIEs) | CURIE, e.g. `MONDO:0005148`, `DOID:162` | none |
+| [NCATS Node Normalizer and Name Resolver](ontologies/nodenorm_adapter.md) | NCATS Translator Node Normalizer / Name Resolver: equivalent identifiers across MONDO, HP, UMLS, MeSH, NCBIGene | any CURIE, prefix case does not matter: `MONDO:0005404`, `mesh:D015673`, `ncbigene:672` | none (keyless) |
+| [UMLS](core/umls_adapter.md) | UMLS Metathesaurus concepts (CUIs) with definitions, relations and crosswalks to SNOMED CT, MeSH, ICD and more | CUI, e.g. `C0011849` | `[umls]` extra and `UMLS_API_KEY` |
+| [Tyto](other/tyto_adapter.md) | Ontology term lookup (SO, SBO, NCIT) through the tyto library | term URI, e.g. `http://purl.obolibrary.org/obo/SO_0000167`, `http://identifiers.org/SBO:0000241` | `[tyto]` extra |
+| [BioLinker](other/biolinker_adapter.md) | TIB BioLinker AI - link entities and predicates in free text to UMLS concepts | input is text; results use UMLS CUIs, e.g. `C0025598` | none |
 
-### Chemicals and drugs
+### Clinical terminologies and coding
 
-| Adapter | Covers | Identifier example | Requires |
+The code systems used in registries and health records.
+
+| Adapter | Covers | Identifier example | Access |
 |---|---|---|---|
-| [DrugBank](chemicals/drugbank_adapter.md) | DrugBank drugs via MyChem.info | `DB00945` | none |
-| [PubChem](chemicals/pubchem_adapter.md) | compounds by name or CID | `2244` | none |
-| [UniChem](chemicals/unichem_adapter.md) | compound cross-references between chemistry databases | `BSYNRYMUTXBXSQ-UHFFFAOYSA-N` | `[bioservices]` extra |
+| [MeSH](ontologies/mesh_adapter.md) | NLM Medical Subject Headings descriptors, supplementary concepts and qualifiers with entry terms, scope notes, tree… | `D015673` (descriptor), `C000657245` (supplementary concept), `Q000175` (qualifier); also `MESH:D015673`, `MeSH:D015673` and the full `http://id.nlm.nih.gov/mesh/D015673` URI | none |
+| [SNOMED CT (Snowstorm)](ontologies/snomedct_adapter.md) | SNOMED CT concepts, synonyms, is-a hierarchy and attribute relationships through a Snowstorm server (SNOMED… | SCTID: `84229001` (fatigue), `52448006` (dementia); also `SNOMEDCT:84229001`, `SNOMED:84229001`, `SCTID:84229001` | none for the code; **a SNOMED CT licence for the content** (see below) |
+| [WHO ICD-11](ontologies/icd11_adapter.md) | WHO ICD-11 (MMS) entities and codes via the ICD-API, with parents and children as typed relationships | MMS code `8E49`, `ICD11:8E49`, numeric MMS entity id (the number at the end of a WHO URI), or a WHO URI | `ICD11_CLIENT_ID` and `ICD11_CLIENT_SECRET` (free registration at <https://icd.who.int/icdapi>), **or** `ICD11_API_BASE` pointing at a self-hosted ICD-API container |
+| [ICD-10-GM](ontologies/icd10gm_adapter.md) | German ICD-10-GM (BfArM) classification read from a local ClaML file, with German labels and hierarchy | `G93.3`, `G933`, `ICD10GM:G93.3`, block codes `G90-G99`, chapter numerals `VI` | a ClaML file: `ICD10GM_CLAML_PATH` (or an optional `ICD10GM_URL`) |
+| [LOINC](ontologies/loinc_adapter.md) | LOINC laboratory and clinical observation codes through the Regenstrief FHIR R4 terminology server, with the six LOINC… | LOINC codes `2093-3`, `LOINC:2093-3` (LP part codes such as `LP15099-2` are accepted by `$lookup`) | `LOINC_USERNAME` and `LOINC_PASSWORD` (free account at <https://loinc.org>; also read from `config.get_api_key("loinc_username")` / `("loinc_password")`) |
+| [NCI Thesaurus (EVS)](ontologies/ncievs_adapter.md) | NCI Thesaurus, NCI Metathesaurus and other terminologies (SNOMED CT, ICD-10-CM, LOINC, MedDRA, ...) via the keyless… | `NCIT:C3036` (or bare `C3036`), `NCIM:C0015674` (or a bare CUI `C0015674` / `CL...`), and `<terminology>:<code>` such as `SNOMEDCT_US:52702003`, `ICD10CM:G93.32` | none (no key, no registration) |
+| [NLM Clinical Tables](ontologies/clinicaltables_adapter.md) | NLM Clinical Table Search Service: ICD-10-CM, LOINC items, consumer conditions, HPO, ICD-11 and ClinVar disease names… | `ICD10CM:G93.32` (or bare `G93.32` / `G9332`), `CONDITIONS:12927`, `LOINC:70735-6` (or bare `70735-6`), `HP:0012378`, `ICD11:MG22`, `DISEASE_NAMES:C0015672` (or a bare CUI) | none (no key, no registration) |
+| [FHIR terminology server](ontologies/fhirterminology_adapter.md) | Generic HL7 FHIR terminology server client (tx.fhir.org, Ontoserver, German MII or any $lookup/$expand server) | `<system>\\|<code>` with an alias or a URI: `loinc\\|2093-3`, `snomed\\|84229001`, `http://loinc.org\\|2093-3`; `<system>\\|<code>\\|<version>` pins a code system version | none for the default public server; optional credentials for protected servers |
+| [NCBI Taxonomy](ontologies/ncbitaxonomy_adapter.md) | NCBI Taxonomy organisms and viruses (SARS-CoV-2, EBV, HHV-6, enteroviruses) with lineage, synonyms and cross-references | `2697049`, `NCBITaxon:2697049`, `taxid:2697049` | none (an NCBI key only raises the rate limit) |
 
-### Genes and proteins
+### Diseases and phenotypes
 
-| Adapter | Covers | Identifier example | Requires |
+Disease ontologies, phenotype annotations and gene-disease evidence.
+
+| Adapter | Covers | Identifier example | Access |
 |---|---|---|---|
-| [Ensembl](proteins/ensembl_adapter.md) | Ensembl gene records, human symbol lookup | `ENSG00000139618` | none |
-| [HGNC](proteins/hgnc_adapter.md) | approved human gene symbols with cross-references | `HGNC:1100` | none |
+| [Mondo](core/mondo_adapter.md) | Mondo Disease Ontology terms, served from the EBI Ontology Lookup Service | `MONDO:0005148` | none |
+| [Disease Ontology](ontologies/doid_adapter.md) | Human Disease Ontology (DOID) diseases with definitions, synonyms, typed relations and cross-references to MeSH, OMIM… | `DOID:9351`, `DOID_9351`, bare `9351` or the full IRI `http://purl.obolibrary.org/obo/DOID_9351` | none |
+| [HPO](phenotypes/hpo_adapter.md) | Human Phenotype Ontology terms from the JAX ontology API | `HP:0001250` | none |
+| [HPO annotations (phenotype.hpoa)](phenotypes/hpoa_adapter.md) | HPO disease-to-phenotype annotations with frequency, onset and evidence (phenotype.hpoa download) | `OMIM:154700`, `ORPHA:558`, `DECIPHER:5` (diseases); `HP:0012432` (phenotypes, relationships only) | opt-in download (~36 MB): `HPOA_DOWNLOAD=1` or `KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1`, or a local file in `HPOA_PATH` |
+| [Orphanet](phenotypes/orphanet_adapter.md) | Orphanet rare-disease nosology (ORPHAcodes), genes, HPO phenotypes with frequency, prevalence and cross-references via… | `ORPHA:558`; also `Orphanet_558`, `orphanet:558`, `ORPHAcode 558`, bare `558` | none (keyless) |
+| [OMIM](phenotypes/omim_adapter.md) | OMIM Mendelian disorders and genes (API key required) | `OMIM:219700` (also `MIM:219700` or `219700`) | `OMIM_API_KEY` |
+| [MedGen](phenotypes/medgen_adapter.md) | NCBI MedGen conditions and phenotypes keyed by UMLS CUI, with cross-references to MeSH, OMIM, Orphanet, MONDO, HPO… | UMLS CUI (`C0015674`, also `UMLS:C0015674`, `MedGen:C0015674`) or MedGen UID (`5130`, `MedGen:5130`) | none (optional `NCBI_API_KEY` raises the rate limit from 3 to 10 requests/s) |
+| [Monarch Initiative](phenotypes/monarch_adapter.md) | Monarch Initiative gene-disease-phenotype associations (HPO, MONDO, OMIM, Orphanet) with frequency and onset qualifiers | `HGNC:1100`, `MONDO:0005148`, `HP:0012432`; also `OMIM:`, `Orphanet:`/`ORPHA:`, `UMLS:` and non-human `NCBIGene:` ids (see below) | none (keyless) |
+| [MedlinePlus](literature/medlineplus_adapter.md) | MedlinePlus plain-language health topics by text search, URL slug or ICD-10-CM / SNOMED CT / ICD-9-CM / LOINC / RxNorm… | a topic slug or URL: `MEDLINEPLUS:myalgicencephalomyelitischronicfatiguesyndrome`, `fatigue`, `https://medlineplus.gov/fatigue.html`, Spanish `spanish/fatigue`; a code: `ICD10CM:G93.32` (or bare `G93.32`), `SNOMEDCT:52702003`, `ICD9CM:780.71`, `LOINC:2951-2` (or bare), `RXNORM:861004`, `NDC:<code>` | none (no key, no registration) |
+| [GenCC](phenotypes/gencc_adapter.md) | GenCC harmonised gene-disease validity submissions from ClinGen, Orphanet, PanelApp, G2P and laboratories, with a… | genes `HGNC:1100` or `BRCA1`; diseases `MONDO:0008426` and the ids submitters used, `OMIM:182212`, `Orphanet:558` | opt-in download (~28.4 MB): `GENCC_DOWNLOAD=1` or `KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1`, or a local copy in `GENCC_PATH` |
+| [ClinGen](phenotypes/clingen_adapter.md) | ClinGen gene-disease validity classifications (Definitive to Refuted) and gene dosage sensitivity, from ClinGen's… | `HGNC:1100` or a symbol such as `BRCA1`; `MONDO:0007947` | opt-in download (~1.4 MB): `CLINGEN_DOWNLOAD=1` or `KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1`, or a local file in `CLINGEN_PATH` |
+| [PanelApp](phenotypes/panelapp_adapter.md) | Genomics England PanelApp expert-reviewed gene panels, with green/amber/red gene evidence, inheritance and phenotypes | panel: numeric id (`158`, `panelapp:158`); gene: `HGNC:1100` or the symbol `BRCA1` | none (keyless) |
+| [DisGeNET](core/disgenet_adapter.md) | DisGeNET diseases and gene–disease associations with scores and evidence metrics (API key required) | disease `UMLS_C0011849` (also `C0011849`, `MONDO_0005015`), gene symbol `CDK2`, NCBI gene ID `1017` | `DISGENET_API_KEY` |
+| [Open Targets](core/opentargets_adapter.md) | Targets and diseases from the Open Targets Platform GraphQL API | target `ENSG00000012048`; disease `MONDO_0004979`, `EFO_0000270`, `Orphanet_145` | none |
+| [GWAS Catalog](phenotypes/gwascatalog_adapter.md) | NHGRI-EBI GWAS Catalog traits and variant-trait associations (REST API v2, no key) | traits `MONDO:0005404`, `EFO:0004540`, `HP:0012378` (also `MONDO_0005404`); variants `rs1801270` | none |
 
-### Protein families, structures and interactions
+### Genes, variants and expression
 
-| Adapter | Covers | Identifier example | Requires |
+Gene records, variants, population frequencies and tissue expression.
+
+| Adapter | Covers | Identifier example | Access |
 |---|---|---|---|
-| [InterPro](families/interpro_adapter.md) | protein families and domains | `IPR000719` | none |
-| [PDB](families/pdb_adapter.md) | RCSB 3D structure entries | `4HHB` | none |
-| [Pfam](families/pfam_adapter.md) | Pfam families via the InterPro API | `PF00069` | none |
-| [STRING](families/string_adapter.md) | human protein interaction partners | `TP53` | none |
+| [HGNC](proteins/hgnc_adapter.md) | HGNC approved human gene symbols and names, with NCBI Gene, UniProt and Ensembl cross-references | `HGNC:1100` or an approved symbol such as `BRCA1` | none |
+| [NCBI Gene](proteins/ncbigene_adapter.md) | NCBI Gene records, summaries and cross-references (Datasets API) | Entrez Gene id `672` (primary), `NCBIGene:672`, `GeneID:672`, `Entrez:672`; an official symbol (`BRCA1`) also works in `get_concept_details` | none (an optional `NCBI_API_KEY` raises the polite request rate) |
+| [MyGene.info](proteins/mygeneinfo_adapter.md) | MyGene.info gene annotation with Entrez, Ensembl, HGNC, UniProt and OMIM cross-references, pathways and orthologs | `NCBIGene:672` (primary), bare Entrez `672`, `ENSG00000012048`, `HGNC:1100`, UniProt `P38398`, symbol/alias `BRCA1` | none |
+| [Ensembl](proteins/ensembl_adapter.md) | Ensembl gene records by stable ID or human gene symbol, plus a full catalog of the Ensembl REST API as async adapter… | stable ID, e.g. `ENSG00000139618` | none |
+| [ClinVar](phenotypes/clinvar_adapter.md) | ClinVar variant records from NCBI, searched with Entrez query syntax | ClinVar variation ID, e.g. `17661` (also `ClinVar:17661`, `VCV000017661`) | none |
+| [dbSNP](phenotypes/dbsnp_adapter.md) | NCBI dbSNP reference SNPs (rsIDs) with placements, allele frequencies, genes and ClinVar clinical significance via the… | `rs1801133`, bare `1801133`, `dbSNP:rs1801133`; also SPDI (`NC_000001.11:11796320:G:A`) and genomic HGVS (`NC_000001.11:g.11796321G>A`), which are first resolved to an rsID | none; an optional NCBI key (`NCBI_API_KEY`) shortens the request spacing |
+| [gnomAD](phenotypes/gnomad_adapter.md) | gnomAD population allele frequencies and gene constraint (pLI, LOEUF, missense z) via the public GraphQL API | gene: `ENSG00000012048` (a symbol such as `BRCA1` is accepted as input); variant: `1-11796321-G-A` (GRCh38 `chrom-pos-ref-alt`), or an rsID such as `rs1801133` | none (no key) |
+| [COSMIC](other/cosmic_adapter.md) | COSMIC cancer genes and somatic mutations (requires COSMIC account credentials; no query API is currently available) | `COSMIC:TP53` | COSMIC account credentials (`COSMIC_API_KEY`) |
+| [GTEx](proteins/gtex_adapter.md) | GTEx Portal gene expression across 54 tissues (median TPM, tissue specificity) and single-tissue eQTL variants | Ensembl gene id `ENSG00000012048` (with or without version) or HGNC symbol `BRCA1`. Entrez ids, HGNC ids and free text are **not** searchable | none |
+| [Human Protein Atlas](proteins/hpa_adapter.md) | Human Protein Atlas gene expression by tissue and blood immune cell type, plasma protein and subcellular location… | Ensembl gene id `ENSG00000012048`; approved symbols such as `BRCA1` are accepted wherever an id is | none |
+| [eQTL Catalogue](phenotypes/eqtlcatalogue_adapter.md) | EBI eQTL Catalogue dataset, study and tissue metadata (the association REST API has been retired; no gene or variant… | dataset `QTD000021`, study `QTS000002`, tissue / cell type `CL:0000235`, `UBERON:0000178` (underscore form accepted) | none |
+| [Gene Ontology](phenotypes/geneontology_adapter.md) | Gene Ontology terms (processes, functions, components) from the QuickGO ontology API | `GO:0006915` | none |
+| [QuickGO](phenotypes/quickgo_adapter.md) | Gene Ontology terms and gene-product annotations from EBI QuickGO through bioservices | `GO:0006915`; gene products such as `UniProtKB:P04637` or `P04637` | `[bioservices]` extra |
+| [IMPC](phenotypes/impc_adapter.md) | International Mouse Phenotyping Consortium knockout-mouse genes and significant phenotype calls (MP terms), with human… | `MGI:95489` (gene), `MP:0004952` (phenotype); gene symbols (mouse `Fbn1` or human `FBN1`) are accepted by `get_concept_details`, `get_mappings` and `get_relationships` | none (public, keyless) |
+| [Alliance of Genome Resources](proteins/alliance_adapter.md) | Alliance of Genome Resources genes of eight model organisms and human, with orthologs, disease annotations, phenotypes… | `HGNC:1100`, `MGI:104537`, `RGD:2218`, `ZFIN:ZDB-GENE-990415-72`, `SGD:S000003865`, `WB:WBGene00004930`, `FB:FBgn0003462`, `Xenbase:XB-GENE-1006488`; a bare symbol (`TNF`) is resolved through search, human first | none (public, keyless) |
 
-### Phenotypes, variants and annotations
+### Proteins, structures and interactions
 
-| Adapter | Covers | Identifier example | Requires |
+Protein records, predicted and solved structures, families and interaction networks.
+
+| Adapter | Covers | Identifier example | Access |
 |---|---|---|---|
-| [ClinVar](phenotypes/clinvar_adapter.md) | clinical variants (NCBI E-utilities) | `17661` | none |
-| [Gene Ontology](phenotypes/geneontology_adapter.md) | GO terms (QuickGO REST) | `GO:0006915` | none |
-| [HPO](phenotypes/hpo_adapter.md) | Human Phenotype Ontology | `HP:0001250` | none |
-| [OMIM](phenotypes/omim_adapter.md) | Mendelian disorders and genes | `OMIM:219700` | `OMIM_API_KEY` |
-| [QuickGO](phenotypes/quickgo_adapter.md) | GO terms and annotations via `bioservices` | `GO:0006915` | `[bioservices]` extra |
+| [UniProt](core/uniprot_adapter.md) | UniProtKB protein entries - names, genes, function and organism | accession, e.g. `P38398` | none |
+| [AlphaFold DB](proteins/alphafold_adapter.md) | AlphaFold DB predicted protein structures: pLDDT confidence, model and PAE URLs, UniProt mapping and links to… | UniProt accession `P38398` (isoform `P38398-2` allowed), AlphaFold entry id `AF-P38398-F1` (`AF-P38398-2-F1` for an isoform), or a gene symbol / protein name (resolved to a human UniProt accession) | none (no key) |
+| [PDB](families/pdb_adapter.md) | RCSB Protein Data Bank structure entries - titles, experimental method, resolution | `4HHB` (or `PDB:4HHB`) | none |
+| [InterPro](families/interpro_adapter.md) | InterPro protein families, domains and repeats | `IPR000719` | none |
+| [Pfam](families/pfam_adapter.md) | Pfam protein families and domains, served through the InterPro API | `PF00069` | none |
+| [STRING](families/string_adapter.md) | STRING human protein identifiers and their top interaction partners | protein name `TP53` or STRING ID `9606.ENSP00000269305` | none |
+| [IntAct](proteins/intact_adapter.md) | IntAct curated experimental molecular interactions with detection method, score and PubMed evidence | UniProt accession `P38398` (primary), IntAct `EBI-349905`, isoform `P38398-1`, exact gene name `BRCA1` | none |
 
-### Ontology services
+### Drugs and pharmacology
 
-| Adapter | Covers | Identifier example | Requires |
+Drug names and classes, targets, labels, adverse events and toxicogenomics.
+
+| Adapter | Covers | Identifier example | Access |
 |---|---|---|---|
-| [BioOntology](ontologies/bioontology_adapter.md) | BioPortal REST client: search, class details, Annotator | IRI plus ontology, e.g. `MESH` | `BIOPORTAL_API_KEY` |
-| [BioPortal](ontologies/bioportal_adapter.md) | search across BioPortal ontologies | `http://purl.bioontology.org/ontology/MESH/D003920` | `BIOPORTAL_API_KEY` |
-| [EBI OLS](ontologies/ebiols_adapter.md) | the OLS adapter under a second source name | `http://purl.obolibrary.org/obo/HP_0001250` | none |
-| [OBO Foundry](ontologies/obofoundry_adapter.md) | lightweight OLS4 term search | `NCIT_C17557` | none |
-| [ZOOMA](ontologies/zooma_adapter.md) | text value → ontology term annotation | `http://purl.obolibrary.org/obo/HP_0001658` | none |
+| [DrugBank](chemicals/drugbank_adapter.md) | DrugBank IDs, names and synonyms, looked up without an API key through MyChem.info | `DB00945` (also `DRUGBANK:DB00945`) | none |
+| [RxNorm](chemicals/rxnorm_adapter.md) | NLM RxNorm drug concepts (ingredients, brands, clinical drugs, dose forms) and relations, with ATC, DrugBank, SNOMED… | RxCUI: `1191`, `RXCUI:1191` or `RxNorm:1191` | none |
+| [RxClass (ATC)](chemicals/rxclass_adapter.md) | Map drug and brand names to RxCUI and WHO ATC classes (and back) with NLM RxNav RxClass; harmonise registry… | RxCUI (`1191`, `RXCUI:1191`, `RxNorm:1191`) for drugs; ATC code (`N02BA`, `ATC:N02BA`) for classes; level 5 codes (`N02BA01`) resolve to the drug that carries them | none |
+| [ChEMBL](core/chembl_adapter.md) | ChEMBL bioactive molecules, drugs and targets, plus raw access to any ChEMBL endpoint (requires the chembl extra) | ChEMBL ID of a molecule, drug or target, e.g. `CHEMBL25` | `[chembl]` extra |
+| [DGIdb](chemicals/dgidb_adapter.md) | DGIdb aggregated drug-gene interactions (v5 GraphQL API, no key) | genes `hgnc:1100`; drugs `rxcui:1191`, `chembl:CHEMBL1703` (DGIdb's own primary concept ids); bare symbols or exact drug names also work | none |
+| [ClinPGx (PharmGKB)](chemicals/clinpgx_adapter.md) | ClinPGx/PharmGKB pharmacogenomic genes, drugs, variants and haplotypes with clinical annotations, CPIC/DPWG guidelines… | PA ids: `PA128` (gene CYP2D6), `PA449088` (drug codeine), `PA166156104` (variant rs3892097), `PA165816579` (haplotype CYP2D6*4); `CLINPGX:PA128` and `PHARMGKB:PA128` accepted | none |
+| [openFDA drug labels (DailyMed)](chemicals/openfdalabels_adapter.md) | FDA structured drug labels (DailyMed SPL) via openFDA - indications, boxed warnings, contraindications, adverse… | SPL set id (UUID), e.g. `0058175f-3474-40c3-a046-6cfaec86d84b`; `DAILYMED:<set id>` accepted | none; optional `OPENFDA_API_KEY` (or `api_keys["openfda"]`) raises the daily quota |
+| [openFDA adverse events (FAERS)](chemicals/openfdaevents_adapter.md) | FDA adverse event reports (FAERS) by drug and reaction via openFDA; descriptive report counts, not risks (keyless) | drugs `FAERS:DRUG:ASPIRIN`; reactions `FAERS:REACTION:FATIGUE`. Bare names (`aspirin`, `fatigue`) are accepted; a bare name is tried as a drug first, then as a reaction. Also `DRUG:`, `REACTION:`, `PT:` and `MEDDRA:` prefixes. Names are upper-cased. MedDRA codes are not published by this API, so none are claimed | none. Optional `OPENFDA_API_KEY` (raises the daily quota) |
+| [SIDER](chemicals/sider_adapter.md) | SIDER 4.1 drug side effects text-mined from drug labels, with frequencies, ATC and PubChem mappings (outdated, 2015… | drugs: STITCH compound id `CID100002244`; side effects: UMLS CUI `C0015672` | opt-in download (~5.5 MB): `SIDER_DOWNLOAD=1` or `KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1`, or local files in `SIDER_DATA_DIR` |
+| [OFFSIDES](chemicals/offsides_adapter.md) | OFFSIDES off-label drug side-effect signals mined from FDA adverse-event reports (statistical, not causal; 69 MB… | drugs `RXNORM:1191` (bare `1191` also accepted), events `MEDDRA:10016256` | a local `OFFSIDES.csv(.gz)` (`OFFSIDES_PATH`) or opt-in download (`OFFSIDES_DOWNLOAD=1`) |
+| [CTD](chemicals/ctd_adapter.md) | Comparative Toxicogenomics Database chemical-gene-disease links from CTD bulk files (non-commercial use, citation… | chemicals `MESH:D001241` (or a CAS number); diseases `MESH:D003920`, `OMIM:264300`; genes `NCBIGene:672` | opt-in download (~220 MB core reports): `CTD_DOWNLOAD=1` or `KNOWLEDGE_LOOKUP_ALLOW_DOWNLOADS=1`, or a local copy in `CTD_DATA_DIR` |
 
-### Pathways
+### Chemicals and metabolites
 
-| Adapter | Covers | Identifier example | Requires |
+Small molecules, lipids, reactions and metabolomics studies.
+
+| Adapter | Covers | Identifier example | Access |
 |---|---|---|---|
-| [KEGG](pathways/kegg_adapter.md) | KEGG pathways, genes, compounds, diseases, drugs | `hsa00010`, `C11378`, `H00409` | none |
-| [Reactome](pathways/reactome_adapter.md) | Reactome pathways and reactions | `R-HSA-109581` | none |
+| [PubChem](chemicals/pubchem_adapter.md) | PubChem compounds by name or CID - title, IUPAC name, formula and InChIKey | CID, e.g. `2244` | none |
+| [ChEBI](chemicals/chebi_adapter.md) | ChEBI chemical entities with definitions, formula/mass/structure, ontology relations (including roles) and database… | `CHEBI:15365`, `chebi:15365`, `CHEBI_15365`, bare `15365` or the OBO IRI | none |
+| [UniChem](chemicals/unichem_adapter.md) | EMBL-EBI UniChem - cross-reference one compound across ChEMBL, DrugBank, PubChem, ChEBI and other chemistry databases | InChIKey `BSYNRYMUTXBXSQ-UHFFFAOYSA-N`, UCI `161671`, or a source ID such as `CHEMBL25` | `[bioservices]` extra |
+| [LIPID MAPS](chemicals/lipidmaps_adapter.md) | LIPID MAPS (LMSD) lipid structures, classification and cross-references to PubChem, ChEBI, HMDB, KEGG, SwissLipids and… | LMSD id `LMGP01010005`; class codes `LMGP` (category), `LMGP01` (main class), `LMGP0101` (sub class) | none (keyless) |
+| [Rhea](chemicals/rhea_adapter.md) | Rhea expert-curated biochemical reactions with ChEBI participants, EC numbers, GO terms and KEGG/MetaCyc/Reactome… | `RHEA:23444`, or the bare number `23444` | none (keyless) |
+| [Metabolomics Workbench](chemicals/metabolomicsworkbench_adapter.md) | Metabolomics Workbench metabolomics studies (including ME/CFS and Long COVID) and RefMet metabolites with PubChem… | `ST002003` (study), `RM0135904` (RefMet metabolite), `regno:37125` (compound registry number), or an exact RefMet name | none |
+| [MetaboLights](chemicals/metabolights_adapter.md) | EMBL-EBI MetaboLights metabolomics studies (including ME/CFS and Long COVID) and ChEBI-based reference metabolites | `MTBLS161` (study), `MTBLC16651` or `CHEBI:16651` (reference metabolite) | none |
 
-### Literature
+### Pathways and enrichment
 
-| Adapter | Covers | Identifier example | Requires |
+Curated pathways and gene-set enrichment.
+
+| Adapter | Covers | Identifier example | Access |
 |---|---|---|---|
-| [Europe PMC](literature/europepmc_adapter.md) | articles and preprints | `MED:23193287` | none |
+| [Reactome](pathways/reactome_adapter.md) | Reactome pathways and reactions through the Reactome ContentService | stable ID, e.g. `R-HSA-109581` | none |
+| [KEGG](pathways/kegg_adapter.md) | KEGG pathways, genes, compounds, diseases and drugs through the public KEGG REST API | `hsa00010` (pathway), `C11378` (compound), `H00409` (disease), `D00109` (drug) | none |
+| [WikiPathways](pathways/wikipathways_adapter.md) | WikiPathways community-curated pathways, searched client-side from the site's bulk JSON files (no key) | `WP254` or `WIKIPATHWAYS:WP254` | none |
+| [Enrichr](pathways/enrichr_adapter.md) | Enrichr gene-set enrichment: which pathways, GO terms, phenotypes and diseases a list of genes is over-represented in… | a gene symbol or a list (`IL6 TNF IL1B`) as the search query; concept ids are `<library>::<term>` (`KEGG_2026::MALARIA`) | none (public, keyless) |
 
-### Other sources
+### Immunology and cell types
 
-| Adapter | Covers | Identifier example | Requires |
+Cell types, marker genes, single-cell datasets and epitopes.
+
+| Adapter | Covers | Identifier example | Access |
 |---|---|---|---|
-| [BioLinker](other/biolinker_adapter.md) | entity linking in free text (TIB BioLinker AI) | text in, CUIs such as `C0025598` out | none |
-| [COSMIC](other/cosmic_adapter.md) | cancer genes | `COSMIC:TP53` | none |
-| [DBpedia](other/dbpedia_adapter.md) | general knowledge via SPARQL | `Metformin` | none |
-| [NCBI E-utilities](other/eutils_adapter.md) | PubMed, Gene, Protein, Taxonomy | `PMID:23193287` | `[bioservices]` extra |
-| [OxO](other/oxo_adapter.md) | ontology cross-reference mappings | `MONDO:0005148` | none |
-| [Tyto](other/tyto_adapter.md) | ontology term labels via `tyto` | `http://identifiers.org/SBO:0000241` | `[tyto]` extra |
-| [Wikidata](other/wikidata_adapter.md) | Wikidata items via SPARQL | `Q18216` | none |
-| [Monarch Initiative](phenotypes/monarch_adapter.md) | Monarch Initiative gene-disease-phenotype associations (HPO, MONDO, OMIM, Orphanet) | `MONDO:0005148` | none |
-| [HPO annotations (phenotype.hpoa)](phenotypes/hpoa_adapter.md) | HPO disease-to-phenotype annotations with frequency (phenotype.hpoa, ~36 MB download) | `OMIM:104300` | opt-in download: HPOA_DOWNLOAD=1, or a local file (HPOA_PATH) |
-| [NCATS Node Normalizer and Name Resolver](ontologies/nodenorm_adapter.md) | NCATS Translator Node Normalizer / Name Resolver: equivalent identifiers across MONDO, HP, UMLS, MeSH, NCBIGene | `MONDO:0005148` | none |
-| [MeSH](ontologies/mesh_adapter.md) | NLM Medical Subject Headings descriptors and tree hierarchy, e.g. D003920 | `D003920` | none |
-| [RxClass (ATC)](chemicals/rxclass_adapter.md) | ATC and other drug classes via NLM RxNav RxClass | `N02BA01` | none |
-| [SNOMED CT (Snowstorm)](ontologies/snomedct_adapter.md) | SNOMED CT concepts and hierarchy via Snowstorm (SNOMED licence applies; the public instance is for light use, set SNOMED_SNOWSTORM_URL for your own server) | `52448006` | none |
-| [WHO ICD-11](ontologies/icd11_adapter.md) | WHO ICD-11 entities and codes | `8E49` | the ICD11_CLIENT_ID and ICD11_CLIENT_SECRET environment variables |
-| [ICD-10-GM (BfArM)](ontologies/icd10gm_adapter.md) | German ICD-10-GM classification (BfArM), e.g. G93.3 | `G93.3` | the BfArM ICD-10-GM ClaML file (ICD10GM_CLAML_PATH, or ICD10GM_URL for a download you choose) |
-| [LOINC](ontologies/loinc_adapter.md) | LOINC laboratory and clinical observation codes | `2093-3` | the LOINC_USERNAME and LOINC_PASSWORD environment variables |
-| [GWAS Catalog](phenotypes/gwascatalog_adapter.md) | NHGRI-EBI GWAS Catalog traits, studies and variant-trait associations | `MONDO:0005404` | none |
-| [CTD](chemicals/ctd_adapter.md) | Comparative Toxicogenomics Database chemical-gene-disease links (non-commercial use) | `MESH:D001241` | opt-in download (~220 MB core reports): CTD_DOWNLOAD=1, or CTD_DATA_DIR |
-| [DGIdb](chemicals/dgidb_adapter.md) | DGIdb aggregated drug-gene interactions | `BRCA1` | none |
-| [IntAct](proteins/intact_adapter.md) | IntAct curated experimental molecular interactions | `P38398` | none |
-| [PubTator 3](literature/pubtator_adapter.md) | PubTator 3 literature entities and relations for PubMed/PMC | `@GENE_BRCA1` | none |
-| [ClinicalTrials.gov](literature/clinicaltrials_adapter.md) | ClinicalTrials.gov registered studies, conditions and interventions | `NCT04280705` | none |
-| [SemMedDB](literature/semmeddb_adapter.md) | SemMedDB subject-predicate-object relations from PubMed (local export; UMLS licence) | `C0015674` | a SQLite database built with `knowledge-lookup semmeddb-build` (SEMMEDDB_PATH) |
-| [SIDER](chemicals/sider_adapter.md) | SIDER drug side effects (dataset, CC BY-SA 4.0; frozen in 2016) | `CID100002244` | opt-in download (~5.5 MB): SIDER_DOWNLOAD=1, or SIDER_DATA_DIR |
-| [OFFSIDES](chemicals/offsides_adapter.md) | OFFSIDES off-label drug side effects from adverse event reports (statistical signals) | `RxNorm:1191` | opt-in download (~69 MB): OFFSIDES_DOWNLOAD=1, or OFFSIDES_PATH |
-| [Human Protein Atlas](proteins/hpa_adapter.md) | Human Protein Atlas tissue and blood protein expression (CC BY 4.0) | `ENSG00000012048` | none |
-| [Cell Ontology](ontologies/cellontology_adapter.md) | Cell Ontology cell types, e.g. CL:0000084 | `CL:0000084` | none |
-| [CellMarker 2.0](ontologies/cellmarker_adapter.md) | CellMarker cell-type marker genes (dataset file you provide) | `CD4` | a data file: CELLMARKER_PATH, or CELLMARKER_URL |
-| [ChEBI](chemicals/chebi_adapter.md) | ChEBI chemical entities and ontology, e.g. CHEBI:15365 | `CHEBI:15365` | none |
-| [MyGene.info](proteins/mygeneinfo_adapter.md) | MyGene.info gene annotation and identifier cross-references | `1017` | none |
-| [LitCovid](literature/litcovid_adapter.md) | NCBI LitCovid COVID-19 and Long COVID literature with topics and entities | `PMID:32109013` | none |
-| [OpenAlex](literature/openalex_adapter.md) | OpenAlex scholarly works, authors, topics and citation links | `W2741809807` | none |
-| [openFDA adverse events (FAERS)](chemicals/openfdaevents_adapter.md) | FDA adverse event reports (FAERS) by drug and reaction via openFDA | `aspirin` | none |
-| [Orphanet](phenotypes/orphanet_adapter.md) | Orphanet rare-disease nosology, genes, prevalence and HPO phenotypes (Orphadata) | `ORPHA:558` | none |
-| [ClinGen](phenotypes/clingen_adapter.md) | ClinGen gene-disease validity and dosage sensitivity (CSV exports; CC0) | `HGNC:1100` | opt-in download (~1.4 MB): CLINGEN_DOWNLOAD=1, or CLINGEN_PATH |
-| [GenCC](phenotypes/gencc_adapter.md) | GenCC harmonised gene-disease validity submissions (CSV export) | `HGNC:1100` | opt-in download (~28 MB): GENCC_DOWNLOAD=1, or GENCC_PATH |
-| [MedGen](phenotypes/medgen_adapter.md) | NCBI MedGen medical-condition concepts with UMLS CUIs and cross-references | `C0015674` | none |
-| [Disease Ontology](ontologies/doid_adapter.md) | Human Disease Ontology (DOID) terms and hierarchy | `DOID:9351` | none |
-| [GTEx](proteins/gtex_adapter.md) | GTEx tissue gene expression and eQTLs | `ENSG00000012048` | none |
-| [gnomAD](phenotypes/gnomad_adapter.md) | gnomAD population variant frequencies and gene constraint (GraphQL) | `ENSG00000012048` | none |
-| [dbSNP](phenotypes/dbsnp_adapter.md) | NCBI dbSNP reference SNPs (rsIDs): alleles, frequencies and clinical significance | `rs1801133` | none |
-| [AlphaFold DB](proteins/alphafold_adapter.md) | AlphaFold DB predicted protein structures and confidence | `P38398` | none |
-| [RxNorm](chemicals/rxnorm_adapter.md) | NLM RxNorm drug concepts (ingredients, brands, clinical drugs) and relations | `1191` | none |
-| [ClinPGx (PharmGKB)](chemicals/clinpgx_adapter.md) | ClinPGx/PharmGKB genes, drugs, variants and clinical annotations (CC BY-SA) | `PA128` | none |
-| [openFDA drug labels (DailyMed)](chemicals/openfdalabels_adapter.md) | FDA structured drug labels (indications, warnings, adverse reactions) via openFDA | `aspirin` | none |
-| [NLM Clinical Tables](ontologies/clinicaltables_adapter.md) | NLM Clinical Table Search Service: ICD-10-CM, LOINC items, conditions and other code tables | `G93.32` | none |
-| [NCI Thesaurus (EVS)](ontologies/ncievs_adapter.md) | NCI Thesaurus and other NCI EVS terminologies via the EVS REST API (NCIM, SNOMED CT and MedDRA texts carry non-commercial restrictions) | `C3138` | none |
-| [MedlinePlus](literature/medlineplus_adapter.md) | MedlinePlus consumer health information by condition, ICD-10-CM or SNOMED CT code | `G93.32` | none |
-| [NCBI Taxonomy](ontologies/ncbitaxonomy_adapter.md) | NCBI Taxonomy organisms, viruses and lineages (SARS-CoV-2, EBV, ...) | `2697049` | none |
-| [Metabolomics Workbench](chemicals/metabolomicsworkbench_adapter.md) | Metabolomics Workbench metabolites, studies and RefMet names | `lactate` | none |
-| [MetaboLights](chemicals/metabolights_adapter.md) | EMBL-EBI MetaboLights metabolomics studies and reference metabolites | `MTBLS1` | none |
-| [LIPID MAPS](chemicals/lipidmaps_adapter.md) | LIPID MAPS lipid structures and classification | `LMGP01010005` | none |
-| [Rhea](chemicals/rhea_adapter.md) | Rhea expert-curated biochemical reactions with ChEBI participants | `RHEA:10000` | none |
-| [IEDB](proteins/iedb_adapter.md) | Immune Epitope Database: epitopes, assays and MHC restriction | `epitope` | none |
-| [CZ CELLxGENE](ontologies/cellxgene_adapter.md) | CZ CELLxGENE Discover single-cell datasets, tissues and cell types | `CL:0000623` | none |
-| [PanelApp](phenotypes/panelapp_adapter.md) | Genomics England PanelApp expert-reviewed gene panels (terms exclude commercial and diagnostic use) | `HGNC:1100` | none |
-| [eQTL Catalogue](phenotypes/eqtlcatalogue_adapter.md) | eQTL Catalogue dataset, study and tissue metadata only (its association API was retired) | `ENSG00000012048` | none |
-| [Crossref](literature/crossref_adapter.md) | Crossref DOI metadata, references and retraction/correction notices | `10.1038/s41586-020-2012-7` | none |
-| [bioRxiv / medRxiv](literature/biorxiv_adapter.md) | bioRxiv and medRxiv preprints (many Long COVID papers appear here first) | `10.1101/2020.01.01.000000` | none |
-| [OpenCitations](literature/opencitations_adapter.md) | OpenCitations open citation links between DOIs | `10.1038/s41586-020-2012-7` | none |
-| [NIH RePORTER](literature/nihreporter_adapter.md) | NIH RePORTER funded research projects and publications | `myalgic encephalomyelitis` | none |
-| [Semantic Scholar](literature/semanticscholar_adapter.md) | Semantic Scholar papers, citations and TLDR summaries (keyless search is heavily rate limited; a free key is recommended) | `long covid` | none |
-| [FHIR terminology server](ontologies/fhirterminology_adapter.md) | Generic HL7 FHIR terminology server client (tx.fhir.org, Ontoserver, German MII or any $lookup/$expand server) | `http://loinc.org|2093-3` | none |
-| [ISRCTN registry](literature/isrctn_adapter.md) | ISRCTN clinical trial registry (UK-based, international) | `ISRCTN12345678` | none |
-| [NCBI Gene](proteins/ncbigene_adapter.md) | NCBI Gene records, summaries and cross-references (Datasets API) | `672` | none |
-| [OmicsDI](literature/omicsdi_adapter.md) | OmicsDI omics dataset discovery across ArrayExpress, PRIDE, GEO, MetaboLights and more | `E-GEOD-1234` | none |
-| [BioStudies / ArrayExpress](literature/biostudies_adapter.md) | EMBL-EBI BioStudies and ArrayExpress functional genomics studies | `E-MTAB-1234` | none |
-| [PRIDE](proteins/pride_adapter.md) | PRIDE Archive proteomics projects and datasets | `PXD000001` | none |
-| [GEO](literature/geo_adapter.md) | NCBI Gene Expression Omnibus series, samples and platforms via E-utilities | `GSE12345` | none |
-| [Zenodo](literature/zenodo_adapter.md) | Zenodo research data and software records | `10.5281/zenodo.1234567` | none |
-| [IMPC](phenotypes/impc_adapter.md) | International Mouse Phenotyping Consortium gene-phenotype associations | `MGI:104537` | none |
-| [Alliance of Genome Resources](proteins/alliance_adapter.md) | Alliance of Genome Resources model-organism genes, orthologs, diseases and phenotypes | `HGNC:1100` | none |
-| [Enrichr](pathways/enrichr_adapter.md) | Enrichr gene-set enrichment over hundreds of libraries (uploads your gene list to maayanlab.cloud, which stores it) | `BRCA1` | none |
-| [OpenAIRE Graph](literature/openaire_adapter.md) | OpenAIRE research graph: publications, datasets, software, projects and funders | `long covid` | none |
-| [DOAJ](literature/doaj_adapter.md) | Directory of Open Access Journals and articles | `long covid` | none |
-| [Unpaywall](literature/unpaywall_adapter.md) | Unpaywall open-access locations for DOIs (DOI lookups only: its title search was retired; needs a contact e-mail you set) | `10.1038/s41586-020-2012-7` | the UNPAYWALL_EMAIL environment variable |
+| [Cell Ontology](ontologies/cellontology_adapter.md) | Cell Ontology (CL) cell types with synonyms, definitions, typed relations and cross-references, via EBI OLS4 | `CL:0000084`, `CL_0000084`, bare `0000084` or the full IRI `http://purl.obolibrary.org/obo/CL_0000084` | none |
+| [CellMarker](ontologies/cellmarker_adapter.md) | CellMarker cell-type marker genes (human/mouse) from a lazily downloaded dataset: markers per cell type and cell types… | `CL:0000084` or a cell name, a gene symbol (`CD4`), a marker alias (`CD16`), `NCBIGene:920` | a data file you provide: `CELLMARKER_PATH`, or `CELLMARKER_URL` for a download you choose |
+| [CZ CELLxGENE](ontologies/cellxgene_adapter.md) | CZ CELLxGENE Discover single-cell collections, datasets, cell types (CL), tissues (UBERON), diseases (MONDO) and… | collection / dataset UUID, cell type `CL:0000623`, tissue `UBERON:0000178`, disease `MONDO:0100233` (underscore form accepted) | none (keyless) |
+| [IEDB](proteins/iedb_adapter.md) | Immune Epitope Database (IEDB) epitopes with source antigen, organism, assay counts, MHC alleles and diseases, via the… | epitope `IEDB_EPITOPE:1309147` (or bare `1309147`); antigen `UNIPROT:P0DTC2` (or bare `P0DTC2`) | none (keyless) |
 
-{% hint style="warning" %}
-**Known issues (tested September 2026).** Details are on each page.
+### Literature and citations
 
-- **No data at all:** [COSMIC](other/cosmic_adapter.md) (COSMIC has no query API; the adapter is unavailable without credentials).
-- **Slow:** [ChEMBL](core/chembl_adapter.md) multi-word and target searches (e.g. `EGFR`) can exceed the 30-second per-source timeout; molecule names and ChEMBL IDs are fast.
-- **Partial:** [DrugBank](chemicals/drugbank_adapter.md) (served by MyChem.info: names, synonyms and identifiers, no descriptions), [Tyto](other/tyto_adapter.md) (exact-label search in SO, SBO and NCIT only), [DBpedia](other/dbpedia_adapter.md) (the public endpoint currently has few English abstracts).
-{% endhint %}
+Papers, preprints, citation links, text-mined entities and open-access status.
 
-## Adding an adapter
+| Adapter | Covers | Identifier example | Access |
+|---|---|---|---|
+| [Europe PMC](literature/europepmc_adapter.md) | Europe PMC literature search - articles and preprints with abstracts, authors and DOIs | `PMID:23193287`, `MED:23193287` or `23193287`; `PMC...` and `PPR...` IDs | none |
+| [NCBI E-utilities](other/eutils_adapter.md) | NCBI E-utilities (PubMed, Gene, Protein, Taxonomy) through bioservices | `PMID:23193287`, `GeneID:672`, `TaxID:9606`, `Protein:<uid>`, `NP_000483` | `[bioservices]` extra |
+| [PubTator 3](literature/pubtator_adapter.md) | PubTator 3 literature entities (genes, diseases, chemicals, variants) and text-mined relations for PubMed/PMC | `@GENE_BRCA1`, `@DISEASE_Fatigue_Syndrome_Chronic`; also MeSH (`D015673`, `MESH:D015673`) and NCBI Gene (`672`, `NCBIGene:672`) | none (keyless) |
+| [LitCovid](literature/litcovid_adapter.md) | NCBI LitCovid COVID-19 and Long COVID literature with topic categories and entity annotations (keyless) | articles `PMID:34316076` (bare digits, `LITCOVID:PMID:...` and PMCIDs also accepted); topics `LITCOVID:TOPIC:Treatment` | none (keyless, JSON) |
+| [OpenAlex](literature/openalex_adapter.md) | OpenAlex scholarly works, topics and citation links (keyless; optional API key and polite-pool mailto from environment… | works `W4316014106`, `OPENALEX:W...`, `https://openalex.org/W...`, DOI (`10.1038/s41579-022-00846-2`, `doi:`, `https://doi.org/...`), `PMID:36639608` (or a PubMed URL), `mag:3143129303`; topics `T11368` | none. Optional `OPENALEX_API_KEY` (free key, 10x daily budget) and `OPENALEX_MAILTO` (polite-pool address) |
+| [Semantic Scholar](literature/semanticscholar_adapter.md) | Semantic Scholar papers, citations, references and TLDR summaries (keyless but heavily rate limited; optional API key) | the 40-hex `paperId` (the concept id); also `DOI:10.1038/...` / bare DOI / `https://doi.org/...`, `PMID:36639608` (bare digits are read as a PMID), `PMC9839201` / `PMCID:9839201`, `ARXIV:2006.10256`, `CorpusId:255800506`, `MAG:`, `ACL:`, `DBLP:`, `URL:` | nothing; an optional API key (`SEMANTIC_SCHOLAR_API_KEY` or `config.api_keys["semanticscholar"]`) gives a dedicated rate limit |
+| [SemMedDB](literature/semmeddb_adapter.md) | SemMedDB subject-predicate-object relations extracted from PubMed, read from a local SQLite database (UMLS licence) | UMLS CUI: `C0015674`, `UMLS:C0015674` | a SQLite database built from the NLM download with `knowledge-lookup semmeddb-build`, then `SEMMEDDB_PATH` (or `api_keys={"semmeddb": "/path/file"}`, a file path rather than a secret) |
+| [Crossref](literature/crossref_adapter.md) | Crossref DOI metadata, references and retraction/correction notices (keyless) | DOIs: `10.1038/s41586-020-2012-7`, `doi:10.1038/...` and `https://doi.org/10.1038/...` are all accepted (stored lower-cased) | none (keyless, JSON); optional `CROSSREF_MAILTO` for Crossref's polite pool |
+| [bioRxiv / medRxiv](literature/biorxiv_adapter.md) | bioRxiv and medRxiv preprints (many Long COVID papers appear here first); preprints are not peer reviewed | preprint DOIs: `10.1101/2020.01.22.914952`, with a version (`...914952v2`), as `doi:` / `https://doi.org/` or as a biorxiv.org / medrxiv.org URL. Since 2026 medRxiv mints `10.64898/...` DOIs (e.g. `10.64898/2026.09.22.26363331`); no prefix is assumed | none (keyless, JSON) |
+| [OpenCitations](literature/opencitations_adapter.md) | OpenCitations open citation links between DOIs (CC0) with citation dates, timespans and self-citation flags | DOIs `10.1038/s41586-020-2012-7` (also `doi:` and `https://doi.org/`), `pmid:32015507` (bare digits count as a PMID), `omid:br/06130344922` | none (keyless, JSON); optional access token `OPENCITATIONS_ACCESS_TOKEN` |
+| [Unpaywall](literature/unpaywall_adapter.md) | Unpaywall open-access status and free full-text locations for DOIs (DOI lookups only; needs a contact e-mail you… | DOIs only: `10.1038/s41586-020-2012-7`, `doi:...`, `https://doi.org/...` (case-insensitive) | **`UNPAYWALL_EMAIL`**: your own contact e-mail address. Without it `is_available()` is `False`, no request is made and `knowledge-lookup check UNPAYWALL` reports "skipped" |
+| [DOAJ](literature/doaj_adapter.md) | DOAJ, the Directory of Open Access Journals: vetted open-access journals (licence, APC, peer review, subjects) and… | journals `journal:<32-hex DOAJ id>` or `https://doaj.org/toc/<id>`, ISSN (`1932-6203`, `ISSN:`, `eISSN:`); articles `article:<id>` or `https://doaj.org/article/<id>`, DOI (`10.1371/journal.pone.0326790`, `doi:`, `https://doi.org/...`); a bare 32-hex id is tried as journal, then as article | none (keyless) |
+| [OpenAIRE Graph](literature/openaire_adapter.md) | OpenAIRE research graph: publications, datasets, software and projects with funders, organisations, repositories and… | products: OpenAIRE id (`doi_dedup___::3e70f14256ea2d001e1c0b0d23f65ad1`, also `50\\|...`, `openaire:...`, explore URLs), DOI (`10.1038/s41579-022-00846-2`, `doi:`, `https://doi.org/...`), `PMID:36639608`, `PMC9839201`, `arXiv:2003.06265`; projects: `project:sfi_________::4f8b833f348de3405b0a868063f9db50` | none. Optional `OPENAIRE_ACCESS_TOKEN` (personal access token, sent only as `Authorization: Bearer`) |
 
-1. Add a member to `KnowledgeSource` in `knowledge_lookup.models`.
-2. Create `src/knowledge_lookup/adapters/<name>_adapter.py` with a subclass of `KnowledgeSourceAdapter`. Implement `get_source`, `search_concepts` and `get_concept_details`, and override `is_available` if the source needs a key or library.
-3. Send HTTP requests through `_make_request` / `_make_request_text`, or wrap synchronous libraries with `_thread_with_retry`, so the retries and circuit breaker apply. `_create_concept(concept_id, label, concept_type)` creates a concept with the identifier and `sources` already set.
-4. Register the class by adding `KnowledgeSource.X: ("<name>_adapter", "XAdapter")` to `_ADAPTER_SPECS` in `adapters/__init__.py` (this feeds `ADAPTER_CLASSES`, the lazy package attributes and `__all__`), and add the source to `SOURCE_CATALOG` and `SourceName` in `knowledge_lookup/mcp_server/sources.py`.
-5. Add unit tests and a page in the matching `docs/adapters/<category>/` folder, following the structure of the existing pages.
+### Trials, grants and datasets
 
-## See also
+Clinical-trial registries, funded projects and public omics datasets.
 
-- [Searching concepts](../guides/searching-concepts.md)
-- [Configuration](../getting-started/configuration.md)
-- [Examples](../examples/README.md)
+| Adapter | Covers | Identifier example | Access |
+|---|---|---|---|
+| [ClinicalTrials.gov](literature/clinicaltrials_adapter.md) | ClinicalTrials.gov registered studies with their conditions, interventions, phase, status and enrollment | `NCT07753122` (also `ClinicalTrials:NCT07753122`, case-insensitive) | none (keyless) |
+| [ISRCTN registry](literature/isrctn_adapter.md) | ISRCTN clinical trial registry (UK-based, international) | `ISRCTN54285094` (also `ISRCTN:54285094`, `isrctn 54285094`, case-insensitive) | none (keyless) |
+| [NIH RePORTER](literature/nihreporter_adapter.md) | NIH RePORTER funded research projects (ME/CFS, Long COVID and every other area) with institutes, RCDC categories… | core project number `R01AI170850` (the concept id); also full project numbers `5R01AI170850-05` and application ids `APPL:11391125`, each optionally with a `NIHREPORTER:` prefix | none (keyless, JSON over POST) |
+| [GEO](literature/geo_adapter.md) | NCBI Gene Expression Omnibus series, curated datasets, platforms and samples via E-utilities (metadata and URLs only) | `GSE226260` (series), `GDS5435` (curated dataset), `GPL21145` (platform), `GSM9652321` (sample); lower case and a `GEO:` prefix are accepted | none (`NCBI_API_KEY` raises the rate limit, `NCBI_EMAIL` is optional) |
+| [OmicsDI](literature/omicsdi_adapter.md) | OmicsDI omics dataset discovery across ArrayExpress, PRIDE, GEO, MetaboLights, ENA and 20+ more repositories (metadata… | `<database>:<accession>` such as `geo:GSE16059`, `pride:PXD076216`, `metabolights_dataset:MTBLS161`, `biostudies-arrayexpress:E-GEOD-16059`. Bare accessions (`GSE16059`, `PXD076216`, `MSV000090685`, `MTBLS161`, `ST000450`, `E-MTAB-14669`, `PRJNA1265093`, `S-EPMC...`, `EGAS...`, `phs...`) are mapped to their repository by shape. A friendly prefix (`arrayexpress:`, `metabolights:`, `ena:`) is accepted | none (keyless, JSON) |
+| [BioStudies / ArrayExpress](literature/biostudies_adapter.md) | EMBL-EBI BioStudies and ArrayExpress functional genomics studies (metadata, publications, GEO/ENA links; keyless, no… | study accession `E-GEOD-16059`, `E-MTAB-14669`, `S-EPMC7260435`; a `BIOSTUDIES:` or `ARRAYEXPRESS:` prefix is accepted | none (keyless, JSON) |
+| [PRIDE](proteins/pride_adapter.md) | PRIDE Archive proteomics projects (PXD) with species, tissues, diseases, instruments, modifications and publications… | project accession `PXD076216`, `PAD000026`, `RPXD...`; a `PRIDE:` prefix and lower case are accepted | none (keyless, JSON) |
+| [Zenodo](literature/zenodo_adapter.md) | Zenodo research datasets, software and publications: search, record metadata, licences and DOI links (no file downloads) | numeric record id `10576421`; also `zenodo.10576421`, `10.5281/zenodo.10576421`, `doi:...`, `https://doi.org/10.5281/zenodo.10576421` and `https://zenodo.org/records/10576421` | none (`ZENODO_ACCESS_TOKEN` is optional) |
+
+### General knowledge
+
+Broad knowledge graphs for names and facts that specialist sources lack.
+
+| Adapter | Covers | Identifier example | Access |
+|---|---|---|---|
+| [Wikidata](other/wikidata_adapter.md) | Wikidata items via the Wikidata Query Service - labels, descriptions, UMLS and MeSH cross-references | `Q18216` | none |
+| [DBpedia](other/dbpedia_adapter.md) | DBpedia resources via the public SPARQL endpoint - general knowledge from Wikipedia | resource name `Metformin` or `http://dbpedia.org/resource/Metformin` | none |

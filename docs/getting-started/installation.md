@@ -85,10 +85,10 @@ Biomedical Knowledge Lookup
 Version: <installed version>
 Description: Unified biological concept lookup across multiple knowledge sources
 Repository: https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup
-Available sources: <n>/40
+Available sources: <n>/106
 ```
 
-`<n>` is the number of adapters that started successfully, which depends on the extras and API keys you have. The denominator counts every `KnowledgeSource` enum member; 36 of the 40 members have an adapter.
+`<n>` is the number of adapters that started successfully, which depends on the extras and API keys you have. The denominator is the number of registered adapters.
 
 From Python:
 
@@ -107,6 +107,8 @@ print(f"{len(ADAPTER_CLASSES)} adapters registered")  # 106 with the chembl and 
 | `ImportError: The agent workflow requires the 'agents' extra` | Install `biomedical-knowledge-lookup[agents]`. |
 | `knowledge-lookup-mcp` exits with `The MCP server needs the optional 'mcp' extra` | Install `biomedical-knowledge-lookup[mcp]`. |
 | `ValidationError: ... Extra inputs are not permitted` when creating `LookupConfig` | `LookupConfig` rejects unknown fields (for example `cache_enabled`). See [Configuration](configuration.md) for the supported fields. |
+
+More fixes (rate limits, slow calls, notebook errors) are in [Troubleshooting and FAQ](troubleshooting.md).
 
 ## Next steps
 

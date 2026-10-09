@@ -104,7 +104,27 @@ When standard input is closed or not interactive (for example in a script or CI 
 knowledge-lookup sources
 ```
 
-Prints a table of all 106 sources that have an adapter, with a description, what the source requires (an API key environment variable or an optional extra, `-` for nothing) and whether it is available in the current environment, followed by `<n>/36 sources available in this environment`. The same catalog backs the MCP server's `biomed_list_sources` tool; see [Knowledge source adapters](../adapters/README.md) for details on each adapter.
+Prints a table of all 106 sources that have an adapter, with a description, what the source requires (an API key environment variable or an optional extra, `-` for nothing) and whether it is available in the current environment, followed by `<n>/106 sources available in this environment`. The same catalog backs the MCP server's `biomed_list_sources` tool; see [Knowledge source adapters](../adapters/README.md) for details on each adapter.
+
+## `check`
+
+```bash
+knowledge-lookup check HGNC
+knowledge-lookup check WIKIPATHWAYS --query "interleukin"
+knowledge-lookup check STRING --id STRING:9606.ENSP00000269305
+knowledge-lookup check all --no-relationships
+```
+
+Smoke-tests one adapter, or every adapter with `all`, against its **live API**. It runs `search_concepts`, then `get_concept_details` on the first hit, then `get_relationships`, and prints a pass/fail line with timing for each step followed by a preview of what came back. Use it to confirm a source works from your network before relying on it, or to see what a source returns.
+
+| Option | Meaning |
+|---|---|
+| `--query`, `-q` | search term; the default is `BRCA1`, or a term that suits the source (`aspirin` for chemistry, `fatigue` for terminologies) |
+| `--id` | skip the search and test `get_concept_details` on this identifier |
+| `--no-relationships` | skip the relationships step |
+| `--timeout` | per-call timeout in seconds (default 60) |
+
+Sources that need a key, a file or an opt-in download are reported as **skipped** and name the variable to set. The exit status is non-zero when a tested source fails. See [What each source returns](data-coverage.md) for the output of this check across all sources.
 
 ## `info`
 
@@ -112,7 +132,7 @@ Prints a table of all 106 sources that have an adapter, with a description, what
 knowledge-lookup info
 ```
 
-Prints the version, description, repository URL and `Available sources: <n>/36`, where `<n>` is the number of adapters that initialised with your extras and API keys.
+Prints the version, description, repository URL and `Available sources: <n>/106`, where `<n>` is the number of adapters that initialised with your extras and API keys.
 
 ## `benchmark`
 

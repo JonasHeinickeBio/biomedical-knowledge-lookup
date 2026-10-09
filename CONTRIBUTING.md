@@ -70,7 +70,7 @@ To add support for a new knowledge source:
 
 4. **Add tests** in `tests/unit/test_adapters/test_new_source_adapter.py`
 
-5. **Update documentation** in `docs/adapters/`
+5. **Update documentation**: add `docs/adapters/<folder>/<module>.md`, add the source to a domain in `scripts/_source_taxonomy.py` and run `poetry run python scripts/build_source_index.py` (see `docs/contributing/README.md`)
 
 ## 📝 Commit Guidelines
 

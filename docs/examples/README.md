@@ -1,10 +1,10 @@
 ---
-description: A runnable example for each of the 36 knowledge sources, plus Jupyter notebooks and end-to-end use cases.
+description: A runnable example for each of the first 36 knowledge sources, plus Jupyter notebooks and end-to-end use cases.
 ---
 
 # Examples
 
-- **Per-source examples:** one short script for each of the 36 knowledge sources. It
+- **Per-source examples:** one short script for each of the first 36 knowledge sources (every later adapter page has its own quick example). It
   searches the source and, where the adapter supports it, looks up a concept by
   identifier. Each script has its recorded output next to it.
 - **[Notebooks](notebooks/README.md):** getting started, API keys, rate limits and error
