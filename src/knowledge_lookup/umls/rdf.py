@@ -27,6 +27,7 @@ Usage::
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from pathlib import Path
@@ -221,15 +222,18 @@ class SparqlEndpoint:
         self.timeout = timeout
         self.user_agent = user_agent
         self._session: aiohttp.ClientSession | None = None
+        self._session_loop: asyncio.AbstractEventLoop | None = None
 
     async def _get_session(self) -> aiohttp.ClientSession:
-        if self._session is None:
+        loop = asyncio.get_running_loop()
+        if self._session is None or self._session.closed or self._session_loop is not loop:
             import aiohttp
 
             self._session = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=self.timeout),
                 headers={"User-Agent": self.user_agent},
             )
+            self._session_loop = loop
         assert self._session is not None
         return self._session
 
@@ -271,9 +275,12 @@ class SparqlEndpoint:
 
     async def close(self):
         """Close the underlying HTTP session."""
-        if self._session:
-            await self._session.close()
-            self._session = None
+        session, self._session = self._session, None
+        if session and not session.closed:
+            try:
+                await session.close()
+            except RuntimeError:
+                pass  # the session's event loop is already closed
 
     @staticmethod
     def _parse_sparql_json(data: dict) -> list[dict[str, Any]]:

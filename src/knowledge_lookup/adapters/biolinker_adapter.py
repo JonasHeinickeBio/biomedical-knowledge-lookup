@@ -35,12 +35,18 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
 
     async def _get_session(self):
         """Get or create aiohttp session with extended timeout for BioLinker AI."""
-        if self.session is None or self.session.closed:
+        loop = asyncio.get_running_loop()
+        if (
+            self.session is None
+            or self.session.closed
+            or (self._session_loop is not None and self._session_loop is not loop)
+        ):
             import aiohttp
 
             # Use longer timeout specifically for BioLinker AI (can be slow)
             timeout = aiohttp.ClientTimeout(total=180)  # 2 minute total timeout
             self.session = aiohttp.ClientSession(timeout=timeout)
+            self._session_loop = loop
         return self.session
 
     async def search_concepts_with_depth(

@@ -44,6 +44,32 @@ class TestKnowledgeSourceAdapter:
         finally:
             await adapter.close()
 
+    def test_session_is_recreated_for_each_event_loop(self, adapter):
+        """A session from a closed loop must not be handed to the next asyncio.run()."""
+        import asyncio
+
+        first = asyncio.run(adapter._get_session())
+        second = asyncio.run(adapter._get_session())
+        try:
+            assert second is not first
+            assert not second.closed
+        finally:
+            asyncio.run(adapter.close())
+
+    @pytest.mark.asyncio
+    async def test_session_is_reused_within_one_loop(self, adapter):
+        try:
+            assert await adapter._get_session() is await adapter._get_session()
+        finally:
+            await adapter.close()
+
+    def test_close_tolerates_session_from_closed_loop(self, adapter):
+        import asyncio
+
+        asyncio.run(adapter._get_session())
+        asyncio.run(adapter.close())  # must not raise
+        assert adapter.session is None
+
     @pytest.mark.asyncio
     async def test_session_timeout_floor_for_slow_sources(self, adapter):
         """min_request_timeout raises the budget, but never lowers a longer config."""

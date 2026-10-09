@@ -86,6 +86,7 @@ class KnowledgeSourceAdapter(ABC):
         self.config = config
         self.source = self.get_source()
         self.session: aiohttp.ClientSession | None = None
+        self._session_loop: asyncio.AbstractEventLoop | None = None
         self._circuit_breaker: CircuitBreaker | None = None
         self._cache = get_cache()
 
@@ -274,13 +275,23 @@ class KnowledgeSourceAdapter(ABC):
         return rate_limits.get(self.source, 1.0) if rate_limits is not None else 1.0
 
     async def _get_session(self) -> aiohttp.ClientSession:
-        """Get or create aiohttp session."""
-        if self.session is None or self.session.closed:
+        """Get or create an aiohttp session bound to the running event loop.
+
+        A session outlives its loop without reporting ``closed``, so one created under
+        an earlier ``asyncio.run()`` would fail on the next; it is replaced instead.
+        """
+        loop = asyncio.get_running_loop()
+        if (
+            self.session is None
+            or self.session.closed
+            or (self._session_loop is not None and self._session_loop is not loop)
+        ):
             import aiohttp  # deferred: a sizeable import that only HTTP adapters need
 
             configured = self.config.timeout_per_source or 0.0
             timeout = aiohttp.ClientTimeout(total=max(configured, self.min_request_timeout))
             self.session = aiohttp.ClientSession(timeout=timeout)
+            self._session_loop = loop
         return self.session
 
     async def _make_request(
@@ -329,8 +340,13 @@ class KnowledgeSourceAdapter(ABC):
 
     async def close(self):
         """Close the adapter and cleanup resources."""
-        if self.session and not self.session.closed:
-            await self.session.close()
+        session, self.session = self.session, None
+        if session and not session.closed:
+            try:
+                await session.close()
+            except RuntimeError:
+                # The session belongs to an event loop that is already closed.
+                pass
 
     def _get_cache_key(self, operation: str, *params: Any) -> str:
         """Generate a cache key for adapter operations."""

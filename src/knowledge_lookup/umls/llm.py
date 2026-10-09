@@ -111,14 +111,17 @@ class AnthropicBackend(LLMBackend):
         self.api_key = api_key
         self.model = model
         self._session: Any | None = None
+        self._session_loop: asyncio.AbstractEventLoop | None = None
 
     async def _get_session(self) -> Any:
         if not AIOHTTP_AVAILABLE:
             raise RuntimeError("aiohttp is required but not installed")
         import aiohttp
 
-        if self._session is None:
+        loop = asyncio.get_running_loop()
+        if self._session is None or self._session.closed or self._session_loop is not loop:
             self._session = aiohttp.ClientSession()
+            self._session_loop = loop
         assert self._session is not None
         return self._session
 
@@ -144,9 +147,12 @@ class AnthropicBackend(LLMBackend):
             return data["content"][0]["text"].strip()
 
     async def close(self):
-        if self._session:
-            await self._session.close()
-            self._session = None
+        session, self._session = self._session, None
+        if session and not session.closed:
+            try:
+                await session.close()
+            except RuntimeError:
+                pass  # the session's event loop is already closed
 
 
 class HuggingFaceBackend(LLMBackend):
