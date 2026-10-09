@@ -44,6 +44,47 @@ class TestKnowledgeSourceAdapter:
         finally:
             await adapter.close()
 
+    def test_session_is_recreated_for_each_event_loop(self, adapter):
+        """A session from a closed loop must not be handed to the next asyncio.run()."""
+        import asyncio
+
+        first = asyncio.run(adapter._get_session())
+        second = None
+        try:
+            second = asyncio.run(adapter._get_session())
+            assert second is not first
+            assert not second.closed
+            assert first.closed  # the replaced session is released, not leaked
+        finally:
+            for session in (first, second):
+                if session is not None and not session.closed:
+                    asyncio.run(session.close())
+            asyncio.run(adapter.close())
+
+    @pytest.mark.asyncio
+    async def test_session_is_reused_within_one_loop(self, adapter):
+        try:
+            assert await adapter._get_session() is await adapter._get_session()
+        finally:
+            await adapter.close()
+
+    def test_close_tolerates_session_from_closed_loop(self, adapter):
+        import asyncio
+
+        asyncio.run(adapter._get_session())
+        asyncio.run(adapter.close())  # must not raise
+        assert adapter.session is None
+
+    @pytest.mark.asyncio
+    async def test_session_assigned_after_close_is_kept(self, adapter):
+        """close() forgets the loop, so a later directly-assigned session stays usable."""
+        await adapter._get_session()
+        await adapter.close()
+        assert adapter._session_loop is None
+        injected = MagicMock(closed=False)
+        adapter.session = injected
+        assert await adapter._get_session() is injected
+
     @pytest.mark.asyncio
     async def test_session_timeout_floor_for_slow_sources(self, adapter):
         """min_request_timeout raises the budget, but never lowers a longer config."""
