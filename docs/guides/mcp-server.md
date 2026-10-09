@@ -6,7 +6,7 @@ description: Expose the lookup library to Claude, Cursor, VS Code and other LLM 
 
 `knowledge_lookup.mcp_server` exposes the lookup library to LLM agents over the
 [Model Context Protocol](https://modelcontextprotocol.io). Any MCP client
-(Claude Code, Claude Desktop, Cursor, VS Code, ...) can then search 36
+(Claude Code, Claude Desktop, Cursor, VS Code, ...) can then search 106
 biomedical ontologies and databases, resolve identifiers and cross-walk them
 between vocabularies.
 

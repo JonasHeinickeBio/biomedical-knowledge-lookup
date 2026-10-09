@@ -30,7 +30,7 @@ poetry run knowledge-lookup-mcp            # MCP server (stdio)
 
 ## Development Workflow
 
-1. **Add new adapter**: Create in `adapters/`, add to `models.KnowledgeSource` enum, and add a `(module, class)` entry to `_ADAPTER_SPECS` in `adapters/__init__.py` (feeds the lazy `ADAPTER_CLASSES`). Keep imports lazy: no module-level imports of heavy/optional client libraries (`import knowledge_lookup` must not import adapters or the network-touching ChEMBL client)
+1. **Add new adapter**: Create in `adapters/`, add to `models.KnowledgeSource` enum, and add a `(module, class)` entry to `_ADAPTER_SPECS` in `adapters/__init__.py` (feeds the lazy `ADAPTER_CLASSES`). Add the docs page and the source to `scripts/_source_taxonomy.py`, then run `poetry run python scripts/build_source_index.py` (sidebar, README and adapter index are generated; `tests/unit/test_docs_index.py` fails when they are stale). Keep imports lazy: no module-level imports of heavy/optional client libraries (`import knowledge_lookup` must not import adapters or the network-touching ChEMBL client)
 2. **Testing**: Write unit tests, ensure >90% coverage, add mock to `tests/fixtures/mock_responses.py`
 3. **Pre-commit**: Ruff format + lint (line-length=99), MyPy (with `--ignore-missing-imports`), runs on `src/`
    - **Note**: Pre-commit excludes `UP007` and `E501` from linting (`ruff --ignore=UP007,E501`)

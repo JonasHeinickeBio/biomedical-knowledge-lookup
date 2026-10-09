@@ -1,4 +1,18 @@
-# KEGG Adapter
+---
+description: KEGG pathways, genes, compounds, diseases and drugs through the public KEGG REST API.
+---
+
+# KEGG adapter
+
+Searches the Kyoto Encyclopedia of Genes and Genomes and fetches entries by identifier, with cross-database links as mappings and gene-pathway links as relationships. KEGG is free for academic use; check its licence before commercial use.
+
+| | |
+|---|---|
+| Source | `KnowledgeSource.KEGG` |
+| Class | `knowledge_lookup.adapters.KEGGAdapter` |
+| Requires | none |
+| Identifiers | `hsa00010` (pathway), `C11378` (compound), `H00409` (disease), `D00109` (drug) |
+| Upstream API | `https://rest.kegg.jp` |
 
 ## Overview
 

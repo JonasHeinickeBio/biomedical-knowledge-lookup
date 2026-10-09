@@ -71,11 +71,20 @@ The documentation is a [GitBook](https://www.gitbook.com/) site built from the `
 Conventions:
 
 * Start every page with a single `# Title`, optionally preceded by YAML front matter with a `description:`.
-* Name folder landing pages `README.md` and add new pages to `docs/SUMMARY.md`.
+* Name folder landing pages `README.md`. `docs/SUMMARY.md`, the adapter index, the source tables in `README.md` and the landing page are **generated**: do not edit them by hand.
 * Use relative links between pages (`../guides/caching.md`) and GitHub URLs for files outside `docs/`.
 * Verify every API name, parameter and default against `src/knowledge_lookup/`.
 * Make code examples runnable: scripts use `asyncio.run(main())` and close the lookup in a `finally` block. Label notebook-only snippets that use top-level `await`.
 * Run the examples you add, and use GitBook blocks (`{% hint %}`, `{% tabs %}`, `{% code %}`) only where they help.
+
+### Adding a source to the docs
+
+1. Copy the layout of a similar page under `docs/adapters/<folder>/<module>.md`: front-matter `description:`, an info table with `Source`, `Class`, `Requires`, `Identifiers` and `Upstream API` rows, a quick example with real output, and a "Live verification" section with measured latency.
+2. Add the source to one domain in `scripts/_source_taxonomy.py`.
+3. Run `poetry run python scripts/build_source_index.py`. It rewrites the sidebar, the adapter index, the README tables and the landing page, and fails if a source is missing from the taxonomy.
+4. Refresh [What each source returns](../guides/data-coverage.md) with `scripts/harvest_source_samples.py` and `scripts/build_data_coverage_doc.py` (see the header of each script).
+
+`tests/unit/test_docs_index.py` checks that the indexes are fresh and that relative links resolve.
 
 ## Get help
 

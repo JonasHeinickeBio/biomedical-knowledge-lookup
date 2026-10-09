@@ -18,7 +18,7 @@ This page lists the public API with signatures taken from the source. For task-o
 | Cache | `KnowledgeLookupCache`, `get_cache`, `init_cache` |
 | Adapters | `ADAPTER_CLASSES` and 106 adapter classes (`OLSAdapter`, `MondoAdapter`, `HPOAdapter`, `UMLSAdapter`, ...) |
 
-All 36 adapter classes are importable from `knowledge_lookup.adapters`.
+All 106 adapter classes are importable from `knowledge_lookup.adapters`.
 
 ## `CentralKnowledgeLookup`
 
