@@ -1,10 +1,10 @@
 ---
-description: What adapters are, how to use them directly or through CentralKnowledgeLookup, and the full list of 36 knowledge-source adapters.
+description: What adapters are, how to use them directly or through CentralKnowledgeLookup, and the full list of 106 knowledge-source adapters.
 ---
 
 # Adapters
 
-An adapter connects the library to one knowledge source: an ontology service, a database REST API, a SPARQL endpoint or a client library. It translates that source's responses into the common `UnifiedConcept` model, so results from OLS, UMLS, UniProt or ChEMBL can be handled the same way. The library ships **106 adapters**, one per `KnowledgeSource`, registered in `knowledge_lookup.adapters.ADAPTER_CLASSES`.
+An adapter connects the library to one knowledge source: an ontology service, a database REST API, a SPARQL endpoint or a client library. It translates that source's responses into the common `UnifiedConcept` model, so results from OLS, UMLS, UniProt or ChEMBL can be handled the same way. The library ships **106 adapters**, one per `KnowledgeSource`, registered in `knowledge_lookup.adapters.ADAPTER_CLASSES`. To see what each one actually returns (hits, relationships, cross-references, raw fields), measured live, read [What each source returns](../guides/data-coverage.md).
 
 ## The common interface
 

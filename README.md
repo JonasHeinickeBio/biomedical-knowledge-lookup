@@ -261,7 +261,7 @@ as environment variables, for example with `claude mcp add ... -e UMLS_API_KEY=.
 
 </details>
 
-Per-source details are in the [adapter documentation](docs/adapters/README.md). The
+Per-source details are in the [adapter documentation](docs/adapters/README.md); [What each source returns](docs/guides/data-coverage.md) shows live samples of the data each API sends back. The
 [`example_notebooks/`](example_notebooks/) folder has a notebook for most adapters.
 
 ## Configuration

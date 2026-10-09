@@ -17,6 +17,7 @@
 * [CURIE management](guides/curie-management.md)
 * [Caching](guides/caching.md)
 * [Exporting results](guides/exporting-results.md)
+* [What each source returns](guides/data-coverage.md)
 * [Command-line interface](guides/cli.md)
 * [Agent workflow](guides/agent-workflow.md)
 * [MCP server](guides/mcp-server.md)
