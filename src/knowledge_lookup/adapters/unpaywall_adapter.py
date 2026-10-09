@@ -9,17 +9,17 @@ Concepts are *works* identified by DOI (bare, ``doi:`` and ``https://doi.org/`` 
 API (https://unpaywall.org/products/api; DOI object schema: https://unpaywall.org/data-format)::
 
     GET https://api.unpaywall.org/v2/<doi>?email=<contact address>
-    GET https://api.unpaywall.org/v2/search?query=<q>&is_oa=<bool>&page=<n>&email=<...>
 
-NOT LIVE-VERIFIED against a successful response. The API demands an ``email`` parameter and
-answers HTTP 422 ``Email address required in API call`` without it (verified live
-2026-10-09, for the DOI and the search endpoint alike). The address must be a contact address
-the *user* chooses; this adapter was written without one, so the response parsing below
-follows the documented DOI-object schema and is tested with fixtures built from it. To check
-it against the live service, run ``UNPAYWALL_EMAIL=you@your.org knowledge-lookup check
-UNPAYWALL``. Unverified points: the exact search response envelope (parsed defensively: a
-list ``results`` whose entries hold the DOI object under ``response``, or are DOI objects),
-the page size of the search endpoint, and the 404 body for unknown DOIs.
+Verified live on 2026-10-09 with a real contact address: the DOI endpoint returns the DOI
+object this adapter parses, and an unknown DOI gives ``None``. The API demands an ``email``
+parameter and answers HTTP 422 ``Email address required in API call`` without it. The address
+must be a contact address the *user* chooses, so it is read from the environment only.
+
+**There is no free-text search any more.** ``GET /v2/search`` answers HTTP 410 ``gone``: "Unpaywall
+title search was retired on 2026-09-18. Use OpenAlex instead" (OpenAlex is the successor from
+the same team and Unpaywall now runs on its database). :meth:`search_concepts` therefore only
+resolves a DOI; any other text makes no request and logs a one-time pointer to
+:class:`~knowledge_lookup.adapters.openalex_adapter.OpenAlexAdapter`, which does the title search.
 
 The e-mail address:
 
@@ -93,6 +93,7 @@ class UnpaywallAdapter(KnowledgeSourceAdapter):
         self._day = _utc_today()
         self._calls_today = 0
         self._records: OrderedDict[str, dict[str, Any]] = OrderedDict()
+        self._text_search_hint_logged = False
 
     def get_source(self) -> KnowledgeSource:
         return KnowledgeSource.UNPAYWALL
@@ -167,13 +168,12 @@ class UnpaywallAdapter(KnowledgeSourceAdapter):
     # Public interface
     # ------------------------------------------------------------------
 
-    async def search_concepts(
-        self, query: str, limit: int = 20, open_access_only: bool | None = None
-    ) -> list[UnifiedConcept]:
-        """Title search through ``/v2/search`` (not live-verified; see module doc).
+    async def search_concepts(self, query: str, limit: int = 20) -> list[UnifiedConcept]:
+        """Resolve a DOI (bare, ``doi:`` or ``https://doi.org/`` form) to its work.
 
-        A DOI as the query resolves directly to that work. ``open_access_only`` maps to the
-        endpoint's ``is_oa`` filter (``True``: only OA works, ``False``: only closed ones).
+        Unpaywall retired its title search on 2026-09-18 (HTTP 410), so any query that is not a
+        DOI returns ``[]`` without a request and logs a one-time hint to use the OpenAlex adapter
+        for text search.
         """
         try:
             query = (query or "").strip()
@@ -183,22 +183,13 @@ class UnpaywallAdapter(KnowledgeSourceAdapter):
             if doi:
                 concept = await self.get_concept_details(doi)
                 return [concept] if concept else []
-            params: dict[str, Any] = {"query": query}
-            if open_access_only is not None:
-                params["is_oa"] = str(bool(open_access_only)).lower()
-            data = await self._get("search", params)
-            entries = data.get("results") if isinstance(data, dict) else None
-            concepts: list[UnifiedConcept] = []
-            seen: set[str] = set()
-            for entry in entries if isinstance(entries, list) else []:
-                item = entry.get("response") if isinstance(entry, dict) else None
-                if not isinstance(item, dict):
-                    item = entry if isinstance(entry, dict) and entry.get("doi") else None
-                concept = self._work_to_concept(item) if item else None
-                if concept is not None and concept.primary_id not in seen:
-                    seen.add(concept.primary_id)
-                    concepts.append(concept)
-            return concepts[:limit]
+            if not self._text_search_hint_logged:
+                self._text_search_hint_logged = True
+                logger.warning(
+                    "Unpaywall title search was retired on 2026-09-18; only DOI lookups work. "
+                    "Use the OpenAlex adapter to search by text."
+                )
+            return []
         except Exception as e:
             logger.error(f"Unpaywall search_concepts failed: {_describe(e)}")
             return []

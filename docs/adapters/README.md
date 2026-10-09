@@ -286,7 +286,7 @@ Pages are grouped by category.
 | [Enrichr](pathways/enrichr_adapter.md) | Enrichr gene-set enrichment over hundreds of libraries (uploads your gene list to maayanlab.cloud, which stores it) | `BRCA1` | none |
 | [OpenAIRE Graph](literature/openaire_adapter.md) | OpenAIRE research graph: publications, datasets, software, projects and funders | `long covid` | none |
 | [DOAJ](literature/doaj_adapter.md) | Directory of Open Access Journals and articles | `long covid` | none |
-| [Unpaywall](literature/unpaywall_adapter.md) | Unpaywall open-access locations for DOIs (needs a contact e-mail you set) | `10.1038/s41586-020-2012-7` | the UNPAYWALL_EMAIL environment variable |
+| [Unpaywall](literature/unpaywall_adapter.md) | Unpaywall open-access locations for DOIs (DOI lookups only: its title search was retired; needs a contact e-mail you set) | `10.1038/s41586-020-2012-7` | the UNPAYWALL_EMAIL environment variable |
 
 {% hint style="warning" %}
 **Known issues (tested September 2026).** Details are on each page.

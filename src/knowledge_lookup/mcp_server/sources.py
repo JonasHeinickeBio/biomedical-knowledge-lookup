@@ -411,7 +411,7 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
         "Directory of Open Access Journals and articles",
     ),
     KnowledgeSource.UNPAYWALL: SourceSpec(
-        "Unpaywall open-access locations for DOIs (needs a contact e-mail you set)",
+        "Unpaywall open-access locations for DOIs (DOI lookups only: its title search was retired; needs a contact e-mail you set)",
         "the UNPAYWALL_EMAIL environment variable",
     ),
 }

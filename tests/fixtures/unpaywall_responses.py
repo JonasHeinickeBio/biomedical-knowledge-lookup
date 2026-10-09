@@ -150,12 +150,3 @@ CLOSED_WORK = {
     "year": 2020,
     "z_authors": [],
 }
-
-SEARCH_RESPONSE = {
-    "elapsed_seconds": 0.05,
-    "results": [
-        {"response": GREEN_WORK, "score": 12.3, "snippet": "A synthetic study of <b>fatigue</b>"},
-        {"response": GOLD_WORK, "score": 9.1, "snippet": None},
-        {"response": GREEN_WORK, "score": 8.0, "snippet": None},
-    ],
-}

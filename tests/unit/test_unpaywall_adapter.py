@@ -287,28 +287,23 @@ class TestDetails:
 
 
 class TestSearch:
-    @pytest.mark.asyncio
-    async def test_search(self, adapter):
-        mock = router({"search": fx.SEARCH_RESPONSE})
-        with patch.object(adapter, "_make_request", new=mock):
-            concepts = await adapter.search_concepts("fatigue", limit=5)
-        assert [c.primary_id for c in concepts] == [GREEN, GOLD]  # duplicate dropped
-        assert mock.call_args.kwargs["params"] == {"query": "fatigue", "email": EMAIL}
+    """Unpaywall retired its title search (HTTP 410, 2026-09-18): only DOIs resolve now."""
 
     @pytest.mark.asyncio
-    async def test_open_access_filter_and_limit(self, adapter):
-        mock = router({"search": fx.SEARCH_RESPONSE})
+    async def test_text_query_makes_no_request_and_returns_nothing(self, adapter):
+        mock = AsyncMock()
         with patch.object(adapter, "_make_request", new=mock):
-            concepts = await adapter.search_concepts("fatigue", 1, open_access_only=False)
-        assert len(concepts) == 1
-        assert mock.call_args.kwargs["params"]["is_oa"] == "false"
+            assert await adapter.search_concepts("long covid", limit=5) == []
+        mock.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_entries_may_be_bare_doi_objects(self, adapter):
-        mock = router({"search": {"results": [fx.GOLD_WORK, {"junk": 1}, "x", {"response": 5}]}})
-        with patch.object(adapter, "_make_request", new=mock):
-            concepts = await adapter.search_concepts("open")
-        assert [c.primary_id for c in concepts] == [GOLD]
+    async def test_text_query_logs_the_openalex_hint_once(self, adapter, caplog):
+        with caplog.at_level(logging.WARNING):
+            await adapter.search_concepts("long covid")
+            await adapter.search_concepts("fatigue")
+        hints = [r for r in caplog.records if "OpenAlex" in r.getMessage()]
+        assert len(hints) == 1
+        assert "2026-09-18" in hints[0].getMessage()
 
     @pytest.mark.asyncio
     async def test_doi_query_resolves_directly(self, adapter):
@@ -318,21 +313,24 @@ class TestSearch:
         assert [c.primary_id for c in concepts] == [GOLD]
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("query, limit", [("", 5), ("   ", 5), (None, 5), ("fatigue", 0)])
+    async def test_unknown_doi_gives_an_empty_list(self, adapter):
+        mock = router({GOLD: FakeClientError(404, f"https://api.unpaywall.org/v2/{GOLD}")})
+        with patch.object(adapter, "_make_request", new=mock):
+            assert await adapter.search_concepts(GOLD) == []
+
+    @pytest.mark.asyncio
+    async def test_outer_guard_on_search(self, adapter):
+        failing = AsyncMock(side_effect=RuntimeError("boom"))
+        with patch.object(adapter, "get_concept_details", new=failing):
+            assert await adapter.search_concepts(GOLD) == []
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("query, limit", [("", 5), ("   ", 5), (None, 5), (GOLD, 0)])
     async def test_empty_query_or_zero_limit(self, adapter, query, limit):
         mock = AsyncMock()
         with patch.object(adapter, "_make_request", new=mock):
             assert await adapter.search_concepts(query, limit) == []
         mock.assert_not_called()
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        "response", [{"results": []}, {"results": None}, {"results": "x"}, [1], None, fx.ERROR_422]
-    )
-    async def test_empty_and_error_responses(self, adapter, response):
-        mock = router({"search": response})
-        with patch.object(adapter, "_make_request", new=mock):
-            assert await adapter.search_concepts("fatigue") == []
 
     @pytest.mark.asyncio
     async def test_outer_guard(self, adapter):

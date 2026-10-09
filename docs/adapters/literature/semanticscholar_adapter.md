@@ -101,7 +101,19 @@ Probed keyless with polite spacing (4 to 20 s between requests). **About two thi
 | `paper/search?query=long covid&fields=...` | **429 on all 17 attempts over about an hour (spacing 4 s to 2.5 min): the search endpoint could not be verified live**; its parsing is covered only by a fixture built from the documented response shape (`total`, `offset`, `next`, `data`) |
 | `python -m knowledge_lookup check SEMANTICSCHOLAR` | search degraded to `[]` after the bounded backoff (6.8 s) and the check reports FAIL, as expected under 429; an end-to-end run of the adapter's `get_concept_details`, `get_relationships` and `get_mappings` against the real API succeeded (details with TLDR, 5 references and 5 citations, DOI/PMID/PMCID/CorpusId mappings), the first 429s being absorbed by the bounded retry |
 
-The endpoints that did answer are covered by trimmed real responses in the unit tests; rerun the check with a key (`SEMANTIC_SCHOLAR_API_KEY=... python -m knowledge_lookup check SEMANTICSCHOLAR`) to confirm search.
+The endpoints that did answer are covered by trimmed real responses in the unit tests.
+
+## With an API key (2026-10-09)
+
+With a free key in `SEMANTIC_SCHOLAR_API_KEY` (sent as the `x-api-key` header) the search endpoint that never answered keyless works. `python -m knowledge_lookup check SEMANTICSCHOLAR` passes end to end:
+
+| Step | Result |
+|---|---|
+| `search_concepts` ("long covid") | 5 results in about 1.3 s; the real response matches the documented envelope (`total`, `offset`, `next`, `data`) the adapter parses |
+| `get_concept_details` | the top hit (a Long COVID review) with abstract, TLDR and counts |
+| `get_relationships` | 50 edges (references and citations) in about 2 s |
+
+So the search fixture used in the unit tests, which was built from the documented shape, is now confirmed against a real response. A key is still strongly recommended: without one, `paper/search` was answered with HTTP 429 on every attempt. A key that Semantic Scholar has revoked answers HTTP 403, not 429.
 
 ## Rate limits and errors
 

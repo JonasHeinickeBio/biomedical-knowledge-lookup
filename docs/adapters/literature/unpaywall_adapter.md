@@ -1,12 +1,12 @@
 ---
-description: Unpaywall open-access status and free full-text locations for DOIs (needs a contact e-mail you choose in UNPAYWALL_EMAIL; not live-verified).
+description: Unpaywall open-access status and free full-text locations for DOIs (DOI lookups only; needs a contact e-mail you choose in UNPAYWALL_EMAIL).
 ---
 
 # Unpaywall adapter
 
 Asks [Unpaywall](https://unpaywall.org) whether a free, legal full-text copy of a DOI exists, and where: open access status (`gold`, `hybrid`, `bronze`, `green`, `closed`), the best copy, every other copy found, each with its version, licence and host (publisher or repository).
 
-> **Status: implemented from the documentation, NOT live-verified.** Unpaywall refuses every request without an `email` parameter (HTTP 422, verified 2026-10-09 for the DOI and the search endpoint), and that address has to be a contact address *you* choose. It was deliberately not invented or borrowed while this adapter was written, so response parsing follows the documented schema and is covered by synthetic fixtures, not by a captured response. Run the live check yourself (below) and report differences.
+> **Status: live-verified for DOI lookups (2026-10-09). Text search no longer exists.** Unpaywall retired its title search on 2026-09-18 (`/v2/search` now answers HTTP 410), so this adapter resolves DOIs only; use the [OpenAlex adapter](openalex_adapter.md) to search by text. Every request needs an `email` parameter holding a contact address *you* choose (`UNPAYWALL_EMAIL`); it is never defaulted and never logged.
 
 | | |
 |---|---|
@@ -20,7 +20,7 @@ Asks [Unpaywall](https://unpaywall.org) whether a free, legal full-text copy of 
 
 ```bash
 export UNPAYWALL_EMAIL="you@your-institution.org"   # an address you are happy to give Unpaywall
-knowledge-lookup check UNPAYWALL                     # search -> details -> relationships against the live API
+knowledge-lookup check UNPAYWALL                     # DOI -> details -> relationships against the live API
 knowledge-lookup check UNPAYWALL --id 10.1038/s41586-020-2012-7
 ```
 
@@ -62,7 +62,7 @@ asyncio.run(main())
 | `get_concept_details(doi)` | The work: title, year, journal, publisher, `is_oa`, `oa_status`, `has_repository_copy`, `journal_is_oa`, `journal_is_in_doaj`, `best_oa_location`, `oa_locations` (capped at 10; `n_oa_locations` is the full count), `n_embargoed_locations`, first 10 authors. Type `CITATION`, id = the lower-case DOI. |
 | `get_relationships(doi, limit=25)` | `available_at` one edge per OA copy, best first (`related_id` is the copy's URL; `version`, `license`, `host_type`, `is_best`, `repository_institution`, `url_for_pdf`, `oa_date`, `evidence` reported verbatim), then `published_in` (journal, `ISSN:<issn-l>`) and `published_by` (publisher). `limit` caps the copies. |
 | `get_mappings(doi)` | `DOI`, `ISSN-L` and `ISSN`s of the journal. |
-| `search_concepts(query, limit, open_access_only=None)` | Title search through `/v2/search?query=...` (`open_access_only` maps to `is_oa`). A DOI as the query resolves directly. The search response envelope is parsed defensively because it is not live-verified: a list `results` whose entries hold the DOI object under `response` (or are DOI objects). |
+| `search_concepts(query, limit)` | Resolves a DOI (bare, `doi:` or `https://doi.org/`) to its work. Any other text makes no request and returns `[]` with a one-time log hint, because Unpaywall's title search was retired (HTTP 410, 2026-09-18). |
 
 All methods return `[]` / `None` on errors, unknown DOIs and invalid ids. The DOI record is cached per adapter instance (64 DOIs), so details, relationships and mappings of one DOI cost one call.
 
@@ -83,14 +83,16 @@ Reported as Unpaywall returns them, without interpretation:
 - Unpaywall data are CC0; the service is free. Only DOIs from the lookup are sent (nothing else), plus your address.
 - No other authentication exists for this API.
 
-## Not verified live (check these on first use)
+## Live verification (2026-10-09)
 
-1. The response parsing against a real DOI object (field names follow the [data format page](https://unpaywall.org/data-format); `journal_issns` is read as a comma-separated string, a list also works).
-2. The search endpoint: path `/v2/search?query=...&email=...` (the request without email answered 422 like the DOI endpoint, so the path exists), `is_oa` and `page` parameters, the result envelope and the page size.
-3. The 404 body for unknown DOIs (`{"error": true, "message": ...}` is assumed; any error status gives `None`).
-4. Whether Unpaywall rejects particular e-mail domains (placeholder addresses such as `@example.com` may be refused; a rejection would answer 422 and yield empty results with a logged status code).
+Run with a real contact address in `UNPAYWALL_EMAIL`:
 
-Verified live (2026-10-09, without an address): `GET /v2/<doi>` and `GET /v2/search?query=...` both answer HTTP 422 `{"HTTP_status_code": 422, "error": true, "message": "Email address required in API call, see http://unpaywall.org/products/api"}` in about 0.4 s.
+- `GET /v2/<doi>?email=...` returns the DOI object the adapter parses. For `10.1038/s41586-020-2012-7` the concept comes back with its title, year 2020, journal Nature and `oa_status: hybrid`; `get_relationships` returns 8 edges (open-access copies, journal, publisher). `check UNPAYWALL` passes.
+- An unknown DOI gives `None` (no exception, the circuit breaker is not tripped).
+- A normal address is accepted. Without the address the API answers HTTP 422 `{"error": true, "message": "Email address required in API call, ..."}` in about 0.4 s, and the adapter then reports `is_available() == False` and makes no request.
+- `GET /v2/search?query=...` answers **HTTP 410** `{"error": "gone", "message": "Unpaywall title search was retired on 2026-09-18. Use OpenAlex instead: https://api.openalex.org/works?search=YOUR+QUERY ..."}`. An earlier version of this adapter assumed the endpoint existed because it answered 422 without an address; that inference was wrong, and the search code was removed.
+
+Still unverified: a gold open-access work with several repository copies against a real response (the multi-location handling is covered by fixtures built from the documented schema), and the 100,000-calls-per-day limit (the adapter only counts its own calls).
 
 ## See also
 
