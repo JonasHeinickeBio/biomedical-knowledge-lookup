@@ -115,6 +115,20 @@
 * [OpenCitations](adapters/literature/opencitations_adapter.md)
 * [NIH RePORTER](adapters/literature/nihreporter_adapter.md)
 * [Semantic Scholar](adapters/literature/semanticscholar_adapter.md)
+* [FHIR terminology server](adapters/ontologies/fhirterminology_adapter.md)
+* [ISRCTN registry](adapters/literature/isrctn_adapter.md)
+* [NCBI Gene](adapters/proteins/ncbigene_adapter.md)
+* [OmicsDI](adapters/literature/omicsdi_adapter.md)
+* [BioStudies / ArrayExpress](adapters/literature/biostudies_adapter.md)
+* [PRIDE](adapters/proteins/pride_adapter.md)
+* [GEO](adapters/literature/geo_adapter.md)
+* [Zenodo](adapters/literature/zenodo_adapter.md)
+* [IMPC](adapters/phenotypes/impc_adapter.md)
+* [Alliance of Genome Resources](adapters/proteins/alliance_adapter.md)
+* [Enrichr](adapters/pathways/enrichr_adapter.md)
+* [OpenAIRE Graph](adapters/literature/openaire_adapter.md)
+* [DOAJ](adapters/literature/doaj_adapter.md)
+* [Unpaywall](adapters/literature/unpaywall_adapter.md)
 
 ## Examples
 

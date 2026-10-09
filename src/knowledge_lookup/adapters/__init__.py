@@ -119,6 +119,20 @@ _ADAPTER_SPECS: dict[KnowledgeSource, tuple[str, str]] = {
     KnowledgeSource.OPENCITATIONS: ("opencitations_adapter", "OpenCitationsAdapter"),
     KnowledgeSource.NIHREPORTER: ("nihreporter_adapter", "NIHReporterAdapter"),
     KnowledgeSource.SEMANTICSCHOLAR: ("semanticscholar_adapter", "SemanticScholarAdapter"),
+    KnowledgeSource.FHIRTERMINOLOGY: ("fhirterminology_adapter", "FHIRTerminologyAdapter"),
+    KnowledgeSource.ISRCTN: ("isrctn_adapter", "ISRCTNAdapter"),
+    KnowledgeSource.NCBIGENE: ("ncbigene_adapter", "NCBIGeneAdapter"),
+    KnowledgeSource.OMICSDI: ("omicsdi_adapter", "OmicsDIAdapter"),
+    KnowledgeSource.BIOSTUDIES: ("biostudies_adapter", "BioStudiesAdapter"),
+    KnowledgeSource.PRIDE: ("pride_adapter", "PRIDEAdapter"),
+    KnowledgeSource.GEO: ("geo_adapter", "GEOAdapter"),
+    KnowledgeSource.ZENODO: ("zenodo_adapter", "ZenodoAdapter"),
+    KnowledgeSource.IMPC: ("impc_adapter", "IMPCAdapter"),
+    KnowledgeSource.ALLIANCE: ("alliance_adapter", "AllianceGenomeAdapter"),
+    KnowledgeSource.ENRICHR: ("enrichr_adapter", "EnrichrAdapter"),
+    KnowledgeSource.OPENAIRE: ("openaire_adapter", "OpenAIREAdapter"),
+    KnowledgeSource.DOAJ: ("doaj_adapter", "DOAJAdapter"),
+    KnowledgeSource.UNPAYWALL: ("unpaywall_adapter", "UnpaywallAdapter"),
 }
 
 # Adapters that need an optional extra: source -> importable top-level module the

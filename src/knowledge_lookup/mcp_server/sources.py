@@ -20,11 +20,13 @@ from ..models import KnowledgeSource
 # Every source with an adapter (see ``adapters.ADAPTER_CLASSES``). Spelled out as a
 # Literal so tool input schemas list exactly the names a model may pass.
 SourceName = Literal[
+    "ALLIANCE",
     "ALPHAFOLD",
     "BIOLINKER",
     "BIOONTOLOGY",
     "BIOPORTAL",
     "BIORXIV",
+    "BIOSTUDIES",
     "CELLMARKER",
     "CELLONTOLOGY",
     "CELLXGENE",
@@ -42,15 +44,19 @@ SourceName = Literal[
     "DBSNP",
     "DGIDB",
     "DISGENET",
+    "DOAJ",
     "DOID",
     "DRUGBANK",
     "EBIOLS",
+    "ENRICHR",
     "ENSEMBL",
     "EQTLCATALOGUE",
     "EUROPEPMC",
     "EUTILS",
+    "FHIRTERMINOLOGY",
     "GENCC",
     "GENEONTOLOGY",
+    "GEO",
     "GNOMAD",
     "GTEX",
     "GWASCATALOG",
@@ -61,8 +67,10 @@ SourceName = Literal[
     "ICD10GM",
     "ICD11",
     "IEDB",
+    "IMPC",
     "INTACT",
     "INTERPRO",
+    "ISRCTN",
     "KEGG",
     "LIPIDMAPS",
     "LITCOVID",
@@ -76,6 +84,7 @@ SourceName = Literal[
     "MONDO",
     "MYGENEINFO",
     "MYGENEINFO",
+    "NCBIGENE",
     "NCBITAXONOMY",
     "NCIEVS",
     "NIHREPORTER",
@@ -83,7 +92,9 @@ SourceName = Literal[
     "OBOFOUNDRY",
     "OFFSIDES",
     "OLS",
+    "OMICSDI",
     "OMIM",
+    "OPENAIRE",
     "OPENALEX",
     "OPENCITATIONS",
     "OPENFDAEVENTS",
@@ -94,6 +105,7 @@ SourceName = Literal[
     "PANELAPP",
     "PDB",
     "PFAM",
+    "PRIDE",
     "PUBCHEM",
     "PUBTATOR",
     "QUICKGO",
@@ -110,8 +122,10 @@ SourceName = Literal[
     "UMLS",
     "UNICHEM",
     "UNIPROT",
+    "UNPAYWALL",
     "WIKIDATA",
     "WIKIPATHWAYS",
+    "ZENODO",
     "ZOOMA",
 ]
 
@@ -356,6 +370,49 @@ SOURCE_CATALOG: dict[KnowledgeSource, SourceSpec] = {
     ),
     KnowledgeSource.SEMANTICSCHOLAR: SourceSpec(
         "Semantic Scholar papers, citations and TLDR summaries (keyless search is heavily rate limited; a free key is recommended)",
+    ),
+    KnowledgeSource.FHIRTERMINOLOGY: SourceSpec(
+        "Generic HL7 FHIR terminology server client (tx.fhir.org, Ontoserver, German MII or any $lookup/$expand server)",
+    ),
+    KnowledgeSource.ISRCTN: SourceSpec(
+        "ISRCTN clinical trial registry (UK-based, international)",
+    ),
+    KnowledgeSource.NCBIGENE: SourceSpec(
+        "NCBI Gene records, summaries and cross-references (Datasets API)",
+    ),
+    KnowledgeSource.OMICSDI: SourceSpec(
+        "OmicsDI omics dataset discovery across ArrayExpress, PRIDE, GEO, MetaboLights and more",
+    ),
+    KnowledgeSource.BIOSTUDIES: SourceSpec(
+        "EMBL-EBI BioStudies and ArrayExpress functional genomics studies",
+    ),
+    KnowledgeSource.PRIDE: SourceSpec(
+        "PRIDE Archive proteomics projects and datasets",
+    ),
+    KnowledgeSource.GEO: SourceSpec(
+        "NCBI Gene Expression Omnibus series, samples and platforms via E-utilities",
+    ),
+    KnowledgeSource.ZENODO: SourceSpec(
+        "Zenodo research data and software records",
+    ),
+    KnowledgeSource.IMPC: SourceSpec(
+        "International Mouse Phenotyping Consortium gene-phenotype associations",
+    ),
+    KnowledgeSource.ALLIANCE: SourceSpec(
+        "Alliance of Genome Resources model-organism genes, orthologs, diseases and phenotypes",
+    ),
+    KnowledgeSource.ENRICHR: SourceSpec(
+        "Enrichr gene-set enrichment over hundreds of libraries (UPLOADS your gene list to maayanlab.cloud, which stores it)",
+    ),
+    KnowledgeSource.OPENAIRE: SourceSpec(
+        "OpenAIRE research graph: publications, datasets, software, projects and funders",
+    ),
+    KnowledgeSource.DOAJ: SourceSpec(
+        "Directory of Open Access Journals and articles",
+    ),
+    KnowledgeSource.UNPAYWALL: SourceSpec(
+        "Unpaywall open-access locations for DOIs (DOI lookups only: its title search was retired; needs a contact e-mail you set)",
+        "the UNPAYWALL_EMAIL environment variable",
     ),
 }
 
