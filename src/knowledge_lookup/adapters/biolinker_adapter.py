@@ -12,6 +12,7 @@ from typing import Any
 
 from ..base import KnowledgeSourceAdapter
 from ..models import ConceptIdentifier, ConceptType, KnowledgeSource, LookupConfig, UnifiedConcept
+from ..utils.session_utils import close_session
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +36,19 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
 
     async def _get_session(self):
         """Get or create aiohttp session with extended timeout for BioLinker AI."""
-        if self.session is None or self.session.closed:
+        loop = asyncio.get_running_loop()
+        if (
+            self.session is None
+            or self.session.closed
+            or (self._session_loop is not None and self._session_loop is not loop)
+        ):
             import aiohttp
 
+            await close_session(self.session, self._session_loop)
             # Use longer timeout specifically for BioLinker AI (can be slow)
             timeout = aiohttp.ClientTimeout(total=180)  # 2 minute total timeout
             self.session = aiohttp.ClientSession(timeout=timeout)
+            self._session_loop = loop
         return self.session
 
     async def search_concepts_with_depth(
@@ -537,6 +545,7 @@ class BioLinkerAdapter(KnowledgeSourceAdapter):
 
     async def close(self):
         """Close the adapter and cleanup resources."""
-        if self.session and not self.session.closed:
-            await self.session.close()
+        session, loop = self.session, self._session_loop
+        self.session = self._session_loop = None
+        await close_session(session, loop)
         logger.info("BioLinker AI adapter closed")
