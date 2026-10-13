@@ -128,6 +128,18 @@ All other adapters use public APIs without a key. See [Configuration](../getting
 
 Adapters built on synchronous libraries (NCBI E-utilities, QuickGO and UniChem via `bioservices`) apply the same rules in a worker thread (`_thread_with_retry`). ChEMBL retries its `query()` calls with its own backoff decorator (up to four tries). UMLS and Tyto rely on their libraries and do not use the shared retry.
 
+**`Retry-After`.** When a 429 or 5xx response carries a `Retry-After` header (seconds or an HTTP date), the pause before the next attempt is at least that long, capped at 120 s, so a server's explicit request is never answered with a shorter backoff. Public endpoints ban clients that retry early.
+
+**Per-adapter policy.** An adapter can set three class attributes:
+
+| Attribute | Effect |
+|---|---|
+| `min_request_timeout` | floor for the per-request timeout, so a slow answer is not cut off and re-run |
+| `retry_strategies` | replaces the table above (a copy of `DEFAULT_RETRY_STRATEGIES` with entries changed); Wikidata and DBpedia retry network errors once after 2 s instead of twice at once |
+| `max_concurrent_requests` | caps simultaneous requests of one adapter instance; backoff sleeps do not hold a slot |
+
+An adapter can also override `_inspect_response(response)`, called with every successful response before its body is read, to read headers (DBpedia uses it to log partial results). All requests send a `User-Agent` of the form `AID-PAIS-Knowledge-Lookup/<version> (+<project URL>)`, which the Wikimedia policy asks for.
+
 **Errors.** Once retries are exhausted, most adapters log the error and return `[]` from `search_concepts` and `None` from `get_concept_details`. Exceptions to this rule are noted on the adapter pages.
 
 **Throttling.** Adapters do not throttle on their own. `CentralKnowledgeLookup` waits `1 / rate_limit` seconds before each search on a source, where the rate comes from `LookupConfig.rate_limits` (default 1 request per second, i.e. a one-second delay). Raise it per source, for example `LookupConfig(rate_limits={KnowledgeSource.OLS: 10.0})`.
@@ -325,5 +337,5 @@ Broad knowledge graphs for names and facts that specialist sources lack.
 
 | Adapter | Covers | Identifier example | Access |
 |---|---|---|---|
-| [Wikidata](other/wikidata_adapter.md) | Wikidata items via the Wikidata Query Service - labels, descriptions, UMLS and MeSH cross-references | `Q18216` | none |
+| [Wikidata](other/wikidata_adapter.md) | Wikidata items via the Wikidata Query Service - labels, descriptions and the main biomedical cross-reference identifiers | `Q18216` | none |
 | [DBpedia](other/dbpedia_adapter.md) | DBpedia resources via the public SPARQL endpoint - general knowledge from Wikipedia | resource name `Metformin` or `http://dbpedia.org/resource/Metformin` | none |
