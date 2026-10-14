@@ -136,7 +136,7 @@ Values for `dbo:nciId` and `dbo:orpha` are only accepted when they look like the
 
 ## Source-specific methods
 
-`run_sparql_query(sparql_query: str, limit: int | None = None)` sends any SPARQL query to the endpoint and returns the JSON result (`head`, `results.bindings`). It appends `LIMIT` if `limit` is given and the query has none. The query is sent as written, so escape any user input yourself.
+`run_sparql_query(sparql_query: str, limit: int | None = None)` sends any SPARQL query to the endpoint and returns the JSON result (`head`, `results.bindings`). It appends `LIMIT` if `limit` is given and the query does not already end in a top-level `LIMIT` (case-insensitive, optionally followed by `OFFSET`); a `LIMIT` inside a subquery, or the word in a literal or IRI, does not count. The query is sent as written, so escape any user input yourself.
 
 ## Rate limits and errors
 

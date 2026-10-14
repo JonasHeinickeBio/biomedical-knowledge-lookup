@@ -1168,3 +1168,80 @@ class TestDBpediaSynonymsAndLookup:
         ) as mock:
             await adapter.find_by_identifier(KnowledgeSource.OMIM, '1") } UNION { ?s ?p ?o')
         assert 'STR(?id) = "1\\") } UNION { ?s ?p ?o")' in mock.call_args.args[0]
+
+
+class TestRunSparqlQueryLimit:
+    """The row cap must survive a LIMIT elsewhere in the query text."""
+
+    @pytest.fixture
+    def adapter(self, lookup_config):
+        return DBpediaAdapter(lookup_config)
+
+    async def _sent(self, adapter, query, **kwargs):
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value={}
+        ) as mock_req:
+            await adapter.run_sparql_query(query, **kwargs)
+        return mock_req.call_args.args[1]["query"]
+
+    @pytest.mark.asyncio
+    async def test_limit_is_appended_when_the_query_has_none(self, adapter):
+        sent = await self._sent(adapter, "SELECT ?s WHERE { ?s ?p ?o }", limit=7)
+        assert sent.endswith("LIMIT 7")
+
+    @pytest.mark.asyncio
+    async def test_nested_limit_does_not_suppress_the_outer_one(self, adapter):
+        query = "SELECT ?s WHERE { { SELECT ?s WHERE { ?s ?p ?o } LIMIT 12 } }"
+        sent = await self._sent(adapter, query, limit=200)
+        assert sent.endswith("}\nLIMIT 200")
+        assert "LIMIT 12" in sent
+
+    @pytest.mark.asyncio
+    async def test_the_word_in_an_iri_or_literal_does_not_suppress_it(self, adapter):
+        query = 'SELECT ?s WHERE { <http://dbpedia.org/resource/LIMIT> ?p "LIMIT 5" }'
+        sent = await self._sent(adapter, query, limit=9)
+        assert sent.endswith("LIMIT 9")
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "SELECT ?s WHERE { ?s ?p ?o } LIMIT 3",
+            "SELECT ?s WHERE { ?s ?p ?o } limit 3",  # case-insensitive: no second LIMIT
+            "SELECT ?s WHERE { ?s ?p ?o } LIMIT 3 OFFSET 10",
+            "SELECT ?s WHERE { ?s ?p ?o }\nLIMIT 3\n",
+        ],
+    )
+    async def test_an_existing_trailing_limit_is_kept(self, adapter, query):
+        sent = await self._sent(adapter, query, limit=500)
+        assert sent == query
+        assert "LIMIT 500" not in sent
+
+    @pytest.mark.asyncio
+    async def test_no_limit_argument_sends_the_query_unchanged(self, adapter):
+        query = "SELECT ?s WHERE { ?s ?p ?o }"
+        assert await self._sent(adapter, query) == query
+
+    @pytest.mark.asyncio
+    async def test_details_query_is_capped_at_200_rows_in_the_text_sent(self, adapter):
+        """The sameAs subquery's LIMIT 12 used to make the outer cap disappear."""
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value={}
+        ) as mock_req:
+            await adapter.get_concept_details("Crohn's_disease")
+
+        sent = mock_req.call_args.args[1]["query"]
+        assert "LIMIT 12" in sent  # the sameAs subquery
+        assert sent.rstrip().endswith("LIMIT 200")
+
+    @pytest.mark.asyncio
+    async def test_identifier_containing_limit_does_not_drop_the_cap(self, adapter):
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock, return_value={}
+        ) as mock_req:
+            await adapter.find_by_identifier(KnowledgeSource.OMIM, "LIMIT 1", limit=3)
+            await adapter.get_synonyms("Limit_(mathematics)", limit=4)
+
+        first, second = (c.args[1]["query"] for c in mock_req.call_args_list)
+        assert first.rstrip().endswith("LIMIT 3")
+        assert second.rstrip().endswith("LIMIT 4")

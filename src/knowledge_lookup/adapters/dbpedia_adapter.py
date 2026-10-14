@@ -82,6 +82,9 @@ _EXTERNAL_IDS: dict[str, ExternalId] = {
     f"{_DBO}atcCode": ExternalId("ATC", pattern=r"[A-Z]\d{2}[A-Z]{2}\d{2}"),
 }
 
+# A top-level LIMIT is the last clause of the query (a nested one is followed by "}")
+_TRAILING_LIMIT = re.compile(r"\bLIMIT\s+\d+\s*(?:OFFSET\s+\d+\s*)?$", re.IGNORECASE)
+
 # Characters that may not appear inside a SPARQL <IRI> reference
 _IRI_FORBIDDEN = re.compile(r'[<>"{}|^`\\\s]')
 
@@ -250,9 +253,12 @@ class DBpediaAdapter(KnowledgeSourceAdapter):
     async def run_sparql_query(self, sparql_query: str, limit: int | None = None) -> Any:
         """
         Run a generic SPARQL query against DBpedia and return the raw results.
+
+        ``limit`` is appended unless the query already ends in a top-level ``LIMIT``.
+        A ``LIMIT`` inside a subquery, or the word in a literal or IRI, does not count.
         """
-        if limit is not None and "LIMIT" not in sparql_query:
-            sparql_query += f"\nLIMIT {limit}"
+        if limit is not None and not _TRAILING_LIMIT.search(sparql_query):
+            sparql_query = f"{sparql_query.rstrip()}\nLIMIT {int(limit)}"
         params = {"query": sparql_query, "format": "json"}
         return await self._make_request(self.sparql_endpoint, params)
 
