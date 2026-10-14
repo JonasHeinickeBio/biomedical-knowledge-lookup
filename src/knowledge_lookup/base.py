@@ -5,9 +5,12 @@ Base classes for knowledge source adapters.
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import email.utils
 import functools
 import logging
 import os
+import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -28,6 +31,51 @@ from .utils.session_utils import close_session
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+#: Upper bound (seconds) on how long a server-sent ``Retry-After`` is honoured.
+MAX_RETRY_AFTER = 120.0
+
+_PROJECT_URL = "https://github.com/JonasHeinickeBio/biomedical-knowledge-lookup"
+
+
+def default_user_agent() -> str:
+    """``AID-PAIS-Knowledge-Lookup/<version> (<project url>)``.
+
+    The Wikimedia User-Agent policy asks clients for a name/version and contact
+    information, and may block generic or anonymous agents with HTTP 403.
+    """
+    try:
+        from . import __version__
+    except Exception:  # pragma: no cover - only during a broken partial import
+        __version__ = "0"
+    return f"AID-PAIS-Knowledge-Lookup/{__version__} (+{_PROJECT_URL})"
+
+
+def retry_after_seconds(exc: BaseException) -> float | None:
+    """Seconds the server asked us to wait, from ``Retry-After`` on *exc*'s response.
+
+    Accepts both forms of the header, a number of seconds or an HTTP date. Returns
+    ``None`` when the exception has no response headers or the value is unusable.
+    """
+    headers = getattr(exc, "headers", None)
+    if not headers:
+        return None
+    try:
+        value = headers.get("Retry-After")
+    except Exception:
+        return None
+    if not value:
+        return None
+    value = str(value).strip()
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        pass
+    try:
+        when = email.utils.parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    return max(0.0, when.timestamp() - time.time())
 
 
 def _skip_retry_sleep() -> bool:
@@ -83,11 +131,22 @@ class KnowledgeSourceAdapter(ABC):
     #: Floor (seconds) for the per-request HTTP timeout; 0 means "use config".
     min_request_timeout: float = 0.0
 
+    #: Per-adapter override of ``DEFAULT_RETRY_STRATEGIES`` for requests made through
+    #: :meth:`_make_request`; ``None`` keeps the defaults. Public endpoints that count
+    #: timed-out or failed queries against a quota (Wikidata) want a gentler policy
+    #: than the default of two immediate retries.
+    retry_strategies: dict[ErrorCategory, tuple[int, float, float]] | None = None
+
+    #: Maximum simultaneous HTTP requests of this adapter instance; ``None`` is
+    #: unlimited. Backoff sleeps do not hold a slot.
+    max_concurrent_requests: int | None = None
+
     def __init__(self, config: LookupConfig):
         self.config = config
         self.source = self.get_source()
         self.session: aiohttp.ClientSession | None = None
         self._session_loop: asyncio.AbstractEventLoop | None = None
+        self._request_gate: tuple[asyncio.AbstractEventLoop, asyncio.Semaphore] | None = None
         self._circuit_breaker: CircuitBreaker | None = None
         self._cache = get_cache()
 
@@ -168,6 +227,12 @@ class KnowledgeSourceAdapter(ABC):
                     delay = factor * (2 ** (attempt - 1))
                     if max_delay > 0:
                         delay = min(delay, max_delay)
+                # A server that says how long to wait is obeyed (clients that retry
+                # before Retry-After elapses get banned by e.g. Wikimedia).
+                if category in (ErrorCategory.RATE_LIMITED, ErrorCategory.SERVER_ERROR):
+                    requested = retry_after_seconds(exc)
+                    if requested is not None:
+                        delay = max(delay, min(requested, MAX_RETRY_AFTER))
                 if delay > 0 and not _skip_retry_sleep():
                     await asyncio.sleep(delay)
 
@@ -296,6 +361,24 @@ class KnowledgeSourceAdapter(ABC):
             self._session_loop = loop
         return self.session
 
+    def _gate(self) -> asyncio.Semaphore | None:
+        """The concurrency semaphore for the running loop (``None`` = unlimited)."""
+        if not self.max_concurrent_requests:
+            return None
+        loop = asyncio.get_running_loop()
+        if self._request_gate is None or self._request_gate[0] is not loop:
+            # a Semaphore is bound to the loop it is first awaited on
+            self._request_gate = (loop, asyncio.Semaphore(self.max_concurrent_requests))
+        return self._request_gate[1]
+
+    def _inspect_response(self, response: aiohttp.ClientResponse) -> None:
+        """Hook called with each successful response before its body is read.
+
+        Subclasses use it to read headers the JSON body does not carry, such as
+        DBpedia's partial-result markers. Must not raise or block.
+        """
+        return None
+
     async def _make_request(
         self,
         url: str,
@@ -310,22 +393,28 @@ class KnowledgeSourceAdapter(ABC):
         """
         request_headers = headers or {}
         if "User-Agent" not in request_headers:
-            request_headers["User-Agent"] = "AID-PAIS-Knowledge-Lookup/1.0"
+            request_headers["User-Agent"] = default_user_agent()
 
         async def _do() -> dict[str, Any]:
             session = await self._get_session()
-            if json_data:
-                async with session.post(
-                    url, params=params, headers=request_headers, json=json_data
-                ) as response:
-                    response.raise_for_status()
-                    return await response.json()
-            else:
-                async with session.get(url, params=params, headers=request_headers) as response:
-                    response.raise_for_status()
-                    return await response.json()
+            gate = self._gate()
+            async with gate if gate is not None else contextlib.nullcontext():
+                if json_data:
+                    async with session.post(
+                        url, params=params, headers=request_headers, json=json_data
+                    ) as response:
+                        response.raise_for_status()
+                        self._inspect_response(response)
+                        return await response.json()
+                else:
+                    async with session.get(
+                        url, params=params, headers=request_headers
+                    ) as response:
+                        response.raise_for_status()
+                        self._inspect_response(response)
+                        return await response.json()
 
-        return await self._call_with_retry("_make_request", _do)
+        return await self._call_with_retry("_make_request", _do, strategies=self.retry_strategies)
 
     async def _make_request_text(
         self, url: str, params: dict | None = None, headers: dict | None = None
@@ -334,11 +423,16 @@ class KnowledgeSourceAdapter(ABC):
 
         async def _do() -> str:
             session = await self._get_session()
-            async with session.get(url, params=params, headers=headers) as response:
-                response.raise_for_status()
-                return await response.text()
+            gate = self._gate()
+            async with gate if gate is not None else contextlib.nullcontext():
+                async with session.get(url, params=params, headers=headers) as response:
+                    response.raise_for_status()
+                    self._inspect_response(response)
+                    return await response.text()
 
-        return await self._call_with_retry("_make_request_text", _do)
+        return await self._call_with_retry(
+            "_make_request_text", _do, strategies=self.retry_strategies
+        )
 
     async def close(self):
         """Close the adapter and cleanup resources."""
